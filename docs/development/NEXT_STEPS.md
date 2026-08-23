@@ -6,7 +6,7 @@ Phase 2 implementation is complete on PR #4 and is at the final merge gate.
 
 Immediate actions:
 
-1. Run GitHub CI on the final documentation and migration-synchronization head.
+1. Confirm GitHub CI is green on the current PR #4 head.
 2. Confirm Supabase security advisor remains clean.
 3. Confirm performance advisor reports only acceptable unused-index INFO notices.
 4. Mark PR #4 ready for review.
