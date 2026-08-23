@@ -1,5 +1,5 @@
-import { lstat, writeFile } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { lstat } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import { loadScannerConfig } from "../scanner-core/config/load-config";
 import { ScannerConfigError, type ScannerOutputFormat } from "../scanner-core/config/types";
@@ -10,6 +10,7 @@ import { buildRepositoryInventory } from "../scanner-core/inventory/build-invent
 import { evaluatePolicy, resolveScanExitCode } from "../scanner-core/policy/evaluate-policy";
 import { SCAN_EXIT, type ScanExitCode } from "../scanner-core/policy/exit-codes";
 import { serializeScanResult } from "../scanner-output/json/serialize";
+import { UnsafeOutputError, writeScanOutput } from "./safe-output";
 import { formatTerminalResult } from "./terminal";
 
 export const SCOPEFORGE_VERSION = "0.1.0";
@@ -125,10 +126,6 @@ function selectScanners(scanners: Scanner[], configured: string[] | null): Scann
   return scanners.filter((scanner) => enabled.has(scanner.name));
 }
 
-function resolveOutputPath(root: string, outputPath: string): string {
-  return isAbsolute(outputPath) ? outputPath : resolve(root, outputPath);
-}
-
 export async function runCli(argv: string[], options: RunCliOptions = {}): Promise<ScanExitCode> {
   const io = options.io ?? defaultIo();
   const cwd = resolve(options.cwd ?? process.cwd());
@@ -154,6 +151,7 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     const config = await loadScannerConfig(args.path);
     const format = args.format ?? config.output.format;
     const output = args.output ?? config.output.path;
+    const outputFromRepositoryConfig = args.output === undefined && config.output.path !== undefined;
     const failOn = args.failOn ?? config.failOn;
 
     const inventory = await buildRepositoryInventory(args.path, config.budgets);
@@ -170,7 +168,9 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
         : formatTerminalResult(result);
 
     if (output) {
-      await writeFile(resolveOutputPath(args.path, output), rendered, "utf8");
+      await writeScanOutput(args.path, output, rendered, {
+        requireWithinRoot: outputFromRepositoryConfig
+      });
     } else {
       io.stdout(rendered);
     }
@@ -189,6 +189,10 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     }
     if (error instanceof ScannerConfigError) {
       io.stderr(`Configuration error: ${error.message}\n`);
+      return SCAN_EXIT.USAGE_ERROR;
+    }
+    if (error instanceof UnsafeOutputError) {
+      io.stderr(`Unsafe output: ${error.message}\n`);
       return SCAN_EXIT.USAGE_ERROR;
     }
     io.stderr(`ScopeForge failed safely: ${error instanceof Error ? error.message : String(error)}\n`);
