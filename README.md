@@ -31,11 +31,14 @@ Shipped foundation:
 - report-only default policy with explicit `--fail-on` severity enforcement
 - distinct success, policy, usage/configuration, and scanner-error exit codes
 - local CLI with terminal and JSON output
-- first built-in detector family: secret scanning
+- built-in secret scanning
+- syntax-aware JavaScript/TypeScript structural SAST
 
-The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
+The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, complete private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
 
-JavaScript/TypeScript SAST, dependency/OSV analysis, CycloneDX SBOM, IaC rules, baselines, and SARIF are still Phase 3 work.
+The JavaScript/TypeScript scanner parses JavaScript, TypeScript, JSX, TSX, MJS, CJS, MTS, and CTS as hostile data using the TypeScript parser without executing repository code or resolving imports. The first structural rules detect direct `eval`/`new Function`, explicit TLS certificate-verification disablement, and recognized response-cookie calls with `secure: false`. Malformed or over-budget files are surfaced as scanner errors while valid files continue to produce findings.
+
+Limited taint analysis, dependency/OSV analysis, CycloneDX SBOM, IaC rules, baselines, and SARIF are still Phase 3 work.
 
 Remote DAST, API fuzzing, exploit validation, credential attacks, persistence, and destructive behavior remain outside Phase 3.
 
@@ -53,14 +56,14 @@ npm run scopeforge -- scan . --fail-on high
 
 Repository configuration is read from the explicit scan root as `.scopeforge.json`. The current schema is version `1`. Repository configuration may tighten scan budgets but cannot raise ScopeForge's safe defaults.
 
-The CLI is report-only unless `--fail-on` or valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode.
+The CLI is report-only unless `--fail-on` or valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode. Scanner execution or per-file analysis errors remain distinct from policy failures and do not masquerade as a clean result.
 
-Example secret-scanner configuration:
+Example scanner configuration:
 
 ```json
 {
   "version": 1,
-  "scanners": ["secrets"],
+  "scanners": ["secrets", "jsts"],
   "rules": {
     "exclude": ["secrets/high-entropy-assignment"]
   },
@@ -70,7 +73,7 @@ Example secret-scanner configuration:
 }
 ```
 
-Use `scopeforge:allow-secret` only for an intentional fixture on the same line or immediately preceding comment line. Prefer fingerprint allowlisting for reviewed long-lived exceptions.
+Use `scopeforge:allow-secret` only for an intentional fixture on the same line or on a standalone immediately preceding comment line. Prefer fingerprint allowlisting for reviewed long-lived exceptions.
 
 ## What ScopeForge is becoming
 
@@ -125,8 +128,9 @@ ScopeForge CLI
   +--> bounded inventory
   +--> safe content-read boundary
   +--> secret scanner
+  +--> JS/TS parser + structural SAST scanner
   +--> scanner coordinator
-  +--> normalized findings
+  +--> normalized findings + explicit scanner errors
   +--> terminal / JSON outputs
 
 Browser
@@ -149,7 +153,7 @@ Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-commu
 
 ## Security and safety
 
-ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, Dockerfiles, Terraform, Kubernetes manifests, or workflows. Secret values must not be emitted in terminal or JSON findings, and scanner reads remain behind bounded filesystem checks.
+ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Secret values must not be emitted in terminal or JSON findings, and scanner reads remain behind bounded filesystem checks.
 
 Please report ScopeForge vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
