@@ -4,9 +4,9 @@ This file records the latest verified state. Update it before ending a developme
 
 | Check | Result | Evidence / notes |
 |---|---|---|
-| GitHub Actions unit tests | Pending final head | Latest implementation checkpoint passed `npm test`; final head `e001af8` is running the same suite |
-| TypeScript typecheck | Pending final head | Latest implementation checkpoint passed `npm run typecheck`; final head `e001af8` is running the same check |
-| Next.js production build | Pending final head | Latest implementation checkpoint passed `npm run build`; final head `e001af8` is running the same build |
+| GitHub Actions unit tests | Passing at implementation checkpoint | `npm test` passed after Phase 2 authorization and SSRF hardening; the final PR head must pass the same suite before merge |
+| TypeScript typecheck | Passing at implementation checkpoint | `npm run typecheck` passed after Phase 2 authorization and SSRF hardening; the final PR head must pass again before merge |
+| Next.js production build | Passing at implementation checkpoint | `npm run build` passed after Phase 2 authorization and SSRF hardening; the final PR head must pass again before merge |
 | Target-normalization tests | Passing | Includes private/local targets, IPv6 loopback, IPv4-mapped IPv6, HTTPS-only and port-443 constraints |
 | Verification tests | Passing | Includes exact-token validation, pinned public address, redirects, private/mixed DNS results, response ceiling, and timeout handling |
 | Quota tests | Passing | Trial asset and verification limits covered by unit tests; database triggers also enforce asset and verification ceilings |
