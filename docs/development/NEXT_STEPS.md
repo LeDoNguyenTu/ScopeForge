@@ -2,7 +2,7 @@
 
 ## Current phase: Phase 3A - Scanner Foundation
 
-The Phase 3 design is approved and merged. Phase 3A implementation is on PR #6 and has passed the implementation CI checkpoint.
+The Phase 3 design is approved and merged. Phase 3A implementation is on PR #6 and has passed the implementation and hardening CI checkpoints.
 
 Immediate actions:
 
@@ -11,10 +11,11 @@ Immediate actions:
 3. Mark PR #6 ready for review.
 4. Squash merge PR #6 into `main` after all gates are green.
 
-## Phase 3B - Configuration, policy, and CLI shell
+## Phase 3B - Safe reads, configuration, policy, and CLI shell
 
 After PR #6 merges, implement the next contract layer test-first:
 
+- a shared bounded inventory content-read helper that revalidates root containment, regular-file status, symlink safety, and size limits before detector code reads repository content
 - root-scoped versioned scanner configuration
 - enabled scanner-family and rule include/exclude policy
 - bounded file and scan budget configuration
@@ -25,7 +26,7 @@ After PR #6 merges, implement the next contract layer test-first:
 - terminal/native JSON output selection and output-file handling
 - `scopeforge version` and `scopeforge rules list` command skeletons
 
-Do not add detector-specific behavior before these interfaces are stable.
+Do not add detector-specific behavior before these interfaces are stable. Detector implementations must consume the shared inventory and safe-read path rather than opening repository paths independently.
 
 ## Remaining approved Phase 3 sequence
 

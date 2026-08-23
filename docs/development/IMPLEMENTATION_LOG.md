@@ -49,8 +49,8 @@
 - Added versioned deterministic ScopeForge JSON serialization.
 - Kept scanner packages independent from Next.js, Supabase, and Vercel.
 - Updated `docs/SECURITY.md` to document the current control-plane and local hostile-repository boundaries.
-- Final security review found that the accepted-file budget still walked remaining siblings. Added a regression test in CI run #72, then stopped traversal at the file-count budget.
-- CI run #73 passed 13 test files and 71 tests, TypeScript typecheck, and the Next.js production build after the hardening fix.
+- Final security review found that the accepted-file budget still walked remaining siblings. Added a regression test in CI run #72, then stopped traversal at the file-count budget. CI run #73 passed 71 tests, typecheck, and build.
+- Contract review found incomplete zero-directory `**` semantics. Added a regression test in CI run #75, fixed `**/` and trailing `/**` matching, and confirmed CI run #76 passed all 72 tests, typecheck, and production build.
 
 ## Current Phase 3 boundary
 

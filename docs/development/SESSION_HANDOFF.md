@@ -10,6 +10,7 @@ Phase 3A - Scanner Foundation implemented on PR #6, pending final PR validation 
 - PR #6 implements the first contract-first Phase 3 slice: finding contracts, stable fingerprints, bounded repository inventory, scanner coordination, deterministic deduplication, scanner error capture, severity helpers, and native ScopeForge JSON serialization.
 - The Phase 3A implementation was developed test-first. CI run #68 established the initial RED state because the planned scanner modules did not exist. CI run #69 passed after the minimal implementation was added.
 - Final security review identified that the accepted-file limit did not stop remaining sibling traversal. CI run #72 reproduced the issue with a dedicated regression test, and CI run #73 passed after traversal was stopped at the file-count budget.
+- Contract review then identified incomplete `**` ignore semantics. CI run #75 reproduced the zero-directory mismatch, and CI run #76 passed after `**/` was implemented as zero-or-more directory segments and trailing `/**` was made subtree-aware.
 - `docs/SECURITY.md` now records the Phase 2 control-plane boundary and Phase 3 local hostile-repository guarantees.
 
 ## Production resources
@@ -31,6 +32,7 @@ Remote scanner execution plane: not enabled
 - Repository inventory uses `lstat` and does not follow symlinks.
 - Generated/vendor paths are excluded by default.
 - Root `.scopeforgeignore` and `.gitignore` are honored by bounded matching logic.
+- Ignore matching supports comments, blank lines, leading `/`, trailing `/`, `*`, `**`, and `?`; negation is not used to re-include paths in this bounded first implementation.
 - File-count, per-file byte, and total-byte budgets are enforced.
 - Reaching the accepted-file budget stops remaining traversal instead of continuing through the repository.
 - Scanners receive one shared repository inventory instead of walking the repository independently.
@@ -52,9 +54,9 @@ Remote scanner execution plane: not enabled
 - `20260823192740_phase_2_index_composite_foreign_keys`
 
 ## Verification status
-- CI run #73 on hardening commit `6b617155510617568477492cd26cc1517d523894`: passing.
-- Vitest: 13 test files and 71 tests passed.
-- Phase 3A scanner tests: finding fingerprints, severity ordering, bounded inventory, traversal-stop behavior, coordinator deduplication/error capture, and deterministic JSON passed.
+- CI run #76 on ignore-semantics hardening commit `82a9074b8febbdccb60ccb1c0726c299ae9d00d2`: passing.
+- Vitest: 13 test files and 72 tests passed.
+- Phase 3A scanner tests: finding fingerprints, severity ordering, bounded inventory, traversal-stop behavior, zero-or-more `**` ignore semantics, coordinator deduplication/error capture, and deterministic JSON passed.
 - TypeScript strict typecheck: passing.
 - Next.js production build: passing.
 - Phase 3A has no database migration or Supabase policy change, so the Phase 2 database security boundary is unchanged.
@@ -64,6 +66,7 @@ Remote scanner execution plane: not enabled
 - Phase 3A establishes contracts and safety boundaries only. It does not yet ship detector rules.
 - No CLI command is exposed yet.
 - Configuration and explicit policy gating are not implemented yet.
+- A shared safe content-read helper for inventory entries is not implemented yet; this must be added before detector families read repository files so they do not bypass root/symlink/size boundaries.
 - Secret scanning and redaction are not implemented yet.
 - JS/TS AST SAST and taint analysis are not implemented yet.
 - Dependency/OSV analysis and CycloneDX SBOM generation are not implemented yet.
@@ -78,7 +81,7 @@ PR #6 - `Build Phase 3A scanner foundation`
 1. Confirm CI is green on the final PR #6 head after these handoff updates.
 2. Confirm no Critical or Important review findings remain.
 3. Mark PR #6 ready and squash merge it into `main` when all gates are green.
-4. Begin Phase 3B with configuration, policy-gate semantics, and the local CLI shell using the Phase 3A contracts.
+4. Begin Phase 3B with a safe inventory content-read helper, configuration, policy-gate semantics, and the local CLI shell using the Phase 3A contracts.
 
 ## Resume protocol
 1. Read this file.
