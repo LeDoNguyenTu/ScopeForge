@@ -6,7 +6,10 @@ import {
   verifyHttpWellKnownTarget
 } from "@/lib/assets/verification";
 
-vi.mock("node:dns/promises", () => ({ lookup: vi.fn() }));
+vi.mock("node:dns/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:dns/promises")>();
+  return { ...actual, lookup: vi.fn() };
+});
 
 const mockedLookup = vi.mocked(lookup);
 
@@ -36,6 +39,8 @@ describe("verification challenge", () => {
 describe("verifyHttpWellKnownTarget", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    mockedLookup.mockReset();
     mockedLookup.mockResolvedValue([{ address: "203.0.113.10", family: 4 }] as never);
   });
 
