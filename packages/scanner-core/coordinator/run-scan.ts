@@ -1,6 +1,6 @@
 import { compareFindings } from "../findings/severity";
 import type { Finding, ScanError, ScanResult } from "../findings/types";
-import type { RunScanInput, Scanner } from "./types";
+import type { RunScanInput, Scanner, ScannerRunResult } from "./types";
 
 function compareScanner(left: Scanner, right: Scanner): number {
   if (left.name < right.name) return -1;
@@ -15,6 +15,10 @@ function safeErrorMessage(error: unknown): string {
   return message.replace(/[\r\n\t]+/g, " ").trim().slice(0, 512) || "Scanner execution failed";
 }
 
+function normalizeScannerResult(result: Finding[] | ScannerRunResult): ScannerRunResult {
+  return Array.isArray(result) ? { findings: result, errors: [] } : result;
+}
+
 export async function runScan({ root, inventory, scanners }: RunScanInput): Promise<ScanResult> {
   const startedAt = new Date();
   const startedMs = Date.now();
@@ -24,11 +28,19 @@ export async function runScan({ root, inventory, scanners }: RunScanInput): Prom
 
   for (const scanner of orderedScanners) {
     try {
-      const findings = await scanner.scan({ root, inventory });
-      for (const finding of findings) {
+      const output = normalizeScannerResult(await scanner.scan({ root, inventory }));
+      for (const finding of output.findings) {
         if (!findingsByFingerprint.has(finding.fingerprint)) {
           findingsByFingerprint.set(finding.fingerprint, finding);
         }
+      }
+      for (const diagnostic of output.errors) {
+        errors.push({
+          scanner: scanner.name,
+          ...(diagnostic.code ? { code: diagnostic.code } : {}),
+          ...(diagnostic.file ? { file: diagnostic.file } : {}),
+          message: safeErrorMessage(diagnostic.message)
+        });
       }
     } catch (error) {
       errors.push({
