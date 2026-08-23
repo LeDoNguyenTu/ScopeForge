@@ -1,0 +1,62 @@
+.disabledLink { opacity: .45; cursor: not-allowed; }
+.backLink { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px; color: var(--muted); font-size: 12px; }
+.backLink:hover { color: var(--text); }
+.assetPageHeader { margin-bottom: 22px; }
+.assetSummaryGrid { margin-bottom: 13px; }
+.assetPanel { margin-top: 13px; }
+.assetList { display: grid; gap: 7px; }
+.assetRow { min-height: 72px; display: grid; grid-template-columns: 10px minmax(0, 1fr) 120px 150px 18px; align-items: center; gap: 14px; padding: 11px 13px; border: 1px solid var(--line-soft); border-radius: 12px; background: rgba(8,13,20,.48); transition: border-color .16s ease, background .16s ease; }
+.assetRow:hover { border-color: #34455b; background: rgba(17,25,37,.74); }
+.assetStatusDot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-2); }
+.assetStatusDot.verified { background: var(--accent); box-shadow: 0 0 12px rgba(115,239,188,.45); }
+.assetStatusDot.pending { background: var(--medium); }
+.assetStatusDot.failed { background: var(--high); }
+.assetMain { min-width: 0; }
+.assetMain strong, .assetState strong { display: block; font-size: 12px; }
+.assetMain span { display: block; margin-top: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted-2); font: 10.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.assetKind { color: var(--muted); font-size: 10px; text-transform: capitalize; }
+.assetState { text-align: right; }
+.assetState strong { color: #cdd7e4; }
+.assetState small { display: block; margin-top: 4px; color: var(--muted-2); font-size: 9.5px; }
+.emptyState { min-height: 320px; padding: 48px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.emptyIcon { width: 52px; height: 52px; display: grid; place-items: center; color: var(--accent); background: rgba(115,239,188,.07); border: 1px solid rgba(115,239,188,.18); border-radius: 14px; }
+.emptyState h3 { margin: 18px 0 8px; font-size: 17px; }
+.emptyState p { max-width: 520px; margin: 0 0 20px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.formLayout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr); gap: 13px; align-items: start; }
+.assetForm { display: grid; gap: 17px; }
+.formIntro { display: flex; gap: 12px; align-items: flex-start; padding-bottom: 5px; }
+.formIntro h2, .safetyAside h2, .verificationHeader h2 { margin: 0 0 6px; font-size: 17px; letter-spacing: -.025em; }
+.formIntro p, .safetyAside > p, .verificationHeader p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.assetForm label { display: grid; gap: 7px; color: #cbd4df; font-size: 11px; font-weight: 700; }
+.assetForm input, .assetForm select { width: 100%; min-height: 46px; padding: 0 13px; border-radius: 11px; border: 1px solid #293648; color: var(--text); background: #090e15; outline: none; font: inherit; }
+.assetForm input:focus, .assetForm select:focus { border-color: rgba(115,239,188,.7); box-shadow: 0 0 0 3px rgba(115,239,188,.07); }
+.fieldHelp { margin: -8px 0 0; color: var(--muted-2); font-size: 10.5px; line-height: 1.6; }
+.formError { padding: 11px 12px; border-radius: 10px; border: 1px solid rgba(255,141,107,.25); background: rgba(255,141,107,.06); color: #ffc3b2; font-size: 11px; line-height: 1.5; }
+.formActions { display: flex; justify-content: flex-end; padding-top: 3px; }
+.safetyAside { position: sticky; top: 88px; }
+.miniSteps { display: grid; gap: 10px; margin-top: 22px; }
+.miniSteps > div { display: flex; gap: 10px; align-items: center; padding: 11px; border: 1px solid var(--line-soft); border-radius: 11px; background: rgba(7,11,17,.42); }
+.miniSteps > div > span { width: 25px; height: 25px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 8px; color: var(--accent); background: rgba(115,239,188,.07); font-size: 10px; font-weight: 800; }
+.miniSteps p { margin: 0; color: var(--muted); font-size: 11px; }.miniSteps strong { color: var(--text); }
+.controlBadge { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: rgba(255,255,255,.02); font-size: 10px; font-weight: 700; text-transform: capitalize; }
+.controlBadge.verified { color: #bcebd9; border-color: rgba(115,239,188,.2); background: rgba(115,239,188,.05); }
+.assetDetailGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.detailList { margin: 0; display: grid; }
+.detailList > div { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line-soft); }
+.detailList > div:last-child { border-bottom: 0; }.detailList dt { color: var(--muted); font-size: 10.5px; }.detailList dd { margin: 0; max-width: 70%; overflow-wrap: anywhere; text-align: right; color: #ccd5df; font-size: 10.5px; text-transform: capitalize; }
+.verificationSection { margin-top: 13px; }
+.verificationHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.verificationHeader > div { max-width: 760px; }
+.verificationHeader h2 { margin-top: 7px; }
+.challengeBox { margin-top: 20px; padding: 4px 0 0; display: grid; gap: 10px; }
+.instructionStep { display: flex; gap: 12px; align-items: flex-start; padding: 13px; border: 1px solid var(--line-soft); border-radius: 12px; background: #0a1018; }
+.instructionStep > span { width: 26px; height: 26px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 8px; background: rgba(118,169,255,.08); color: var(--blue); font-size: 10px; font-weight: 800; }
+.instructionStep > div { min-width: 0; width: 100%; }.instructionStep strong { display: block; margin: 2px 0 7px; font-size: 11px; }.instructionStep p { margin: 7px 0 10px; color: var(--muted); font-size: 10.5px; line-height: 1.6; }.instructionStep code { overflow-wrap: anywhere; color: #c7d4e5; font: 10.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.tokenRow { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 8px; align-items: center; padding: 8px 8px 8px 10px; border: 1px solid #253245; border-radius: 9px; background: #070b11; }
+.tokenRow code { min-width: 0; word-break: break-all; }.tokenRow button { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px; color: var(--muted); background: #131c28; }
+.verificationSuccess { display: flex; align-items: flex-start; gap: 12px; color: var(--accent); }.verificationSuccess strong { display: block; color: #d5f7ea; font-size: 13px; }.verificationSuccess p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.auditList { display: grid; }.auditRow { min-height: 48px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line-soft); }.auditRow:last-child { border-bottom: 0; }.auditDot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--blue); }.auditRow strong { display: block; color: #cad4e0; font-size: 10.5px; text-transform: capitalize; }.auditRow small { display: block; margin-top: 3px; color: var(--muted-2); font-size: 9.5px; }.emptyCompact { padding: 22px 0 8px; color: var(--muted); font-size: 11px; }
+.nextAction { margin-top: 13px; padding: 17px 19px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid rgba(115,239,188,.18); border-radius: var(--radius); background: linear-gradient(90deg, rgba(115,239,188,.06), rgba(118,169,255,.035)); }.nextAction h2 { margin: 4px 0; font-size: 15px; }.nextAction p { margin: 0; color: var(--muted); font-size: 11px; }
+@media (max-width: 980px) { .formLayout, .assetDetailGrid { grid-template-columns: 1fr; }.safetyAside { position: static; }.assetRow { grid-template-columns: 10px minmax(0, 1fr) 120px 18px; }.assetKind { display: none; } }
+@media (max-width: 720px) { .assetRow { grid-template-columns: 10px minmax(0, 1fr) 18px; padding: 12px 10px; }.assetState { display: none; }.verificationHeader, .nextAction { flex-direction: column; align-items: stretch; }.verificationHeader .primaryButton, .nextAction .primaryButton { width: 100%; }.controlBadge { align-self: flex-start; }.assetPageHeader { flex-direction: column; }.assetSummaryGrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .assetSummaryGrid { grid-template-columns: 1fr; }.instructionStep { padding: 11px; }.tokenRow { grid-template-columns: minmax(0, 1fr) 34px; } }
