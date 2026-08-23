@@ -9,12 +9,14 @@ import { walkAst } from "./ast/traverse";
 import { createJstsFinding } from "./findings/create-finding";
 import { JSTS_RULES } from "./rules/builtin";
 import type { JstsRuleDefinition } from "./rules/types";
+import { scanCommandInjection } from "./taint/command-injection";
 
 export interface ScanSourceFileInput {
   file: string;
   sourceFile: ts.SourceFile;
   rules?: ScannerRuleSelection;
   maxNodes: number;
+  maxTaintSteps?: number;
 }
 
 export interface ScanSourceFileResult {
@@ -34,6 +36,7 @@ interface RuleCandidate {
 type HttpsBindingKind = "import" | "require";
 
 const HTTPS_MODULE_SPECIFIERS = new Set(["https", "node:https"]);
+const DEFAULT_MAX_TAINT_STEPS = 50_000;
 
 function enabledRules(selection: ScannerRuleSelection | undefined): Map<string, JstsRuleDefinition> {
   const include = new Set(selection?.include ?? []);
@@ -295,5 +298,16 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
     emit(candidate);
   }
 
-  return { findings: findings.sort(compareFindings) };
+  const taint = scanCommandInjection({
+    sourceFile: input.sourceFile,
+    rules: input.rules,
+    maxSteps: input.maxTaintSteps ?? DEFAULT_MAX_TAINT_STEPS
+  });
+  const combined = [...findings, ...taint.findings].sort(compareFindings);
+
+  if (taint.error) {
+    return { findings: combined, error: taint.error };
+  }
+
+  return { findings: combined };
 }
