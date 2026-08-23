@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 
 describe("JavaScript scanner execution boundary", () => {
-  it("parses hostile top-level code without executing it or its imports", async () => {
+  it("parses hostile top-level code without executing it or imported modules", async () => {
     const root = await tempDir();
     const marker = join(root, "executed-marker.txt");
     const source = [
@@ -32,9 +32,11 @@ describe("JavaScript scanner execution boundary", () => {
     await writeFile(join(root, "side-effect-module.js"), `require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'imported');\n`);
 
     const inventory = await buildRepositoryInventory(root);
-    const findings = await createJstsScanner().scan({ root, inventory });
+    const scanResult = await createJstsScanner().scan({ root, inventory });
+    if (Array.isArray(scanResult)) throw new Error("jsts scanner should return structured results");
 
-    expect(findings.some((finding) => finding.ruleId === "jsts/dynamic-code-execution")).toBe(true);
+    expect(scanResult.findings.some((finding) => finding.ruleId === "jsts/dynamic-code-execution")).toBe(true);
+    expect(scanResult.errors).toEqual([]);
     await expect(access(marker)).rejects.toBeTruthy();
   });
 });
