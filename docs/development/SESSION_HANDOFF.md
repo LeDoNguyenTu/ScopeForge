@@ -1,7 +1,7 @@
 # ScopeForge Session Handoff
 
 ## Current phase
-Phase 3C - Secret scanner implemented on PR #8, pending merge after final exact-head verification
+Phase 3C - Secret scanner implemented on PR #8 and fully verified for merge
 
 ## Completed before this PR
 - Phase 1 foundation merged.
@@ -28,7 +28,7 @@ Phase 3C - Secret scanner implemented on PR #8, pending merge after final exact-
 - CI #101: RED regression proving private-key `endColumn` incorrectly reflected multiline key-material length.
 - CI #113: RED regression proving an inline allow annotation incorrectly suppressed the next line.
 - CI #114: GREEN after annotation scope was restricted correctly, with 23 test files and 109 tests plus every build gate passing.
-- CI #115: final documentation-head verification passed tests, typecheck, CLI build/runtime smoke, and production build.
+- CI #115 and CI #116: final documentation-head verification remained fully green.
 
 ## Trust boundary
 - repository contents remain hostile input
