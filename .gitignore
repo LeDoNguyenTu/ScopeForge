@@ -1,6 +1,7 @@
 node_modules/
 .next/
 out/
+.scopeforge-build/
 .env
 .env.local
 .env.*.local

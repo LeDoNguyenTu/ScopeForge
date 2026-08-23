@@ -2,9 +2,14 @@
   "name": "scopeforge",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "scopeforge": ".scopeforge-build/packages/cli/index.js"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cli": "tsc -p tsconfig.cli.json",
+    "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
