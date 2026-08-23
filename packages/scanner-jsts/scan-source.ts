@@ -22,6 +22,15 @@ export interface ScanSourceFileResult {
   error?: ScannerDiagnostic;
 }
 
+interface RuleCandidate {
+  node: ts.Node;
+  ruleId: string;
+  sink: string;
+  evidence: string;
+  requiredGlobal?: "eval" | "Function" | "process";
+  httpsBinding?: string;
+}
+
 const HTTPS_MODULE_SPECIFIERS = new Set(["https", "node:https"]);
 
 function enabledRules(selection: ScannerRuleSelection | undefined): Map<string, JstsRuleDefinition> {
@@ -60,33 +69,82 @@ function requireModuleSpecifier(node: ts.Expression | undefined): string | null 
   return moduleSpecifierText(node.arguments[0] as ts.Expression);
 }
 
-function collectHttpsNamespaceBindings(sourceFile: ts.SourceFile): Set<string> {
-  const bindings = new Set<string>();
+function incrementBinding(counts: Map<string, number>, name: string): void {
+  counts.set(name, (counts.get(name) ?? 0) + 1);
+}
 
-  for (const statement of sourceFile.statements) {
-    if (ts.isImportDeclaration(statement)) {
-      const specifier = moduleSpecifierText(statement.moduleSpecifier);
-      if (!specifier || !HTTPS_MODULE_SPECIFIERS.has(specifier)) continue;
-
-      const clause = statement.importClause;
-      if (clause?.name) bindings.add(clause.name.text);
-      if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
-        bindings.add(clause.namedBindings.name.text);
-      }
-      continue;
-    }
-
-    if (!ts.isVariableStatement(statement)) continue;
-    for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name)) continue;
-      const specifier = requireModuleSpecifier(declaration.initializer);
-      if (specifier && HTTPS_MODULE_SPECIFIERS.has(specifier)) {
-        bindings.add(declaration.name.text);
-      }
-    }
+function recordBindingName(counts: Map<string, number>, name: ts.BindingName): void {
+  if (ts.isIdentifier(name)) {
+    incrementBinding(counts, name.text);
+    return;
   }
 
-  return bindings;
+  for (const element of name.elements) {
+    if (ts.isOmittedExpression(element)) continue;
+    recordBindingName(counts, element.name);
+  }
+}
+
+function recordDeclaredBindings(node: ts.Node, counts: Map<string, number>): void {
+  if (ts.isVariableDeclaration(node) || ts.isParameter(node)) {
+    recordBindingName(counts, node.name);
+    return;
+  }
+
+  if (
+    (ts.isFunctionDeclaration(node) ||
+      ts.isFunctionExpression(node) ||
+      ts.isClassDeclaration(node) ||
+      ts.isClassExpression(node)) &&
+    node.name
+  ) {
+    incrementBinding(counts, node.name.text);
+    return;
+  }
+
+  if (ts.isImportDeclaration(node)) {
+    const clause = node.importClause;
+    if (clause?.name) incrementBinding(counts, clause.name.text);
+    if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+      incrementBinding(counts, clause.namedBindings.name.text);
+    } else if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+      for (const element of clause.namedBindings.elements) incrementBinding(counts, element.name.text);
+    }
+    return;
+  }
+
+  if (ts.isImportEqualsDeclaration(node) || ts.isEnumDeclaration(node)) {
+    incrementBinding(counts, node.name.text);
+    return;
+  }
+
+  if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+    incrementBinding(counts, node.name.text);
+  }
+}
+
+function recordHttpsModuleBinding(node: ts.Node, bindings: Set<string>): void {
+  if (ts.isImportDeclaration(node)) {
+    const specifier = moduleSpecifierText(node.moduleSpecifier);
+    if (!specifier || !HTTPS_MODULE_SPECIFIERS.has(specifier)) return;
+
+    const clause = node.importClause;
+    if (clause?.name) bindings.add(clause.name.text);
+    if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+      bindings.add(clause.namedBindings.name.text);
+    }
+    return;
+  }
+
+  if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) return;
+  const declarationList = node.parent;
+  if (!ts.isVariableDeclarationList(declarationList)) return;
+  if ((declarationList.flags & ts.NodeFlags.Const) === 0) return;
+  const statement = declarationList.parent;
+  if (!ts.isVariableStatement(statement) || !ts.isSourceFile(statement.parent)) return;
+
+  const specifier = requireModuleSpecifier(node.initializer);
+  if (specifier && HTTPS_MODULE_SPECIFIERS.has(specifier)) bindings.add(node.name.text);
 }
 
 function isDirectEval(node: ts.Node): node is ts.CallExpression {
@@ -112,31 +170,32 @@ function isProcessTlsAssignment(node: ts.Node): node is ts.BinaryExpression {
   );
 }
 
-function isHttpsAgentWithoutVerification(
-  node: ts.Node,
-  httpsBindings: ReadonlySet<string>
-): node is ts.NewExpression {
-  if (!ts.isNewExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
-  if (node.expression.name.text !== "Agent") return false;
+function httpsAgentReceiverWithoutVerification(node: ts.Node): string | null {
+  if (!ts.isNewExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return null;
+  if (node.expression.name.text !== "Agent") return null;
   const receiver = node.expression.expression;
-  if (!ts.isIdentifier(receiver) || !httpsBindings.has(receiver.text)) return false;
+  if (!ts.isIdentifier(receiver)) return null;
 
   const options = node.arguments?.[0];
-  return !!options && ts.isObjectLiteralExpression(options) && objectPropertyIsFalse(options, "rejectUnauthorized");
+  if (!options || !ts.isObjectLiteralExpression(options)) return null;
+  if (!objectPropertyIsFalse(options, "rejectUnauthorized")) return null;
+  return receiver.text;
 }
 
 export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult {
   const rules = enabledRules(input.rules);
   const findings: Finding[] = [];
   const occurrences = new Map<string, number>();
-  const httpsBindings = collectHttpsNamespaceBindings(input.sourceFile);
+  const declaredBindings = new Map<string, number>();
+  const httpsModuleBindings = new Set<string>();
+  const candidates: RuleCandidate[] = [];
 
-  function emit(node: ts.Node, ruleId: string, sink: string, evidence: string): void {
-    const rule = rules.get(ruleId);
+  function emit(candidate: RuleCandidate): void {
+    const rule = rules.get(candidate.ruleId);
     if (!rule) return;
 
-    const context = structuralContext(node);
-    const occurrenceKey = `${ruleId}\n${context}\n${sink}`;
+    const context = structuralContext(candidate.node);
+    const occurrenceKey = `${candidate.ruleId}\n${context}\n${candidate.sink}`;
     const occurrence = (occurrences.get(occurrenceKey) ?? 0) + 1;
     occurrences.set(occurrenceKey, occurrence);
     findings.push(
@@ -144,10 +203,10 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
         rule,
         file: input.file,
         sourceFile: input.sourceFile,
-        node,
+        node: candidate.node,
         structuralContext: context,
-        sink,
-        evidence,
+        sink: candidate.sink,
+        evidence: candidate.evidence,
         occurrence
       })
     );
@@ -156,26 +215,46 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
   const traversal = walkAst(
     input.sourceFile,
     (node) => {
+      recordDeclaredBindings(node, declaredBindings);
+      recordHttpsModuleBinding(node, httpsModuleBindings);
+
       if (isDirectEval(node)) {
-        emit(node, "jsts/dynamic-code-execution", "eval", "eval(...)");
+        candidates.push({
+          node,
+          ruleId: "jsts/dynamic-code-execution",
+          sink: "eval",
+          evidence: "eval(...)",
+          requiredGlobal: "eval"
+        });
       } else if (isFunctionConstructor(node)) {
-        emit(node, "jsts/dynamic-code-execution", "Function", "new Function(...)");
+        candidates.push({
+          node,
+          ruleId: "jsts/dynamic-code-execution",
+          sink: "Function",
+          evidence: "new Function(...)",
+          requiredGlobal: "Function"
+        });
       }
 
       if (isProcessTlsAssignment(node)) {
-        emit(
+        candidates.push({
           node,
-          "jsts/tls-verification-disabled",
-          "NODE_TLS_REJECT_UNAUTHORIZED",
-          "NODE_TLS_REJECT_UNAUTHORIZED=0"
-        );
-      } else if (isHttpsAgentWithoutVerification(node, httpsBindings)) {
-        emit(
-          node,
-          "jsts/tls-verification-disabled",
-          "https.Agent.rejectUnauthorized",
-          "https.Agent({ rejectUnauthorized: false })"
-        );
+          ruleId: "jsts/tls-verification-disabled",
+          sink: "NODE_TLS_REJECT_UNAUTHORIZED",
+          evidence: "NODE_TLS_REJECT_UNAUTHORIZED=0",
+          requiredGlobal: "process"
+        });
+      } else {
+        const receiver = httpsAgentReceiverWithoutVerification(node);
+        if (receiver) {
+          candidates.push({
+            node,
+            ruleId: "jsts/tls-verification-disabled",
+            sink: "https.Agent.rejectUnauthorized",
+            evidence: "https.Agent({ rejectUnauthorized: false })",
+            httpsBinding: receiver
+          });
+        }
       }
     },
     { maxNodes: input.maxNodes }
@@ -190,6 +269,20 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
         message: "Source file exceeded the JavaScript/TypeScript AST node budget."
       }
     };
+  }
+
+  for (const candidate of candidates) {
+    if (candidate.requiredGlobal && (declaredBindings.get(candidate.requiredGlobal) ?? 0) > 0) {
+      continue;
+    }
+    if (
+      candidate.httpsBinding &&
+      (!httpsModuleBindings.has(candidate.httpsBinding) ||
+        (declaredBindings.get(candidate.httpsBinding) ?? 0) !== 1)
+    ) {
+      continue;
+    }
+    emit(candidate);
   }
 
   return { findings: findings.sort(compareFindings) };
