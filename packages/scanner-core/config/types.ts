@@ -8,6 +8,10 @@ export interface ScannerRuleSelection {
   exclude: string[];
 }
 
+export interface ScannerSecretsConfig {
+  allowFingerprints: string[];
+}
+
 export interface ScannerOutputConfig {
   format: ScannerOutputFormat;
   path: string | undefined;
@@ -18,6 +22,7 @@ export interface ScannerConfig {
   sourcePath: string | null;
   scanners: string[] | null;
   rules: ScannerRuleSelection;
+  secrets: ScannerSecretsConfig;
   budgets: InventoryBudgets;
   failOn: Severity | undefined;
   output: ScannerOutputConfig;

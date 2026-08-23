@@ -7,12 +7,14 @@ import {
   ScannerConfigError,
   type ScannerConfig,
   type ScannerOutputConfig,
-  type ScannerRuleSelection
+  type ScannerRuleSelection,
+  type ScannerSecretsConfig
 } from "./types";
 
 const DEFAULT_CONFIG_NAME = ".scopeforge.json";
 const MAX_CONFIG_BYTES = 64 * 1024;
 const SEVERITIES = new Set<Severity>(["critical", "high", "medium", "low", "info"]);
+const SECRET_FINGERPRINT = /^sfs1:[a-f0-9]{64}$/;
 
 export interface LoadScannerConfigOptions {
   configPath?: string;
@@ -24,6 +26,7 @@ function defaults(): ScannerConfig {
     sourcePath: null,
     scanners: null,
     rules: { include: [], exclude: [] },
+    secrets: { allowFingerprints: [] },
     budgets: { ...defaultInventoryBudgets },
     failOn: undefined,
     output: { format: "terminal", path: undefined }
@@ -67,6 +70,24 @@ function parseRules(value: unknown): ScannerRuleSelection {
     throw new ScannerConfigError("invalid_config", `Rule cannot be both included and excluded: ${overlap}.`);
   }
   return { include, exclude };
+}
+
+function parseSecrets(value: unknown): ScannerSecretsConfig {
+  if (value === undefined) return { allowFingerprints: [] };
+  const object = requireObject(value, "secrets");
+  rejectUnknownKeys(object, ["allowFingerprints"], "secrets");
+  const allowFingerprints = object.allowFingerprints === undefined
+    ? []
+    : stringList(object.allowFingerprints, "secrets.allowFingerprints");
+
+  if (allowFingerprints.some((fingerprint) => !SECRET_FINGERPRINT.test(fingerprint))) {
+    throw new ScannerConfigError(
+      "invalid_config",
+      "secrets.allowFingerprints entries must use the sfs1:<64 lowercase hex> fingerprint format."
+    );
+  }
+
+  return { allowFingerprints };
 }
 
 function positiveInteger(value: unknown, label: string): number {
@@ -145,7 +166,11 @@ function parseOutput(value: unknown): ScannerOutputConfig {
 
 function parseConfig(value: unknown, sourcePath: string): ScannerConfig {
   const object = requireObject(value, "ScopeForge configuration");
-  rejectUnknownKeys(object, ["version", "scanners", "rules", "budgets", "failOn", "output"], "ScopeForge configuration");
+  rejectUnknownKeys(
+    object,
+    ["version", "scanners", "rules", "secrets", "budgets", "failOn", "output"],
+    "ScopeForge configuration"
+  );
 
   if (object.version !== 1) {
     throw new ScannerConfigError("invalid_config", "ScopeForge configuration version must be 1.");
@@ -162,6 +187,7 @@ function parseConfig(value: unknown, sourcePath: string): ScannerConfig {
     sourcePath,
     scanners,
     rules: parseRules(object.rules),
+    secrets: parseSecrets(object.secrets),
     budgets: parseBudgets(object.budgets),
     failOn: failOn as Severity | undefined,
     output: parseOutput(object.output)
