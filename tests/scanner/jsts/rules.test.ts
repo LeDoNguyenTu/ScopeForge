@@ -44,19 +44,15 @@ describe("JavaScript and TypeScript structural rules", () => {
     ]);
   });
 
-  it("detects an explicitly insecure cookie only on recognized response receivers", () => {
+  it("does not infer an HTTP framework from response-like variable names alone", () => {
     const findings = scan([
-      "res.cookie('session', token, { httpOnly: true, secure: false });",
-      "response.cookie('other', token, { secure: false });",
-      "res.cookie('safe', token, { secure: true });",
-      "jar.cookie('local', token, { secure: false });"
+      "const res = customCookieJar();",
+      "res.cookie('session', token, { secure: false });",
+      "const response = customCookieJar();",
+      "response.cookie('other', token, { secure: false });"
     ].join("\n"));
 
-    expect(findings.map((finding) => finding.ruleId)).toEqual([
-      "jsts/insecure-cookie",
-      "jsts/insecure-cookie"
-    ]);
-    expect(findings.every((finding) => finding.evidence.redactedSnippet === "response.cookie(..., { secure: false })")).toBe(true);
+    expect(findings).toEqual([]);
   });
 
   it("keeps fingerprints stable across line movement and distinct for repeated constructs", () => {
