@@ -7,6 +7,11 @@ const TOKEN_TTL_MS = 30 * 60 * 1000;
 const MAX_BODY_BYTES = 4 * 1024;
 const VERIFY_PATH = "/.well-known/scopeforge-verification.txt";
 
+type VerificationDependencies = {
+  resolveHostname?: (hostname: string) => Promise<string[]>;
+  fetcher?: (input: URL, init: RequestInit) => Promise<Response>;
+};
+
 export function hashVerificationToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
@@ -26,11 +31,19 @@ function safeTokenEquals(actual: string, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-async function resolvePublicAddresses(hostname: string): Promise<string[]> {
-  if (isBlockedAddress(hostname)) throw new Error("Target resolves to a private or local address.");
+async function defaultResolveHostname(hostname: string): Promise<string[]> {
   const records = await lookup(hostname, { all: true, verbatim: true });
-  if (!records.length) throw new Error("Target hostname did not resolve.");
-  const addresses = records.map((record) => record.address.toLowerCase()).sort();
+  return records.map((record) => record.address);
+}
+
+async function resolvePublicAddresses(
+  hostname: string,
+  resolver: (hostname: string) => Promise<string[]>
+): Promise<string[]> {
+  if (isBlockedAddress(hostname)) throw new Error("Target resolves to a private or local address.");
+  const resolved = await resolver(hostname);
+  if (!resolved.length) throw new Error("Target hostname did not resolve.");
+  const addresses = resolved.map((address) => address.toLowerCase()).sort();
   if (addresses.some(isBlockedAddress)) throw new Error("Target resolves to a private or local address.");
   return addresses;
 }
@@ -70,10 +83,13 @@ async function readBoundedText(response: Response): Promise<string> {
   return new TextDecoder().decode(merged);
 }
 
-export async function verifyHttpWellKnownTarget(input: {
-  canonicalTarget: string;
-  expectedToken: string;
-}): Promise<VerificationResult> {
+export async function verifyHttpWellKnownTarget(
+  input: {
+    canonicalTarget: string;
+    expectedToken: string;
+  },
+  dependencies: VerificationDependencies = {}
+): Promise<VerificationResult> {
   let base: URL;
   try {
     base = new URL(input.canonicalTarget);
@@ -86,10 +102,12 @@ export async function verifyHttpWellKnownTarget(input: {
   }
 
   const endpoint = new URL(VERIFY_PATH, base.origin);
+  const resolver = dependencies.resolveHostname ?? defaultResolveHostname;
+  const fetcher = dependencies.fetcher ?? ((request, init) => fetch(request, init));
 
   try {
-    const before = await resolvePublicAddresses(endpoint.hostname);
-    const response = await fetch(endpoint, {
+    const before = await resolvePublicAddresses(endpoint.hostname, resolver);
+    const response = await fetcher(endpoint, {
       method: "GET",
       redirect: "manual",
       headers: { Accept: "text/plain" },
@@ -110,7 +128,7 @@ export async function verifyHttpWellKnownTarget(input: {
 
     if (!response.ok) return { verified: false, reason: `Verification file returned HTTP ${response.status}.` };
 
-    const after = await resolvePublicAddresses(endpoint.hostname);
+    const after = await resolvePublicAddresses(endpoint.hostname, resolver);
     if (before.join(",") !== after.join(",")) {
       return { verified: false, reason: "Target DNS changed during verification. Try again when DNS is stable." };
     }
