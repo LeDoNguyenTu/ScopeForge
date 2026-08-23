@@ -54,6 +54,28 @@ describe("buildRepositoryInventory", () => {
     expect(inventory.summary.skippedByReason.symlink).toBeGreaterThan(0);
   });
 
+  it("supports double-star patterns across zero or more directories", async () => {
+    const root = await makeTempDir("scopeforge-double-star-");
+
+    await mkdir(join(root, "foo", "nested"), { recursive: true });
+    await mkdir(join(root, "certs"), { recursive: true });
+    await writeFile(join(root, "foo", "bar.txt"), "direct\n");
+    await writeFile(join(root, "foo", "nested", "bar.txt"), "nested\n");
+    await writeFile(join(root, "root.pem"), "root certificate\n");
+    await writeFile(join(root, "certs", "nested.pem"), "nested certificate\n");
+    await writeFile(join(root, "keep.txt"), "keep\n");
+    await writeFile(join(root, ".scopeforgeignore"), "foo/**/bar.txt\n**/*.pem\n");
+
+    const inventory = await buildRepositoryInventory(root);
+    const paths = inventory.entries.map((entry) => entry.path);
+
+    expect(paths).toContain("keep.txt");
+    expect(paths).not.toContain("foo/bar.txt");
+    expect(paths).not.toContain("foo/nested/bar.txt");
+    expect(paths).not.toContain("root.pem");
+    expect(paths).not.toContain("certs/nested.pem");
+  });
+
   it("enforces per-file and total scan budgets deterministically", async () => {
     const root = await makeTempDir("scopeforge-budget-");
 
