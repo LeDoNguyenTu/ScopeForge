@@ -3,6 +3,7 @@ import type ts from "typescript";
 export interface TaintBudget {
   maxSteps: number;
   steps: number;
+  exceeded?: boolean;
 }
 
 export interface ExpressRouteHandler {
@@ -30,10 +31,39 @@ export interface TaintBindingResult {
   exceeded: boolean;
 }
 
+export type TaintOriginKind = "express-query" | "express-params" | "express-body";
+
+export interface TaintOrigin {
+  kind: TaintOriginKind;
+  line: number;
+}
+
+export type TaintTraceKind = "source" | "propagation" | "sink";
+
+export interface TaintTraceStep {
+  kind: TaintTraceKind;
+  line: number;
+  label: string;
+}
+
+export interface TaintValue {
+  tainted: boolean;
+  origin?: TaintOrigin;
+  trace: TaintTraceStep[];
+}
+
 export function chargeTaintBudget(budget: TaintBudget, amount = 1): boolean {
-  if (!Number.isSafeInteger(budget.maxSteps) || budget.maxSteps <= 0) return false;
-  if (!Number.isSafeInteger(amount) || amount <= 0) return false;
-  if (budget.steps + amount > budget.maxSteps) return false;
+  if (
+    budget.exceeded === true ||
+    !Number.isSafeInteger(budget.maxSteps) ||
+    budget.maxSteps <= 0 ||
+    !Number.isSafeInteger(amount) ||
+    amount <= 0 ||
+    budget.steps + amount > budget.maxSteps
+  ) {
+    budget.exceeded = true;
+    return false;
+  }
   budget.steps += amount;
   return true;
 }
