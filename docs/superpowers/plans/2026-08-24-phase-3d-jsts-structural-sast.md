@@ -26,6 +26,10 @@
 - Existing secret redaction, configuration, policy, and exit-code guarantees remain unchanged.
 - CI must continue to pass `npm test`, `npm run typecheck`, `npm run build:cli`, the compiled CLI runtime smoke, and `npm run build`.
 
+## Security review adjustment
+
+The initial plan included a candidate `jsts/insecure-cookie` rule based on response-like receiver names. Security review rejected that heuristic because variable names such as `res` or `response` do not prove framework identity. The candidate is therefore deferred to framework-aware analysis where a real binding can be established. Phase 3D ships only direct dynamic-code execution and recognized TLS-verification disablement. The `https.Agent({ rejectUnauthorized: false })` shape also requires a static binding to Node's `https` or `node:https` module so a local object merely named `https` cannot trigger the rule.
+
 ---
 
 ### Task 1: Allow scanners to report partial analysis errors without discarding valid findings
@@ -44,19 +48,19 @@
 - Change `Scanner.scan(...)` to return `Promise<Finding[] | ScannerRunResult>` so the existing secret scanner remains source-compatible.
 - Extend `ScanError` with optional `code` and `file` fields populated by the coordinator, while the coordinator always supplies the authoritative scanner name.
 
-- [ ] **Step 1: Write RED coordinator tests**
+- [x] **Step 1: Write RED coordinator tests**
 
 Add a scanner that returns one valid finding plus one structured diagnostic. Assert the finding remains in the result, the diagnostic becomes a `ScanError` with scanner/file/code fields, and an unrelated scanner still runs.
 
-- [ ] **Step 2: Write RED deterministic JSON tests**
+- [x] **Step 2: Write RED deterministic JSON tests**
 
 Assert structured errors are sorted by scanner, file, code, and message and are serialized deterministically.
 
-- [ ] **Step 3: Implement compatible scanner output normalization**
+- [x] **Step 3: Implement compatible scanner output normalization**
 
 In `runScan`, normalize an array return to `{ findings: array, errors: [] }`. For a structured result, sanitize every diagnostic message with the existing bounded error-message policy before appending it to `ScanResult.errors`.
 
-- [ ] **Step 4: Verify focused suites**
+- [x] **Step 4: Verify focused suites**
 
 Run: `npm test -- tests/scanner/coordinator/run-scan.test.ts tests/scanner/output/json.test.ts`
 
@@ -77,23 +81,10 @@ Expected: PASS.
 - `parseSource({ file, content }) -> { sourceFile: ts.SourceFile } | { error: ParserError }`.
 - `ParserError` contains only `code: "syntax_error" | "unsupported_extension"` and a bounded generic message.
 
-- [ ] **Step 1: Write RED extension tests**
-
-Cover `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts`, and `.cts`; unsupported extensions return null.
-
-- [ ] **Step 2: Write RED parse tests**
-
-Parse valid JavaScript, TypeScript, JSX, and TSX without executing it. Add a syntactically malformed fixture and assert parsing returns `syntax_error` rather than a usable AST.
-
-- [ ] **Step 3: Implement parser with TypeScript compiler API**
-
-Use `typescript.createSourceFile(file, content, ts.ScriptTarget.Latest, true, scriptKind)`. If syntax diagnostics are present, return a generic bounded syntax-error result containing file identity but no copied source line.
-
-- [ ] **Step 4: Verify focused suite**
-
-Run: `npm test -- tests/scanner/jsts/parser.test.ts`
-
-Expected: PASS.
+- [x] **Step 1: Write RED extension tests**
+- [x] **Step 2: Write RED parse tests**
+- [x] **Step 3: Implement parser with TypeScript compiler API**
+- [x] **Step 4: Verify focused suite**
 
 ---
 
@@ -108,27 +99,11 @@ Expected: PASS.
 - `walkAst(sourceFile, visitor, { maxNodes }) -> { visitedNodes: number; exceeded: boolean }`.
 - `structuralContext(node) -> string` returns a bounded semantic context such as `module`, `function:handler`, `method:login`, or `class:Service`.
 
-- [ ] **Step 1: Write RED traversal tests**
-
-Assert deterministic source-order visitation, no recursive visitor requirement, and an explicit `exceeded` result when a very small node budget is reached.
-
-- [ ] **Step 2: Write RED context tests**
-
-Cover top-level, named function, arrow function assigned to a variable, class method, and class contexts. Assert context is stable when blank lines/comments are inserted above the construct.
-
-- [ ] **Step 3: Implement iterative traversal**
-
-Use an explicit node stack and `ts.forEachChild` only to enqueue direct children. Push children in reverse so visitation remains source-order. Stop before invoking the visitor after `maxNodes` is exceeded.
-
-- [ ] **Step 4: Implement bounded structural context**
-
-Walk parent links to the nearest named function/method/class/variable-assigned function. Normalize identifier text and cap it to 96 characters; never use a raw statement as context.
-
-- [ ] **Step 5: Verify focused suite**
-
-Run: `npm test -- tests/scanner/jsts/ast.test.ts`
-
-Expected: PASS.
+- [x] **Step 1: Write RED traversal tests**
+- [x] **Step 2: Write RED context tests**
+- [x] **Step 3: Implement iterative traversal**
+- [x] **Step 4: Implement bounded structural context**
+- [x] **Step 5: Verify focused suite**
 
 ---
 
@@ -141,42 +116,30 @@ Expected: PASS.
 - Create: `packages/scanner-jsts/scan-source.ts`
 - Create: `tests/scanner/jsts/rules.test.ts`
 
-**Interfaces:**
-- Built-in rule IDs:
-  - `jsts/dynamic-code-execution`
-  - `jsts/tls-verification-disabled`
-  - `jsts/insecure-cookie`
-- `scanSourceFile({ file, sourceFile, rules, maxNodes }) -> { findings: Finding[]; error?: ScannerDiagnostic }`.
+**Shipped built-in rule IDs:**
+- `jsts/dynamic-code-execution`
+- `jsts/tls-verification-disabled`
 
-- [ ] **Step 1: Write RED dynamic-code tests**
+**Deferred after security review:**
+- `jsts/insecure-cookie` until framework identity can be established without receiver-name guessing.
 
-Detect direct `eval(...)` calls and `new Function(...)` expressions. Do not match comment text, string literals, object property names, or identifiers merely containing `eval`/`Function`.
+- [x] **Step 1: Write RED dynamic-code tests**
+- [x] **Step 2: Write RED TLS tests**
+- [x] **Step 3: Add and review insecure-cookie candidate**
 
-- [ ] **Step 2: Write RED TLS tests**
+Security review added a negative regression proving response-like variable names can refer to unrelated APIs. The candidate was removed rather than weakening the regression.
 
-Detect explicit `process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"` or numeric `0`, and `new https.Agent({ rejectUnauthorized: false })`. Do not flag `rejectUnauthorized: true` or unrelated object properties with the same name.
+- [x] **Step 4: Implement fixed rule metadata**
 
-- [ ] **Step 3: Write RED insecure-cookie tests**
+Dynamic code execution is medium severity/high confidence because the construct is observed while attacker control is not established. TLS verification disablement is high severity/high confidence when the exact recognized configuration is present.
 
-Detect recognized response cookie calls such as `res.cookie(name, value, { secure: false })` and `response.cookie(...)` when the options object explicitly sets `secure: false`. Do not flag `secure: true`, omitted secure options, or unrelated `.cookie` APIs whose receiver name is not a recognized response identifier.
+- [x] **Step 5: Implement safe finding construction**
+- [x] **Step 6: Implement rule matching by AST node kind**
+- [x] **Step 7: Harden Node HTTPS binding recognition**
 
-- [ ] **Step 4: Implement fixed rule metadata**
+Require a recognized static `https`/`node:https` import or top-level `require` binding before accepting the `https.Agent({ rejectUnauthorized: false })` shape. Keep `process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0` independently detectable.
 
-Each rule has version `1.0.0`, bounded title/description/remediation, high confidence for the observed construct, and severity appropriate to the construct. No rule description claims attacker-controlled data flow.
-
-- [ ] **Step 5: Implement safe finding construction**
-
-Use `createFindingFingerprint` with scanner `jsts`, rule ID, repository path, normalized enclosing context, rule-specific sink, and a deterministic per-context occurrence number. Evidence uses fixed descriptors such as `eval(...)`, `new Function(...)`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `https.Agent({ rejectUnauthorized: false })`, or `response.cookie(..., { secure: false })`; do not copy the source line.
-
-- [ ] **Step 6: Implement rule matching by AST node kind**
-
-Match exact AST shapes only. Traverse once and dispatch candidate nodes to enabled rules. Findings are sorted deterministically by the shared finding comparator.
-
-- [ ] **Step 7: Verify focused suite**
-
-Run: `npm test -- tests/scanner/jsts/rules.test.ts`
-
-Expected: PASS.
+- [x] **Step 8: Verify focused suite**
 
 ---
 
@@ -193,27 +156,11 @@ Expected: PASS.
 - Scanner version: `1.0.0`.
 - Default AST node budget: `200_000` nodes per file.
 
-- [ ] **Step 1: Write RED repository integration test**
-
-Build a temporary inventory containing JS, TS, TSX, non-source files, and an ignored source file. Assert only inventory source entries are parsed and findings are deterministic.
-
-- [ ] **Step 2: Write RED malformed-file isolation test**
-
-Include one malformed source file and one valid vulnerable source file. Assert the scanner returns the valid finding plus a structured `syntax_error` diagnostic for the malformed file.
-
-- [ ] **Step 3: Write RED AST-budget test**
-
-Construct the scanner with a deliberately tiny `maxAstNodes` and assert the affected file yields `ast_budget_exceeded`, no partial findings from that file, and other files continue.
-
-- [ ] **Step 4: Implement repository scanner**
-
-Filter inventory entries by supported JS/TS source extension. Read each candidate only through `readInventoryEntry`. Treat NUL-containing source as an explicit `unsupported_binary_source` diagnostic. Parse, scan, and collect per-file results without throwing for expected hostile-input parse/resource failures.
-
-- [ ] **Step 5: Verify focused suite**
-
-Run: `npm test -- tests/scanner/jsts/scanner.test.ts`
-
-Expected: PASS.
+- [x] **Step 1: Write RED repository integration test**
+- [x] **Step 2: Write RED malformed-file isolation test**
+- [x] **Step 3: Write RED AST-budget test**
+- [x] **Step 4: Implement repository scanner**
+- [x] **Step 5: Verify focused suite**
 
 ---
 
@@ -226,35 +173,16 @@ Expected: PASS.
 - Create: `tests/scanner/jsts/no-source-leak.test.ts`
 
 **Interfaces:**
-- `BUILTIN_RULES` contains secret and JS/TS rules in deterministic ID order.
+- `BUILTIN_RULES` contains secret and shipped JS/TS rules in deterministic ID order.
 - `createBuiltInScanners(config) -> Scanner[]` returns `secrets` and `jsts` by default.
 - Existing global `rules.include` / `rules.exclude` selection applies to both families.
 
-- [ ] **Step 1: Write RED CLI rule-registry tests**
-
-Assert `scopeforge rules list` includes all five secret rules plus the three JS/TS rules, sorted by rule ID. Unknown JS/TS rule IDs fail closed with exit code 2.
-
-- [ ] **Step 2: Write RED default-scan test**
-
-Scan a temporary repository containing one synthetic secret and one structural JS/TS issue. Assert both scanner families run by default and both findings appear without changing report-only exit behavior.
-
-- [ ] **Step 3: Write RED configured-scanner selection test**
-
-With root config `scanners: ["jsts"]`, assert the JS/TS finding is present and the secret finding is absent. With `scanners: ["secrets"]`, assert the reverse.
-
-- [ ] **Step 4: Write RED source-evidence leakage test**
-
-Put a distinctive unrelated sentinel string in the same source file as a structural issue. Serialize the finding and terminal/JSON outputs and assert the sentinel is absent while the fixed structural evidence is present.
-
-- [ ] **Step 5: Extract built-in registration**
-
-Move combined rule registry, unknown-rule validation data, and default scanner construction into `packages/cli/builtins.ts`. Keep custom `RunCliOptions.scanners` behavior unchanged for tests and embedding.
-
-- [ ] **Step 6: Verify focused suites**
-
-Run: `npm test -- tests/scanner/cli/run-cli.test.ts tests/scanner/jsts/no-source-leak.test.ts`
-
-Expected: PASS.
+- [x] **Step 1: Write RED CLI rule-registry tests**
+- [x] **Step 2: Write RED default-scan test**
+- [x] **Step 3: Write RED configured-scanner selection test**
+- [x] **Step 4: Write RED source-evidence leakage test**
+- [x] **Step 5: Extract built-in registration**
+- [x] **Step 6: Verify focused suites**
 
 ---
 
@@ -269,23 +197,11 @@ Expected: PASS.
 - Modify: `docs/development/TEST_STATUS.md`
 - Modify: `docs/development/IMPLEMENTATION_LOG.md`
 
-- [ ] **Step 1: Correct Phase 3C post-merge state**
-
-Record PR #8 as merged into `main` as `ee2b18c37d264fc22e47e650970e66d01f7c92dd` before describing Phase 3D.
-
-- [ ] **Step 2: Review parser and traversal boundaries**
-
-Confirm the JS/TS scanner uses no `require`/dynamic import of repository code, no `Program.emit`, no type-checker module resolution, no package installation, no filesystem access outside `readInventoryEntry`, a fixed node budget, and iterative traversal.
-
-- [ ] **Step 3: Review finding claims**
-
-Confirm structural findings describe observed insecure constructs only and do not claim attacker-controlled flow. Ensure command/SQL/path/SSRF source-to-sink vulnerabilities are still deferred.
-
-- [ ] **Step 4: Review output safety and deterministic behavior**
-
-Confirm parser diagnostics and evidence do not copy arbitrary repository source content, fingerprints do not depend only on line numbers, and JSON error ordering remains deterministic.
-
-- [ ] **Step 5: Run complete verification**
+- [x] **Step 1: Correct Phase 3C post-merge state**
+- [x] **Step 2: Review parser and traversal boundaries**
+- [x] **Step 3: Review finding claims**
+- [x] **Step 4: Review output safety and deterministic behavior**
+- [ ] **Step 5: Run complete verification on the exact final head**
 
 Run: `npm test`
 Expected: PASS.
@@ -312,10 +228,11 @@ Require no unresolved Critical/Important review blockers and use expected-head p
 
 The following remain deliberately out of this slice:
 
+- framework-aware cookie/session checks until framework identity can be established structurally
 - inter-file or source-to-sink taint propagation
 - command-injection claims based only on child-process API presence
 - SQL-injection claims based only on query API presence
 - path-traversal claims without an untrusted source
 - SSRF claims without an untrusted source
-- framework-specific deep semantic models beyond the narrow cookie/TLS shapes above
+- framework-specific deep semantic models
 - SCA, OSV, SBOM, IaC, baselines, SARIF, hosted ingestion, and all remote active scanning
