@@ -42,17 +42,20 @@
 - Extended deterministic JSON error ordering to scanner, file, code, and message.
 - Added an execution-free TypeScript `createSourceFile` parser boundary for JS, JSX, MJS, CJS, TS, TSX, MTS, and CTS.
 - Added iterative source-order AST traversal with a fixed per-file node budget and stable semantic enclosing context.
-- Added `jsts/dynamic-code-execution` for direct `eval` and `new Function` constructs.
+- Added `jsts/dynamic-code-execution` for direct `eval` and `new Function` constructs, with medium severity/high confidence to avoid claiming attacker-controlled execution without data-flow evidence.
 - Added `jsts/tls-verification-disabled` for recognized explicit Node.js TLS verification disablement.
-- Added `jsts/insecure-cookie` for recognized response cookie calls with `secure: false`.
 - Structural finding evidence uses fixed normalized descriptors rather than repository source lines, and fingerprints remain stable across harmless line movement.
 - Added repository integration that reads only bounded inventory entries and isolates syntax, binary-like, filesystem, and AST-budget failures per file.
 - Added a combined built-in CLI registry so `secrets` and `jsts` run by default, rule listing remains deterministic, scanner-family selection works, and unknown built-in rules fail closed.
 - Added hostile no-execution fixtures and terminal/JSON source-sentinel no-leak regressions.
-- CI #150 passed all 141 tests and then strict typecheck isolated two typing-boundary defects. The parser diagnostic compatibility type and the secret scanner's narrow return type were corrected without changing detector semantics.
+- CI #150 passed all 141 runtime tests and then strict typecheck isolated two typing-boundary defects. The parser diagnostic compatibility type and the secret scanner's narrow return type were corrected without changing detector semantics.
 - CI #152 passed 30 test files and 141 tests, strict typecheck, CLI build, compiled CLI runtime smoke, and production build.
-- Final exact-head documentation CI and merge remain pending.
+- Security review rejected the initial `jsts/insecure-cookie` candidate because response-like receiver names alone were insufficient to prove framework identity. The rule was removed from this slice rather than shipping a noisy heuristic.
+- Security review added a fake-HTTPS negative fixture. CI #164 reproduced that a local object named `https` could trigger the Agent rule while the other 140 tests passed.
+- The TLS rule was hardened to recognize only statically declared Node `https`/`node:https` namespace bindings through imports or `require`, without resolving or executing modules.
+- CI #165 confirmed the rule-level hardening and exposed one stale scanner integration fixture that omitted the new Node HTTPS binding requirement. The fixture was updated to import `node:https` explicitly.
+- Final exact-head documentation/hardening CI and merge remain pending.
 
 ## Current boundary
 
-Phase 3 remains local and passive. The built-in `secrets` and `jsts` detector families are implemented, with Phase 3D pending final merge. JS/TS source-to-sink taint analysis is next. Dependency/OSV, SBOM, IaC, baselines, and SARIF remain unimplemented. Remote DAST, fuzzing, exploitation, credential attacks, persistence, and destructive actions remain outside Phase 3.
+Phase 3 remains local and passive. The built-in `secrets` and `jsts` detector families are implemented, with Phase 3D pending final merge. Phase 3D ships two intentionally narrow structural JS/TS rule families; framework-sensitive cookie analysis is deferred until stronger framework binding exists. JS/TS source-to-sink taint analysis is next. Dependency/OSV, SBOM, IaC, baselines, and SARIF remain unimplemented. Remote DAST, fuzzing, exploitation, credential attacks, persistence, and destructive actions remain outside Phase 3.
