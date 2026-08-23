@@ -21,7 +21,7 @@ function isBlockedIpv4(hostname: string): boolean {
 
 function isBlockedIpv6(hostname: string): boolean {
   const value = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  return value === "::" || value === "::1" || value.startsWith("fc") || value.startsWith("fd") || /^fe[89ab]/.test(value);
+  return value === "::" || value === "::1" || value.startsWith("fc") || value.startsWith("fd") || value.startsWith("ff") || /^fe[89ab]/.test(value);
 }
 
 export function isBlockedAddress(hostname: string): boolean {
