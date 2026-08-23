@@ -29,8 +29,9 @@ describe("JavaScript and TypeScript structural rules", () => {
     expect(findings[1]?.evidence.redactedSnippet).toBe("new Function(...)");
   });
 
-  it("detects explicit TLS verification disablement only in recognized shapes", () => {
+  it("detects explicit TLS verification disablement only in recognized Node.js shapes", () => {
     const findings = scan([
+      "import * as https from 'node:https';",
       "process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';",
       "const agent = new https.Agent({ rejectUnauthorized: false });",
       "const safeAgent = new https.Agent({ rejectUnauthorized: true });",
@@ -42,6 +43,12 @@ describe("JavaScript and TypeScript structural rules", () => {
       "jsts/tls-verification-disabled",
       "jsts/tls-verification-disabled"
     ]);
+
+    const fakeModule = scan([
+      "const https = { Agent: class Agent {} };",
+      "new https.Agent({ rejectUnauthorized: false });"
+    ].join("\n"));
+    expect(fakeModule).toEqual([]);
   });
 
   it("does not infer an HTTP framework from response-like variable names alone", () => {
