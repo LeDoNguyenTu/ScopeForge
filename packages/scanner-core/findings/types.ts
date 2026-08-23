@@ -62,6 +62,8 @@ export interface Finding {
 
 export interface ScanError {
   scanner: string;
+  code?: string;
+  file?: string;
   message: string;
 }
 
