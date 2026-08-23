@@ -6,7 +6,7 @@ export const JSTS_RULES: readonly JstsRuleDefinition[] = [
     version: "1.0.0",
     title: "Dynamic code execution",
     description: "The source directly uses a JavaScript dynamic-code execution primitive.",
-    severity: "high",
+    severity: "medium",
     confidence: "high",
     cwe: ["CWE-95"],
     owasp: ["A03:2021"],
@@ -29,21 +29,6 @@ export const JSTS_RULES: readonly JstsRuleDefinition[] = [
       summary: "Keep TLS certificate verification enabled.",
       guidance: "Remove the verification-disablement setting and configure trusted certificate authorities explicitly when custom trust is required.",
       verification: "Rescan and confirm the TLS verification finding no longer appears."
-    }
-  },
-  {
-    id: "jsts/insecure-cookie",
-    version: "1.0.0",
-    title: "Insecure cookie configuration",
-    description: "A recognized HTTP response cookie call explicitly sets the Secure attribute to false.",
-    severity: "medium",
-    confidence: "high",
-    cwe: ["CWE-614"],
-    owasp: ["A07:2021"],
-    remediation: {
-      summary: "Enable the Secure attribute for sensitive cookies.",
-      guidance: "Set secure: true for cookies that should only be transmitted over HTTPS and keep transport security enforced end to end.",
-      verification: "Rescan and confirm the insecure-cookie finding no longer appears."
     }
   }
 ] as const;
