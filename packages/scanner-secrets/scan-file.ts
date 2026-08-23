@@ -71,6 +71,7 @@ function makeFinding(input: {
   secret: string;
   structuralContext: string;
   publicPrefix?: string;
+  locationLength?: number;
 }): Finding {
   const redacted = redactDetectedSecret({
     value: input.secret,
@@ -102,7 +103,7 @@ function makeFinding(input: {
       startLine: input.lineIndex + 1,
       startColumn: input.startIndex + 1,
       endLine: input.lineIndex + 1,
-      endColumn: input.startIndex + input.secret.length + 1
+      endColumn: input.startIndex + (input.locationLength ?? input.secret.length) + 1
     },
     evidence: {
       summary: `Detected by ${input.rule.id}.`,
@@ -171,7 +172,8 @@ export function scanSecretText(input: ScanSecretTextInput): Finding[] {
             startIndex,
             secret: material,
             structuralContext: "private-key-header",
-            publicPrefix: value
+            publicPrefix: value,
+            locationLength: value.length
           }));
           continue;
         }
