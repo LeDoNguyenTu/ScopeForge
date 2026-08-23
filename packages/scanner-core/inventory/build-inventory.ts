@@ -168,6 +168,10 @@ export async function buildRepositoryInventory(
 
       children.sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
       for (const child of children) {
+        if (entries.length >= budgets.maxFiles) {
+          incrementSkip(skippedByReason, "file_limit");
+          break;
+        }
         await walk(join(absolutePath, child.name));
       }
       return;
