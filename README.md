@@ -36,7 +36,7 @@ Shipped foundation:
 
 The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, complete private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
 
-The JavaScript/TypeScript scanner parses JavaScript, TypeScript, JSX, TSX, MJS, CJS, MTS, and CTS as hostile data using the TypeScript parser without executing repository code or resolving imports. The first structural rules detect direct `eval`/`new Function`, explicit TLS certificate-verification disablement, and recognized response-cookie calls with `secure: false`. Malformed or over-budget files are surfaced as scanner errors while valid files continue to produce findings.
+The JavaScript/TypeScript scanner parses JavaScript, TypeScript, JSX, TSX, MJS, CJS, MTS, and CTS as hostile data using the TypeScript parser without executing repository code or resolving imports. The first structural rules detect direct `eval`/`new Function` use and explicit TLS certificate-verification disablement. The `https.Agent` form is reported only when the receiver is statically bound to Node's `https` or `node:https` module. Framework-sensitive cookie checks were deliberately deferred because response-like variable names alone are not strong enough evidence for a high-confidence finding. Malformed or over-budget files are surfaced as scanner errors while valid files continue to produce findings.
 
 Limited taint analysis, dependency/OSV analysis, CycloneDX SBOM, IaC rules, baselines, and SARIF are still Phase 3 work.
 
