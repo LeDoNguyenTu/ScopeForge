@@ -44,7 +44,7 @@ describe("loadScannerConfig", () => {
         rules: { include: ["jsts/eval"], exclude: ["jsts/info"] },
         budgets: { maxFiles: 100, maxFileBytes: 1024, maxTotalBytes: 4096 },
         failOn: "high",
-        output: { format: "json", path: "results.json" }
+        output: { format: "json", path: "reports/results.json" }
       })
     );
     await writeFile(join(root, "nested", ".scopeforge.json"), "{ invalid json");
@@ -56,7 +56,7 @@ describe("loadScannerConfig", () => {
     expect(config.rules).toEqual({ include: ["jsts/eval"], exclude: ["jsts/info"] });
     expect(config.budgets).toEqual({ maxFiles: 100, maxFileBytes: 1024, maxTotalBytes: 4096 });
     expect(config.failOn).toBe("high");
-    expect(config.output).toEqual({ format: "json", path: "results.json" });
+    expect(config.output).toEqual({ format: "json", path: "reports/results.json" });
   });
 
   it("rejects unknown keys and unsupported versions", async () => {
@@ -77,5 +77,21 @@ describe("loadScannerConfig", () => {
     );
 
     await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "unsafe_budget" });
+  });
+
+  it("rejects absolute and traversal output paths from repository configuration", async () => {
+    const root = await tempDir("scopeforge-config-output-");
+
+    await writeFile(
+      join(root, ".scopeforge.json"),
+      JSON.stringify({ version: 1, output: { format: "json", path: "../outside.json" } })
+    );
+    await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
+
+    await writeFile(
+      join(root, ".scopeforge.json"),
+      JSON.stringify({ version: 1, output: { format: "json", path: join(root, "absolute.json") } })
+    );
+    await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
   });
 });
