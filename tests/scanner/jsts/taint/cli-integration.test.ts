@@ -65,6 +65,6 @@ describe("Phase 3E CLI integration", () => {
 
     const output = capture();
     expect(await runCli(["scan", root, "--fail-on", "high"], { io: output.io })).toBe(1);
-    expect(output.stdout()).toContain("jsts/command-injection");
+    expect(output.stdout()).toContain("Command injection");
   });
 });
