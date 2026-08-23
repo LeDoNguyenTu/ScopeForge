@@ -3,6 +3,10 @@ import ts from "typescript";
 import { scriptKindForPath } from "./script-kind";
 import type { ParseSourceInput, ParseSourceResult } from "./types";
 
+type SourceFileWithParseDiagnostics = ts.SourceFile & {
+  readonly parseDiagnostics?: readonly ts.Diagnostic[];
+};
+
 export function parseSource(input: ParseSourceInput): ParseSourceResult {
   const scriptKind = scriptKindForPath(input.file);
   if (scriptKind === null) {
@@ -21,8 +25,9 @@ export function parseSource(input: ParseSourceInput): ParseSourceResult {
     true,
     scriptKind
   );
+  const parseDiagnostics = (sourceFile as SourceFileWithParseDiagnostics).parseDiagnostics ?? [];
 
-  if (sourceFile.parseDiagnostics.length > 0) {
+  if (parseDiagnostics.length > 0) {
     return {
       error: {
         code: "syntax_error",
