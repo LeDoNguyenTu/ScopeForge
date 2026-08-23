@@ -7,7 +7,7 @@ const stripeKey = "sk_live_" + "A1b2C3d4E5f6G7h8I9j0K1l2";
 const slackToken = "xoxb-" + "123456789012-123456789012-A1b2C3d4E5f6G7h8I9j0K1l2";
 
 describe("provider secret rules", () => {
-  it("detects a small high-confidence provider set and private-key headers", () => {
+  it("detects a small high-confidence provider set and complete private-key blocks", () => {
     const privateHeader = "-----BEGIN " + "PRIVATE KEY-----";
     const content = [
       `const github = "${githubToken}";`,
@@ -34,6 +34,13 @@ describe("provider secret rules", () => {
     expect(serialized).not.toContain("SYNTHETIC_TEST_MATERIAL_NOT_A_REAL_KEY");
   });
 
+  it("does not report a lone private-key header without a matching end marker", () => {
+    const privateHeader = "-----BEGIN " + "PRIVATE KEY-----";
+    const content = [privateHeader, "documentation example only"].join("\n");
+
+    expect(scanSecretText({ file: "docs/key-format.md", content })).toEqual([]);
+  });
+
   it("suppresses obvious placeholders and test-mode keys", () => {
     const content = [
       'const github = "ghp_' + 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";',
@@ -54,5 +61,13 @@ describe("provider secret rules", () => {
 
     const findings = scanSecretText({ file: "tests/fixture.ts", content });
     expect(findings.map((finding) => finding.ruleId)).toEqual(["secrets/slack-token"]);
+  });
+
+  it("does not let annotation-like string content suppress a real finding", () => {
+    const content = `const token = "${githubToken}"; const marker = "// scopeforge:allow-secret";`;
+
+    expect(scanSecretText({ file: "src/runtime.ts", content }).map((finding) => finding.ruleId)).toEqual([
+      "secrets/github-token"
+    ]);
   });
 });
