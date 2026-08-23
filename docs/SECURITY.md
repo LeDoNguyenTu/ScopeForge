@@ -21,19 +21,31 @@ Phase 3 code and supply-chain scanning is local and passive. Repository content 
 - Repository inventory is bounded by file-count, per-file-size, and total-byte limits.
 - Generated and vendor directories are excluded by default.
 - Filesystem symlinks are not followed during inventory.
-- Detector code must consume inventory entries through the shared safe read boundary, which revalidates containment, regular-file status, symlink state, and size before reading.
+- Detector code consumes inventory entries through the shared safe read boundary.
+- Safe reads revalidate containment, regular-file status, symlink state, inode/device identity, and size, and enforce the byte ceiling during the actual read.
 - Repository code and package lifecycle scripts are never executed as part of analysis.
 - Project dependencies are not installed as part of analysis.
 - Dockerfiles, Terraform configurations, Kubernetes manifests, GitHub Actions workflows, and configuration files are parsed as data and never executed.
 - Root scanner configuration is strict and versioned. Nested repository configuration cannot silently alter scanner behavior.
 - Repository configuration may tighten scan budgets but cannot raise safe defaults.
-- Unknown configured scanner families fail closed rather than producing an apparently clean scan.
-- Repository-configured output paths must remain inside the scan root and are written with no-follow protections where the platform supports them.
-- Existing output symlinks are rejected.
+- Unknown configured scanner families and unknown built-in rule IDs fail closed.
+- Repository-configured output paths must remain inside the scan root and existing output symlinks are rejected.
 - Scanner failures are represented explicitly and must not be reported as a clean scan.
-- Finding fingerprints use structural identity and do not require raw secret values.
-- Detected secret values must remain redacted in every future output and ingestion path.
-- Phase 3 does not perform remote DAST, authenticated crawling, API fuzzing, credential attacks, exploit validation, persistence, or destructive actions.
+
+## Secret scanner guarantees
+
+The built-in `secrets` scanner is the first Phase 3 detector family.
+
+- Provider patterns are deliberately small and high-confidence: GitHub tokens, Stripe live secret keys, Slack tokens, and recognized private-key headers.
+- Contextual entropy detection is limited to security-relevant assignments, bounded value lengths, and a conservative entropy threshold.
+- Obvious placeholders, test-mode Stripe keys, and low-diversity repeated fixtures are suppressed.
+- `scopeforge:allow-secret` applies only to the same line or immediately preceding fixture comment.
+- Stable secret fingerprints use one-way SHA-256 derivation and never contain the raw secret.
+- Fingerprint allowlisting stores only `sfs1:<64 hex>` identifiers.
+- Raw detected values are not stored in finding titles, descriptions, evidence, metadata, remediation text, or scanner errors.
+- Terminal and native JSON regression tests assert detected credentials are not serialized.
+- Private-key findings anchor location metadata to the public header span rather than the private key body.
+- Secret scanning performs no network requests and no credential validation against providers.
 
 ## Planned hosted active-test guardrails
 
