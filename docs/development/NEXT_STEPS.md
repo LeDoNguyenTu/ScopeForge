@@ -2,11 +2,11 @@
 
 ## Current phase: Phase 3D - JavaScript/TypeScript structural SAST
 
-PR #9 implements the syntax-aware JavaScript/TypeScript scanner and has passed its implementation checkpoint. Final merge still requires the exact documentation head to pass every CI gate and the final security review to remain clear.
+PR #9 implements the syntax-aware JavaScript/TypeScript scanner and is in its final exact-head verification cycle after security hardening. The shipped structural scope intentionally remains small: direct dynamic-code execution and explicit TLS verification disablement with strong binding evidence. Framework-sensitive cookie/session checks are deferred rather than inferred from variable names.
 
 Immediate actions:
 
-1. Verify the final PR #9 documentation head passes tests, strict typecheck, CLI build/runtime smoke, and Next.js production build.
+1. Verify the exact final PR #9 head passes tests, strict typecheck, CLI build/runtime smoke, and Next.js production build.
 2. Confirm no unresolved Critical or Important review findings remain.
 3. Mark PR #9 ready and squash merge it into `main` using expected-head protection.
 
@@ -24,6 +24,7 @@ Implement test-first after PR #9 merges:
 - preserve the per-file AST budget and introduce an explicit taint-state/propagation budget
 - discard partial taint findings and report an analysis error when a resource budget is exceeded
 - add strong negative fixtures so variable names alone cannot create attacker-controlled-flow claims
+- only add framework-sensitive cookie/session rules when framework identity can be established structurally rather than guessed from receiver names
 
 Do not attempt whole-program cross-repository data flow in this slice. Add narrow interprocedural-light handling only after direct intra-file flows are stable and tested.
 
