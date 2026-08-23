@@ -11,8 +11,7 @@ export interface ScanSecretTextInput {
   options?: SecretRuleSelection;
 }
 
-const INLINE_ALLOW_ANNOTATION = /(?:\/\/|#)\s*scopeforge:allow-secret(?:\s|$)/;
-const STANDALONE_ALLOW_ANNOTATION = /^\s*(?:\/\/|#)\s*scopeforge:allow-secret\s*$/;
+const ALLOW_ANNOTATION = "scopeforge:allow-secret";
 const ENTROPY_ASSIGNMENT = /\b([A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*["']([^"'\r\n]{20,128})["']/g;
 const SECRET_KEY_TERMS = ["token", "secret", "password", "apikey", "credential", "privatekey"];
 const PLACEHOLDER_TERMS = [
@@ -33,12 +32,41 @@ function enabledRules(selection: SecretRuleSelection | undefined): SecretRuleDef
   return SECRET_RULES.filter((rule) => (include.size === 0 || include.has(rule.id)) && !exclude.has(rule.id));
 }
 
-function hasInlineAllowAnnotation(line: string | undefined): boolean {
-  return line !== undefined && INLINE_ALLOW_ANNOTATION.test(line);
+function commentTextOutsideQuotes(line: string | undefined): string | null {
+  if (line === undefined) return null;
+
+  let quote: "'" | '"' | "`" | null = null;
+  let escaped = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index] ?? "";
+
+    if (quote !== null) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (character === quote) quote = null;
+      continue;
+    }
+
+    if (character === "'" || character === '"' || character === "`") {
+      quote = character;
+      continue;
+    }
+    if (character === "#") return line.slice(index + 1);
+    if (character === "/" && line[index + 1] === "/") return line.slice(index + 2);
+  }
+
+  return null;
 }
 
-function hasStandaloneAllowAnnotation(line: string | undefined): boolean {
-  return line !== undefined && STANDALONE_ALLOW_ANNOTATION.test(line);
+function hasExactAllowAnnotation(line: string | undefined): boolean {
+  return commentTextOutsideQuotes(line)?.trim() === ALLOW_ANNOTATION;
 }
 
 function isObviousPlaceholder(value: string): boolean {
@@ -134,15 +162,18 @@ function matchesProviderSecret(value: string): boolean {
   });
 }
 
-function privateKeyMaterial(lines: string[], headerIndex: number): string {
+function privateKeyMaterial(lines: string[], headerIndex: number, header: string): string | null {
+  const expectedEndMarker = header.replace("-----BEGIN ", "-----END ");
   const end = Math.min(lines.length, headerIndex + 4096);
   const collected: string[] = [];
+
   for (let index = headerIndex; index < end; index += 1) {
     const line = lines[index] ?? "";
     collected.push(line);
-    if (/-----END (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/.test(line)) break;
+    if (line.includes(expectedEndMarker)) return collected.join("\n");
   }
-  return collected.join("\n");
+
+  return null;
 }
 
 export function scanSecretText(input: ScanSecretTextInput): Finding[] {
@@ -152,7 +183,7 @@ export function scanSecretText(input: ScanSecretTextInput): Finding[] {
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex] ?? "";
-    const suppressed = hasInlineAllowAnnotation(line) || hasStandaloneAllowAnnotation(lines[lineIndex - 1]);
+    const suppressed = hasExactAllowAnnotation(line) || hasExactAllowAnnotation(lines[lineIndex - 1]);
     if (suppressed) continue;
 
     for (const rule of rules) {
@@ -164,7 +195,8 @@ export function scanSecretText(input: ScanSecretTextInput): Finding[] {
         if (isObviousPlaceholder(value)) continue;
 
         if (rule.provider === "private-key") {
-          const material = privateKeyMaterial(lines, lineIndex);
+          const material = privateKeyMaterial(lines, lineIndex, value);
+          if (material === null) continue;
           findings.push(makeFinding({
             rule,
             file: input.file,
