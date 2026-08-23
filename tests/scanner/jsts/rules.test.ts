@@ -51,6 +51,21 @@ describe("JavaScript and TypeScript structural rules", () => {
     expect(fakeModule).toEqual([]);
   });
 
+  it("does not treat shadowed global or module names as security-sensitive bindings", () => {
+    const findings = scan([
+      "import * as https from 'node:https';",
+      "function localBindings(eval, process, https) {",
+      "  eval(userCode);",
+      "  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';",
+      "  new https.Agent({ rejectUnauthorized: false });",
+      "}",
+      "const Function = class LocalFunction {};",
+      "new Function();"
+    ].join("\n"));
+
+    expect(findings).toEqual([]);
+  });
+
   it("does not infer an HTTP framework from response-like variable names alone", () => {
     const findings = scan([
       "const res = customCookieJar();",
