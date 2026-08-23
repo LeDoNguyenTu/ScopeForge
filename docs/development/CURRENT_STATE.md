@@ -44,15 +44,11 @@ Merged through PR #7 as `d1ca23c5df0bc4ed2276f37b585db453a30b41c0`.
 - safe output path handling and compiled CLI CI smoke testing
 
 ### Phase 3C
-Implemented on PR #8 pending final exact-head validation and merge.
+Merged through PR #8 as `ee2b18c37d264fc22e47e650970e66d01f7c92dd`.
 
 - mandatory provider-aware secret redaction
 - stable one-way `sfs1:` fingerprints
-- GitHub token detection
-- Stripe live secret-key detection
-- Slack token detection
-- private-key header/block detection
-- contextual high-entropy assignment detection
+- GitHub token, Stripe live secret-key, Slack token, complete private-key block, and contextual high-entropy assignment detection
 - exact safe-fixture annotation suppression
 - fingerprint allowlisting in `.scopeforge.json`
 - fail-closed built-in rule validation
@@ -61,11 +57,31 @@ Implemented on PR #8 pending final exact-head validation and merge.
 - private-key location metadata bounded to the public header span
 - safe reader hardened to enforce the byte ceiling during the actual file read
 
-CI #100 passed 23 test files and 107 tests, strict typecheck, CLI build, compiled CLI runtime smoke, and the Next.js production build. CI #101 then reproduced the private-key location-range bug and the implementation was corrected test-first.
+### Phase 3D
+Implemented on branch `feat/phase-3d-jsts-structural-sast` in PR #9, pending final exact-head documentation validation and merge.
+
+- compatible scanner-result contract allows findings plus structured per-file errors
+- JavaScript/TypeScript parser boundary uses TypeScript `createSourceFile` only
+- supported syntax families: JS, JSX, MJS, CJS, TS, TSX, MTS, and CTS
+- parser errors are generic and do not serialize arbitrary source text
+- AST traversal is iterative and bounded to a configurable per-file node budget
+- stable semantic structural context is independent of line movement
+- first three high-confidence structural rules:
+  - direct `eval` / `new Function`
+  - explicit TLS certificate-verification disablement in recognized Node.js shapes
+  - recognized response-cookie calls with `secure: false`
+- structural findings use fixed normalized evidence rather than source lines
+- over-budget and malformed files fail closed per file without discarding valid findings from other files
+- scanner reads only shared inventory entries through `readInventoryEntry`
+- `jsts` is registered beside `secrets` in the built-in CLI registry
+- built-in rule listing and unknown-rule validation cover both detector families
+- hostile fixtures verify parsing does not execute imports, `require`, or repository side effects
+
+CI #132 established the Phase 3D RED checkpoint with 111 passing tests and only missing Phase 3D behavior failing. CI #150 then passed all 141 tests but exposed two strict TypeScript contract issues. Those were fixed at the type boundary. CI #152 passed 30 test files and 141 tests, strict typecheck, CLI build, compiled CLI runtime smoke, and the Next.js production build.
 
 ## Not shipped yet
 
-- JavaScript/TypeScript AST SAST and taint analysis
+- limited high-confidence JavaScript/TypeScript taint analysis
 - dependency/OSV analysis and CycloneDX SBOM
 - Docker/Kubernetes/Terraform/GitHub Actions rules
 - baseline file engine
@@ -75,4 +91,4 @@ CI #100 passed 23 test files and 107 tests, strict typecheck, CLI build, compile
 
 ## Safety boundary
 
-Phase 3 is local and passive. Detector families must use the shared bounded inventory and safe read path. Raw detected secret values must not cross the finding/output boundary. Remote active testing remains a later phase with separate authorization, isolation, egress, quota, and cancellation requirements.
+Phase 3 is local and passive. Detector families must use the shared bounded inventory and safe read path. Raw detected secret values must not cross the finding/output boundary. JS/TS structural analysis parses syntax only and does not execute or resolve target modules. Source-to-sink vulnerability claims remain deferred until bounded taint analysis provides evidence. Remote active testing remains a later phase with separate authorization, isolation, egress, quota, and cancellation requirements.
