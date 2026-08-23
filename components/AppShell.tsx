@@ -1,14 +1,7 @@
 import Link from "next/link";
-import { Boxes, Bug, FileText, Gauge, LogOut, Radar, ScanSearch, Settings, ShieldCheck } from "lucide-react";
+import { LogOut, Radar, Settings, ShieldCheck } from "lucide-react";
 import { signOut } from "@/app/actions";
-
-const nav = [
-  ["/dashboard", "Overview", Gauge],
-  ["/dashboard#assets", "Assets", Boxes],
-  ["/dashboard#scans", "Scans", ScanSearch],
-  ["/dashboard#findings", "Findings", Bug],
-  ["/dashboard#reports", "Reports", FileText]
-] as const;
+import SideNav from "@/components/SideNav";
 
 export default function AppShell({ children, displayName, workspaceName, role }: { children: React.ReactNode; displayName: string; workspaceName: string; role: string }) {
   return (
@@ -16,13 +9,11 @@ export default function AppShell({ children, displayName, workspaceName, role }:
       <aside className="sidebar">
         <Link className="brand sideBrand" href="/"><span className="brandMark"><ShieldCheck size={18} /></span><span>ScopeForge</span></Link>
         <div className="workspaceChip"><span>{workspaceName.slice(0, 1).toUpperCase()}</span><div><strong>{workspaceName}</strong><small>{role}</small></div></div>
-        <nav className="sideNav">
-          {nav.map(([href, label, Icon], index) => <Link className={`sideLink ${index === 0 ? "active" : ""}`} href={href} key={label}><Icon size={17} /><span>{label}</span></Link>)}
-        </nav>
+        <SideNav />
         <div className="sideDivider" />
-        <nav className="sideNav">
-          <a className="sideLink" href="#phase-roadmap"><Radar size={17} /><span>Roadmap</span></a>
-          <a className="sideLink" href="#settings"><Settings size={17} /><span>Settings</span></a>
+        <nav className="sideNav" aria-label="Project links">
+          <Link className="sideLink" href="/dashboard#phase-roadmap"><Radar size={17} /><span>Roadmap</span></Link>
+          <span className="sideLink disabledLink" aria-disabled="true"><Settings size={17} /><span>Settings</span></span>
         </nav>
         <div className="sideFoot">
           <div className="userMini"><span>{displayName.slice(0, 2).toUpperCase()}</span><div><strong>{displayName}</strong><small>Authenticated</small></div></div>
@@ -30,7 +21,7 @@ export default function AppShell({ children, displayName, workspaceName, role }:
         </div>
       </aside>
       <main className="appMain">
-        <header className="topbar"><div><span>Workspace</span><strong>{workspaceName}</strong></div><span className="phasePill"><i /> Phase 1 foundation</span></header>
+        <header className="topbar"><div><span>Workspace</span><strong>{workspaceName}</strong></div><span className="phasePill"><i /> Phase 2 asset control</span></header>
         <div className="content">{children}</div>
       </main>
     </div>
