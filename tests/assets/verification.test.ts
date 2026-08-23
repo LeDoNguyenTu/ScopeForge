@@ -13,8 +13,8 @@ vi.mock("node:dns/promises", async (importOriginal) => {
 
 const mockedLookup = vi.mocked(lookup);
 
-function setFetch(response: Response | Promise<never>) {
-  vi.stubGlobal("fetch", vi.fn().mockImplementation(() => response));
+function setFetch(response: Response) {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
 }
 
 describe("verification challenge", () => {
@@ -38,7 +38,7 @@ describe("verification challenge", () => {
 
 describe("verifyHttpWellKnownTarget", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     vi.unstubAllGlobals();
     mockedLookup.mockReset();
     mockedLookup.mockResolvedValue([{ address: "203.0.113.10", family: 4 }] as never);
@@ -72,7 +72,7 @@ describe("verifyHttpWellKnownTarget", () => {
   });
 
   it("rejects DNS resolution to private addresses before fetch", async () => {
-    mockedLookup.mockResolvedValue([{ address: "10.0.0.7", family: 4 }] as never);
+    mockedLookup.mockResolvedValueOnce([{ address: "10.0.0.7", family: 4 }] as never);
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const result = await verifyHttpWellKnownTarget({ canonicalTarget: "https://example.com", expectedToken: "token" });
@@ -90,7 +90,7 @@ describe("verifyHttpWellKnownTarget", () => {
 
   it("turns timeout errors into a safe failure", async () => {
     const timeout = Object.assign(new Error("timed out"), { name: "TimeoutError" });
-    setFetch(Promise.reject(timeout));
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(timeout));
     const result = await verifyHttpWellKnownTarget({ canonicalTarget: "https://example.com", expectedToken: "token" });
     expect(result).toEqual({ verified: false, reason: "Verification request timed out." });
   });
