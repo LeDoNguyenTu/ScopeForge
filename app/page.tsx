@@ -43,9 +43,9 @@ export default function Home() {
             <div className="scoreRing"><span>7 steps</span></div>
           </div>
           <div className="previewRows">
-            <div><span><i className="severity ok" /> Discover -> Validate</span><strong>Scope first</strong></div>
-            <div><span><i className="severity low" /> Explain -> Connect</span><strong>Context</strong></div>
-            <div><span><i className="severity medium" /> Prepare -> Fix</span><strong>Action</strong></div>
+            <div><span><i className="severity ok" /> Discover {"->"} Validate</span><strong>Scope first</strong></div>
+            <div><span><i className="severity low" /> Explain {"->"} Connect</span><strong>Context</strong></div>
+            <div><span><i className="severity medium" /> Prepare {"->"} Fix</span><strong>Action</strong></div>
             <div><span><i className="severity ok" /> Verify</span><strong>Close the loop</strong></div>
           </div>
         </div>
