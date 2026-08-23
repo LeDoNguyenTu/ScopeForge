@@ -3,6 +3,8 @@ import { Boxes, Bug, CircleCheck, Database, ScanSearch, ShieldCheck } from "luci
 import AppShell from "@/components/AppShell";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 const modules = [
   ["Asset inventory", "Target registration and ownership verification", "Phase 2", Boxes],
   ["Scan orchestration", "Safe profiles, jobs and worker lifecycle", "Phase 2", ScanSearch],
