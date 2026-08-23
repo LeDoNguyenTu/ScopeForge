@@ -275,7 +275,9 @@ export function collectTaintBindings(sourceFile: ts.SourceFile, budget: TaintBud
     }
 
     const children: ts.Node[] = [];
-    ts.forEachChild(node, (child) => children.push(child));
+    ts.forEachChild(node, (child) => {
+      children.push(child);
+    });
     for (let index = children.length - 1; index >= 0; index -= 1) {
       stack.push(children[index] as ts.Node);
     }
