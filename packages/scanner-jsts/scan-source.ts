@@ -22,6 +22,8 @@ export interface ScanSourceFileResult {
   error?: ScannerDiagnostic;
 }
 
+const HTTPS_MODULE_SPECIFIERS = new Set(["https", "node:https"]);
+
 function enabledRules(selection: ScannerRuleSelection | undefined): Map<string, JstsRuleDefinition> {
   const include = new Set(selection?.include ?? []);
   const exclude = new Set(selection?.exclude ?? []);
@@ -47,6 +49,46 @@ function objectPropertyIsFalse(object: ts.ObjectLiteralExpression, name: string)
   );
 }
 
+function moduleSpecifierText(node: ts.Expression): string | null {
+  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) ? node.text : null;
+}
+
+function requireModuleSpecifier(node: ts.Expression | undefined): string | null {
+  if (!node || !ts.isCallExpression(node)) return null;
+  if (!ts.isIdentifier(node.expression) || node.expression.text !== "require") return null;
+  if (node.arguments.length !== 1) return null;
+  return moduleSpecifierText(node.arguments[0] as ts.Expression);
+}
+
+function collectHttpsNamespaceBindings(sourceFile: ts.SourceFile): Set<string> {
+  const bindings = new Set<string>();
+
+  for (const statement of sourceFile.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      const specifier = moduleSpecifierText(statement.moduleSpecifier);
+      if (!specifier || !HTTPS_MODULE_SPECIFIERS.has(specifier)) continue;
+
+      const clause = statement.importClause;
+      if (clause?.name) bindings.add(clause.name.text);
+      if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+        bindings.add(clause.namedBindings.name.text);
+      }
+      continue;
+    }
+
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name)) continue;
+      const specifier = requireModuleSpecifier(declaration.initializer);
+      if (specifier && HTTPS_MODULE_SPECIFIERS.has(specifier)) {
+        bindings.add(declaration.name.text);
+      }
+    }
+  }
+
+  return bindings;
+}
+
 function isDirectEval(node: ts.Node): node is ts.CallExpression {
   return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "eval";
 }
@@ -70,10 +112,14 @@ function isProcessTlsAssignment(node: ts.Node): node is ts.BinaryExpression {
   );
 }
 
-function isHttpsAgentWithoutVerification(node: ts.Node): node is ts.NewExpression {
+function isHttpsAgentWithoutVerification(
+  node: ts.Node,
+  httpsBindings: ReadonlySet<string>
+): node is ts.NewExpression {
   if (!ts.isNewExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
   if (node.expression.name.text !== "Agent") return false;
-  if (!ts.isIdentifier(node.expression.expression) || node.expression.expression.text !== "https") return false;
+  const receiver = node.expression.expression;
+  if (!ts.isIdentifier(receiver) || !httpsBindings.has(receiver.text)) return false;
 
   const options = node.arguments?.[0];
   return !!options && ts.isObjectLiteralExpression(options) && objectPropertyIsFalse(options, "rejectUnauthorized");
@@ -83,6 +129,7 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
   const rules = enabledRules(input.rules);
   const findings: Finding[] = [];
   const occurrences = new Map<string, number>();
+  const httpsBindings = collectHttpsNamespaceBindings(input.sourceFile);
 
   function emit(node: ts.Node, ruleId: string, sink: string, evidence: string): void {
     const rule = rules.get(ruleId);
@@ -122,7 +169,7 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
           "NODE_TLS_REJECT_UNAUTHORIZED",
           "NODE_TLS_REJECT_UNAUTHORIZED=0"
         );
-      } else if (isHttpsAgentWithoutVerification(node)) {
+      } else if (isHttpsAgentWithoutVerification(node, httpsBindings)) {
         emit(
           node,
           "jsts/tls-verification-disabled",
