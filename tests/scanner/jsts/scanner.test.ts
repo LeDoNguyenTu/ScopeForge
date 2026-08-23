@@ -80,7 +80,10 @@ describe("createJstsScanner", () => {
 
   it("honors shared rule selection", async () => {
     const root = await tempDir();
-    await writeFile(join(root, "runtime.ts"), "eval(userCode);\nconst agent = new https.Agent({ rejectUnauthorized: false });\n");
+    await writeFile(
+      join(root, "runtime.ts"),
+      "import * as https from 'node:https';\neval(userCode);\nconst agent = new https.Agent({ rejectUnauthorized: false });\n"
+    );
     const inventory = await buildRepositoryInventory(root);
 
     const result = structured(await createJstsScanner({
