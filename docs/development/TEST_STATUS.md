@@ -2,19 +2,35 @@
 
 This file records the latest verified state. Update it before ending a development session that changes product behavior or security boundaries.
 
-| Check | Last known result | Notes |
+| Check | Result | Evidence / notes |
 |---|---|---|
-| GitHub Actions CI | Passing | Phase 2 planning PR passed before implementation started |
-| TypeScript typecheck | Passing | Phase 1 baseline |
-| Next.js production build | Passing | Phase 1 baseline |
-| Unit tests | Not configured yet | Added in Phase 2 Task 2 |
-| Supabase security advisor | Passing | No Phase 1 security lints |
-| Supabase performance advisor | Passing with informational unused-index notices | Expected before traffic |
-| Phase 2 target-normalization tests | Pending | Phase 2 |
-| Phase 2 verification tests | Pending | Phase 2 |
-| Phase 2 quota tests | Pending | Phase 2 |
-| Phase 2 component tests | Pending | Phase 2 |
+| GitHub Actions unit tests | Passing | Latest Phase 2 implementation checkpoint completed `npm test` successfully |
+| TypeScript typecheck | Passing | Latest Phase 2 implementation checkpoint completed `npm run typecheck` successfully |
+| Next.js production build | Passing | Latest Phase 2 implementation checkpoint completed `npm run build` successfully |
+| Target-normalization tests | Passing | Includes private/local targets, IPv6 loopback, IPv4-mapped IPv6, HTTPS-only and port-443 constraints |
+| Verification tests | Passing | Includes exact-token validation, pinned public address, redirects, private/mixed DNS results, response ceiling, and timeout handling |
+| Quota tests | Passing | Trial asset and verification limits covered by unit tests; database triggers also enforce asset and verification ceilings |
+| Asset component tests | Passing | Registration form accessibility and safety copy covered |
+| Workspace role tests | Passing | Owner/admin/member accepted, viewer denied for asset management |
+| Supabase security advisor | Passing | No security lints after Phase 2 hardening |
+| Supabase performance advisor | Passing with informational notices | Composite FK coverage fixed; remaining notices are unused-index INFO expected before traffic. See https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index |
+| Cross-workspace RLS isolation | Passing | Test user saw only its own workspace asset; cross-workspace access stayed hidden |
+| Direct authenticated Phase 2 writes | Passing | Direct asset INSERT/UPDATE/DELETE and direct verification-challenge INSERT were denied |
+| Phase 2 active scanning | Disabled by design | Scan-job schema cannot queue active work in Phase 2 |
+
+## Security regression coverage added during final review
+
+- IPv4-mapped IPv6 local-address rejection
+- special-use address rejection
+- DNS result validation before network access
+- IP-pinned HTTPS connection to prevent DNS-rebinding/TOCTOU between validation and request
+- manual redirect handling
+- trusted-write-only Phase 2 mutation boundary
+- immutable verified asset identity fields
+- one active verification challenge per asset
+- composite `(asset_id, workspace_id)` integrity constraints
+- database-enforced concurrent asset and verification quotas
 
 ## Release rule
 
-A Phase 2 implementation PR must not merge unless unit tests, typecheck, production build, and required Supabase advisor checks pass. Any accepted informational warning must be documented here.
+PR #4 must not merge until its final head passes unit tests, typecheck, and production build. Supabase security lints must remain empty. Unused-index INFO notices are acceptable until realistic traffic provides index-usage evidence.

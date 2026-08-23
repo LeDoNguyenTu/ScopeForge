@@ -2,19 +2,39 @@
 
 ## Current phase: Phase 2 - Asset Control
 
-Execute the active plan in `docs/superpowers/plans/2026-08-24-phase-2-asset-control.md` in this order:
+Phase 2 implementation is complete on PR #4 and is at the final merge gate.
 
-1. Complete community positioning and resumable project-state documentation.
-2. Add the Vitest and React Testing Library harness.
-3. Add the Phase 2 Supabase schema, indexes, and RLS policies.
-4. Implement canonical target normalization and private-target rejection.
-5. Implement verification challenge primitives and bounded HTTP verification.
-6. Add quota logic and append-only audit events.
-7. Build asset registration, inventory, detail, and verification UX.
-8. Replace dashboard placeholder counts with live workspace data.
-9. Run unit tests, typecheck, production build, Supabase security advisor, and performance advisor.
-10. Update `SESSION_HANDOFF.md`, `TEST_STATUS.md`, and `IMPLEMENTATION_LOG.md` before merging.
+Immediate actions:
+
+1. Run GitHub CI on the final documentation and migration-synchronization head.
+2. Confirm Supabase security advisor remains clean.
+3. Confirm performance advisor reports only acceptable unused-index INFO notices.
+4. Mark PR #4 ready for review.
+5. Squash merge PR #4 into `main` after green CI.
+6. Reset the Phase 2 working branch to the squash commit so public branch history remains concise.
+
+## After Phase 2 merge
+
+Begin a separate Phase 3 design cycle for code security. The intended scope is passive and code-local first:
+
+- dependency inventory and OSV-backed vulnerability checks
+- CycloneDX SBOM generation
+- secret detection
+- static security rules
+- Dockerfile, Kubernetes, and Terraform policy checks
+- Cloudflare R2 artifact storage
+- a normalized first-generation finding model
+
+Phase 3 must remain independently testable and should not introduce remote active exploitation.
+
+## Deployment prerequisites before a public trial
+
+- connect the final Vercel project to the GitHub repository
+- configure the public Supabase URL/key and server-only `SUPABASE_SECRET_KEY`
+- attach `scopeforge.dev` and complete DNS/TLS validation
+- add Cloudflare Turnstile before opening sign-up broadly
+- validate production auth redirects and asset registration on the deployed origin
 
 ## Phase boundary
 
-Do not begin active scanning in Phase 2. The next phase begins only after asset authorization, quotas, auditability, and control-plane safety are validated.
+Do not begin remote DAST, API fuzzing, exploit validation, or generalized network scanning until the later execution-plane phases have isolated workers, explicit scopes, egress controls, budgets, and cancellation semantics.
