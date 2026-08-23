@@ -44,11 +44,32 @@ describe("JavaScript and TypeScript structural rules", () => {
       "jsts/tls-verification-disabled"
     ]);
 
+    const cjs = scan([
+      "const https = require('node:https');",
+      "new https.Agent({ rejectUnauthorized: false });"
+    ].join("\n"));
+    expect(cjs.map((finding) => finding.ruleId)).toEqual(["jsts/tls-verification-disabled"]);
+
     const fakeModule = scan([
       "const https = { Agent: class Agent {} };",
       "new https.Agent({ rejectUnauthorized: false });"
     ].join("\n"));
     expect(fakeModule).toEqual([]);
+  });
+
+  it("requires a runtime Node HTTPS binding rather than type-only or shadowed require syntax", () => {
+    const typeOnly = scan([
+      "import type * as https from 'node:https';",
+      "new https.Agent({ rejectUnauthorized: false });"
+    ].join("\n"));
+    expect(typeOnly).toEqual([]);
+
+    const shadowedRequire = scan([
+      "const require = () => ({ Agent: class Agent {} });",
+      "const https = require('node:https');",
+      "new https.Agent({ rejectUnauthorized: false });"
+    ].join("\n"));
+    expect(shadowedRequire).toEqual([]);
   });
 
   it("does not treat shadowed global or module names as security-sensitive bindings", () => {
