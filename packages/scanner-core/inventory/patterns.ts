@@ -16,8 +16,13 @@ function globToRegexSource(glob: string): string {
 
     if (character === "*") {
       if (glob[index + 1] === "*") {
-        source += ".*";
-        index += 1;
+        if (glob[index + 2] === "/") {
+          source += "(?:[^/]+/)*";
+          index += 2;
+        } else {
+          source += ".*";
+          index += 1;
+        }
       } else {
         source += "[^/]*";
       }
@@ -46,11 +51,17 @@ function compilePattern(rawPattern: string): RegExp | null {
   if (pattern.endsWith("/")) pattern += "**";
   if (!pattern) return null;
 
-  const hasSlash = pattern.includes("/");
+  if (pattern.endsWith("/**")) {
+    const basePattern = pattern.slice(0, -3);
+    const baseSource = globToRegexSource(basePattern);
+    return anchored
+      ? new RegExp(`^${baseSource}(?:$|/.*)`)
+      : new RegExp(`(?:^|/)${baseSource}(?:$|/.*)`);
+  }
+
   const source = globToRegexSource(pattern);
 
   if (anchored) return new RegExp(`^${source}(?:$|/)`);
-  if (hasSlash) return new RegExp(`(?:^|/)${source}(?:$|/)`);
   return new RegExp(`(?:^|/)${source}(?:$|/)`);
 }
 
