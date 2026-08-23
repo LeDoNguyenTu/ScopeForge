@@ -71,4 +71,21 @@ describe("buildRepositoryInventory", () => {
     expect(inventory.summary.skippedByReason.file_too_large).toBe(1);
     expect(inventory.summary.skippedByReason.total_bytes_limit).toBe(1);
   });
+
+  it("stops traversing once the file-count budget is exhausted", async () => {
+    const root = await makeTempDir("scopeforge-file-limit-");
+    const outside = await makeTempDir("scopeforge-file-limit-outside-");
+
+    await writeFile(join(root, "a.txt"), "a");
+    await writeFile(join(root, "b.txt"), "b");
+    await writeFile(join(root, "c.txt"), "c");
+    await writeFile(join(outside, "outside.txt"), "outside");
+    await symlink(join(outside, "outside.txt"), join(root, "z-link.txt"));
+
+    const inventory = await buildRepositoryInventory(root, { maxFiles: 1 });
+
+    expect(inventory.entries.map((entry) => entry.path)).toEqual(["a.txt"]);
+    expect(inventory.summary.skippedByReason.file_limit).toBe(1);
+    expect(inventory.summary.skippedByReason.symlink).toBe(0);
+  });
 });
