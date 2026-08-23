@@ -1,5 +1,5 @@
 import { lstat, readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 import type { Severity } from "../findings/types";
 import { defaultInventoryBudgets, type InventoryBudgets } from "../inventory/types";
@@ -105,6 +105,28 @@ function parseBudgets(value: unknown): InventoryBudgets {
   return budgets;
 }
 
+function configuredOutputPath(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new ScannerConfigError("invalid_config", "output.path must be a non-empty string.");
+  }
+
+  const path = value.trim();
+  const segments = path.split("/");
+  if (
+    isAbsolute(path) ||
+    path.includes("\\") ||
+    segments.some((segment) => segment === "" || segment === "." || segment === "..")
+  ) {
+    throw new ScannerConfigError(
+      "invalid_config",
+      "output.path from repository configuration must be a canonical relative path inside the scan root."
+    );
+  }
+
+  return path;
+}
+
 function parseOutput(value: unknown): ScannerOutputConfig {
   if (value === undefined) return { format: "terminal", path: undefined };
   const object = requireObject(value, "output");
@@ -114,13 +136,10 @@ function parseOutput(value: unknown): ScannerOutputConfig {
   if (format !== "terminal" && format !== "json") {
     throw new ScannerConfigError("invalid_config", "output.format must be terminal or json.");
   }
-  if (object.path !== undefined && (typeof object.path !== "string" || object.path.trim() === "")) {
-    throw new ScannerConfigError("invalid_config", "output.path must be a non-empty string.");
-  }
 
   return {
     format,
-    path: typeof object.path === "string" ? object.path : undefined
+    path: configuredOutputPath(object.path)
   };
 }
 
