@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -103,6 +103,25 @@ describe("runCli", () => {
     ).toBe(SCAN_EXIT.SUCCESS);
 
     expect(JSON.parse(await readFile(outputPath, "utf8")).schemaVersion).toBe(1);
+  });
+
+  it("refuses to follow a configured output symlink", async () => {
+    const root = await tempDir("scopeforge-cli-safe-output-");
+    const outside = await tempDir("scopeforge-cli-safe-output-outside-");
+    const victim = join(outside, "victim.txt");
+
+    await writeFile(join(root, "a.txt"), "hello\n");
+    await writeFile(victim, "preserve me\n");
+    await symlink(victim, join(root, "result.json"));
+    await writeFile(
+      join(root, ".scopeforge.json"),
+      JSON.stringify({ version: 1, output: { format: "json", path: "result.json" } })
+    );
+
+    const capture = captureIo();
+    expect(await runCli(["scan", root], { io: capture.io })).toBe(SCAN_EXIT.USAGE_ERROR);
+    expect(await readFile(victim, "utf8")).toBe("preserve me\n");
+    expect(capture.stderr).toContain("output");
   });
 
   it("returns distinct policy, scanner, and usage exit codes", async () => {
