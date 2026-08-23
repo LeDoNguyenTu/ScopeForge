@@ -160,8 +160,11 @@ export async function loadScannerConfig(
   options: LoadScannerConfigOptions = {}
 ): Promise<ScannerConfig> {
   const scanRoot = resolve(root);
-  const explicit = options.configPath !== undefined;
-  const configPath = explicit ? resolve(scanRoot, options.configPath) : join(scanRoot, DEFAULT_CONFIG_NAME);
+  const suppliedConfigPath = options.configPath;
+  const explicit = suppliedConfigPath !== undefined;
+  const configPath = suppliedConfigPath === undefined
+    ? join(scanRoot, DEFAULT_CONFIG_NAME)
+    : resolve(scanRoot, suppliedConfigPath);
 
   let stat;
   try {
