@@ -58,7 +58,7 @@ Merged through PR #8 as `ee2b18c37d264fc22e47e650970e66d01f7c92dd`.
 - safe reader hardened to enforce the byte ceiling during the actual file read
 
 ### Phase 3D
-Implemented on branch `feat/phase-3d-jsts-structural-sast` in PR #9, pending final exact-head documentation validation and merge.
+Implemented on branch `feat/phase-3d-jsts-structural-sast` in PR #9, pending final exact-head validation and merge.
 
 - compatible scanner-result contract allows findings plus structured per-file errors
 - JavaScript/TypeScript parser boundary uses TypeScript `createSourceFile` only
@@ -66,10 +66,11 @@ Implemented on branch `feat/phase-3d-jsts-structural-sast` in PR #9, pending fin
 - parser errors are generic and do not serialize arbitrary source text
 - AST traversal is iterative and bounded to a configurable per-file node budget
 - stable semantic structural context is independent of line movement
-- first three high-confidence structural rules:
+- two initial high-confidence structural rule families:
   - direct `eval` / `new Function`
   - explicit TLS certificate-verification disablement in recognized Node.js shapes
-  - recognized response-cookie calls with `secure: false`
+- the `https.Agent` form requires a static binding to Node's `https` or `node:https` module, so a local object merely named `https` is not treated as the Node module
+- the earlier insecure-cookie candidate was intentionally deferred because `res` or `response` variable names alone do not establish framework identity strongly enough for a high-confidence finding
 - structural findings use fixed normalized evidence rather than source lines
 - over-budget and malformed files fail closed per file without discarding valid findings from other files
 - scanner reads only shared inventory entries through `readInventoryEntry`
@@ -77,11 +78,12 @@ Implemented on branch `feat/phase-3d-jsts-structural-sast` in PR #9, pending fin
 - built-in rule listing and unknown-rule validation cover both detector families
 - hostile fixtures verify parsing does not execute imports, `require`, or repository side effects
 
-CI #132 established the Phase 3D RED checkpoint with 111 passing tests and only missing Phase 3D behavior failing. CI #150 then passed all 141 tests but exposed two strict TypeScript contract issues. Those were fixed at the type boundary. CI #152 passed 30 test files and 141 tests, strict typecheck, CLI build, compiled CLI runtime smoke, and the Next.js production build.
+CI #132 established the Phase 3D RED checkpoint with 111 passing tests and only missing Phase 3D behavior failing. CI #150 then passed all 141 runtime tests but exposed two strict TypeScript contract issues, which were fixed at the type boundary. CI #152 passed 30 test files and 141 tests plus all build gates. Security review then added low-noise RED regressions for framework-name inference and fake HTTPS bindings. CI #164 reproduced the fake-binding false positive, and the TLS rule was hardened to require a recognized static Node HTTPS binding. CI #165 then exposed one stale integration fixture, which was corrected to import `node:https` explicitly.
 
 ## Not shipped yet
 
 - limited high-confidence JavaScript/TypeScript taint analysis
+- framework-aware structural rules that require stronger binding evidence, including the deferred cookie candidate
 - dependency/OSV analysis and CycloneDX SBOM
 - Docker/Kubernetes/Terraform/GitHub Actions rules
 - baseline file engine
