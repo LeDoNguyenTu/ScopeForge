@@ -14,44 +14,45 @@ Most security tools stop at "we found a vulnerability." ScopeForge is designed a
 
 The goal is not only to surface technical weaknesses, but also to help people understand what they could affect, what to prioritize, what to prepare for, how to fix them, and how to verify that the risk is actually gone.
 
-ScopeForge takes inspiration from modern application-security platforms, practical open-source pentesting tools, and structured community security knowledge, but its core direction is its own: make security findings evidence-first, explainable, connected to realistic consequence paths, and useful to both technical and non-security users.
-
 ## Current status
 
-**Phase 2 - Asset Control is in development.**
+**Phase 3 - Code and supply-chain security is in development.**
 
-Shipped today:
+Shipped foundation:
 
-- Next.js application shell and responsive design system
-- Supabase authentication and server-side session handling
-- Multi-tenant workspaces and roles
-- Row Level Security for exposed workspace data
-- Automatic profile and workspace onboarding
-- Baseline response security headers
-- Dedicated ScopeForge Supabase project in Singapore
-- Architecture, security, delivery-plan, and session-handoff documentation
+- Next.js control plane and Supabase authentication/workspaces
+- workspace-scoped asset registration and proof-of-control verification
+- Row Level Security and trusted server-side mutation boundaries
+- bounded hostile-repository inventory
+- normalized scanner findings and stable fingerprints
+- deterministic native ScopeForge JSON
+- safe bounded inventory-entry reads for future detector engines
+- strict root-only `.scopeforge.json` configuration
+- report-only default policy with explicit `--fail-on` severity enforcement
+- distinct success, policy, usage/configuration, and scanner-error exit codes
+- local CLI shell with terminal and JSON output
 
-Phase 2 is adding:
+The local CLI can currently inventory a repository and exercise the scanner contracts, but detector families are intentionally not registered yet. Secret scanning, JS/TS SAST, SCA/SBOM, and IaC rules are the next Phase 3 work.
 
-- workspace-scoped asset registration
-- proof-of-control verification
-- audit events
-- quota-aware public-trial foundations
-- scan-job metadata without active scanning
+Remote DAST, API fuzzing, exploit validation, credential attacks, persistence, and destructive behavior remain outside Phase 3.
 
-Not enabled yet:
+## Local scanner foundation
 
-- repository scanning
-- SAST, secrets, SCA, SBOM, or IaC analysis
-- remote DAST or API fuzzing
-- isolated scanner workers
-- exploit validation
+```bash
+npm install
+npm run scopeforge -- version
+npm run scopeforge -- rules list
+npm run scopeforge -- scan .
+npm run scopeforge -- scan . --format json
+npm run scopeforge -- scan . --format json --output scopeforge-results.json
+npm run scopeforge -- scan . --fail-on high
+```
 
-Those capabilities are intentionally introduced in later phases only after their safety boundaries are in place.
+Repository configuration is read only from the explicit scan root as `.scopeforge.json`. The current schema is version `1`. Repository configuration may tighten scan budgets but cannot raise ScopeForge's safe defaults.
+
+The CLI is report-only unless `--fail-on` or a valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode.
 
 ## What ScopeForge is becoming
-
-The long-term platform is designed around several connected ideas:
 
 ### Security Story
 
@@ -59,15 +60,11 @@ Important findings should explain what was observed, how confident ScopeForge is
 
 ### Explain Mode
 
-Security information should be progressively disclosed in three layers:
-
-- plain language for anyone responsible for the application
-- developer detail for remediation and regression testing
-- security detail for evidence, mappings, confidence, validation, and retesting
+Security information should be progressively disclosed in plain language, developer detail, and security detail.
 
 ### Prepare Mode
 
-Findings should lead to practical preparation: what to fix now, what related systems to review, what logs to inspect, whether credentials may need rotation, what controls to add, and how to verify the remediation.
+Findings should lead to practical preparation: what to fix now, what related systems to review, what logs to inspect, whether credentials may need rotation, what controls to add, and how to verify remediation.
 
 ### Community Security Packs
 
@@ -75,17 +72,7 @@ ScopeForge is planned to support versioned, machine-validated community packs co
 
 ## Community
 
-ScopeForge is a community project. Useful contributions are not limited to application code. We welcome work on:
-
-- static and infrastructure security rules
-- test fixtures and benchmark cases
-- vulnerability explainers
-- remediation recipes
-- preparedness checklists
-- CWE, OWASP, MITRE, and defensive-framework mappings
-- documentation
-- accessibility and UX
-- security architecture and testing
+ScopeForge is a community project. Useful contributions include scanner rules, fixtures, vulnerability explainers, remediation recipes, preparedness checklists, security mappings, documentation, accessibility, UX, security architecture, and testing.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a contribution.
 
@@ -97,38 +84,39 @@ npm install
 npm run dev
 ```
 
-Then open `http://localhost:3000`.
-
 Validation commands:
 
 ```bash
 npm test
 npm run typecheck
+npm run build:cli
 npm run build
 ```
 
 ## Architecture
 
-ScopeForge separates the public control plane from scanner execution so the hosted web application never needs to become an unrestricted scanning proxy.
+ScopeForge separates the web control plane from scanner execution. Phase 3 scanning is local and passive.
 
 ```text
+Repository
+  |
+  v
+ScopeForge CLI
+  +--> bounded inventory
+  +--> safe content-read boundary
+  +--> scanner coordinator
+  +--> normalized findings
+  +--> terminal / JSON outputs
+
 Browser
   |
   v
 Next.js / Vercel control plane
-  |
   +--> Supabase Auth + PostgreSQL
-  +--> future scan queue
-           |
-           +--> isolated workers
-           +--> private artifact storage
+  +--> future isolated scan queue
 ```
 
-Large scanner artifacts are planned for Cloudflare R2 rather than PostgreSQL. Active scanning remains disabled until target verification, quotas, network restrictions, and worker isolation are implemented.
-
 ## Documentation and resuming development
-
-The repository is designed so development can continue across sessions without rediscovering the whole codebase.
 
 Start with:
 
@@ -136,17 +124,15 @@ Start with:
 2. `docs/development/CURRENT_STATE.md`
 3. the active plan under `docs/superpowers/plans/`
 
-Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-community-platform-design.md`.
+Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-community-platform-design.md`. Phase 3 scanner architecture is documented in `docs/superpowers/specs/2026-08-24-phase-3-code-supply-chain-design.md`.
 
 ## Security and safety
 
-ScopeForge is intended for owned systems, security labs, and explicitly authorized assessments. Hosted features must preserve authorization, rate limits, bounded execution, and network safety controls.
+ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, Dockerfiles, Terraform, Kubernetes manifests, or workflows. Scanner output and repository configuration are bounded by explicit filesystem safety checks.
 
 Please report ScopeForge vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## Roadmap
-
-The project is delivered in deliberate phases:
 
 1. Foundation
 2. Asset control and authorization
@@ -158,7 +144,7 @@ The project is delivered in deliberate phases:
 8. Validation, benchmarks, and public methodology
 9. Production hardening and public release
 
-See `docs/PHASES.md` and the approved community-platform design for details.
+See `docs/PHASES.md` and the approved design documents for details.
 
 ## License
 

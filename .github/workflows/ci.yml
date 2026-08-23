@@ -19,6 +19,8 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run typecheck
+      - run: npm run build:cli
+      - run: node .scopeforge-build/packages/cli/index.js version
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co

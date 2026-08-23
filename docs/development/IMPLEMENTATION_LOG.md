@@ -1,62 +1,32 @@
 # ScopeForge Implementation Log
 
 ## 2026-08-24 - Community platform direction
-
-- Reframed ScopeForge from a portfolio-style AppSec project into an open-source community security platform.
-- Approved the long-term product loop: Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify.
-- Added the community-platform design specification and phased implementation plan.
-- Established Security Story, Explain Mode, Prepare Mode, and future Security Packs as ScopeForge-specific product concepts.
+- Approved the community security platform direction and Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify loop.
 
 ## 2026-08-24 - Phase 2 Asset Control
+- Added workspace-scoped assets, proof-of-control, authorization, SSRF defenses, quotas, audit records, and asset UI.
+- Merged through PR #4.
 
-- Repositioned the README and contributor documentation around the community security mission.
-- Added permanent current-state, test-status, next-step, implementation-log, and session-handoff documents.
-- Added Vitest and React Testing Library to the CI validation path.
-- Added workspace-scoped assets, verification challenges, blocked scan-job metadata, audit events, and usage counters in Supabase.
-- Added RLS read isolation and restricted Phase 2 security-sensitive writes to trusted server actions.
-- Added explicit owner/admin/member write authorization and viewer rejection.
-- Added canonical target normalization and public HTTPS-only verification boundaries.
-- Added proof-of-control challenges using 256-bit random tokens with SHA-256 hashes stored in PostgreSQL.
-- Added challenge revocation, one-active-challenge enforcement, attempt tracking, and replay reduction after success/final failure.
-- Added IP-pinned HTTPS verification to close DNS-rebinding/TOCTOU risk after DNS validation.
-- Added private, local, special-use, and IPv4-mapped IPv6 rejection, manual redirects, a 5-second timeout, and a 4 KiB response ceiling.
-- Added application and database-level trial quotas, including concurrency-safe advisory locks.
-- Added composite asset/workspace foreign keys so challenge and scan-job metadata cannot reference an asset in a different workspace.
-- Added asset inventory, registration, detail, verification, audit activity, and live dashboard state.
-- Verified cross-workspace RLS isolation and direct authenticated write denial using temporary transaction-scoped test identities.
-- Ran Supabase security advisor with no lints and fixed composite foreign-key index notices from the performance advisor.
-- Merged Phase 2 through PR #4.
-
-## 2026-08-24 - Phase 3 code and supply-chain security design
-
-- Approved and merged PR #5 defining the complete Phase 3 local/CI scanner architecture.
-- Set local/passive scanning as the Phase 3 boundary with report-only CI by default and explicit future severity gating.
-- Defined one finding contract for SAST, secrets, dependencies, IaC, configuration, baselines, JSON, SARIF, and later hosted ingestion.
-- Defined hostile-repository boundaries that prohibit executing target code, lifecycle scripts, Dockerfiles, Terraform, Kubernetes manifests, and workflows.
-- Defined the ordered implementation sequence from scanner contracts through detectors, baselines, SARIF, integration/security tests, and release review.
+## 2026-08-24 - Phase 3 design
+- Approved and merged PR #5 defining the local/passive code and supply-chain scanner architecture.
 
 ## 2026-08-24 - Phase 3A Scanner Foundation
+- Added normalized findings, stable fingerprints, bounded hostile-repository inventory, scanner coordination, and deterministic JSON.
+- Hardened file-count traversal and double-star ignore semantics with dedicated RED/GREEN regressions.
+- Merged through PR #6.
 
-- Created isolated branch `feat/phase-3a-scanner-foundation` and draft PR #6.
-- Added a dedicated Phase 3A implementation plan.
-- Used TDD: CI run #68 verified the five new scanner suites failed because production modules were intentionally absent.
-- Added the normalized finding, evidence, remediation, scan-error, policy-result, and scan-result TypeScript contracts.
-- Added `sf1:` SHA-256 fingerprints based on normalized scanner/rule/path/structural identity without raw-secret inputs.
-- Added severity ordering and threshold helpers.
-- Added bounded repository inventory with generated/vendor exclusions, root ignore files, symlink non-following, deterministic traversal, and byte/file budgets.
-- Added lightweight source, manifest, lockfile, infrastructure, and configuration classification.
-- Added a pluggable scanner interface and deterministic coordinator with fingerprint deduplication and explicit error capture.
-- Added versioned deterministic ScopeForge JSON serialization.
-- Kept scanner packages independent from Next.js, Supabase, and Vercel.
-- Updated `docs/SECURITY.md` to document the current control-plane and local hostile-repository boundaries.
-- Final security review found that the accepted-file budget still walked remaining siblings. Added a regression test in CI run #72, then stopped traversal at the file-count budget. CI run #73 passed 71 tests, typecheck, and build.
-- Contract review found incomplete zero-directory `**` semantics. Added a regression test in CI run #75, fixed `**/` and trailing `/**` matching, and confirmed CI run #76 passed all 72 tests, typecheck, and production build.
+## 2026-08-24 - Phase 3B Safe Reads, Configuration, Policy, and CLI
+- Created PR #7 from an isolated feature branch.
+- Added a shared safe inventory-entry reader with containment, symlink, regular-file, inode/device, and size revalidation.
+- Added strict root-only `.scopeforge.json` schema version 1.
+- Prevented repository configuration from raising safe inventory budgets.
+- Added report-only default policy and explicit inclusive `failOn` enforcement.
+- Added stable exit codes for success, policy failure, usage/configuration failure, and scanner execution failure.
+- Added terminal and JSON CLI shell commands for scan, rules list, and version.
+- Added separate CLI TypeScript compilation and a compiled-entrypoint CI smoke test.
+- Security review found repository-configured output traversal and symlink overwrite risk. CI #87 reproduced both before containment and no-follow writing were added; CI #90 passed after the fix.
+- Review found unknown configured scanner families could silently reduce coverage. CI #92 reproduced the issue and CI #93 passed after scanner selection was changed to fail closed.
 
-## Current Phase 3 boundary
+## Current boundary
 
-Phase 3 is local and passive. Secret scanning, JS/TS SAST, taint analysis, SCA/OSV, SBOM, IaC rules, baselines, SARIF, and CLI/policy behavior remain ordered Phase 3 work. Remote DAST, authenticated crawling, fuzzing, exploitation, credential attacks, persistence, and destructive actions remain outside Phase 3.
-
-## Earlier foundation
-
-- Created the dedicated ScopeForge Supabase project in Singapore.
-- Added authentication, workspace tenancy, RLS, responsive application shell, security headers, and CI validation.
+Phase 3 remains local and passive. No detector family is registered yet. Secret scanning and mandatory redaction are the next implementation slice. Remote DAST, fuzzing, exploitation, credential attacks, persistence, and destructive actions remain outside Phase 3.

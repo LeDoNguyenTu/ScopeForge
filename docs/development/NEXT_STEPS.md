@@ -1,55 +1,44 @@
 # ScopeForge Next Steps
 
-## Current phase: Phase 3A - Scanner Foundation
+## Current phase: Phase 3B - Safe reads, configuration, policy, and CLI
 
-The Phase 3 design is approved and merged. Phase 3A implementation is on PR #6 and has passed the implementation and hardening CI checkpoints.
+PR #7 implements the Phase 3B contract layer and has passed its implementation review checkpoint. Merge only after the exact final documentation head passes all CI gates.
 
 Immediate actions:
 
-1. Confirm GitHub CI is green on the final PR #6 head after documentation updates.
-2. Review the final PR diff for scanner safety, deterministic contracts, and accidental hosted-control-plane coupling.
-3. Mark PR #6 ready for review.
-4. Squash merge PR #6 into `main` after all gates are green.
+1. Confirm final PR #7 CI passes tests, typecheck, CLI build/runtime smoke, and Next.js production build.
+2. Confirm no unresolved Critical or Important review findings remain.
+3. Mark PR #7 ready and squash merge it into `main`.
 
-## Phase 3B - Safe reads, configuration, policy, and CLI shell
+## Next slice: Phase 3C - Secret scanning and redaction
 
-After PR #6 merges, implement the next contract layer test-first:
+Implement test-first:
 
-- a shared bounded inventory content-read helper that revalidates root containment, regular-file status, symlink safety, and size limits before detector code reads repository content
-- root-scoped versioned scanner configuration
-- enabled scanner-family and rule include/exclude policy
-- bounded file and scan budget configuration
-- explicit `--fail-on` severity semantics
-- report-only default policy
-- distinct configuration, scanner-execution, and policy-gate failure semantics
-- `scopeforge scan [path]` CLI shell
-- terminal/native JSON output selection and output-file handling
-- `scopeforge version` and `scopeforge rules list` command skeletons
+- mandatory redaction primitives before any secret detector can emit findings
+- provider-aware high-confidence credential patterns
+- private-key material detection
+- bounded entropy heuristics with contextual filtering
+- placeholder/test-fixture suppression
+- secret fingerprints that never contain raw secret values
+- allowlisting by fingerprint or explicit safe fixture annotation
+- terminal and JSON regression tests proving raw secrets never appear
+- hostile-input and large-file tests through the shared safe content reader
 
-Do not add detector-specific behavior before these interfaces are stable. Detector implementations must consume the shared inventory and safe-read path rather than opening repository paths independently.
+The secret scanner must consume `RepositoryInventory` and `readInventoryEntry`. It must not walk or open repository paths independently.
 
 ## Remaining approved Phase 3 sequence
 
-1. Secret scanner and mandatory redaction primitives.
-2. JavaScript/TypeScript AST parser and first structural SAST rules.
-3. Limited high-confidence JavaScript/TypeScript taint analysis.
-4. Dependency inventory and OSV vulnerability enrichment.
-5. CycloneDX SBOM generation independent of OSV availability.
-6. Docker, Kubernetes, Terraform, GitHub Actions, and generic configuration rules.
-7. Baseline engine for new/existing finding state.
-8. SARIF 2.1.0 adapter and GitHub Actions example.
-9. Integration, golden-output, hostile-input security, and benchmark suites.
-10. Documentation and release-readiness review.
-11. Optional hosted ingestion and private artifact-storage handoff only after the local contract is stable.
-
-## Deployment prerequisites before a public hosted trial
-
-- connect the final Vercel project to the GitHub repository
-- configure the public Supabase URL/key and server-only `SUPABASE_SECRET_KEY`
-- attach `scopeforge.dev` and complete DNS/TLS validation
-- add Cloudflare Turnstile before opening sign-up broadly
-- validate production auth redirects and asset registration on the deployed origin
+1. JavaScript/TypeScript AST parser and structural SAST rules.
+2. Limited high-confidence JS/TS taint analysis.
+3. Dependency inventory and OSV enrichment.
+4. CycloneDX SBOM generation independent of OSV availability.
+5. Docker, Kubernetes, Terraform, GitHub Actions, and generic configuration rules.
+6. Baseline engine.
+7. SARIF 2.1.0 adapter and GitHub Code Scanning example.
+8. Integration, golden-output, hostile-input security, and benchmark suites.
+9. Documentation and release-readiness review.
+10. Optional hosted ingestion only after the local contract is stable.
 
 ## Phase boundary
 
-Do not begin remote DAST, authenticated crawling, API fuzzing, exploit validation, generalized network scanning, or credential attacks during Phase 3. Those capabilities require later isolated-worker, explicit-scope, egress-control, budget, and cancellation designs.
+Do not begin remote DAST, authenticated crawling, API fuzzing, exploit validation, generalized network scanning, credential attacks, persistence, or destructive behavior during Phase 3.
