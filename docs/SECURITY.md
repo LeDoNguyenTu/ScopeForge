@@ -56,7 +56,9 @@ The built-in `jsts` scanner performs syntax-aware structural analysis without ev
 - Source files are obtained only through `readInventoryEntry`; the JS/TS scanner does not walk or open repository paths independently.
 - AST traversal uses an explicit iterative stack and a fixed per-file node budget. If the budget is exceeded, partial findings from that file are discarded and the file receives an explicit scanner error.
 - Syntax errors are reported using a generic bounded diagnostic. Parser diagnostics do not copy source lines or arbitrary source text into output.
-- The first rules intentionally match narrow observed constructs only: direct `eval` or `new Function`, recognized TLS verification disablement, and recognized response-cookie calls with `secure: false`.
+- The initial structural rules intentionally match only narrow observed constructs: direct `eval` or `new Function`, and recognized TLS verification disablement.
+- The `https.Agent({ rejectUnauthorized: false })` form is reported only when its receiver is statically bound to Node's `https` or `node:https` module through a recognized import or `require` declaration. The scanner does not resolve or execute that module.
+- Framework-sensitive cookie rules are deferred until framework identity can be established without relying on response-like variable names alone.
 - Structural findings do not claim attacker-controlled data flow, exploitability, command injection, SQL injection, path traversal, SSRF, or similar source-to-sink vulnerabilities. Those claims require the later bounded taint-analysis slice.
 - Finding evidence is a fixed normalized construct description rather than the repository source line.
 - Structural fingerprints use repository path, rule identity, semantic enclosing context, sink identity, and a deterministic occurrence number rather than relying only on line numbers.
