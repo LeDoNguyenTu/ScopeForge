@@ -31,6 +31,8 @@ interface RuleCandidate {
   httpsBinding?: string;
 }
 
+type HttpsBindingKind = "import" | "require";
+
 const HTTPS_MODULE_SPECIFIERS = new Set(["https", "node:https"]);
 
 function enabledRules(selection: ScannerRuleSelection | undefined): Map<string, JstsRuleDefinition> {
@@ -104,11 +106,14 @@ function recordDeclaredBindings(node: ts.Node, counts: Map<string, number>): voi
 
   if (ts.isImportDeclaration(node)) {
     const clause = node.importClause;
-    if (clause?.name) incrementBinding(counts, clause.name.text);
-    if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+    if (!clause || clause.isTypeOnly) return;
+    if (clause.name) incrementBinding(counts, clause.name.text);
+    if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
       incrementBinding(counts, clause.namedBindings.name.text);
-    } else if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
-      for (const element of clause.namedBindings.elements) incrementBinding(counts, element.name.text);
+    } else if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+      for (const element of clause.namedBindings.elements) {
+        if (!element.isTypeOnly) incrementBinding(counts, element.name.text);
+      }
     }
     return;
   }
@@ -123,15 +128,16 @@ function recordDeclaredBindings(node: ts.Node, counts: Map<string, number>): voi
   }
 }
 
-function recordHttpsModuleBinding(node: ts.Node, bindings: Set<string>): void {
+function recordHttpsModuleBinding(node: ts.Node, bindings: Map<string, HttpsBindingKind>): void {
   if (ts.isImportDeclaration(node)) {
     const specifier = moduleSpecifierText(node.moduleSpecifier);
     if (!specifier || !HTTPS_MODULE_SPECIFIERS.has(specifier)) return;
 
     const clause = node.importClause;
-    if (clause?.name) bindings.add(clause.name.text);
-    if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
-      bindings.add(clause.namedBindings.name.text);
+    if (!clause || clause.isTypeOnly) return;
+    if (clause.name) bindings.set(clause.name.text, "import");
+    if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+      bindings.set(clause.namedBindings.name.text, "import");
     }
     return;
   }
@@ -144,7 +150,9 @@ function recordHttpsModuleBinding(node: ts.Node, bindings: Set<string>): void {
   if (!ts.isVariableStatement(statement) || !ts.isSourceFile(statement.parent)) return;
 
   const specifier = requireModuleSpecifier(node.initializer);
-  if (specifier && HTTPS_MODULE_SPECIFIERS.has(specifier)) bindings.add(node.name.text);
+  if (specifier && HTTPS_MODULE_SPECIFIERS.has(specifier)) {
+    bindings.set(node.name.text, "require");
+  }
 }
 
 function isDirectEval(node: ts.Node): node is ts.CallExpression {
@@ -187,7 +195,7 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
   const findings: Finding[] = [];
   const occurrences = new Map<string, number>();
   const declaredBindings = new Map<string, number>();
-  const httpsModuleBindings = new Set<string>();
+  const httpsModuleBindings = new Map<string, HttpsBindingKind>();
   const candidates: RuleCandidate[] = [];
 
   function emit(candidate: RuleCandidate): void {
@@ -275,13 +283,15 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
     if (candidate.requiredGlobal && (declaredBindings.get(candidate.requiredGlobal) ?? 0) > 0) {
       continue;
     }
-    if (
-      candidate.httpsBinding &&
-      (!httpsModuleBindings.has(candidate.httpsBinding) ||
-        (declaredBindings.get(candidate.httpsBinding) ?? 0) !== 1)
-    ) {
-      continue;
+
+    if (candidate.httpsBinding) {
+      const bindingKind = httpsModuleBindings.get(candidate.httpsBinding);
+      const hasUniqueBinding = (declaredBindings.get(candidate.httpsBinding) ?? 0) === 1;
+      const requireIsUnshadowed =
+        bindingKind !== "require" || (declaredBindings.get("require") ?? 0) === 0;
+      if (!bindingKind || !hasUniqueBinding || !requireIsUnshadowed) continue;
     }
+
     emit(candidate);
   }
 
