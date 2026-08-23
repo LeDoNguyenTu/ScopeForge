@@ -33,26 +33,38 @@ The approved platform design is in `docs/superpowers/specs/2026-08-24-community-
 - scanner coordinator, deduplication, explicit scanner errors, and deterministic JSON
 
 ### Phase 3B
-Implemented on PR #7 pending final merge validation:
+Merged through PR #7 as `d1ca23c5df0bc4ed2276f37b585db453a30b41c0`.
 
-- safe inventory-entry content reads with containment, no-follow, regular-file, inode/device, and size revalidation
-- strict root-only `.scopeforge.json` configuration schema version 1
-- repository configuration may tighten but not raise safe inventory budgets
-- configured scanner families, rule include/exclude metadata, output preferences, and `failOn` policy contract
-- unknown configured scanner families fail closed
-- report-only default and inclusive explicit severity gates
-- baseline-compatible policy behavior that does not fail on `existing` findings
-- stable exit codes: 0 success, 1 policy failed, 2 usage/configuration, 3 scanner execution error
-- local CLI commands for `scan`, `rules list`, and `version`
-- terminal and deterministic JSON output
-- no-follow output writer and containment for repository-configured output paths
-- dedicated CLI TypeScript build and CI runtime smoke test
+- safe bounded inventory-entry reads
+- strict root-only `.scopeforge.json` version 1
+- repository configuration can tighten but not raise safe budgets
+- report-only default and explicit inclusive severity gates
+- distinct exit codes for success, policy failure, usage/configuration, and scanner execution failure
+- local CLI commands for scan, rules list, and version
+- safe output path handling and compiled CLI CI smoke testing
 
-No detector family is registered yet. A clean Phase 3B scan means the repository inventory and scanner shell executed successfully, not that SAST/secrets/SCA/IaC analysis has been performed.
+### Phase 3C
+Implemented on PR #8 pending final exact-head validation and merge.
+
+- mandatory provider-aware secret redaction
+- stable one-way `sfs1:` fingerprints
+- GitHub token detection
+- Stripe live secret-key detection
+- Slack token detection
+- private-key header/block detection
+- contextual high-entropy assignment detection
+- exact safe-fixture annotation suppression
+- fingerprint allowlisting in `.scopeforge.json`
+- fail-closed built-in rule validation
+- default CLI registration of the `secrets` scanner
+- terminal and JSON no-leak regression coverage
+- private-key location metadata bounded to the public header span
+- safe reader hardened to enforce the byte ceiling during the actual file read
+
+CI #100 passed 23 test files and 107 tests, strict typecheck, CLI build, compiled CLI runtime smoke, and the Next.js production build. CI #101 then reproduced the private-key location-range bug and the implementation was corrected test-first.
 
 ## Not shipped yet
 
-- secret scanner and redaction primitives
 - JavaScript/TypeScript AST SAST and taint analysis
 - dependency/OSV analysis and CycloneDX SBOM
 - Docker/Kubernetes/Terraform/GitHub Actions rules
@@ -63,4 +75,4 @@ No detector family is registered yet. A clean Phase 3B scan means the repository
 
 ## Safety boundary
 
-Phase 3 is local and passive. Detector families must use the shared bounded inventory and safe read path. Remote active testing remains a later phase with separate authorization, isolation, egress, quota, and cancellation requirements.
+Phase 3 is local and passive. Detector families must use the shared bounded inventory and safe read path. Raw detected secret values must not cross the finding/output boundary. Remote active testing remains a later phase with separate authorization, isolation, egress, quota, and cancellation requirements.

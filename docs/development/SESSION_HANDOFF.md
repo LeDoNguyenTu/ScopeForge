@@ -1,54 +1,55 @@
 # ScopeForge Session Handoff
 
 ## Current phase
-Phase 3B - Safe reads, configuration, policy, and CLI implemented on PR #7, pending final exact-head CI and merge
+Phase 3C - Secret scanner implemented on PR #8 and fully verified for merge
 
 ## Completed before this PR
 - Phase 1 foundation merged.
 - Phase 2 Asset Control merged through PR #4.
 - Phase 3 scanner design merged through PR #5.
 - Phase 3A scanner foundation merged through PR #6 as `44304860926929f8505da5036bec235fe4ce2c37`.
+- Phase 3B safe reads, configuration, policy, and CLI merged through PR #7 as `d1ca23c5df0bc4ed2276f37b585db453a30b41c0`.
 
-## Phase 3B implementation
-- isolated branch: `feat/phase-3b-safe-config-cli`
-- PR: #7 `Build Phase 3B safe config and CLI`
-- safe inventory-entry reader added before detector implementation
-- strict root-only `.scopeforge.json` version 1 configuration
-- repository config can only tighten scan budgets
-- report-only policy remains the default; explicit severity gates supported
-- exit codes separate policy, usage/configuration, and scanner execution failures
-- local CLI shell supports scan, terminal/JSON output, rules list, and version
-- CLI is compiled separately and its emitted entrypoint is smoke-tested in CI
+## Phase 3C implementation
+- isolated branch: `feat/phase-3c-secret-scanner`
+- PR: #8 `Build Phase 3C secret scanner`
+- redaction primitives are applied before finding evidence is constructed
+- secret fingerprints use the `sfs1:` one-way format
+- five built-in rules: GitHub token, Stripe live key, Slack token, private key, and contextual high-entropy assignment
+- scanner reads only shared inventory entries through `readInventoryEntry`
+- exact same-line annotation and standalone previous-line `scopeforge:allow-secret` fixture suppression supported
+- reviewed fingerprint allowlisting supported through root config
+- secrets are registered as the default built-in scanner family in the CLI
+- built-in unknown rule IDs fail closed
 
-## Security review hardening
-- CI #83: initial RED, only the four new Phase 3B suites failed because modules were absent
-- CI #84: all 86 tests passed; strict typecheck exposed and led to a TypeScript narrowing fix
-- CI #87: RED reproduced unsafe repository-configured output traversal and symlink overwrite behavior
-- CI #90: GREEN after configured-path containment and no-follow output writing, with 88 tests plus typecheck, CLI build, and production build passing
-- CI #92: RED reproduced silent acceptance of an unknown configured scanner family
-- CI #93: GREEN after unknown scanner families were changed to fail closed; tests, typecheck, CLI build, compiled CLI runtime smoke, and production build passed
+## TDD and review evidence
+- CI #96: initial RED. Existing 89 tests remained green; new secret modules were absent and the no-leak integration had no detector yet.
+- CI #100: GREEN implementation checkpoint with 23 test files and 107 tests, strict typecheck, CLI build, compiled CLI runtime smoke, and production build passing.
+- CI #101: RED regression proving private-key `endColumn` incorrectly reflected multiline key-material length.
+- CI #113: RED regression proving an inline allow annotation incorrectly suppressed the next line.
+- CI #114: GREEN after annotation scope was restricted correctly, with 23 test files and 109 tests plus every build gate passing.
+- CI #115 and CI #116: final documentation-head verification remained fully green.
 
 ## Trust boundary
 - repository contents remain hostile input
-- detector code must use `readInventoryEntry`
+- detector code uses `readInventoryEntry`
+- safe reads enforce the byte cap while reading
 - no repository code or lifecycle script execution
 - no dependency installation
-- no remote scanner network behavior
-- root configuration only; nested configuration is ignored
-- untrusted config cannot raise scanner resource budgets
-- configured output cannot escape the scan root or follow an existing output symlink
+- no network behavior in the secret scanner
+- raw secret values do not enter terminal/JSON evidence, metadata, remediation, or error text
+- config allowlists store only one-way fingerprints
 - scanner errors cannot be mistaken for a clean result
 
 ## Known limitations
-- no detector rules are registered yet
-- `.scopeforge.json` is the first implemented configuration format; YAML is not implemented
-- rule include/exclude values are parsed but detector rule registries are not present yet
-- baseline files, SARIF, SBOM, OSV, SAST, secrets, and IaC remain future Phase 3 slices
+- secret detection intentionally favors high-confidence provider formats and contextual entropy over broad pattern coverage
+- no provider API validation or credential testing is performed
+- no JS/TS AST SAST yet
+- no SCA/OSV, SBOM, IaC, baseline file, or SARIF yet
 
 ## Next action
-1. Verify CI on the final documentation head of PR #7.
-2. Mark PR #7 ready and squash merge if no blockers remain.
-3. Begin Phase 3C with redaction primitives first, then the secret scanner.
+1. Mark PR #8 ready and squash merge using its exact verified head.
+2. Begin Phase 3D JavaScript/TypeScript structural SAST from updated `main`.
 
 ## Resume protocol
 Read this file, `CURRENT_STATE.md`, the Phase 3 design, and the active implementation plan before changing scanner behavior. Update this handoff whenever a scanner trust boundary changes.

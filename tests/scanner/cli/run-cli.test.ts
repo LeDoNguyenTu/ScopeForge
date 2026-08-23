@@ -67,14 +67,18 @@ afterEach(async () => {
 });
 
 describe("runCli", () => {
-  it("supports version and rules list", async () => {
+  it("supports version and lists the built-in secret rules", async () => {
     const version = captureIo();
     expect(await runCli(["version"], { io: version.io })).toBe(SCAN_EXIT.SUCCESS);
     expect(version.stdout).toContain("ScopeForge 0.1.0");
 
     const rules = captureIo();
     expect(await runCli(["rules", "list"], { io: rules.io })).toBe(SCAN_EXIT.SUCCESS);
-    expect(rules.stdout).toContain("No detector rules registered");
+    expect(rules.stdout).toContain("secrets/github-token");
+    expect(rules.stdout).toContain("secrets/stripe-live-key");
+    expect(rules.stdout).toContain("secrets/slack-token");
+    expect(rules.stdout).toContain("secrets/private-key");
+    expect(rules.stdout).toContain("secrets/high-entropy-assignment");
   });
 
   it("scans a repository in terminal and JSON modes", async () => {
@@ -140,6 +144,19 @@ describe("runCli", () => {
       SCAN_EXIT.USAGE_ERROR
     );
     expect(capture.stderr).toContain("Unknown configured scanner");
+  });
+
+  it("fails closed when built-in rule configuration contains an unknown rule", async () => {
+    const root = await tempDir("scopeforge-cli-rule-config-");
+    await writeFile(join(root, "a.txt"), "hello\n");
+    await writeFile(
+      join(root, ".scopeforge.json"),
+      JSON.stringify({ version: 1, rules: { include: ["secrets/not-a-real-rule"] } })
+    );
+    const capture = captureIo();
+
+    expect(await runCli(["scan", root], { io: capture.io })).toBe(SCAN_EXIT.USAGE_ERROR);
+    expect(capture.stderr).toContain("Unknown configured rule");
   });
 
   it("returns distinct policy, scanner, and usage exit codes", async () => {

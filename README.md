@@ -26,17 +26,20 @@ Shipped foundation:
 - bounded hostile-repository inventory
 - normalized scanner findings and stable fingerprints
 - deterministic native ScopeForge JSON
-- safe bounded inventory-entry reads for future detector engines
+- bounded no-follow inventory-entry reads
 - strict root-only `.scopeforge.json` configuration
 - report-only default policy with explicit `--fail-on` severity enforcement
 - distinct success, policy, usage/configuration, and scanner-error exit codes
-- local CLI shell with terminal and JSON output
+- local CLI with terminal and JSON output
+- first built-in detector family: secret scanning
 
-The local CLI can currently inventory a repository and exercise the scanner contracts, but detector families are intentionally not registered yet. Secret scanning, JS/TS SAST, SCA/SBOM, and IaC rules are the next Phase 3 work.
+The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
+
+JavaScript/TypeScript SAST, dependency/OSV analysis, CycloneDX SBOM, IaC rules, baselines, and SARIF are still Phase 3 work.
 
 Remote DAST, API fuzzing, exploit validation, credential attacks, persistence, and destructive behavior remain outside Phase 3.
 
-## Local scanner foundation
+## Local scanner
 
 ```bash
 npm install
@@ -48,9 +51,26 @@ npm run scopeforge -- scan . --format json --output scopeforge-results.json
 npm run scopeforge -- scan . --fail-on high
 ```
 
-Repository configuration is read only from the explicit scan root as `.scopeforge.json`. The current schema is version `1`. Repository configuration may tighten scan budgets but cannot raise ScopeForge's safe defaults.
+Repository configuration is read from the explicit scan root as `.scopeforge.json`. The current schema is version `1`. Repository configuration may tighten scan budgets but cannot raise ScopeForge's safe defaults.
 
-The CLI is report-only unless `--fail-on` or a valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode.
+The CLI is report-only unless `--fail-on` or valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode.
+
+Example secret-scanner configuration:
+
+```json
+{
+  "version": 1,
+  "scanners": ["secrets"],
+  "rules": {
+    "exclude": ["secrets/high-entropy-assignment"]
+  },
+  "secrets": {
+    "allowFingerprints": []
+  }
+}
+```
+
+Use `scopeforge:allow-secret` only for an intentional fixture on the same line or immediately preceding comment line. Prefer fingerprint allowlisting for reviewed long-lived exceptions.
 
 ## What ScopeForge is becoming
 
@@ -95,7 +115,7 @@ npm run build
 
 ## Architecture
 
-ScopeForge separates the web control plane from scanner execution. Phase 3 scanning is local and passive.
+ScopeForge separates the web control plane from local scanner execution. Phase 3 scanning is local and passive.
 
 ```text
 Repository
@@ -104,6 +124,7 @@ Repository
 ScopeForge CLI
   +--> bounded inventory
   +--> safe content-read boundary
+  +--> secret scanner
   +--> scanner coordinator
   +--> normalized findings
   +--> terminal / JSON outputs
@@ -128,7 +149,7 @@ Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-commu
 
 ## Security and safety
 
-ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, Dockerfiles, Terraform, Kubernetes manifests, or workflows. Scanner output and repository configuration are bounded by explicit filesystem safety checks.
+ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, Dockerfiles, Terraform, Kubernetes manifests, or workflows. Secret values must not be emitted in terminal or JSON findings, and scanner reads remain behind bounded filesystem checks.
 
 Please report ScopeForge vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 

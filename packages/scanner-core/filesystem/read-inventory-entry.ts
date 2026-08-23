@@ -28,6 +28,8 @@ export interface ReadInventoryEntryOptions {
   maxFileBytes?: number;
 }
 
+const READ_CHUNK_BYTES = 64 * 1024;
+
 function isContained(root: string, candidate: string): boolean {
   const pathFromRoot = relative(root, candidate);
   return (
@@ -51,6 +53,34 @@ function nodeErrorCode(error: unknown): string | undefined {
   return typeof error === "object" && error !== null && "code" in error
     ? String((error as { code?: unknown }).code)
     : undefined;
+}
+
+async function readBounded(
+  handle: Awaited<ReturnType<typeof open>>,
+  repositoryPath: string,
+  maxFileBytes: number
+): Promise<string> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+
+  while (true) {
+    const remainingWithSentinel = maxFileBytes + 1 - total;
+    if (remainingWithSentinel <= 0) {
+      throw new InventoryReadError("file_too_large", `Inventory entry exceeds the read byte limit: ${repositoryPath}`);
+    }
+
+    const buffer = Buffer.allocUnsafe(Math.min(READ_CHUNK_BYTES, remainingWithSentinel));
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+    if (bytesRead === 0) break;
+
+    total += bytesRead;
+    if (total > maxFileBytes) {
+      throw new InventoryReadError("file_too_large", `Inventory entry exceeds the read byte limit: ${repositoryPath}`);
+    }
+    chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
+  }
+
+  return Buffer.concat(chunks, total).toString("utf8");
 }
 
 export async function readInventoryEntry(
@@ -128,7 +158,16 @@ export async function readInventoryEntry(
       throw new InventoryReadError("changed_during_read", `Inventory entry changed while it was being opened: ${repositoryPath}`);
     }
 
-    return await handle.readFile({ encoding: "utf8" });
+    const content = await readBounded(handle, repositoryPath, maxFileBytes);
+    const finalStat = await handle.stat();
+    if (
+      finalStat.dev !== openedStat.dev ||
+      finalStat.ino !== openedStat.ino ||
+      finalStat.size !== openedStat.size
+    ) {
+      throw new InventoryReadError("changed_during_read", `Inventory entry changed while it was being read: ${repositoryPath}`);
+    }
+    return content;
   } finally {
     await handle.close();
   }
