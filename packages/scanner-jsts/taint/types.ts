@@ -52,6 +52,20 @@ export interface TaintValue {
   trace: TaintTraceStep[];
 }
 
+export type CommandTaintSink = "child_process.exec" | "child_process.execSync";
+
+export interface CommandTaintFlow {
+  sinkNode: ts.CallExpression;
+  sink: CommandTaintSink;
+  source: TaintOrigin;
+  trace: TaintTraceStep[];
+}
+
+export interface HandlerTaintResult {
+  sinkFlows: CommandTaintFlow[];
+  exceeded: boolean;
+}
+
 export function chargeTaintBudget(budget: TaintBudget, amount = 1): boolean {
   if (
     budget.exceeded === true ||
