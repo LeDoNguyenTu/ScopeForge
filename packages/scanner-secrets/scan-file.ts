@@ -32,7 +32,12 @@ function enabledRules(selection: SecretRuleSelection | undefined): SecretRuleDef
   return SECRET_RULES.filter((rule) => (include.size === 0 || include.has(rule.id)) && !exclude.has(rule.id));
 }
 
-function commentTextOutsideQuotes(line: string | undefined): string | null {
+interface CommentText {
+  text: string;
+  startIndex: number;
+}
+
+function commentTextOutsideQuotes(line: string | undefined): CommentText | null {
   if (line === undefined) return null;
 
   let quote: "'" | '"' | "`" | null = null;
@@ -58,15 +63,23 @@ function commentTextOutsideQuotes(line: string | undefined): string | null {
       quote = character;
       continue;
     }
-    if (character === "#") return line.slice(index + 1);
-    if (character === "/" && line[index + 1] === "/") return line.slice(index + 2);
+    if (character === "#") return { text: line.slice(index + 1), startIndex: index };
+    if (character === "/" && line[index + 1] === "/") {
+      return { text: line.slice(index + 2), startIndex: index };
+    }
   }
 
   return null;
 }
 
 function hasExactAllowAnnotation(line: string | undefined): boolean {
-  return commentTextOutsideQuotes(line)?.trim() === ALLOW_ANNOTATION;
+  return commentTextOutsideQuotes(line)?.text.trim() === ALLOW_ANNOTATION;
+}
+
+function hasStandaloneAllowAnnotation(line: string | undefined): boolean {
+  if (line === undefined) return false;
+  const comment = commentTextOutsideQuotes(line);
+  return comment !== null && comment.text.trim() === ALLOW_ANNOTATION && line.slice(0, comment.startIndex).trim() === "";
 }
 
 function isObviousPlaceholder(value: string): boolean {
@@ -183,7 +196,7 @@ export function scanSecretText(input: ScanSecretTextInput): Finding[] {
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex] ?? "";
-    const suppressed = hasExactAllowAnnotation(line) || hasExactAllowAnnotation(lines[lineIndex - 1]);
+    const suppressed = hasExactAllowAnnotation(line) || hasStandaloneAllowAnnotation(lines[lineIndex - 1]);
     if (suppressed) continue;
 
     for (const rule of rules) {
