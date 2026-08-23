@@ -2,15 +2,15 @@ import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { loadScannerConfig } from "../scanner-core/config/load-config";
-import { ScannerConfigError, type ScannerOutputFormat, type ScannerRuleSelection } from "../scanner-core/config/types";
+import { ScannerConfigError, type ScannerOutputFormat } from "../scanner-core/config/types";
 import { runScan } from "../scanner-core/coordinator/run-scan";
 import type { Scanner } from "../scanner-core/coordinator/types";
 import type { Severity } from "../scanner-core/findings/types";
 import { buildRepositoryInventory } from "../scanner-core/inventory/build-inventory";
 import { evaluatePolicy, resolveScanExitCode } from "../scanner-core/policy/evaluate-policy";
 import { SCAN_EXIT, type ScanExitCode } from "../scanner-core/policy/exit-codes";
-import { SECRET_RULES, SECRET_RULE_IDS, createSecretScanner } from "../scanner-secrets";
 import { serializeScanResult } from "../scanner-output/json/serialize";
+import { createBuiltInScanners, formatBuiltInRuleList, validateBuiltInRules } from "./builtins";
 import { UnsafeOutputError, writeScanOutput } from "./safe-output";
 import { formatTerminalResult } from "./terminal";
 
@@ -37,7 +37,6 @@ interface ScanArguments {
 class CliUsageError extends Error {}
 
 const severityValues = new Set<Severity>(["critical", "high", "medium", "low", "info"]);
-const builtInRuleIds = new Set(SECRET_RULE_IDS);
 
 function defaultIo(): CliIo {
   return {
@@ -137,22 +136,6 @@ function selectScanners(scanners: Scanner[], configured: string[] | null): Scann
   return configured.map((name) => available.get(name) as Scanner);
 }
 
-function validateBuiltInRules(selection: ScannerRuleSelection): void {
-  const unknown = [...selection.include, ...selection.exclude]
-    .filter((ruleId) => !builtInRuleIds.has(ruleId))
-    .sort();
-  if (unknown.length > 0) {
-    throw new ScannerConfigError(
-      "invalid_config",
-      `Unknown configured rule: ${[...new Set(unknown)].join(", ")}.`
-    );
-  }
-}
-
-function formatRuleList(): string {
-  return `${SECRET_RULES.map((rule) => `${rule.id}\t${rule.version}\t${rule.title}`).join("\n")}\n`;
-}
-
 export async function runCli(argv: string[], options: RunCliOptions = {}): Promise<ScanExitCode> {
   const io = options.io ?? defaultIo();
   const cwd = resolve(options.cwd ?? process.cwd());
@@ -164,7 +147,7 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     }
 
     if (argv.length === 2 && argv[0] === "rules" && argv[1] === "list") {
-      io.stdout(formatRuleList());
+      io.stdout(formatBuiltInRuleList());
       return SCAN_EXIT.SUCCESS;
     }
 
@@ -183,12 +166,7 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     let scanners: Scanner[];
     if (options.scanners === undefined) {
       validateBuiltInRules(config.rules);
-      scanners = [
-        createSecretScanner({
-          allowFingerprints: config.secrets.allowFingerprints,
-          rules: config.rules
-        })
-      ];
+      scanners = createBuiltInScanners(config);
     } else {
       scanners = options.scanners;
     }
