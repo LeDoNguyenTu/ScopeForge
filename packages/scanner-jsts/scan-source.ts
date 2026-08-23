@@ -79,16 +79,6 @@ function isHttpsAgentWithoutVerification(node: ts.Node): node is ts.NewExpressio
   return !!options && ts.isObjectLiteralExpression(options) && objectPropertyIsFalse(options, "rejectUnauthorized");
 }
 
-function isInsecureResponseCookie(node: ts.Node): node is ts.CallExpression {
-  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
-  if (node.expression.name.text !== "cookie") return false;
-  if (!ts.isIdentifier(node.expression.expression)) return false;
-  if (node.expression.expression.text !== "res" && node.expression.expression.text !== "response") return false;
-
-  const options = node.arguments[2];
-  return !!options && ts.isObjectLiteralExpression(options) && objectPropertyIsFalse(options, "secure");
-}
-
 export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult {
   const rules = enabledRules(input.rules);
   const findings: Finding[] = [];
@@ -138,15 +128,6 @@ export function scanSourceFile(input: ScanSourceFileInput): ScanSourceFileResult
           "jsts/tls-verification-disabled",
           "https.Agent.rejectUnauthorized",
           "https.Agent({ rejectUnauthorized: false })"
-        );
-      }
-
-      if (isInsecureResponseCookie(node)) {
-        emit(
-          node,
-          "jsts/insecure-cookie",
-          "response.cookie.secure",
-          "response.cookie(..., { secure: false })"
         );
       }
     },
