@@ -46,10 +46,16 @@ export function serializeScanResult(
     },
     findings: [...result.findings].sort(compareFindings).map(canonicalize),
     errors: [...result.errors].sort((left, right) => {
-      if (left.scanner < right.scanner) return -1;
-      if (left.scanner > right.scanner) return 1;
-      if (left.message < right.message) return -1;
-      if (left.message > right.message) return 1;
+      const fields: Array<[string, string]> = [
+        [left.scanner, right.scanner],
+        [left.file ?? "", right.file ?? ""],
+        [left.code ?? "", right.code ?? ""],
+        [left.message, right.message]
+      ];
+      for (const [leftValue, rightValue] of fields) {
+        if (leftValue < rightValue) return -1;
+        if (leftValue > rightValue) return 1;
+      }
       return 0;
     }),
     policy: result.policy
