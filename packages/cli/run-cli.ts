@@ -122,8 +122,17 @@ async function assertScanRoot(root: string): Promise<void> {
 
 function selectScanners(scanners: Scanner[], configured: string[] | null): Scanner[] {
   if (configured === null) return scanners;
-  const enabled = new Set(configured);
-  return scanners.filter((scanner) => enabled.has(scanner.name));
+
+  const available = new Map(scanners.map((scanner) => [scanner.name, scanner]));
+  const unknown = configured.filter((name) => !available.has(name));
+  if (unknown.length > 0) {
+    throw new ScannerConfigError(
+      "invalid_config",
+      `Unknown configured scanner: ${unknown.sort().join(", ")}.`
+    );
+  }
+
+  return configured.map((name) => available.get(name) as Scanner);
 }
 
 export async function runCli(argv: string[], options: RunCliOptions = {}): Promise<ScanExitCode> {
