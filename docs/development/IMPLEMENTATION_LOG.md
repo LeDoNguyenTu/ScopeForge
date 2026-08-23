@@ -48,7 +48,9 @@
 - Added a pluggable scanner interface and deterministic coordinator with fingerprint deduplication and explicit error capture.
 - Added versioned deterministic ScopeForge JSON serialization.
 - Kept scanner packages independent from Next.js, Supabase, and Vercel.
-- CI run #69 passed 13 test files and 70 tests, TypeScript typecheck, and the Next.js production build on the implementation checkpoint.
+- Updated `docs/SECURITY.md` to document the current control-plane and local hostile-repository boundaries.
+- Final security review found that the accepted-file budget still walked remaining siblings. Added a regression test in CI run #72, then stopped traversal at the file-count budget.
+- CI run #73 passed 13 test files and 71 tests, TypeScript typecheck, and the Next.js production build after the hardening fix.
 
 ## Current Phase 3 boundary
 

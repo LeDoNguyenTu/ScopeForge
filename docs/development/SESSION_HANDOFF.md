@@ -8,7 +8,9 @@ Phase 3A - Scanner Foundation implemented on PR #6, pending final PR validation 
 - Phase 2 Asset Control is merged to `main` through PR #4.
 - The Phase 3 code and supply-chain security design is approved and merged through PR #5.
 - PR #6 implements the first contract-first Phase 3 slice: finding contracts, stable fingerprints, bounded repository inventory, scanner coordination, deterministic deduplication, scanner error capture, severity helpers, and native ScopeForge JSON serialization.
-- The Phase 3A implementation was developed test-first. CI run #68 established the RED state because the planned scanner modules did not exist. CI run #69 then passed after the minimal implementation was added.
+- The Phase 3A implementation was developed test-first. CI run #68 established the initial RED state because the planned scanner modules did not exist. CI run #69 passed after the minimal implementation was added.
+- Final security review identified that the accepted-file limit did not stop remaining sibling traversal. CI run #72 reproduced the issue with a dedicated regression test, and CI run #73 passed after traversal was stopped at the file-count budget.
+- `docs/SECURITY.md` now records the Phase 2 control-plane boundary and Phase 3 local hostile-repository guarantees.
 
 ## Production resources
 - Domain: `scopeforge.dev`
@@ -30,6 +32,7 @@ Remote scanner execution plane: not enabled
 - Generated/vendor paths are excluded by default.
 - Root `.scopeforgeignore` and `.gitignore` are honored by bounded matching logic.
 - File-count, per-file byte, and total-byte budgets are enforced.
+- Reaching the accepted-file budget stops remaining traversal instead of continuing through the repository.
 - Scanners receive one shared repository inventory instead of walking the repository independently.
 - Scanner failures are represented as explicit scan errors rather than a false clean result.
 - Finding fingerprints use structural identity and do not accept raw secret values.
@@ -49,13 +52,13 @@ Remote scanner execution plane: not enabled
 - `20260823192740_phase_2_index_composite_foreign_keys`
 
 ## Verification status
-- CI run #69 on Phase 3A implementation commit `ad8db8d924a0317b6c68997298b75be708b40523`: passing.
-- Vitest: 13 test files and 70 tests passed.
-- Phase 3A scanner tests: finding fingerprints, severity ordering, bounded inventory, coordinator deduplication/error capture, and deterministic JSON passed.
+- CI run #73 on hardening commit `6b617155510617568477492cd26cc1517d523894`: passing.
+- Vitest: 13 test files and 71 tests passed.
+- Phase 3A scanner tests: finding fingerprints, severity ordering, bounded inventory, traversal-stop behavior, coordinator deduplication/error capture, and deterministic JSON passed.
 - TypeScript strict typecheck: passing.
 - Next.js production build: passing.
 - Phase 3A has no database migration or Supabase policy change, so the Phase 2 database security boundary is unchanged.
-- The final PR #6 head after documentation updates must pass CI before merge.
+- The final PR #6 head after this documentation update must pass CI before merge.
 
 ## Known limitations
 - Phase 3A establishes contracts and safety boundaries only. It does not yet ship detector rules.
@@ -73,7 +76,7 @@ PR #6 - `Build Phase 3A scanner foundation`
 
 ## Next action
 1. Confirm CI is green on the final PR #6 head after these handoff updates.
-2. Review the complete PR #6 diff for contract consistency and scanner safety.
+2. Confirm no Critical or Important review findings remain.
 3. Mark PR #6 ready and squash merge it into `main` when all gates are green.
 4. Begin Phase 3B with configuration, policy-gate semantics, and the local CLI shell using the Phase 3A contracts.
 

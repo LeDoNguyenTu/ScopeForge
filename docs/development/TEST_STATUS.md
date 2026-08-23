@@ -4,13 +4,13 @@ This file records the latest verified state. Update it before ending a developme
 
 | Check | Result | Evidence / notes |
 |---|---|---|
-| GitHub Actions Phase 3A implementation checkpoint | Passing | CI run #69 passed on commit `ad8db8d924a0317b6c68997298b75be708b40523` |
-| Vitest suite | Passing | 13 test files, 70 tests passed on CI run #69 |
-| TypeScript typecheck | Passing | `npm run typecheck` passed on CI run #69 |
-| Next.js production build | Passing | `npm run build` passed on CI run #69 |
+| GitHub Actions Phase 3A hardening checkpoint | Passing | CI run #73 passed on commit `6b617155510617568477492cd26cc1517d523894` |
+| Vitest suite | Passing | 13 test files, 71 tests passed on CI run #73 |
+| TypeScript typecheck | Passing | `npm run typecheck` passed on CI run #73 |
+| Next.js production build | Passing | `npm run build` passed on CI run #73 |
 | Finding fingerprint tests | Passing | Determinism, path/namespace normalization, and structural-identity sensitivity covered |
 | Severity tests | Passing | Critical/high/medium/low/info ordering and threshold comparison covered |
-| Repository inventory tests | Passing | Default excludes, root ignore files, symlink non-following, per-file and total-byte budgets covered |
+| Repository inventory tests | Passing | Default excludes, root ignore files, symlink non-following, per-file and total-byte budgets, and traversal stop at the file-count budget covered |
 | Scanner coordinator tests | Passing | Stable scanner order, fingerprint deduplication, finding ordering, and explicit scanner error capture covered |
 | Native JSON tests | Passing | Schema envelope, final newline, and byte-for-byte deterministic finding ordering covered |
 | Phase 2 target-normalization tests | Passing | Existing private/local target and HTTPS boundary regressions remain green in the full suite |
@@ -21,9 +21,11 @@ This file records the latest verified state. Update it before ending a developme
 
 ## TDD evidence for Phase 3A
 
-CI run #68 was the required RED checkpoint. The five new scanner test suites failed because their planned production modules did not yet exist, while the existing 59 tests remained green.
+CI run #68 was the initial required RED checkpoint. The five new scanner test suites failed because their planned production modules did not yet exist, while the existing 59 tests remained green.
 
-CI run #69 was the GREEN checkpoint after adding the minimal scanner-foundation implementation. All 13 test files and all 70 tests passed, followed by a clean TypeScript typecheck and production build.
+CI run #69 was the initial GREEN checkpoint after adding the minimal scanner-foundation implementation. All 13 test files and all 70 tests passed, followed by a clean TypeScript typecheck and production build.
+
+During final security review, the inventory file-count budget was found to cap accepted results without stopping later sibling traversal. CI run #72 was the regression RED checkpoint: 70 tests passed and the new traversal-stop test failed because `file_limit` was observed twice. The fix stops directory traversal once the accepted-file budget is exhausted. CI run #73 was GREEN with all 71 tests, typecheck, and production build passing.
 
 ## Scanner security regression coverage
 
@@ -32,6 +34,7 @@ CI run #69 was the GREEN checkpoint after adding the minimal scanner-foundation 
 - `.scopeforgeignore` and `.gitignore` exclusions
 - per-file size ceiling
 - total-byte ceiling
+- file-count budget stops remaining traversal
 - deterministic path/scanner/finding ordering
 - stable structural finding fingerprints
 - explicit scanner-error reporting instead of false clean results
