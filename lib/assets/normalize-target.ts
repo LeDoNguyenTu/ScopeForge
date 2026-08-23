@@ -1,36 +1,19 @@
 import { isIP } from "node:net";
+import { isBlockedNetworkAddress } from "./network-boundary";
 import type { AssetKind, NormalizedAssetTarget } from "./types";
 
 const PRIVATE_OR_LOCAL = "Private or local targets are not supported in hosted ScopeForge verification.";
 
-function isBlockedIpv4(hostname: string): boolean {
-  const parts = hostname.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
-  const [a, b] = parts;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    a >= 224
-  );
-}
-
-function isBlockedIpv6(hostname: string): boolean {
-  const value = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  return value === "::" || value === "::1" || value.startsWith("fc") || value.startsWith("fd") || value.startsWith("ff") || /^fe[89ab]/.test(value);
-}
-
 export function isBlockedAddress(hostname: string): boolean {
   const value = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (value === "localhost" || value.endsWith(".localhost") || value.endsWith(".local")) return true;
-  const version = isIP(value);
-  if (version === 4) return isBlockedIpv4(value);
-  if (version === 6) return isBlockedIpv6(value);
-  return false;
+  if (
+    value === "localhost" ||
+    value.endsWith(".localhost") ||
+    value.endsWith(".local") ||
+    value.endsWith(".internal")
+  ) return true;
+
+  return isIP(value) !== 0 && isBlockedNetworkAddress(value);
 }
 
 export function normalizeAssetTarget(input: string, kind: AssetKind): NormalizedAssetTarget {
@@ -54,6 +37,7 @@ export function normalizeAssetTarget(input: string, kind: AssetKind): Normalized
 
   if (kind === "repository") {
     if (hostname !== "github.com") throw new Error("Phase 2 repository assets support public GitHub URLs only.");
+    if (url.port && url.port !== "443") throw new Error("Hosted ScopeForge verification supports HTTPS port 443 only in Phase 2.");
     const segments = url.pathname.split("/").filter(Boolean);
     if (segments.length !== 2) throw new Error("Use a GitHub repository URL in the form https://github.com/owner/repository.");
     const [owner, rawRepo] = segments;
@@ -62,10 +46,13 @@ export function normalizeAssetTarget(input: string, kind: AssetKind): Normalized
     return { canonicalTarget: `https://github.com/${owner}/${repo}`, hostname, kind };
   }
 
+  if (url.port && url.port !== "443") {
+    throw new Error("Hosted ScopeForge verification supports HTTPS port 443 only in Phase 2.");
+  }
+
   const pathname = url.pathname === "/" ? "" : url.pathname.replace(/\/+$/, "");
-  const port = url.port ? `:${url.port}` : "";
   return {
-    canonicalTarget: `https://${hostname}${port}${pathname}`,
+    canonicalTarget: `https://${hostname}${pathname}`,
     hostname,
     kind
   };

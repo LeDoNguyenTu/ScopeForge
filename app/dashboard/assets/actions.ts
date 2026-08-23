@@ -8,6 +8,7 @@ import { createVerificationChallenge, hashVerificationToken, verifyHttpWellKnown
 import type { AssetKind } from "@/lib/assets/types";
 import { assertCanAttemptVerification, assertCanRegisterAsset, QuotaError } from "@/lib/quotas/limits";
 import { writeAuditEvent } from "@/lib/audit/write-audit-event";
+import { assertCanManageAssets } from "@/lib/workspaces/permissions";
 
 export type ActionResult<T> =
   | { ok: true; data: T }
@@ -50,15 +51,27 @@ function trustedClientOrThrow() {
     return createAdminClient();
   } catch {
     throw Object.assign(
-      new Error("Trusted verification writes are not configured yet. Add the server-only Supabase secret key before enabling verification."),
+      new Error("Trusted verification writes are not configured yet. Add the server-only Supabase secret key before enabling asset changes."),
       { code: "VERIFICATION_SERVICE_NOT_CONFIGURED" }
     );
   }
 }
 
+function mapDatabaseQuotaError(error: { code?: string; message?: string } | null): void {
+  if (!error) return;
+  if (error.message?.includes("ASSET_LIMIT_REACHED")) {
+    throw new QuotaError("ASSET_LIMIT_REACHED", "This trial workspace can register up to 10 assets.");
+  }
+  if (error.message?.includes("VERIFICATION_RATE_LIMITED")) {
+    throw new QuotaError("VERIFICATION_RATE_LIMITED", "Verification is temporarily rate limited for this asset or workspace. Try again later.");
+  }
+}
+
 export async function registerAsset(formData: FormData): Promise<ActionResult<{ assetId: string }>> {
   try {
-    const { supabase, user, workspace } = await resolveContext();
+    const { supabase, user, workspace, membership } = await resolveContext();
+    assertCanManageAssets(membership.role);
+    const admin = trustedClientOrThrow();
     const kindInput = String(formData.get("kind") ?? "");
     const name = String(formData.get("name") ?? "").trim();
     const target = String(formData.get("target") ?? "").trim();
@@ -74,7 +87,7 @@ export async function registerAsset(formData: FormData): Promise<ActionResult<{ 
     if (countError) throw new Error(countError.message);
     assertCanRegisterAsset(count ?? 0);
 
-    const { data: asset, error: insertError } = await supabase
+    const { data: asset, error: insertError } = await admin
       .from("assets")
       .insert({
         workspace_id: workspace.id,
@@ -87,13 +100,14 @@ export async function registerAsset(formData: FormData): Promise<ActionResult<{ 
       .select("id")
       .single();
 
+    mapDatabaseQuotaError(insertError);
     if (insertError) {
       if (insertError.code === "23505") throw Object.assign(new Error("This target is already registered in the workspace."), { code: "ASSET_ALREADY_REGISTERED" });
       throw new Error(insertError.message);
     }
 
     await writeAuditEvent({
-      supabase,
+      supabase: admin,
       workspaceId: workspace.id,
       eventType: "asset.created",
       actorId: user.id,
@@ -112,7 +126,8 @@ export async function registerAsset(formData: FormData): Promise<ActionResult<{ 
 
 export async function createAssetVerificationChallenge(assetId: string): Promise<ActionResult<{ token: string; expiresAt: string }>> {
   try {
-    const { supabase, user, workspace } = await resolveContext();
+    const { supabase, user, workspace, membership } = await resolveContext();
+    assertCanManageAssets(membership.role);
     const admin = trustedClientOrThrow();
     const { data: asset, error: assetError } = await supabase
       .from("assets")
@@ -124,18 +139,28 @@ export async function createAssetVerificationChallenge(assetId: string): Promise
     if (asset.kind === "repository") throw Object.assign(new Error("Repository proof-of-control will use a GitHub integration in a later phase. HTTP verification is only for web and API assets."), { code: "VERIFICATION_METHOD_UNAVAILABLE" });
 
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const [{ data: recent }, { data: usage }] = await Promise.all([
-      supabase.from("asset_verification_challenges").select("attempt_count").eq("asset_id", asset.id).gte("created_at", hourAgo),
+    const [{ data: recent, error: recentError }, { data: usage, error: usageError }] = await Promise.all([
+      admin.from("asset_verification_challenges").select("attempt_count").eq("asset_id", asset.id).eq("workspace_id", workspace.id).gte("created_at", hourAgo),
       supabase.from("workspace_usage").select("verification_attempts_today,verification_attempt_date").eq("workspace_id", workspace.id).maybeSingle()
     ]);
+    if (recentError) throw new Error(recentError.message);
+    if (usageError) throw new Error(usageError.message);
     const assetAttempts = (recent ?? []).reduce((sum, row) => sum + row.attempt_count, 0);
     const today = new Date().toISOString().slice(0, 10);
     const workspaceAttempts = usage?.verification_attempt_date === today ? usage.verification_attempts_today : 0;
     assertCanAttemptVerification({ assetAttemptsLastHour: assetAttempts, workspaceAttemptsToday: workspaceAttempts });
 
     const challenge = createVerificationChallenge();
-    await supabase.from("asset_verification_challenges").delete().eq("asset_id", asset.id).eq("workspace_id", workspace.id);
-    const { error: challengeError } = await supabase.from("asset_verification_challenges").insert({
+    const issuedAt = new Date().toISOString();
+    const { error: revokeError } = await admin
+      .from("asset_verification_challenges")
+      .update({ revoked_at: issuedAt })
+      .eq("asset_id", asset.id)
+      .eq("workspace_id", workspace.id)
+      .is("revoked_at", null);
+    if (revokeError) throw new Error(revokeError.message);
+
+    const { error: challengeError } = await admin.from("asset_verification_challenges").insert({
       workspace_id: workspace.id,
       asset_id: asset.id,
       method: "http_well_known",
@@ -151,12 +176,12 @@ export async function createAssetVerificationChallenge(assetId: string): Promise
       .eq("id", asset.id)
       .eq("workspace_id", workspace.id);
     if (pendingError) {
-      await supabase.from("asset_verification_challenges").delete().eq("asset_id", asset.id).eq("token_hash", challenge.tokenHash);
+      await admin.from("asset_verification_challenges").update({ revoked_at: new Date().toISOString() }).eq("asset_id", asset.id).eq("token_hash", challenge.tokenHash);
       throw new Error(pendingError.message);
     }
 
     await writeAuditEvent({
-      supabase,
+      supabase: admin,
       workspaceId: workspace.id,
       eventType: "asset.verification_challenge_created",
       actorId: user.id,
@@ -175,7 +200,8 @@ export async function createAssetVerificationChallenge(assetId: string): Promise
 
 export async function verifyAsset(assetId: string, token: string): Promise<ActionResult<{ verified: boolean; reason: string }>> {
   try {
-    const { supabase, user, workspace } = await resolveContext();
+    const { supabase, user, workspace, membership } = await resolveContext();
+    assertCanManageAssets(membership.role);
     const admin = trustedClientOrThrow();
     const suppliedToken = token.trim();
     if (suppliedToken.length < 20 || suppliedToken.length > 200) throw Object.assign(new Error("The verification token is invalid."), { code: "INVALID_VERIFICATION_TOKEN" });
@@ -191,12 +217,13 @@ export async function verifyAsset(assetId: string, token: string): Promise<Actio
 
     const tokenHash = hashVerificationToken(suppliedToken);
     const now = new Date();
-    const { data: challenge, error: challengeError } = await supabase
+    const { data: challenge, error: challengeError } = await admin
       .from("asset_verification_challenges")
       .select("id,attempt_count,expires_at,created_at")
       .eq("asset_id", asset.id)
       .eq("workspace_id", workspace.id)
       .eq("token_hash", tokenHash)
+      .is("revoked_at", null)
       .gt("expires_at", now.toISOString())
       .order("created_at", { ascending: false })
       .limit(1)
@@ -205,24 +232,36 @@ export async function verifyAsset(assetId: string, token: string): Promise<Actio
     if (!challenge) throw Object.assign(new Error("The verification challenge is missing, expired, or no longer current."), { code: "VERIFICATION_CHALLENGE_INVALID" });
 
     const hourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-    const [{ data: recent }, { data: usage }] = await Promise.all([
-      supabase.from("asset_verification_challenges").select("attempt_count").eq("asset_id", asset.id).gte("created_at", hourAgo),
+    const [{ data: recent, error: recentError }, { data: usage, error: usageError }] = await Promise.all([
+      admin.from("asset_verification_challenges").select("attempt_count").eq("asset_id", asset.id).eq("workspace_id", workspace.id).gte("created_at", hourAgo),
       supabase.from("workspace_usage").select("verification_attempts_today,verification_attempt_date").eq("workspace_id", workspace.id).maybeSingle()
     ]);
+    if (recentError) throw new Error(recentError.message);
+    if (usageError) throw new Error(usageError.message);
     const assetAttempts = (recent ?? []).reduce((sum, row) => sum + row.attempt_count, 0);
     const today = now.toISOString().slice(0, 10);
     const workspaceAttempts = usage?.verification_attempt_date === today ? usage.verification_attempts_today : 0;
     assertCanAttemptVerification({ assetAttemptsLastHour: assetAttempts, workspaceAttemptsToday: workspaceAttempts });
 
     const nextAttemptCount = challenge.attempt_count + 1;
-    const { error: attemptError } = await supabase
+    const { data: updatedChallenge, error: attemptError } = await admin
       .from("asset_verification_challenges")
       .update({ attempt_count: nextAttemptCount, last_attempt_at: now.toISOString() })
       .eq("id", challenge.id)
-      .eq("workspace_id", workspace.id);
+      .eq("workspace_id", workspace.id)
+      .eq("attempt_count", challenge.attempt_count)
+      .is("revoked_at", null)
+      .select("id")
+      .maybeSingle();
+    mapDatabaseQuotaError(attemptError);
     if (attemptError) throw new Error(attemptError.message);
+    if (!updatedChallenge) throw Object.assign(new Error("Another verification attempt changed this challenge. Try again."), { code: "VERIFICATION_ATTEMPT_CONFLICT" });
 
-    const result = await verifyHttpWellKnownTarget({ canonicalTarget: asset.canonical_target, expectedToken: suppliedToken });
+    const verification = await verifyHttpWellKnownTarget({ canonicalTarget: asset.canonical_target, expectedToken: suppliedToken });
+    const result = verification.verified && new Date(challenge.expires_at).getTime() <= Date.now()
+      ? { verified: false, reason: "The verification challenge expired during verification. Create a new challenge." }
+      : verification;
+
     if (result.verified) {
       const { error: verifiedError } = await admin
         .from("assets")
@@ -230,6 +269,7 @@ export async function verifyAsset(assetId: string, token: string): Promise<Actio
         .eq("id", asset.id)
         .eq("workspace_id", workspace.id);
       if (verifiedError) throw new Error(verifiedError.message);
+      await admin.from("asset_verification_challenges").update({ revoked_at: new Date().toISOString() }).eq("id", challenge.id);
     } else if (nextAttemptCount >= 5) {
       const { error: failedError } = await admin
         .from("assets")
@@ -237,10 +277,11 @@ export async function verifyAsset(assetId: string, token: string): Promise<Actio
         .eq("id", asset.id)
         .eq("workspace_id", workspace.id);
       if (failedError) throw new Error(failedError.message);
+      await admin.from("asset_verification_challenges").update({ revoked_at: new Date().toISOString() }).eq("id", challenge.id);
     }
 
     await writeAuditEvent({
-      supabase,
+      supabase: admin,
       workspaceId: workspace.id,
       eventType: result.verified ? "asset.verification_succeeded" : "asset.verification_failed",
       actorId: user.id,

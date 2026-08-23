@@ -34,11 +34,11 @@ export type Database = {
         Relationships: [{ foreignKeyName: "assets_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }];
       };
       asset_verification_challenges: {
-        Row: { id: string; workspace_id: string; asset_id: string; method: string; token_hash: string; expires_at: string; attempt_count: number; last_attempt_at: string | null; created_by: string; created_at: string };
-        Insert: { id?: string; workspace_id: string; asset_id: string; method: string; token_hash: string; expires_at: string; attempt_count?: number; last_attempt_at?: string | null; created_by: string; created_at?: string };
-        Update: { id?: string; workspace_id?: string; asset_id?: string; method?: string; token_hash?: string; expires_at?: string; attempt_count?: number; last_attempt_at?: string | null; created_by?: string; created_at?: string };
+        Row: { id: string; workspace_id: string; asset_id: string; method: string; token_hash: string; expires_at: string; attempt_count: number; last_attempt_at: string | null; revoked_at: string | null; created_by: string; created_at: string };
+        Insert: { id?: string; workspace_id: string; asset_id: string; method: string; token_hash: string; expires_at: string; attempt_count?: number; last_attempt_at?: string | null; revoked_at?: string | null; created_by: string; created_at?: string };
+        Update: { id?: string; workspace_id?: string; asset_id?: string; method?: string; token_hash?: string; expires_at?: string; attempt_count?: number; last_attempt_at?: string | null; revoked_at?: string | null; created_by?: string; created_at?: string };
         Relationships: [
-          { foreignKeyName: "asset_verification_challenges_asset_id_fkey"; columns: ["asset_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id"] },
+          { foreignKeyName: "asset_verification_challenges_asset_workspace_fkey"; columns: ["asset_id", "workspace_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id", "workspace_id"] },
           { foreignKeyName: "asset_verification_challenges_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }
         ];
       };
@@ -47,7 +47,7 @@ export type Database = {
         Insert: { id?: string; workspace_id: string; asset_id: string; status?: ScanJobStatus; requested_by: string; blocked_reason?: string; created_at?: string };
         Update: { id?: string; workspace_id?: string; asset_id?: string; status?: ScanJobStatus; requested_by?: string; blocked_reason?: string; created_at?: string };
         Relationships: [
-          { foreignKeyName: "scan_jobs_asset_id_fkey"; columns: ["asset_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id"] },
+          { foreignKeyName: "scan_jobs_asset_workspace_fkey"; columns: ["asset_id", "workspace_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id", "workspace_id"] },
           { foreignKeyName: "scan_jobs_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }
         ];
       };

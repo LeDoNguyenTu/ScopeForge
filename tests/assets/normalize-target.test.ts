@@ -17,18 +17,25 @@ describe("normalizeAssetTarget", () => {
   it.each([
     "https://localhost",
     "https://app.local",
+    "https://service.internal",
     "https://127.0.0.1",
     "https://10.0.0.5",
     "https://172.20.1.4",
     "https://192.168.1.5",
     "https://169.254.169.254",
-    "https://0.0.0.0"
+    "https://0.0.0.0",
+    "https://[::1]",
+    "https://[::ffff:127.0.0.1]"
   ])("rejects private or local target %s", (target) => {
     expect(() => normalizeAssetTarget(target, "web_application")).toThrow(/private or local targets/i);
   });
 
   it("rejects non-HTTPS targets", () => {
     expect(() => normalizeAssetTarget("http://example.com", "web_application")).toThrow(/requires HTTPS/i);
+  });
+
+  it("rejects non-standard verification ports", () => {
+    expect(() => normalizeAssetTarget("https://example.com:8443", "web_application")).toThrow(/port 443/i);
   });
 
   it("rejects embedded credentials", () => {

@@ -1,5 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { lookup } from "node:dns/promises";
+import { request as httpsRequest } from "node:https";
+import { isIP } from "node:net";
 import { isBlockedAddress } from "./normalize-target";
 import type { VerificationResult } from "./types";
 
@@ -7,9 +9,21 @@ const TOKEN_TTL_MS = 30 * 60 * 1000;
 const MAX_BODY_BYTES = 4 * 1024;
 const VERIFY_PATH = "/.well-known/scopeforge-verification.txt";
 
+type PinnedRequestInput = {
+  endpoint: URL;
+  address: string;
+  family: 4 | 6;
+};
+
+type PinnedHttpResponse = {
+  status: number;
+  location: string | null;
+  body: string;
+};
+
 type VerificationDependencies = {
   resolveHostname?: (hostname: string) => Promise<string[]>;
-  fetcher?: (input: URL, init: RequestInit) => Promise<Response>;
+  requester?: (input: PinnedRequestInput) => Promise<PinnedHttpResponse>;
 };
 
 export function hashVerificationToken(token: string): string {
@@ -36,51 +50,84 @@ async function defaultResolveHostname(hostname: string): Promise<string[]> {
   return records.map((record) => record.address);
 }
 
-async function resolvePublicAddresses(
+async function resolvePinnedAddress(
   hostname: string,
   resolver: (hostname: string) => Promise<string[]>
-): Promise<string[]> {
+): Promise<{ address: string; family: 4 | 6 }> {
   if (isBlockedAddress(hostname)) throw new Error("Target resolves to a private or local address.");
+
   const resolved = await resolver(hostname);
   if (!resolved.length) throw new Error("Target hostname did not resolve.");
-  const addresses = resolved.map((address) => address.toLowerCase()).sort();
-  if (addresses.some(isBlockedAddress)) throw new Error("Target resolves to a private or local address.");
-  return addresses;
+
+  const addresses = [...new Set(resolved.map((address) => address.toLowerCase()))].sort();
+  for (const address of addresses) {
+    const family = isIP(address);
+    if (family !== 4 && family !== 6) throw new Error("Target DNS returned an invalid address.");
+    if (isBlockedAddress(address)) throw new Error("Target resolves to a private or local address.");
+  }
+
+  const address = addresses[0];
+  const family = isIP(address);
+  if (family !== 4 && family !== 6) throw new Error("Target DNS returned an invalid address.");
+  return { address, family };
 }
 
-async function readBoundedText(response: Response): Promise<string> {
-  const declared = response.headers.get("content-length");
-  if (declared && Number(declared) > MAX_BODY_BYTES) throw new Error("Verification response is larger than 4 KiB.");
+function defaultPinnedRequester(input: PinnedRequestInput): Promise<PinnedHttpResponse> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finishReject = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
 
-  if (!response.body) {
-    const text = await response.text();
-    if (Buffer.byteLength(text, "utf8") > MAX_BODY_BYTES) throw new Error("Verification response is larger than 4 KiB.");
-    return text;
-  }
+    const request = httpsRequest(
+      input.endpoint,
+      {
+        method: "GET",
+        agent: false,
+        headers: {
+          Accept: "text/plain",
+          "User-Agent": "ScopeForge-Verification/0.1"
+        },
+        servername: isIP(input.endpoint.hostname) ? undefined : input.endpoint.hostname,
+        signal: AbortSignal.timeout(5000),
+        lookup: ((_hostname: string, _options: unknown, callback: (error: NodeJS.ErrnoException | null, address: string, family: number) => void) => {
+          callback(null, input.address, input.family);
+        }) as never
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
 
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (!value) continue;
-      size += value.byteLength;
-      if (size > MAX_BODY_BYTES) throw new Error("Verification response is larger than 4 KiB.");
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
+        response.on("data", (chunk: Buffer | string) => {
+          if (settled) return;
+          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+          size += buffer.byteLength;
+          if (size > MAX_BODY_BYTES) {
+            response.destroy();
+            finishReject(new Error("Verification response is larger than 4 KiB."));
+            return;
+          }
+          chunks.push(buffer);
+        });
 
-  const merged = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(merged);
+        response.on("error", (error) => finishReject(error));
+        response.on("end", () => {
+          if (settled) return;
+          settled = true;
+          resolve({
+            status: response.statusCode ?? 0,
+            location: response.headers.location ?? null,
+            body: Buffer.concat(chunks).toString("utf8")
+          });
+        });
+      }
+    );
+
+    request.on("error", (error) => finishReject(error));
+    request.end();
+  });
 }
 
 export async function verifyHttpWellKnownTarget(
@@ -100,25 +147,21 @@ export async function verifyHttpWellKnownTarget(
   if (base.protocol !== "https:" || base.username || base.password) {
     return { verified: false, reason: "Verification is available only for credential-free HTTPS targets." };
   }
+  if (base.port && base.port !== "443") {
+    return { verified: false, reason: "Hosted verification supports HTTPS port 443 only." };
+  }
 
   const endpoint = new URL(VERIFY_PATH, base.origin);
   const resolver = dependencies.resolveHostname ?? defaultResolveHostname;
-  const fetcher = dependencies.fetcher ?? ((request, init) => fetch(request, init));
+  const requester = dependencies.requester ?? defaultPinnedRequester;
 
   try {
-    const before = await resolvePublicAddresses(endpoint.hostname, resolver);
-    const response = await fetcher(endpoint, {
-      method: "GET",
-      redirect: "manual",
-      headers: { Accept: "text/plain" },
-      signal: AbortSignal.timeout(5000),
-      cache: "no-store"
-    });
+    const pinned = await resolvePinnedAddress(endpoint.hostname, resolver);
+    const response = await requester({ endpoint, ...pinned });
 
     if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (location) {
-        const redirected = new URL(location, endpoint);
+      if (response.location) {
+        const redirected = new URL(response.location, endpoint);
         if (redirected.hostname.toLowerCase() !== endpoint.hostname.toLowerCase()) {
           return { verified: false, reason: "Verification redirects to another hostname are not allowed." };
         }
@@ -126,15 +169,15 @@ export async function verifyHttpWellKnownTarget(
       return { verified: false, reason: "Verification redirects are not followed." };
     }
 
-    if (!response.ok) return { verified: false, reason: `Verification file returned HTTP ${response.status}.` };
-
-    const after = await resolvePublicAddresses(endpoint.hostname, resolver);
-    if (before.join(",") !== after.join(",")) {
-      return { verified: false, reason: "Target DNS changed during verification. Try again when DNS is stable." };
+    if (response.status < 200 || response.status >= 300) {
+      return { verified: false, reason: `Verification file returned HTTP ${response.status}.` };
     }
 
-    const body = await readBoundedText(response);
-    if (!safeTokenEquals(body, input.expectedToken)) {
+    if (Buffer.byteLength(response.body, "utf8") > MAX_BODY_BYTES) {
+      return { verified: false, reason: "Verification response is larger than 4 KiB." };
+    }
+
+    if (!safeTokenEquals(response.body, input.expectedToken)) {
       return { verified: false, reason: "Verification file did not contain the expected token." };
     }
 

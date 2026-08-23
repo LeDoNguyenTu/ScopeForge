@@ -6,7 +6,7 @@ import {
 } from "@/lib/assets/verification";
 
 function publicResolver() {
-  return vi.fn(async () => ["203.0.113.10"]);
+  return vi.fn(async () => ["8.8.8.8"]);
 }
 
 describe("verification challenge", () => {
@@ -29,88 +29,81 @@ describe("verification challenge", () => {
 });
 
 describe("verifyHttpWellKnownTarget", () => {
-  it("accepts an exact token from the well-known path", async () => {
+  it("pins the request to a prevalidated public address", async () => {
     const resolveHostname = publicResolver();
-    const fetcher = vi.fn().mockResolvedValue(
-      new Response("scopeforge-token", { status: 200, headers: { "content-type": "text/plain" } })
-    );
+    const requester = vi.fn().mockResolvedValue({ status: 200, location: null, body: "scopeforge-token" });
 
     await expect(
       verifyHttpWellKnownTarget(
         { canonicalTarget: "https://example.com/app", expectedToken: "scopeforge-token" },
-        { resolveHostname, fetcher }
+        { resolveHostname, requester }
       )
     ).resolves.toEqual({ verified: true, reason: "Proof of control verified." });
 
-    expect(fetcher).toHaveBeenCalledWith(
-      new URL("https://example.com/.well-known/scopeforge-verification.txt"),
-      expect.objectContaining({ redirect: "manual" })
-    );
-    expect(resolveHostname).toHaveBeenCalledTimes(2);
+    expect(requester).toHaveBeenCalledWith({
+      endpoint: new URL("https://example.com/.well-known/scopeforge-verification.txt"),
+      address: "8.8.8.8",
+      family: 4
+    });
+    expect(resolveHostname).toHaveBeenCalledTimes(1);
   });
 
   it("rejects a missing verification file", async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response("not found", { status: 404 }));
+    const requester = vi.fn().mockResolvedValue({ status: 404, location: null, body: "not found" });
     const result = await verifyHttpWellKnownTarget(
       { canonicalTarget: "https://example.com", expectedToken: "token" },
-      { resolveHostname: publicResolver(), fetcher }
+      { resolveHostname: publicResolver(), requester }
     );
     expect(result.verified).toBe(false);
     expect(result.reason).toMatch(/HTTP 404/);
   });
 
   it("rejects the wrong token", async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response("wrong", { status: 200 }));
+    const requester = vi.fn().mockResolvedValue({ status: 200, location: null, body: "wrong" });
     const result = await verifyHttpWellKnownTarget(
       { canonicalTarget: "https://example.com", expectedToken: "expected" },
-      { resolveHostname: publicResolver(), fetcher }
+      { resolveHostname: publicResolver(), requester }
     );
     expect(result).toEqual({ verified: false, reason: "Verification file did not contain the expected token." });
   });
 
   it("rejects redirects to another hostname", async () => {
-    const fetcher = vi.fn().mockResolvedValue(
-      new Response(null, { status: 302, headers: { location: "https://attacker.example/token" } })
-    );
+    const requester = vi.fn().mockResolvedValue({ status: 302, location: "https://attacker.example/token", body: "" });
     const result = await verifyHttpWellKnownTarget(
       { canonicalTarget: "https://example.com", expectedToken: "token" },
-      { resolveHostname: publicResolver(), fetcher }
+      { resolveHostname: publicResolver(), requester }
     );
     expect(result.verified).toBe(false);
     expect(result.reason).toMatch(/another hostname/i);
   });
 
-  it("rejects DNS resolution to private addresses before fetch", async () => {
-    const fetcher = vi.fn();
+  it("rejects any private address in DNS results before opening a socket", async () => {
+    const requester = vi.fn();
     const result = await verifyHttpWellKnownTarget(
       { canonicalTarget: "https://example.com", expectedToken: "token" },
-      { resolveHostname: async () => ["10.0.0.7"], fetcher }
+      { resolveHostname: async () => ["8.8.8.8", "10.0.0.7"], requester }
     );
     expect(result.verified).toBe(false);
     expect(result.reason).toMatch(/private or local/i);
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(requester).not.toHaveBeenCalled();
   });
 
-  it("rejects DNS changes during verification", async () => {
-    const resolveHostname = vi.fn()
-      .mockResolvedValueOnce(["203.0.113.10"])
-      .mockResolvedValueOnce(["203.0.113.11"]);
-    const fetcher = vi.fn().mockResolvedValue(new Response("scopeforge-token", { status: 200 }));
-
+  it("rejects IPv4-mapped IPv6 loopback before opening a socket", async () => {
+    const requester = vi.fn();
     const result = await verifyHttpWellKnownTarget(
-      { canonicalTarget: "https://example.com", expectedToken: "scopeforge-token" },
-      { resolveHostname, fetcher }
+      { canonicalTarget: "https://example.com", expectedToken: "token" },
+      { resolveHostname: async () => ["::ffff:127.0.0.1"], requester }
     );
-
     expect(result.verified).toBe(false);
-    expect(result.reason).toMatch(/DNS changed/i);
+    expect(result.reason).toMatch(/private or local/i);
+    expect(requester).not.toHaveBeenCalled();
   });
 
   it("rejects an oversized verification body", async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response("x".repeat(4097), { status: 200 }));
+    const requester = vi.fn().mockResolvedValue({ status: 200, location: null, body: "x".repeat(4097) });
     const result = await verifyHttpWellKnownTarget(
       { canonicalTarget: "https://example.com", expectedToken: "token" },
-      { resolveHostname: publicResolver(), fetcher }
+      { resolveHostname: publicResolver(), requester }
     );
     expect(result.verified).toBe(false);
     expect(result.reason).toMatch(/larger than 4 KiB/i);
@@ -118,10 +111,10 @@ describe("verifyHttpWellKnownTarget", () => {
 
   it("turns timeout errors into a safe failure", async () => {
     const timeout = Object.assign(new Error("timed out"), { name: "TimeoutError" });
-    const fetcher = vi.fn().mockRejectedValue(timeout);
+    const requester = vi.fn().mockRejectedValue(timeout);
     const result = await verifyHttpWellKnownTarget(
       { canonicalTarget: "https://example.com", expectedToken: "token" },
-      { resolveHostname: publicResolver(), fetcher }
+      { resolveHostname: publicResolver(), requester }
     );
     expect(result).toEqual({ verified: false, reason: "Verification request timed out." });
   });
