@@ -49,11 +49,11 @@ describe("JavaScript scanner CLI integration", () => {
     expect(listedIds).toEqual([...listedIds].sort());
     expect(listedIds).toEqual(expect.arrayContaining([
       "jsts/dynamic-code-execution",
-      "jsts/insecure-cookie",
       "jsts/tls-verification-disabled",
       "secrets/github-token",
       "secrets/high-entropy-assignment"
     ]));
+    expect(listedIds).not.toContain("jsts/insecure-cookie");
   });
 
   it("honors configured scanner-family selection", async () => {
