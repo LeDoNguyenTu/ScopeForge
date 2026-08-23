@@ -9,10 +9,8 @@ ScopeForge is intended for defensive testing of systems that the user owns or is
 - Workspace membership is the authorization boundary.
 - Browser code receives only a publishable Supabase key.
 - Private credentials remain server-side and are never committed.
-- Security-sensitive Phase 2 asset mutations use trusted server paths rather than direct authenticated table writes.
-- Hosted proof-of-control validates public HTTPS targets with private/special-use address rejection, DNS validation, IP-pinned HTTPS requests, manual redirects, bounded response size, timeout controls, and quotas.
-- Proof-of-control demonstrates control at verification time. It is not an ownership claim.
-- Security headers are emitted by the application.
+- Security-sensitive asset mutations use trusted server paths.
+- Hosted proof-of-control validates bounded public HTTPS targets and does not claim ownership.
 - Remote active scanning remains disabled.
 
 ## Phase 3 local scanner guarantees
@@ -20,28 +18,23 @@ ScopeForge is intended for defensive testing of systems that the user owns or is
 Phase 3 code and supply-chain scanning is local and passive. Repository content is treated as hostile input.
 
 - Scanner packages are independent from Next.js, Supabase, and Vercel.
-- The repository inventory is bounded by file-count, per-file-size, and total-byte limits.
+- Repository inventory is bounded by file-count, per-file-size, and total-byte limits.
 - Generated and vendor directories are excluded by default.
-- Filesystem symlinks are not followed by the scanner inventory.
-- Scanner modules consume the shared bounded inventory rather than performing unrestricted filesystem traversal.
+- Filesystem symlinks are not followed during inventory.
+- Detector code must consume inventory entries through the shared safe read boundary, which revalidates containment, regular-file status, symlink state, and size before reading.
 - Repository code and package lifecycle scripts are never executed as part of analysis.
 - Project dependencies are not installed as part of analysis.
-- Dockerfiles, Terraform configurations, Kubernetes manifests, GitHub Actions workflows, and configuration files are parsed as data and are never executed.
+- Dockerfiles, Terraform configurations, Kubernetes manifests, GitHub Actions workflows, and configuration files are parsed as data and never executed.
+- Root scanner configuration is strict and versioned. Nested repository configuration cannot silently alter scanner behavior.
+- Repository configuration may tighten scan budgets but cannot raise safe defaults.
+- Unknown configured scanner families fail closed rather than producing an apparently clean scan.
+- Repository-configured output paths must remain inside the scan root and are written with no-follow protections where the platform supports them.
+- Existing output symlinks are rejected.
 - Scanner failures are represented explicitly and must not be reported as a clean scan.
 - Finding fingerprints use structural identity and do not require raw secret values.
-- Detected secret values must remain redacted in all future terminal, JSON, SARIF, log, audit, and hosted-ingestion paths.
-- Future OSV enrichment may send only normalized package identifiers and versions. Source code and detected secret values must not be sent to OSV.
+- Detected secret values must remain redacted in every future output and ingestion path.
 - Phase 3 does not perform remote DAST, authenticated crawling, API fuzzing, credential attacks, exploit validation, persistence, or destructive actions.
 
 ## Planned hosted active-test guardrails
 
-Remote active testing is outside Phase 3. Before it is introduced, the hosted execution plane must preserve at least these controls:
-
-- explicit target proof-of-control and scope validation
-- DNS and IP validation that blocks private, loopback, link-local, metadata, and other prohibited destinations
-- isolated workers with bounded egress
-- bounded redirects, response sizes, concurrency, execution time, and cancellation
-- non-destructive scan profiles by default
-- per-user and per-workspace quotas
-- audit events for scope changes and scan execution
-- clear separation between the web control plane and scanner execution plane
+Remote active testing is outside Phase 3. Before it is introduced, the hosted execution plane must preserve explicit scope validation, isolated workers, bounded egress, execution budgets, cancellation, quotas, auditability, and separation from the web control plane.
