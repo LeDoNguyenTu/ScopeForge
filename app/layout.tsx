@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./assets.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: {
-    default: "ScopeForge - Application Security Platform",
+    default: "ScopeForge - Understand Security Risk Before It Becomes an Incident",
     template: "%s | ScopeForge"
   },
-  description: "A developer-first application security platform for authorized testing from code to runtime.",
+  description: "Open-source application security for discovering vulnerabilities, understanding what they could lead to, and preparing before they become incidents.",
   applicationName: "ScopeForge"
 };
 
