@@ -42,14 +42,14 @@ Scanner execution plane: not enabled yet
 - `20260823192740_phase_2_index_composite_foreign_keys`
 
 ## Verification status
-- Phase 2 unit tests: passing on the latest implementation checkpoint.
-- TypeScript typecheck: passing on the latest implementation checkpoint.
-- Next.js production build: passing on the latest implementation checkpoint.
+- Phase 2 unit tests: passing at the final implementation checkpoint.
+- TypeScript typecheck: passing at the final implementation checkpoint.
+- Next.js production build: passing at the final implementation checkpoint.
 - Supabase security advisor: no lints.
 - Supabase performance advisor: only expected unused-index INFO notices after adding the required composite FK indexes.
 - Cross-workspace RLS check: passed.
 - Direct authenticated Phase 2 INSERT/UPDATE/DELETE checks: denied as designed.
-- Final documentation/migration synchronization head must pass CI before merge.
+- The final PR head must pass CI before merge.
 
 ## Known limitations
 - No active scanners are enabled.
