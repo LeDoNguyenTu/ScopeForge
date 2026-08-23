@@ -124,6 +124,24 @@ describe("runCli", () => {
     expect(capture.stderr).toContain("output");
   });
 
+  it("fails closed when configuration names an unavailable scanner family", async () => {
+    const root = await tempDir("scopeforge-cli-scanner-config-");
+    await writeFile(join(root, "a.txt"), "hello\n");
+    await writeFile(join(root, ".scopeforge.json"), JSON.stringify({ version: 1, scanners: ["typo"] }));
+
+    const available: Scanner = {
+      name: "test",
+      version: "1.0.0",
+      scan: async () => []
+    };
+    const capture = captureIo();
+
+    expect(await runCli(["scan", root], { io: capture.io, scanners: [available] })).toBe(
+      SCAN_EXIT.USAGE_ERROR
+    );
+    expect(capture.stderr).toContain("Unknown configured scanner");
+  });
+
   it("returns distinct policy, scanner, and usage exit codes", async () => {
     const root = await tempDir("scopeforge-cli-exit-");
     await writeFile(join(root, "a.txt"), "hello\n");
