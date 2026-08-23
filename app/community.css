@@ -1,0 +1,2 @@
+.missionBlock .missionTitle { max-width: 260px; margin: 8px 0 6px; font-size: 25px; line-height: 1.08; letter-spacing: -.035em; }
+@media (max-width: 720px) { .missionBlock .missionTitle { max-width: 220px; font-size: 21px; } }
