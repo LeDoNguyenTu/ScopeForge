@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Binary, Boxes, Github, Radar, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Boxes, Github, Network, ShieldCheck, Sparkles } from "lucide-react";
 
 const capabilities = [
-  [Radar, "Runtime testing", "Authorized web and API assessment with bounded, non-destructive scan profiles."],
-  [Binary, "Code security", "A transparent scanner pipeline for SAST, secrets, dependencies and infrastructure-as-code."],
-  [Boxes, "Unified findings", "Normalize evidence, CWE, CVSS, confidence and remediation into one workspace."],
-  [ShieldCheck, "Security by design", "Strong tenancy boundaries, target verification, auditability and abuse controls from the foundation."]
+  [Boxes, "Discover", "Start with an explicit inventory of the applications, APIs and repositories your workspace is responsible for."],
+  [ShieldCheck, "Validate", "Prove control before remote testing. ScopeForge keeps authorization and scanner execution as separate security boundaries."],
+  [Network, "Explain and connect", "The roadmap turns technical evidence into understandable Security Stories that distinguish observed facts from inferred consequences."],
+  [BookOpenCheck, "Prepare and verify", "Remediation, preparedness guidance and retesting are designed to close the loop instead of stopping at an alert."]
 ] as const;
 
 export default function Home() {
@@ -17,8 +17,8 @@ export default function Home() {
           <span>ScopeForge</span>
         </Link>
         <div className="navLinks">
-          <a href="#platform">Platform</a>
-          <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer"><Github size={15} /> Source</a>
+          <a href="#platform">Mission</a>
+          <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer"><Github size={15} /> Community</a>
           <Link className="secondaryButton compact" href="/auth/sign-in">Sign in</Link>
           <Link className="primaryButton compact" href="/auth/sign-up">Create account</Link>
         </div>
@@ -26,27 +26,27 @@ export default function Home() {
 
       <section className="hero">
         <div className="heroCopy">
-          <div className="eyebrow"><Sparkles size={15} /> Authorized application security</div>
-          <h1>See your attack surface. Prove what matters.</h1>
-          <p>ScopeForge brings code security, safe runtime assessment and evidence-first vulnerability management into one focused workspace for developers and security practitioners.</p>
+          <div className="eyebrow"><Sparkles size={15} /> Open-source application security</div>
+          <h1>Understand the risk before it becomes an incident.</h1>
+          <p>ScopeForge is being built to help developers discover security weaknesses, understand what they could realistically lead to, prepare for the consequences, fix the root cause and verify that the risk is gone.</p>
           <div className="heroActions">
             <Link className="primaryButton" href="/auth/sign-up">Start a workspace <ArrowRight size={16} /></Link>
-            <Link className="secondaryButton" href="/dashboard">View dashboard</Link>
+            <a className="secondaryButton" href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer"><Github size={16} /> Explore the project</a>
           </div>
-          <p className="heroNote">Open source. Built for systems you own, labs and explicitly authorized assessments.</p>
+          <p className="heroNote">Community-built. Evidence-first. For systems you own or are explicitly authorized to assess.</p>
         </div>
 
-        <div className="heroPanel" aria-label="ScopeForge security posture preview">
-          <div className="panelChrome"><span>scopeforge / posture</span><span className="pulse"><i /> live model</span></div>
-          <div className="scoreBlock">
-            <div><span className="scoreLabel">Security score</span><strong>86</strong><span className="scoreDelta">+7 after remediation</span></div>
-            <div className="scoreRing"><span>86%</span></div>
+        <div className="heroPanel" aria-label="ScopeForge product workflow">
+          <div className="panelChrome"><span>scopeforge / mission</span><span className="pulse"><i /> phase 2</span></div>
+          <div className="scoreBlock missionBlock">
+            <div><span className="scoreLabel">Core workflow</span><strong className="missionTitle">Know what could happen next.</strong><span className="scoreDelta">Then prepare, fix and verify.</span></div>
+            <div className="scoreRing"><span>7 steps</span></div>
           </div>
           <div className="previewRows">
-            <div><span><i className="severity high" /> Dependency exposure</span><strong>2 high</strong></div>
-            <div><span><i className="severity medium" /> Runtime hardening</span><strong>4 medium</strong></div>
-            <div><span><i className="severity low" /> Information exposure</span><strong>3 low</strong></div>
-            <div><span><i className="severity ok" /> Ownership coverage</span><strong>100%</strong></div>
+            <div><span><i className="severity ok" /> Discover {"->"} Validate</span><strong>Scope first</strong></div>
+            <div><span><i className="severity low" /> Explain {"->"} Connect</span><strong>Context</strong></div>
+            <div><span><i className="severity medium" /> Prepare {"->"} Fix</span><strong>Action</strong></div>
+            <div><span><i className="severity ok" /> Verify</span><strong>Close the loop</strong></div>
           </div>
         </div>
       </section>
