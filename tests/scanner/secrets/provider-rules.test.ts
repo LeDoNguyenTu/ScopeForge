@@ -26,6 +26,7 @@ describe("provider secret rules", () => {
       "secrets/slack-token",
       "secrets/private-key"
     ]);
+    expect(findings[3]?.location.endColumn).toBe(privateHeader.length + 1);
     const serialized = JSON.stringify(findings);
     expect(serialized).not.toContain(githubToken);
     expect(serialized).not.toContain(stripeKey);
