@@ -7,6 +7,8 @@ import { loadScannerConfig } from "@/packages/scanner-core/config/load-config";
 import { defaultInventoryBudgets } from "@/packages/scanner-core/inventory/types";
 
 const tempPaths: string[] = [];
+const fingerprintA = `sfs1:${"a".repeat(64)}`;
+const fingerprintB = `sfs1:${"b".repeat(64)}`;
 
 async function tempDir(prefix: string) {
   const path = await mkdtemp(join(tmpdir(), prefix));
@@ -27,6 +29,7 @@ describe("loadScannerConfig", () => {
       sourcePath: null,
       scanners: null,
       rules: { include: [], exclude: [] },
+      secrets: { allowFingerprints: [] },
       budgets: defaultInventoryBudgets,
       failOn: undefined,
       output: { format: "terminal", path: undefined }
@@ -42,6 +45,7 @@ describe("loadScannerConfig", () => {
         version: 1,
         scanners: ["secrets", "jsts"],
         rules: { include: ["jsts/eval"], exclude: ["jsts/info"] },
+        secrets: { allowFingerprints: [fingerprintB, fingerprintA, fingerprintB] },
         budgets: { maxFiles: 100, maxFileBytes: 1024, maxTotalBytes: 4096 },
         failOn: "high",
         output: { format: "json", path: "reports/results.json" }
@@ -54,6 +58,7 @@ describe("loadScannerConfig", () => {
     expect(config.sourcePath).toBe(join(root, ".scopeforge.json"));
     expect(config.scanners).toEqual(["jsts", "secrets"]);
     expect(config.rules).toEqual({ include: ["jsts/eval"], exclude: ["jsts/info"] });
+    expect(config.secrets).toEqual({ allowFingerprints: [fingerprintA, fingerprintB] });
     expect(config.budgets).toEqual({ maxFiles: 100, maxFileBytes: 1024, maxTotalBytes: 4096 });
     expect(config.failOn).toBe("high");
     expect(config.output).toEqual({ format: "json", path: "reports/results.json" });
@@ -63,6 +68,21 @@ describe("loadScannerConfig", () => {
     const root = await tempDir("scopeforge-config-invalid-");
     await writeFile(join(root, ".scopeforge.json"), JSON.stringify({ version: 2, surprise: true }));
 
+    await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
+  });
+
+  it("validates secret fingerprint allowlisting strictly", async () => {
+    const root = await tempDir("scopeforge-config-secret-allowlist-");
+    await writeFile(
+      join(root, ".scopeforge.json"),
+      JSON.stringify({ version: 1, secrets: { allowFingerprints: ["sfs1:not-a-valid-fingerprint"] } })
+    );
+    await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
+
+    await writeFile(
+      join(root, ".scopeforge.json"),
+      JSON.stringify({ version: 1, secrets: { allowFingerprints: [fingerprintA], surprise: true } })
+    );
     await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
   });
 
