@@ -11,7 +11,8 @@ export interface ScanSecretTextInput {
   options?: SecretRuleSelection;
 }
 
-const ALLOW_ANNOTATION = /(?:\/\/|#)\s*scopeforge:allow-secret(?:\s|$)/;
+const INLINE_ALLOW_ANNOTATION = /(?:\/\/|#)\s*scopeforge:allow-secret(?:\s|$)/;
+const STANDALONE_ALLOW_ANNOTATION = /^\s*(?:\/\/|#)\s*scopeforge:allow-secret\s*$/;
 const ENTROPY_ASSIGNMENT = /\b([A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*["']([^"'\r\n]{20,128})["']/g;
 const SECRET_KEY_TERMS = ["token", "secret", "password", "apikey", "credential", "privatekey"];
 const PLACEHOLDER_TERMS = [
@@ -32,15 +33,20 @@ function enabledRules(selection: SecretRuleSelection | undefined): SecretRuleDef
   return SECRET_RULES.filter((rule) => (include.size === 0 || include.has(rule.id)) && !exclude.has(rule.id));
 }
 
-function hasAllowAnnotation(line: string | undefined): boolean {
-  return line !== undefined && ALLOW_ANNOTATION.test(line);
+function hasInlineAllowAnnotation(line: string | undefined): boolean {
+  return line !== undefined && INLINE_ALLOW_ANNOTATION.test(line);
+}
+
+function hasStandaloneAllowAnnotation(line: string | undefined): boolean {
+  return line !== undefined && STANDALONE_ALLOW_ANNOTATION.test(line);
 }
 
 function isObviousPlaceholder(value: string): boolean {
   const lower = value.toLowerCase();
   if (PLACEHOLDER_TERMS.some((term) => lower.includes(term))) return true;
 
-  const compact = value.replace(/[^A-Za-z0-9]/g, "");
+  const body = value.replace(/^(?:ghp_|github_pat_|sk_live_|xox[baprs]-)/i, "");
+  const compact = body.replace(/[^A-Za-z0-9]/g, "");
   if (compact.length >= 12 && new Set(compact.toLowerCase()).size <= 3) return true;
   return /^(.)\1{11,}$/.test(compact);
 }
@@ -145,7 +151,7 @@ export function scanSecretText(input: ScanSecretTextInput): Finding[] {
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex] ?? "";
-    const suppressed = hasAllowAnnotation(line) || hasAllowAnnotation(lines[lineIndex - 1]);
+    const suppressed = hasInlineAllowAnnotation(line) || hasStandaloneAllowAnnotation(lines[lineIndex - 1]);
     if (suppressed) continue;
 
     for (const rule of rules) {
