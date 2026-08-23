@@ -1,42 +1,43 @@
 # ScopeForge Next Steps
 
-## Current phase: Phase 3C - Secret scanner
+## Current phase: Phase 3D - JavaScript/TypeScript structural SAST
 
-PR #8 implements the first built-in detector family. Final merge requires the exact documentation head to pass the complete CI gate.
+PR #9 implements the syntax-aware JavaScript/TypeScript scanner and is in its final exact-head verification cycle after security hardening. The shipped structural scope intentionally remains small: direct dynamic-code execution and explicit TLS verification disablement with strong binding evidence. Framework-sensitive cookie/session checks are deferred rather than inferred from variable names.
 
 Immediate actions:
 
-1. Verify the private-key location regression remains green after the fix.
-2. Verify final PR #8 CI passes tests, typecheck, CLI build/runtime smoke, and Next.js production build.
-3. Confirm no unresolved Critical or Important review findings remain.
-4. Mark PR #8 ready and squash merge it into `main`.
+1. Verify the exact final PR #9 head passes tests, strict typecheck, CLI build/runtime smoke, and Next.js production build.
+2. Confirm no unresolved Critical or Important review findings remain.
+3. Mark PR #9 ready and squash merge it into `main` using expected-head protection.
 
-## Next slice: Phase 3D - JavaScript/TypeScript structural SAST
+## Next slice: Phase 3E - Limited high-confidence JavaScript/TypeScript taint analysis
 
-Implement test-first after PR #8 merges:
+Implement test-first after PR #9 merges:
 
-- parser boundary for JavaScript, TypeScript, JSX, and TSX without executing repository code
-- syntax-error isolation so one malformed file does not produce a false clean scanner result
-- rule registry that reuses Phase 3 normalized findings and rule selection
-- first small high-confidence structural rules
-- source/sink evidence that contains code structure but no unrelated file content
-- deterministic fingerprints stable across line movement where structural identity is unchanged
-- hostile-input and parser resource-limit tests
-- CLI registration and fail-closed rule validation
+- extend the existing `scanner-jsts` package rather than creating a second JavaScript scanner
+- model a deliberately small source vocabulary for recognized Node.js/Next.js request query, route/path, body, and selected header access
+- model a deliberately small sink vocabulary for command execution, SQL execution, filesystem paths, server-side outbound requests, and unsafe HTML APIs
+- start with bounded intra-file propagation and explicitly modeled aliases/assignments
+- model recognized sanitizers and safe APIs before broadening a vulnerability class
+- produce data-flow evidence only from normalized source/sink steps, not arbitrary repository lines
+- distinguish direct structural findings from source-to-sink findings by rule ID and evidence
+- preserve the per-file AST budget and introduce an explicit taint-state/propagation budget
+- discard partial taint findings and report an analysis error when a resource budget is exceeded
+- add strong negative fixtures so variable names alone cannot create attacker-controlled-flow claims
+- only add framework-sensitive cookie/session rules when framework identity can be established structurally rather than guessed from receiver names
 
-Do not start taint propagation until the structural AST boundary and first direct rules are stable.
+Do not attempt whole-program cross-repository data flow in this slice. Add narrow interprocedural-light handling only after direct intra-file flows are stable and tested.
 
 ## Remaining approved Phase 3 sequence
 
-1. Limited high-confidence JS/TS taint analysis.
-2. Dependency inventory and OSV enrichment.
-3. CycloneDX SBOM generation independent of OSV availability.
-4. Docker, Kubernetes, Terraform, GitHub Actions, and generic configuration rules.
-5. Baseline engine.
-6. SARIF 2.1.0 adapter and GitHub Code Scanning example.
-7. Integration, golden-output, hostile-input security, and benchmark suites.
-8. Documentation and release-readiness review.
-9. Optional hosted ingestion only after the local contract is stable.
+1. Dependency inventory and OSV enrichment.
+2. CycloneDX SBOM generation independent of OSV availability.
+3. Docker, Kubernetes, Terraform, GitHub Actions, and generic configuration rules.
+4. Baseline engine.
+5. SARIF 2.1.0 adapter and GitHub Code Scanning example.
+6. Integration, golden-output, hostile-input security, and benchmark suites.
+7. Documentation and release-readiness review.
+8. Optional hosted ingestion only after the local contract is stable.
 
 ## Phase boundary
 

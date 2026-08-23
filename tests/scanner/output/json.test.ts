@@ -115,4 +115,25 @@ describe("serializeScanResult", () => {
       "sf1:low"
     ]);
   });
+
+  it("sorts structured scanner errors deterministically", () => {
+    const errorA = {
+      scanner: "jsts",
+      code: "syntax_error",
+      file: "src/a.ts",
+      message: "Source file contains syntax errors."
+    };
+    const errorZ = {
+      scanner: "jsts",
+      code: "ast_budget_exceeded",
+      file: "src/z.ts",
+      message: "Source file exceeded the AST budget."
+    };
+
+    const first = serializeScanResult({ ...baseResult, findings: [], errors: [errorZ, errorA] });
+    const second = serializeScanResult({ ...baseResult, findings: [], errors: [errorA, errorZ] });
+
+    expect(first).toBe(second);
+    expect(JSON.parse(first).errors).toEqual([errorA, errorZ]);
+  });
 });

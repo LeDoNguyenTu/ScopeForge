@@ -1,4 +1,4 @@
-import type { Scanner } from "../scanner-core/coordinator/types";
+import type { Scanner, ScannerContext } from "../scanner-core/coordinator/types";
 import { readInventoryEntry } from "../scanner-core/filesystem/read-inventory-entry";
 import type { Finding } from "../scanner-core/findings/types";
 import { scanSecretText } from "./scan-file";
@@ -7,6 +7,10 @@ import type { SecretRuleSelection } from "./rules/types";
 export interface CreateSecretScannerOptions {
   allowFingerprints?: string[];
   rules?: SecretRuleSelection;
+}
+
+export interface SecretScanner extends Scanner {
+  scan(context: ScannerContext): Promise<Finding[]>;
 }
 
 function compareFindings(left: Finding, right: Finding): number {
@@ -19,7 +23,7 @@ function compareFindings(left: Finding, right: Finding): number {
   );
 }
 
-export function createSecretScanner(options: CreateSecretScannerOptions = {}): Scanner {
+export function createSecretScanner(options: CreateSecretScannerOptions = {}): SecretScanner {
   const allowed = new Set(options.allowFingerprints ?? []);
 
   return {
