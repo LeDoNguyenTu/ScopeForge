@@ -122,4 +122,36 @@ describe("runScan", () => {
       }
     ]);
   });
+
+  it("preserves valid findings while collecting structured per-file scanner diagnostics", async () => {
+    const finding = makeFinding("sf1:partial", "medium", "src/good.ts", "partial-rule");
+    const scanners: Scanner[] = [
+      {
+        name: "jsts",
+        version: "1.0.0",
+        scan: async () => ({
+          findings: [finding],
+          errors: [
+            {
+              code: "syntax_error",
+              file: "src/broken.ts",
+              message: "Source file contains syntax errors.\nignored newline"
+            }
+          ]
+        })
+      }
+    ];
+
+    const result = await runScan({ root: "/repo", inventory, scanners });
+
+    expect(result.findings).toEqual([finding]);
+    expect(result.errors).toEqual([
+      {
+        scanner: "jsts",
+        code: "syntax_error",
+        file: "src/broken.ts",
+        message: "Source file contains syntax errors. ignored newline"
+      }
+    ]);
+  });
 });
