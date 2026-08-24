@@ -173,8 +173,8 @@ function parseOutput(value: unknown): ScannerOutputConfig {
   rejectUnknownKeys(object, ["format", "path"], "output");
 
   const format = object.format ?? "terminal";
-  if (format !== "terminal" && format !== "json") {
-    throw new ScannerConfigError("invalid_config", "output.format must be terminal or json.");
+  if (format !== "terminal" && format !== "json" && format !== "sarif") {
+    throw new ScannerConfigError("invalid_config", "output.format must be terminal, json, or sarif.");
   }
 
   return {
