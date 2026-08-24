@@ -60,6 +60,66 @@ function requestSourceKind(expression: ts.Expression, requestName: string): Tain
   return null;
 }
 
+function bindingNameContains(name: ts.BindingName, target: string): boolean {
+  if (ts.isIdentifier(name)) return name.text === target;
+  return name.elements.some(
+    (element) => !ts.isOmittedExpression(element) && bindingNameContains(element.name, target)
+  );
+}
+
+function declaresRuntimeName(node: ts.Node, target: string): boolean {
+  if (ts.isVariableDeclaration(node) || ts.isParameter(node)) {
+    return bindingNameContains(node.name, target);
+  }
+
+  if (
+    (ts.isFunctionDeclaration(node) ||
+      ts.isFunctionExpression(node) ||
+      ts.isClassDeclaration(node) ||
+      ts.isClassExpression(node)) &&
+    node.name
+  ) {
+    return node.name.text === target;
+  }
+
+  if (ts.isImportDeclaration(node)) {
+    const clause = node.importClause;
+    if (!clause || clause.isTypeOnly) return false;
+    if (clause.name?.text === target) return true;
+    if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+      return clause.namedBindings.name.text === target;
+    }
+    if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+      return clause.namedBindings.elements.some((element) => !element.isTypeOnly && element.name.text === target);
+    }
+    return false;
+  }
+
+  if (ts.isImportEqualsDeclaration(node) && !node.isTypeOnly) {
+    return node.name.text === target;
+  }
+
+  return ts.isEnumDeclaration(node) && node.name.text === target;
+}
+
+function unshadowedRuntimeGlobal(name: string, sourceFile: ts.SourceFile, budget: TaintBudget): boolean {
+  const stack: ts.Node[] = [sourceFile];
+  while (stack.length > 0) {
+    if (!chargeTaintBudget(budget)) return false;
+    const node = stack.pop() as ts.Node;
+    if (declaresRuntimeName(node, name)) return false;
+
+    const children: ts.Node[] = [];
+    ts.forEachChild(node, (child) => {
+      children.push(child);
+    });
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push(children[index] as ts.Node);
+    }
+  }
+  return true;
+}
+
 function appendTrace(
   value: TaintValue,
   step: TaintTraceStep,
@@ -170,10 +230,10 @@ export function evaluateTaintExpression(input: EvaluateTaintExpressionInput): Ta
       const firstArgument = expression.arguments[0];
 
       if (NUMERIC_SANITIZERS.has(callee)) {
-        if (firstArgument) {
-          evaluateTaintExpression({ ...input, expression: firstArgument });
-        }
-        return safeValue();
+        if (!firstArgument) return safeValue();
+        const value = evaluateTaintExpression({ ...input, expression: firstArgument });
+        if (budget.exceeded) return safeValue();
+        return unshadowedRuntimeGlobal(callee, sourceFile, budget) ? safeValue() : value;
       }
 
       if ((callee === "String" || callee === "encodeURIComponent") && firstArgument) {
