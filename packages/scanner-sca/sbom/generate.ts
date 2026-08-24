@@ -3,6 +3,7 @@ import { basename } from "node:path";
 
 import * as CDX from "@cyclonedx/cyclonedx-library";
 
+import { compareText } from "../../scanner-core/determinism/compare-text";
 import { readInventoryEntry } from "../../scanner-core/filesystem/read-inventory-entry";
 import type { RepositoryInventory } from "../../scanner-core/inventory/types";
 import { collectNpmDependencies } from "../inventory";
@@ -82,9 +83,9 @@ function uniqueComponents(components: readonly NpmDependencyComponent[]): NpmDep
   }
   return [...byPurl.values()].sort(
     (left, right) =>
-      left.name.localeCompare(right.name) ||
-      left.version.localeCompare(right.version) ||
-      left.purl.localeCompare(right.purl)
+      compareText(left.name, right.name) ||
+      compareText(left.version, right.version) ||
+      compareText(left.purl, right.purl)
   );
 }
 
