@@ -16,7 +16,7 @@ Approved Phase 4B design and implementation plan were merged through PR #24 as `
 - Phase 2 asset control and authorization is complete.
 - Phase 3 code and supply-chain security is complete and merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
 - Phase 4A security-domain contracts are complete and merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
-- Phase 4B implementation tasks are complete in PR #25 and the PR is in its final architecture/documentation and exact-head merge gate.
+- Phase 4B implementation and final security hardening are complete in PR #25. The PR is in its exact-head merge gate.
 
 ## Phase 4B implementation
 
@@ -30,21 +30,22 @@ Approved Phase 4B design and implementation plan were merged through PR #24 as `
 
 - verified web/API target policy
 - HTTPS port 443 and GET-only behavior
-- explicit request/redirect/byte/timeout/observation budgets
+- explicit request-count, redirect-count, observation-size, request-timeout, and total-time budgets
 - fresh DNS classification before each connection
 - DNS-pinned HTTPS transport
+- DNS resolution included inside each request deadline
 - same-host redirect enforcement
 - selected/redacted HTTP and TLS observations
 - deterministic passive runtime rules
 - deterministic mapping into the Phase 4A security domain
 
-No response body or cookie value is persisted. Crawling, fuzzing, authentication replay, exploit payloads, credential attacks, and destructive behavior are not part of Phase 4B.
+No response body or cookie value is persisted. Persisted runtime URLs remove query strings and fragments. Crawling, fuzzing, authentication replay, exploit payloads, credential attacks, and destructive behavior are not part of Phase 4B.
 
 ### Trusted application layer
 
 `lib/runtime-observations` contains the migration-backed repository, authorization logic, and service orchestration.
 
-The service requires authorization at enqueue and again immediately before network execution. It owns cancellation, stable failure handling, bounded audits, persistence ordering, and deterministic finding/evidence production.
+The service requires authorization at enqueue and again immediately before network execution. It injects workspace-bound asynchronous database cancellation checks into the framework-independent observer, owns stable failure handling and bounded audits, and prevents cancelled executions from reaching observation/finding persistence.
 
 The browser does not write runtime jobs or observations directly. Trusted server actions adapt the asset workflow to the service.
 
@@ -65,28 +66,27 @@ The final Phase 4B head includes executable dependency rules for `security-domai
 
 ## TDD and verification evidence
 
-Important checkpoints:
+Important security checkpoints:
 
-- the service contract initially failed because `lib/runtime-observations/service.ts` did not exist; the production orchestration was then implemented to satisfy that contract
-- the UI contract intentionally failed while `RuntimeObservationPanel` was missing; existing suites remained green
-- a duplicate TLS summary assertion exposed one UI redundancy and was fixed in production rather than weakening the test
+- the original service contract failed because `lib/runtime-observations/service.ts` did not exist; the trusted production orchestration was implemented against that contract
+- asynchronous cancellation regression tests demonstrated that a Promise-based cancellation callback was previously treated synchronously and that the service did not inject a database-backed cancellation check
+- the total-runtime regression demonstrated that a request could receive the full per-request timeout even when less total budget remained
+- URL-redaction regressions demonstrated that query secrets could appear in persisted status and redirect observations
+- DNS-deadline regressions demonstrated that DNS resolution previously sat outside the request timeout and that DNS elapsed time was not deducted from the HTTPS timeout
 
 Supporting GREEN gate:
 
-CI #437 passed on head `364ccd435c824bfdfab75407db967d027bf18656` with:
+CI #459 passed on head `3fa117745a002ba6f3c0b01107593b2ff9913254` with:
 
-- 109 test files
-- 474 tests
+- 112 test files
+- 484 tests
 - strict TypeScript typecheck
 - CLI build
 - compiled `ScopeForge 0.1.0` smoke
 - 700-file benchmark with 0 findings and 0 errors
-- scanner duration 910 ms
-- wall time 971 ms
-- RSS delta 34,701,312 bytes
 - Next.js production build
 
-CI #437 is supporting evidence only because architecture/documentation commits change the head afterward.
+CI #459 is supporting evidence only because permanent documentation commits change the head afterward.
 
 ## Database status
 
@@ -94,18 +94,19 @@ Phase 4B adds passive runtime job and observation persistence with immutable aut
 
 ## Exact remaining actions
 
-1. Finish permanent Phase 4B documentation and architecture guard commits.
-2. Review the complete PR #25 changed-file set against the approved design and safety boundary.
-3. Confirm no unresolved blocking review thread exists.
-4. Require a new complete CI run on the exact final head.
-5. Squash merge with expected-head protection.
-6. Verify the merged PR/main content and resulting `main` CI when available.
-7. Clean merged historical branches only when safe tooling is available.
-8. Begin Phase 4C design only after Phase 4B merge completion.
+1. Complete the final security-sensitive changed-file review.
+2. Confirm no unresolved blocking review thread exists.
+3. Require a new complete CI run on the exact final documentation head.
+4. Squash merge with expected-head protection.
+5. Verify the merged PR/main content and resulting `main` CI when available.
+6. Clean merged historical branches only when safe tooling is available.
+7. Begin Phase 4C design only after Phase 4B merge completion.
 
 ## Next boundary
 
 Phase 4C may introduce only narrow, explicitly authorized, non-destructive active validation. It must reuse Phase 4B authorization, target-transition, network-safety, budget, cancellation, evidence, and audit contracts. Broad crawling, generalized fuzzing, exploit frameworks, credential attacks, denial-of-service behavior, persistence, and destructive validation remain out of scope.
+
+Worker-scale runtime execution remains a separate later delivery boundary. Queue-backed isolated workers, dedicated egress controls, concurrency/backpressure, private artifacts, and operational worker isolation are not claimed complete by Phase 4B.
 
 ## Resume protocol
 
@@ -118,4 +119,4 @@ Read in this order:
 5. `docs/superpowers/specs/2026-08-25-phase-4b-passive-runtime-observations-design.md`
 6. PR #25 exact head and CI/merge state
 
-Do not infer final Phase 4B completion from CI #437. The exact final architecture/documentation head must pass and the merge must be verified first.
+Do not infer final Phase 4B completion from CI #459. The exact final documentation head must pass and the merge must be verified first.
