@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Approved for execution
+
 **Goal:** Add the first explicitly authorized, narrowly active runtime validator to ScopeForge using one fixed CORS origin-policy request against an exact verified target, while preserving every Phase 4B passive-runtime safety invariant.
 
 **Architecture:** Keep `packages/runtime-observer` passive. Extract the reviewed DNS, public-IP classification, IP pinning, TLS, deadline, abort, and body-discard behavior into `packages/runtime-network`, then add a separate `packages/runtime-validator` package for built-in active request plans, CORS observation normalization, deterministic rules, and security-domain mapping. Trusted application services own owner/admin authorization, immutable job snapshots, cancellation, persistence, audit events, and orchestration through the existing `scan_jobs` and `runtime_observations` tables.
