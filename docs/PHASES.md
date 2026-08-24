@@ -1,34 +1,38 @@
 # ScopeForge Delivery Phases
 
-ScopeForge follows the approved community-platform roadmap. Phase boundaries are safety and architecture boundaries, not just feature groupings.
+ScopeForge follows the approved community-platform roadmap. Phase boundaries are safety and architecture boundaries, not only feature groupings.
 
-1. **Foundation - complete**  
+1. **Foundation - complete**
    Identity, workspaces, tenancy, Row Level Security, application shell, security headers, CI, and deployment baseline.
 
-2. **Asset control and authorization - complete**  
+2. **Asset control and authorization - complete**
    Workspace-scoped assets, canonical targets, proof of control, authorization boundaries, SSRF-safe verification, quotas, audit events, and asset UX.
 
-3. **Code and supply-chain security - feature set implemented, final completion gate in PR #21**  
-   Local/passive repository inventory, safe reads, normalized findings, policy, secrets, JavaScript/TypeScript SAST, bounded command taint analysis, npm SCA with optional OSV, CycloneDX SBOM, Docker/Kubernetes/Terraform/GitHub Actions/configuration analysis, baselines, native JSON, SARIF, CI integration, hostile-input tests, golden outputs, benchmark evidence, and release-readiness review. Phase 3 is complete only after PR #21 exact-head CI and merged `main` CI are green.
+3. **Code and supply-chain security - complete**
+   Local/passive repository inventory, safe reads, normalized findings, policy, secrets, JavaScript/TypeScript SAST, bounded command taint analysis, npm SCA with optional OSV, CycloneDX SBOM, Docker/Kubernetes/Terraform/GitHub Actions/configuration analysis, baselines, native JSON, SARIF, CI integration, hostile-input tests, golden outputs, benchmark evidence, and release hardening. Final Phase 3 implementation merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
 
-4. **Verified runtime and API security - next**  
-   Authorized remote web/API testing with explicit proof-of-control checks, worker isolation, DNS/IP/redirect/egress controls, strict budgets, cancellation, auditability, and narrow non-destructive runtime validation.
+4. **Verified runtime and API security - in progress**
+   Phase 4 is deliberately split so active behavior cannot bypass authorization and network-safety design.
 
-5. **Findings, Security Stories, and remediation**  
-   Hosted normalized finding lifecycle, evidence/inference separation, risk relationships, Security Story explanations, remediation workflows, retesting, and developer/security views.
+   - **4A Security domain contracts - implementation complete, final merge gate in PR #23.** Framework-independent findings, evidence, provenance, validation, lifecycle, remediation, risk relationships, a one-way Phase 3 adapter, provider-neutral advisory contracts, advisory privacy policy, and an executable dependency-direction guard.
+   - **4B Verified passive runtime observations - next.** Authorized, bounded runtime/API observation contracts and execution design that reuse `security-domain`, preserve Phase 2 target authorization, and establish DNS/IP/redirect/egress, timeout, quota, cancellation, and audit boundaries before active validation.
+   - **4C Bounded active validation - later.** Narrow non-destructive active checks only after 4B safety and isolation properties are implemented and testable. Broad crawling, fuzzing, exploitation, credential attacks, denial-of-service behavior, persistence, and destructive actions remain out of scope.
 
-6. **Isolated workers and scanner scale**  
+5. **Findings, Security Stories, and remediation**
+   Hosted normalized finding lifecycle, evidence/inference separation, risk relationships, Security Story explanations, remediation workflows, retesting, and developer/security views. This phase builds on the Phase 4A `security-domain` contracts rather than defining a second finding model.
+
+6. **Isolated workers and scanner scale**
    Production scan orchestration, isolated workers, queues, concurrency budgets, backpressure, cancellation, artifact boundaries, and operational controls.
 
-7. **Community Security Packs**  
+7. **Community Security Packs**
    Versioned community detection metadata, safe declarative/static extensions, mappings, explainers, remediation guidance, preparedness content, fixtures, validation, and contribution governance without arbitrary plugin execution.
 
-8. **Validation, benchmarks, and public methodology**  
+8. **Validation, benchmarks, and public methodology**
    Vulnerable labs, precision/recall and false-positive tracking where measurable, scanner benchmarks, regression methodology, transparent limitations, and technical reports.
 
-9. **Production hardening and public release**  
+9. **Production hardening and public release**
    Threat review, observability, abuse prevention, domain/security hardening, accessibility/responsive QA, incident readiness, release engineering, and public production launch.
 
 ## Safety rule
 
-Do not pull later-phase active behavior into an earlier phase just because an implementation is technically possible. Active scanning requires its own authorization, isolation, egress, quota, cancellation, and audit boundaries.
+Do not pull later-phase active behavior into an earlier phase merely because implementation is technically possible. Any remote active behavior requires explicit authorization, target-transition controls, isolation, egress policy, resource budgets, cancellation, auditability, and testable failure semantics.

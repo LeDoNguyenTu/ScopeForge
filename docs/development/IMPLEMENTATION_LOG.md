@@ -1,154 +1,116 @@
 # ScopeForge Implementation Log
 
+This log records major delivery boundaries and merge evidence. Detailed implementation contracts live in the corresponding design, plan, architecture, scanner, and test documentation.
+
 ## 2026-08-24 - Community platform direction
 
-- Approved the community security platform direction and Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify loop.
+- Approved the open-source application-security platform direction and `Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify` product loop.
 
-## 2026-08-24 - Phase 2 Asset Control
+## Phase 1 - Foundation
 
-- Added workspace-scoped assets, proof-of-control, authorization, SSRF defenses, quotas, audit records, and asset UI.
+- Added the Next.js application foundation, Supabase authentication/workspaces, tenancy controls, Row Level Security, security headers, CI, and deployment baseline.
+
+## Phase 2 - Asset control and authorization
+
+- Added workspace-scoped assets, canonical target normalization, proof-of-control, SSRF-safe verification, roles, quotas, audit records, and asset UI.
 - Merged through PR #4.
 
-## 2026-08-24 - Phase 3 design
+## Phase 3 - Code and supply-chain security
 
-- Approved and merged PR #5 defining the local/passive code and supply-chain scanner architecture.
+### Design and scanner foundation
 
-## 2026-08-24 - Phase 3A Scanner Foundation
+- PR #5 defined the local/passive scanner architecture and trust boundary.
+- PR #6 added normalized findings, stable fingerprints, bounded hostile-repository inventory, coordination, and deterministic JSON.
+- PR #7 added identity-checked safe reads, strict root configuration, policy/exit semantics, safe output, and the compiled CLI.
 
-- Added normalized findings, stable fingerprints, bounded hostile-repository inventory, scanner coordination, and deterministic JSON.
-- Hardened file-count traversal and double-star ignore semantics with dedicated RED/GREEN regressions.
-- Merged through PR #6.
+### Detector families and supply chain
 
-## 2026-08-24 - Phase 3B Safe Reads, Configuration, Policy, and CLI
+- PR #8 added redacted secret detection and one-way secret fingerprints.
+- PR #9 added execution-free JavaScript/TypeScript structural SAST.
+- PR #10 added bounded Express-to-child-process command taint analysis.
+- PR #11 added npm dependency inventory and optional OSV enrichment.
+- PR #12 added CycloneDX 1.7 SBOM output.
+- PR #13 added Dockerfile analysis.
+- PR #15 added Kubernetes analysis.
+- PR #16 added Terraform analysis.
+- PR #17 added GitHub Actions workflow analysis.
+- PR #19 added `.npmrc` and `vercel.json` configuration security and merged as `474bd82a1cad014e796a7faf83369c09f0d3dfc5`.
 
-- Added the shared safe inventory-entry reader, strict root config, safe policy/exit semantics, terminal/JSON CLI, safe output writing, and compiled CLI validation.
-- Security review fixed configured output traversal/symlink overwrite and silent unknown-scanner configuration with dedicated RED/GREEN regressions.
-- Merged through PR #7 as `d1ca23c5df0bc4ed2276f37b585db453a30b41c0`.
+### Output, baselines, and release hardening
 
-## 2026-08-24 - Phase 3C Secret Scanner
+- PR #14 reduced CI noise by skipping full validation while implementation PRs are draft.
+- PR #18 added deterministic safe baselines and merged as `6b349b9a07a060d371f5ccf9fccb670e8ddbc1eb`.
+- PR #20 added deterministic SARIF 2.1.0 and merged as `f2859f5028965276c9dc69ddf10398740a6f9ec7`.
+- PR #21 completed Phase 3 release hardening with mixed-repository integration, hostile-input/no-execution/no-default-network coverage, byte-for-byte JSON/SARIF/terminal goldens, a deterministic 700-file benchmark, GitHub Code Scanning guidance, limitations/performance documentation, reproducible lockfile installs, current GitHub Actions, and whole-phase trust-boundary review.
+- PR #21 exact final head `5d1fa820eda4bbc660f92950bbee6568e820f2a9` passed CI #353 with 86 test files / 331 tests, strict typecheck, CLI build/runtime, 700 clean benchmark files, and production build.
+- Phase 3 merged as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
 
-- Added mandatory provider-aware redaction before normalized findings are emitted.
-- Added stable one-way `sfs1:` secret fingerprints.
-- Added GitHub token, Stripe live secret-key, Slack token, complete private-key block, and contextual high-entropy assignment rules.
-- Added exact safe-fixture annotation suppression and fingerprint allowlisting.
-- Added fail-closed built-in rule validation and end-to-end terminal/JSON no-leak regressions.
-- Hardened private-key location metadata, incomplete key-block behavior, annotation scope, and bounded reads through RED/GREEN regressions.
-- Merged through PR #8 as `ee2b18c37d264fc22e47e650970e66d01f7c92dd`.
+Phase 3 remains local/passive. Repository content is treated as hostile data and is not executed by the scanner. OSV remains the only optional scanner network path and receives normalized npm identity/version only when explicitly enabled.
 
-## 2026-08-24 - Phase 3D JavaScript/TypeScript Structural SAST
+## Phase 4A - Security domain contracts
 
-- Added execution-free JS/TS parsing, structured per-file diagnostics, bounded AST traversal, stable semantic fingerprints, and normalized source-safe evidence.
-- Added narrow `jsts/dynamic-code-execution` and statically proven Node HTTPS TLS-verification rules.
-- Removed an early insecure-cookie rule rather than ship receiver-name heuristics.
-- Hardened module/global shadowing and type-only import behavior with dedicated regressions.
-- Final CI #178 passed 30 test files / 143 tests, strict typecheck, CLI compilation/runtime smoke, and production build.
-- Merged through PR #9.
+### Design
 
-## 2026-08-24 - Phase 3E Bounded Command Taint Analysis
+- PR #22 approved the framework-independent security-domain architecture and implementation plan.
+- PR #22 exact design/plan head passed CI #358 and merged as `13fb2c3e914181d44f9e6957f9fe66eea2069eb4`.
+- Phase 4 was split into 4A contracts, 4B verified passive runtime/API observations, and 4C bounded active validation so later active behavior cannot bypass authorization and network-safety design.
 
-- Added high-confidence Express request-source to Node `child_process.exec` / `execSync` data flow.
-- Kept propagation bounded to supported intra-file/intra-handler flows with conservative mutation, shadowing, sanitizer, unsupported-control-flow, and taint-budget behavior.
-- Final head passed runtime tests, strict typecheck, CLI build/runtime, production build, and CI #203.
-- Merged through PR #10.
+### Task 1 - Domain primitives
 
-## 2026-08-24 - Phase 3F Dependency and OSV Scanning
+- Added `packages/security-domain` contract versioning, branded identifiers, severity/confidence, finding-source types, and provenance types.
+- Intentional RED preserved all 331 existing tests; only the missing new domain module failed.
+- CI #363 passed the complete GREEN gate.
 
-- Added bounded npm dependency inventory across package-lock, npm-shrinkwrap, pnpm-lock, yarn.lock, and package.json fallback.
-- Preferred resolved lockfile versions and normalized npm Package URLs.
-- Added optional OSV query-batch enrichment with pagination, caching, and structured lookup-failure diagnostics.
-- Kept OSV disabled by default so local dependency inventory remains deterministic and offline-capable.
-- Merged through PR #11.
+### Task 2 - Findings, evidence, validation, lifecycle, remediation
 
-## 2026-08-24 - Phase 3G CycloneDX SBOM
+- Added typed evidence with content classification, product finding contracts, structured remediation, validation states, authority-aware validation transitions, and explicit finding lifecycle transitions.
+- Product evidence/findings intentionally have no arbitrary scanner metadata escape hatch.
 
-- Added CycloneDX 1.7 JSON SBOM generation using the maintained CycloneDX JavaScript library.
-- Added root/dependency components, purls, direct dependency relationships, deterministic ordering, tool metadata, and `--sbom` output through the safe writer.
-- Kept SBOM generation independent of OSV/network availability and repository code execution.
-- Merged through PR #12.
+### Task 3 - Relationships and future advisory boundary
 
-## 2026-08-24 - Phase 3H Docker IaC Scanning
+- Added typed risk relationships.
+- Added provider-neutral `AdvisoryRequest`, `AdvisoryResult`, and `AdvisoryService` contracts.
+- Advisory results are type-level inferred provenance.
+- Advisory authority cannot promote validation state.
+- Added a pure advisory context policy that always removes secret-classified context, requires explicit opt-in for remote sensitive context, and applies deterministic size budgets.
+- CI #367 passed the complete Tasks 2/3 GREEN gate.
 
-- Added a bounded Dockerfile logical-instruction parser.
-- Added conservative checks for floating base images, explicit effective root user, remote ADD, download-pipe-shell, and world-writable permissions.
-- Avoided noisy missing-USER claims because inherited base-image metadata is unavailable locally.
-- Kept Dockerfile, RUN, image, package-manager, shell, registry, and network execution disabled.
-- Merged through PR #13.
+### Task 4 - Phase 3 source adapter
 
-## 2026-08-24 - CI noise reduction
+- Added `packages/security-domain-adapters/phase3` as a one-way adapter from normalized Phase 3 findings into the product domain.
+- Adapter identity derives from the existing Phase 3 fingerprint and maps severity, confidence, validation, source, location, taxonomy, remediation, and normalized evidence explicitly.
+- Scanner `metadata`, baseline state, redacted snippets, and data-flow internals are not copied.
+- The mapper performs no filesystem, environment, process, scanner-rerun, or network work.
+- CI #370 established the intentional RED while 91 existing test files / 346 existing tests remained green.
+- CI #373 passed the complete adapter GREEN gate.
 
-- Draft pull requests no longer run the full validation job on every implementation commit.
-- Ready-for-review pull requests run the complete merge gate.
-- Superseded runs for the same PR are cancelled.
-- Merged through PR #14.
+### Task 5 - Executable architecture boundary
 
-## 2026-08-24 - Phase 3I Kubernetes IaC Scanning
+- Added `tests/architecture/security-domain-dependencies.test.ts` to block scanner, CLI, Next.js, React, Supabase, application/component, and named model-provider imports from `packages/security-domain`.
+- Updated `docs/ARCHITECTURE.md` with the one-way source-adapter/domain/application dependency direction.
+- Updated `docs/roadmap/FUTURE_AI_ASSISTANCE.md` so future local or hosted models integrate only behind the advisory context policy and provider-neutral service contract.
+- No AI SDK, provider runtime, model call, database migration, worker, queue, or active remote scanner was added.
+- CI #375 passed on supporting head `c0e93ac0408a01a8c2b1ec513e38286a7f102cef`:
+  - 93 test files / 350 tests
+  - strict TypeScript typecheck
+  - CLI build and compiled `ScopeForge 0.1.0` smoke
+  - benchmark: 700 files, 0 findings, 0 errors, 860 ms scan duration, 919 ms wall time, 28,692,480-byte RSS delta
+  - Next.js production build
 
-- Added bounded structural multi-document YAML parsing with document and alias limits.
-- Added high-confidence workload, host namespace/path, privilege, capability, root-user, writable-root-filesystem, service-account token, and wildcard RBAC checks.
-- Kept scanning local with no cluster access, schema downloads, Helm, Kustomize, kubectl, or repository execution.
-- Merged through PR #15.
+### Phase 4A final gate
 
-## 2026-08-24 - Phase 3J Terraform IaC Scanning
+PR #23 is the active implementation PR. The permanent project-state documentation changes the head after CI #375, so CI #375 is supporting evidence only.
 
-- Added local HCL parsing through the HashiCorp CDK WebAssembly parser with bounded block counts.
-- Added conservative AWS security-group ingress, public RDS, disabled storage encryption, public S3 ACL/public-access-block, and wildcard IAM policy-document rules.
-- Added regressions covering no Terraform CLI, provider/module, provisioner, external data-source, cloud API, or target-code execution.
-- Final CI #266 passed 64 test files / 260 tests plus strict typecheck, CLI build/runtime, and production build.
-- Merged through PR #16.
+Before Phase 4A is complete:
 
-## 2026-08-24 - Phase 3K GitHub Actions IaC Scanning
-
-- Added bounded structural workflow YAML analysis for untrusted shell interpolation, `write-all`, mutable third-party action refs, dangerous `pull_request_target` chains, self-hosted PR execution, and persisted broad write credentials.
-- Restricted workflow routing to `.github/workflows/*.yml|yaml` and kept workflow/action/shell/network execution disabled.
-- Final CI #275 passed 68 test files / 275 tests plus strict typecheck, CLI build/runtime, and production build.
-- Merged through PR #17.
-
-## 2026-08-24 - Phase 3L Baseline Model
-
-- Added deterministic version 1 baselines with stable fingerprints and safe metadata only.
-- Added 4 MiB / 50,000-entry limits, strict exact-key schema validation, no-follow identity-checked reads, symlink refusal, and root-contained repository baseline paths.
-- Added `baseline create`, `--baseline`, new/existing classification, resolved-entry tracking, new-only gating by default, and explicit `--baseline-gate all`.
-- Added regressions preventing evidence, source snippets, arbitrary metadata, remediation text, or secret values from entering baselines.
-- Final exact-head CI #292 passed the complete validation gate after deterministic-order hardening.
-- Merged through PR #18 as `6b349b9a07a060d371f5ccf9fccb670e8ddbc1eb`.
-
-## 2026-08-24 - Phase 3M Generic Configuration Security
-
-- Added `.npmrc` inventory and an effective last-setting-wins `strict-ssl=false` rule.
-- Added structural `vercel.json` wildcard `Access-Control-Allow-Origin: *` detection.
-- Kept evidence generic, fingerprints line-movement-resistant, and configuration scanning free of package-manager/framework/shell/repository execution and scanner-initiated network access.
-- Exact-head CI #301 passed the full runtime, typecheck, CLI, and production-build gate.
-- Merged through PR #19 as `474bd82a1cad014e796a7faf83369c09f0d3dfc5`.
-
-## 2026-08-24 - Phase 3N SARIF Output
-
-- CI #303 established the intentional RED contract while 78 existing test files / 308 existing tests remained green.
-- Added deterministic SARIF 2.1.0 output for GitHub Code Scanning with stable rule IDs, deterministic rule indexes, existing ScopeForge fingerprints in `partialFingerprints`, severity mapping, and baseline-state continuity.
-- Added `%SRCROOT%` repository-relative locations while omitting unsafe absolute, traversal, backslash, or drive-letter locations without dropping findings.
-- Added a fixed SARIF property allowlist and regressions preventing secret material, arbitrary metadata, source snippets, data-flow labels, and local scan-root paths from entering SARIF.
-- Added `--format sarif` and root-configured SARIF output through the existing safe output and policy pipeline.
-- CI #308 passed 82 test files / 320 tests, strict typecheck, CLI compilation, compiled `ScopeForge 0.1.0` smoke, and production build.
-- Final documentation exact-head CI #309 passed the complete gate.
-- Merged through PR #20 as `f2859f5028965276c9dc69ddf10398740a6f9ec7`.
-
-## 2026-08-24 - Phase 3O Release Hardening
-
-- Created `feat/phase-3o-release-hardening` and PR #21 as the final Phase 3 completion slice.
-- Added a mixed-repository end-to-end contract covering all built-in scanner families, report-only policy, severity enforcement, baselines, SARIF, and CycloneDX together.
-- Added hostile-repository completion coverage proving no target execution, no default scanner network access, symlink skipping, tightened file-size boundaries, malformed-input diagnostics, and source/config/secret sentinel non-leakage.
-- Added committed byte-for-byte native JSON, SARIF, and terminal golden outputs.
-- Added `benchmarks/scanner-medium.mjs` with an exact 700-file deterministic clean fixture and a broad 20-second catastrophic-regression ceiling.
-- Added `npm run benchmark:scanner` to the CI validation gate.
-- Diagnostic CI #311 passed 85 test files / 329 tests, strict typecheck, CLI build/runtime, benchmark, and production build.
-- CI #311 benchmark result: 700 files, 0 findings, 0 errors, 928 ms wall time, 859 ms scanner duration, and 22,900,736-byte RSS delta on a GitHub-hosted Ubuntu 24.04 runner.
-- Added GitHub Actions/Code Scanning guidance, benchmark methodology, known limitations, permanent handoff refresh, and release-readiness documentation.
-- No Phase 3O database migration, schema, RLS, RPC, storage, or hosted-ingestion change was introduced.
-- Final whole-Phase-3 trust-boundary review, exact documentation-head CI, squash merge, and post-merge `main` CI remain the final completion gate.
+1. commit final state documentation
+2. review the complete changed-file set and security boundary
+3. confirm no unresolved blocking review thread
+4. require complete CI on the exact final PR head
+5. squash merge with expected-head protection
+6. verify merged content and `main` CI when exposed by available tooling
+7. clean merged historical branches that are no longer needed
 
 ## Current boundary
 
-The Phase 3 local scanner feature set is implemented. It includes normalized findings, bounded inventory and safe reads, secret detection, JS/TS structural SAST and bounded command taint analysis, npm dependency inventory with optional OSV enrichment, CycloneDX SBOM output, Docker/Kubernetes/Terraform/GitHub Actions/configuration analysis, baselines, terminal output, native JSON, and SARIF 2.1.0.
-
-Phase 3 is complete only when PR #21's exact final head passes the full validation and security gate, PR #21 is merged with expected-head protection, and merged `main` CI is green.
-
-Phase 4 verified runtime and API security is the next development boundary. Remote DAST, crawling, fuzzing, exploitation, credential attacks, persistence, destructive actions, and isolated remote workers remain outside Phase 3.
+Phase 4A implementation is complete pending its final exact-head merge gate. Phase 4B is next and must reuse `security-domain` while designing verified passive runtime/API observations and authorization/network safety before Phase 4C introduces any bounded active validation.
