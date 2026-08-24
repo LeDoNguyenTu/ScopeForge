@@ -77,4 +77,30 @@ describe("Phase 5A hosted finding migration", () => {
     expect(sql).toContain("reason is null or char_length(reason) <= 1000");
     expect(sql).toContain("pg_column_size(metadata) <= 8192");
   });
+
+  it("changes user lifecycle state and history in one service-role-only transaction", async () => {
+    const sql = await migrationSql();
+    const functionStart = sql.indexOf("create or replace function public.change_security_finding_lifecycle");
+    expect(functionStart).toBeGreaterThanOrEqual(0);
+    const functionEnd = sql.indexOf(
+      "revoke all on function public.change_security_finding_lifecycle",
+      functionStart,
+    );
+    expect(functionEnd).toBeGreaterThan(functionStart);
+    const lifecycleFunction = sql.slice(functionStart, functionEnd);
+
+    expect(lifecycleFunction).toContain("for update");
+    expect(lifecycleFunction).toContain("expected_lifecycle");
+    expect(lifecycleFunction).toContain("next_lifecycle");
+    expect(lifecycleFunction).toContain("finding.lifecycle_changed");
+    expect(lifecycleFunction).toContain("update public.security_findings");
+    expect(lifecycleFunction).toContain("insert into public.security_finding_events");
+    expect(lifecycleFunction).toContain("set search_path = ''");
+    expect(sql).toMatch(
+      /revoke all on function public\.change_security_finding_lifecycle[\s\S]*from public, anon, authenticated/i,
+    );
+    expect(sql).toMatch(
+      /grant execute on function public\.change_security_finding_lifecycle[\s\S]*to service_role/i,
+    );
+  });
 });
