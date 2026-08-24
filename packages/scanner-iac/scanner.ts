@@ -3,6 +3,7 @@ import type { Scanner, ScannerDiagnostic, ScannerRunResult } from "../scanner-co
 import { InventoryReadError, readInventoryEntry } from "../scanner-core/filesystem/read-inventory-entry";
 import { compareFindings } from "../scanner-core/findings/severity";
 import type { Finding } from "../scanner-core/findings/types";
+import { scanSecurityConfig } from "./config/scan";
 import { scanDockerfile } from "./docker/scan";
 import { scanGitHubActionsYaml } from "./github-actions/scan";
 import { scanKubernetesYaml } from "./kubernetes/scan";
@@ -40,6 +41,11 @@ function isGitHubActionsWorkflow(path: string): boolean {
   );
 }
 
+function isSecurityConfig(path: string): boolean {
+  const name = path.replace(/\\/g, "/").split("/").at(-1)?.toLowerCase();
+  return name === ".npmrc" || name === "vercel.json";
+}
+
 function looksLikeKubernetesYaml(content: string): boolean {
   return /^apiVersion\s*:/m.test(content) && /^kind\s*:/m.test(content);
 }
@@ -48,7 +54,7 @@ function diagnosticForReadError(file: string, error: InventoryReadError): Scanne
   return {
     code: `filesystem_${error.code}`,
     file,
-    message: "Infrastructure file could not be read safely."
+    message: "Infrastructure or supported configuration file could not be read safely."
   };
 }
 
@@ -70,12 +76,13 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
       const errors: ScannerDiagnostic[] = [];
 
       for (const entry of inventory.entries) {
-        if (entry.kind !== "infrastructure") continue;
+        const securityConfig = isSecurityConfig(entry.path);
+        if (entry.kind !== "infrastructure" && !securityConfig) continue;
         const dockerfile = isDockerfile(entry.path);
         const yaml = isYamlFile(entry.path);
         const terraform = isTerraformFile(entry.path);
         const githubActions = isGitHubActionsWorkflow(entry.path);
-        if (!dockerfile && !yaml && !terraform) continue;
+        if (!dockerfile && !yaml && !terraform && !securityConfig) continue;
 
         let content: string;
         try {
@@ -86,6 +93,17 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
             continue;
           }
           throw error;
+        }
+
+        if (securityConfig) {
+          const scanned = scanSecurityConfig({
+            file: entry.path,
+            content,
+            ...(options.rules ? { rules: options.rules } : {})
+          });
+          collectFindings(findingsByFingerprint, scanned.findings);
+          errors.push(...scanned.errors);
+          continue;
         }
 
         if (dockerfile) {
