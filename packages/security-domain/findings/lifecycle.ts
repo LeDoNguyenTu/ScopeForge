@@ -6,7 +6,7 @@ const ALLOWED_TRANSITIONS: Readonly<Record<FindingLifecycleState, readonly Findi
   in_progress: ["resolved", "accepted_risk", "false_positive"],
   resolved: ["retest_pending", "in_progress"],
   retest_pending: ["verified_fixed", "open", "in_progress"],
-  verified_fixed: [],
+  verified_fixed: ["open"],
   accepted_risk: ["open", "in_progress"],
   false_positive: [],
 };
