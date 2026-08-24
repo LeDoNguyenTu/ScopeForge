@@ -31,6 +31,15 @@ export type RuntimeObservation =
       hostnameMatches: boolean | null;
     };
 
+export function redactRuntimeObservationUrl(input: URL): string {
+  const redacted = new URL(input.toString());
+  redacted.username = "";
+  redacted.password = "";
+  redacted.search = "";
+  redacted.hash = "";
+  return redacted.toString();
+}
+
 function normalizeDnsSan(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed.toLowerCase().startsWith("dns:")) return null;
@@ -65,7 +74,7 @@ export function buildPassiveResponseObservations(input: {
   const observations: RuntimeObservation[] = [
     Object.freeze({
       kind: "http-status" as const,
-      url: input.url.toString(),
+      url: redactRuntimeObservationUrl(input.url),
       status: input.response.status,
     }),
     ...normalizeSelectedHeaderObservations(input.response.headers),
