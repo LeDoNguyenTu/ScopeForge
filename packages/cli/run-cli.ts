@@ -1,11 +1,19 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { applyBaseline } from "../scanner-core/baseline/apply";
+import { BaselineError } from "../scanner-core/baseline/types";
+import { loadBaseline } from "../scanner-core/baseline/load";
+import { serializeBaseline } from "../scanner-core/baseline/serialize";
 import { loadScannerConfig } from "../scanner-core/config/load-config";
-import { ScannerConfigError, type ScannerOutputFormat } from "../scanner-core/config/types";
+import {
+  ScannerConfigError,
+  type ScannerConfig,
+  type ScannerOutputFormat
+} from "../scanner-core/config/types";
 import { runScan } from "../scanner-core/coordinator/run-scan";
 import type { Scanner } from "../scanner-core/coordinator/types";
-import type { ScanError, Severity } from "../scanner-core/findings/types";
+import type { BaselineGate, ScanError, Severity } from "../scanner-core/findings/types";
 import { buildRepositoryInventory } from "../scanner-core/inventory/build-inventory";
 import { evaluatePolicy, resolveScanExitCode } from "../scanner-core/policy/evaluate-policy";
 import { SCAN_EXIT, type ScanExitCode } from "../scanner-core/policy/exit-codes";
@@ -16,6 +24,7 @@ import { UnsafeOutputError, writeScanOutput } from "./safe-output";
 import { formatTerminalResult } from "./terminal";
 
 export const SCOPEFORGE_VERSION = "0.1.0";
+export const DEFAULT_BASELINE_PATH = ".scopeforge-baseline.json";
 
 export interface CliIo {
   stdout(value: string): void;
@@ -34,6 +43,8 @@ interface ScanArguments {
   output?: string;
   sbom?: string;
   failOn?: Severity;
+  baseline?: string;
+  baselineGate?: BaselineGate;
 }
 
 class CliUsageError extends Error {}
@@ -50,7 +61,8 @@ function defaultIo(): CliIo {
 function usage(): string {
   return [
     "Usage:",
-    "  scopeforge scan [path] [--format terminal|json] [--output file] [--sbom file] [--fail-on severity]",
+    "  scopeforge scan [path] [--format terminal|json] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
+    "  scopeforge baseline create [path]",
     "  scopeforge rules list",
     "  scopeforge version",
     ""
@@ -69,6 +81,8 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
   let output: string | undefined;
   let sbom: string | undefined;
   let failOn: Severity | undefined;
+  let baseline: string | undefined;
+  let baselineGate: BaselineGate | undefined;
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -100,6 +114,20 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
       index += 1;
       continue;
     }
+    if (token === "--baseline") {
+      baseline = requireValue(argv, index, token);
+      index += 1;
+      continue;
+    }
+    if (token === "--baseline-gate") {
+      const value = requireValue(argv, index, token);
+      if (value !== "new" && value !== "all") {
+        throw new CliUsageError("Invalid baseline gate. Expected new or all.");
+      }
+      baselineGate = value;
+      index += 1;
+      continue;
+    }
     if (token.startsWith("--")) {
       throw new CliUsageError(`Unknown option: ${token}`);
     }
@@ -114,8 +142,17 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
     format,
     output,
     sbom,
-    failOn
+    failOn,
+    baseline,
+    baselineGate
   };
+}
+
+function parseBaselineCreatePath(argv: string[], cwd: string): string {
+  if (argv.length > 1 || argv.some((token) => token.startsWith("--"))) {
+    throw new CliUsageError("baseline create accepts at most one repository path and no options.");
+  }
+  return resolve(cwd, argv[0] ?? ".");
 }
 
 async function assertScanRoot(root: string): Promise<void> {
@@ -145,8 +182,65 @@ function selectScanners(scanners: Scanner[], configured: string[] | null): Scann
   return configured.map((name) => available.get(name) as Scanner);
 }
 
+function scannersForConfig(config: ScannerConfig, options: RunCliOptions): Scanner[] {
+  let scanners: Scanner[];
+  if (options.scanners === undefined) {
+    validateBuiltInRules(config.rules);
+    scanners = createBuiltInScanners(config);
+  } else {
+    scanners = options.scanners;
+  }
+  return selectScanners(scanners, config.scanners);
+}
+
+async function executeRepositoryScan(root: string, config: ScannerConfig, options: RunCliOptions) {
+  const inventory = await buildRepositoryInventory(root, config.budgets);
+  const result = await runScan({
+    root,
+    inventory,
+    scanners: scannersForConfig(config, options)
+  });
+  return { inventory, result };
+}
+
 function errorIdentity(error: ScanError): string {
   return `${error.scanner}\u0000${error.code ?? ""}\u0000${error.file ?? ""}\u0000${error.message}`;
+}
+
+function printScanErrors(
+  errors: readonly ScanError[],
+  io: CliIo,
+  sbomErrorIds: ReadonlySet<string> = new Set()
+): void {
+  for (const error of errors) {
+    if (sbomErrorIds.has(errorIdentity(error))) {
+      io.stderr(`SBOM error: ${error.message}\n`);
+    } else {
+      io.stderr(`Scanner error [${error.scanner}]: ${error.message}\n`);
+    }
+  }
+}
+
+async function runBaselineCreate(
+  root: string,
+  options: RunCliOptions,
+  io: CliIo
+): Promise<ScanExitCode> {
+  await assertScanRoot(root);
+  const config = await loadScannerConfig(root);
+  const { result } = await executeRepositoryScan(root, config, options);
+
+  if (result.errors.length > 0) {
+    printScanErrors(result.errors, io);
+    return SCAN_EXIT.SCANNER_ERROR;
+  }
+
+  const serialized = serializeBaseline(result.findings, { toolVersion: SCOPEFORGE_VERSION });
+  const destination = await writeScanOutput(root, DEFAULT_BASELINE_PATH, serialized, {
+    requireWithinRoot: true
+  });
+  io.stdout(`Baseline written: ${destination}\n`);
+  return SCAN_EXIT.SUCCESS;
 }
 
 export async function runCli(argv: string[], options: RunCliOptions = {}): Promise<ScanExitCode> {
@@ -164,6 +258,10 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
       return SCAN_EXIT.SUCCESS;
     }
 
+    if (argv[0] === "baseline" && argv[1] === "create") {
+      return await runBaselineCreate(parseBaselineCreatePath(argv.slice(2), cwd), options, io);
+    }
+
     if (argv[0] !== "scan") {
       throw new CliUsageError("Unknown or missing command.");
     }
@@ -175,25 +273,20 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     const output = args.output ?? config.output.path;
     const outputFromRepositoryConfig = args.output === undefined && config.output.path !== undefined;
     const failOn = args.failOn ?? config.failOn;
+    const baselinePath = args.baseline ?? config.baseline;
+    const baselineGate = args.baselineGate ?? config.baselineGate;
 
     if (args.sbom && output && resolve(args.path, args.sbom) === resolve(args.path, output)) {
       throw new CliUsageError("SBOM output must use a different path from the normal scan output.");
     }
 
-    let scanners: Scanner[];
-    if (options.scanners === undefined) {
-      validateBuiltInRules(config.rules);
-      scanners = createBuiltInScanners(config);
-    } else {
-      scanners = options.scanners;
-    }
+    const { inventory, result } = await executeRepositoryScan(args.path, config, options);
 
-    const inventory = await buildRepositoryInventory(args.path, config.budgets);
-    const result = await runScan({
-      root: args.path,
-      inventory,
-      scanners: selectScanners(scanners, config.scanners)
-    });
+    if (baselinePath !== undefined) {
+      const baseline = await loadBaseline(args.path, baselinePath);
+      const applied = applyBaseline(result.findings, baseline);
+      result.findings = applied.findings;
+    }
 
     const sbomErrorIds = new Set<string>();
     if (args.sbom) {
@@ -209,12 +302,12 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
       }
     }
 
-    result.policy = evaluatePolicy(result.findings, failOn);
+    result.policy = evaluatePolicy(result.findings, failOn, { baselineGate });
 
     const rendered =
       format === "json"
         ? serializeScanResult(result, { toolVersion: SCOPEFORGE_VERSION })
-        : formatTerminalResult(result);
+        : formatTerminalResult(result, { baselineActive: baselinePath !== undefined });
 
     if (output) {
       await writeScanOutput(args.path, output, rendered, {
@@ -225,13 +318,7 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     }
 
     if (result.errors.length > 0) {
-      for (const error of result.errors) {
-        if (sbomErrorIds.has(errorIdentity(error))) {
-          io.stderr(`SBOM error: ${error.message}\n`);
-        } else {
-          io.stderr(`Scanner error [${error.scanner}]: ${error.message}\n`);
-        }
-      }
+      printScanErrors(result.errors, io, sbomErrorIds);
     }
 
     return resolveScanExitCode({ errors: result.errors, policyPassed: result.policy.passed });
@@ -242,6 +329,10 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     }
     if (error instanceof ScannerConfigError) {
       io.stderr(`Configuration error: ${error.message}\n`);
+      return SCAN_EXIT.USAGE_ERROR;
+    }
+    if (error instanceof BaselineError) {
+      io.stderr(`Baseline error: ${error.message}\n`);
       return SCAN_EXIT.USAGE_ERROR;
     }
     if (error instanceof UnsafeOutputError) {
