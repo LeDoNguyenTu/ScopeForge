@@ -1,4 +1,5 @@
 import type { ScannerDiagnostic } from "../scanner-core/coordinator/types";
+import { compareText } from "../scanner-core/determinism/compare-text";
 
 export type DependencyVersionCertainty = "resolved" | "manifest_exact" | "manifest_range";
 export type DependencySourceKind = "lockfile" | "manifest";
@@ -57,9 +58,9 @@ export function lineForNeedle(content: string, needle: string): number {
 
 export function compareNpmComponents(left: NpmDependencyComponent, right: NpmDependencyComponent): number {
   return (
-    left.name.localeCompare(right.name) ||
-    left.version.localeCompare(right.version) ||
-    left.sourceFile.localeCompare(right.sourceFile) ||
+    compareText(left.name, right.name) ||
+    compareText(left.version, right.version) ||
+    compareText(left.sourceFile, right.sourceFile) ||
     left.sourceLine - right.sourceLine ||
     Number(right.direct) - Number(left.direct)
   );
