@@ -8,6 +8,7 @@ import { parseDockerfile } from "./parse";
 import type { DockerInstruction, DockerScanResult, ScanDockerfileInput } from "./types";
 
 const rulesById = new Map(IAC_RULES.map((rule) => [rule.id, rule]));
+const EXECUTABLE_PATH = String.raw`(?:(?:\/[A-Za-z0-9._+-]+)*\/)?`;
 
 function ruleEnabled(ruleId: string, selection: ScannerRuleSelection | undefined): boolean {
   if (!selection) return true;
@@ -141,12 +142,20 @@ function isRemoteSource(value: string): boolean {
 
 function hasDownloadPipeShell(value: string): boolean {
   const command = maskQuotedText(value);
-  return /(?:^|(?:&&|\|\||;|\|)\s*)(?:curl|wget)\b[^|;&]*\|\s*(?:\/bin\/)?(?:sh|bash)\b/i.test(command);
+  const downloader = new RegExp(
+    String.raw`(?:^|(?:&&|\|\||;|\|)\s*)${EXECUTABLE_PATH}(?:curl|wget)\b[^|;&]*\|\s*${EXECUTABLE_PATH}(?:sh|bash)\b`,
+    "i"
+  );
+  return downloader.test(command);
 }
 
 function hasWorldWritableChmod(value: string): boolean {
   const command = maskQuotedText(value);
-  return /(?:^|(?:&&|\|\||;)\s*)chmod\s+(?:-[A-Za-z]+\s+)*0?777(?:\s|$)/i.test(command);
+  const chmod = new RegExp(
+    String.raw`(?:^|(?:&&|\|\||;)\s*)${EXECUTABLE_PATH}chmod\s+(?:-[A-Za-z]+\s+)*0?777(?:\s|$)`,
+    "i"
+  );
+  return chmod.test(command);
 }
 
 interface FindingDescriptor {
