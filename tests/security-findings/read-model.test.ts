@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const repositoryPath = path.resolve(process.cwd(), "lib/security-findings/repository.ts");
 const listPagePath = path.resolve(process.cwd(), "app/dashboard/findings/page.tsx");
 const detailPagePath = path.resolve(process.cwd(), "app/dashboard/findings/[findingId]/page.tsx");
+const dashboardPagePath = path.resolve(process.cwd(), "app/dashboard/page.tsx");
 
 describe("hosted findings read model", () => {
   it("lists findings inside one workspace ordered by newest observation", async () => {
@@ -39,6 +40,26 @@ describe("hosted findings read model", () => {
     }
     expect(detailSource.match(/\.eq\("workspace_id", workspaceId\)/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
     expect(detailSource.match(/\.eq\("finding_id", findingId\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+  });
+
+  it("bounds list and detail history reads", async () => {
+    const source = await readFile(repositoryPath, "utf8");
+    const listStart = source.indexOf("async function listWorkspaceFindings");
+    const detailStart = source.indexOf("async function loadWorkspaceFindingDetail");
+    const mutationStart = source.indexOf("async function changeLifecycle");
+
+    const listSource = source.slice(listStart, detailStart);
+    const detailSource = source.slice(detailStart, mutationStart);
+    expect(listSource).toContain(".limit(100)");
+    expect(detailSource.match(/\.limit\(100\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+  });
+
+  it("uses a count-only dashboard query instead of materializing the finding ledger", async () => {
+    const source = await readFile(dashboardPagePath, "utf8");
+
+    expect(source).toContain('count: "exact"');
+    expect(source).toContain("head: true");
+    expect(source).not.toContain('.select("finding_id,lifecycle_state")');
   });
 
   it("uses the authenticated dashboard client for SELECT-only list and detail pages", async () => {
