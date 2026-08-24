@@ -204,315 +204,118 @@ export async function executeActiveValidation(
   } catch (error) {
     if (!(error instanceof ActiveValidationAuthorizationError)) throw error;
     if (error.code === "ACTIVE_CANCELLATION_REQUESTED") {
-      const cancelled = await cancelJob(
-        queuedJob,
-        queuedJob.requested_by,
-        dependencies,
-        { reasonCode: error.code },
-      );
-      return Object.freeze({
-        status: "cancelled" as const,
-        job: cancelled,
-        findings: Object.freeze([]),
-        evidence: Object.freeze([]),
-      });
+      const cancelled = await cancelJob(queuedJob, queuedJob.requested_by, dependencies, { reasonCode: error.code });
+      return Object.freeze({ status: "cancelled" as const, job: cancelled, findings: Object.freeze([]), evidence: Object.freeze([]) });
     }
     if (!isMutable(queuedJob)) {
-      return Object.freeze({
-        status: "blocked" as const,
-        failureCode: error.code,
-        reason: error.reason,
-        job: queuedJob,
-        findings: Object.freeze([]),
-        evidence: Object.freeze([]),
-      });
+      return Object.freeze({ status: "blocked" as const, failureCode: error.code, reason: error.reason, job: queuedJob, findings: Object.freeze([]), evidence: Object.freeze([]) });
     }
     const blocked = await repository.markBlocked(queuedJob, error.code, error.reason);
-    await writeAudit(dependencies, {
-      workspaceId: blocked.workspace_id,
-      actorId: blocked.requested_by,
-      eventType: "active_validation.blocked",
-      jobId: blocked.id,
-      assetId: blocked.asset_id,
-      metadata: { reasonCode: error.code },
-    });
-    return Object.freeze({
-      status: "blocked" as const,
-      failureCode: error.code,
-      reason: error.reason,
-      job: blocked,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    await writeAudit(dependencies, { workspaceId: blocked.workspace_id, actorId: blocked.requested_by, eventType: "active_validation.blocked", jobId: blocked.id, assetId: blocked.asset_id, metadata: { reasonCode: error.code } });
+    return Object.freeze({ status: "blocked" as const, failureCode: error.code, reason: error.reason, job: blocked, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   const runningJob = await repository.markRunning(queuedJob);
-  await writeAudit(dependencies, {
-    workspaceId: runningJob.workspace_id,
-    actorId: runningJob.requested_by,
-    eventType: "active_validation.started",
-    jobId: runningJob.id,
-    assetId: runningJob.asset_id,
-    metadata: { profileId: runningJob.validation_profile_id ?? "cors-origin-policy" },
-  });
+  await writeAudit(dependencies, { workspaceId: runningJob.workspace_id, actorId: runningJob.requested_by, eventType: "active_validation.started", jobId: runningJob.id, assetId: runningJob.asset_id, metadata: { profileId: runningJob.validation_profile_id ?? "cors-origin-policy" } });
 
   const validate = dependencies.validate ?? validateCorsOriginPolicy;
   let cancellationJob: ScanJobRow | null = null;
   let validationResult;
   try {
-    validationResult = await validate(
-      authorization.target,
-      authorization.budget,
-      {
-        isCancelled: async () => {
-          const latest = await repository.loadForWorkspace(
-            runningJob.id,
-            runningJob.workspace_id,
-          );
-          if (!latest) return false;
-          if (latest.cancel_requested_at || latest.status === "cancelled") {
-            cancellationJob = latest;
-            return true;
-          }
-          return false;
-        },
+    validationResult = await validate(authorization.target, authorization.budget, {
+      isCancelled: async () => {
+        const latest = await repository.loadForWorkspace(runningJob.id, runningJob.workspace_id);
+        if (!latest) return false;
+        if (latest.cancel_requested_at || latest.status === "cancelled") {
+          cancellationJob = latest;
+          return true;
+        }
+        return false;
       },
-    );
+    });
   } catch {
     const failureCode = "ACTIVE_EXECUTION_ERROR";
-    const failed = await failRunningJob(
-      runningJob,
-      failureCode,
-      runningJob.requested_by,
-      0,
-      dependencies,
-    );
-    return Object.freeze({
-      status: "failed" as const,
-      failureCode,
-      job: failed,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const failed = await failRunningJob(runningJob, failureCode, runningJob.requested_by, 0, dependencies);
+    return Object.freeze({ status: "failed" as const, failureCode, job: failed, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   if (validationResult.status === "failed") {
     const failureCode = validationResult.failureCode ?? "ACTIVE_EXECUTION_ERROR";
-    const failed = await failRunningJob(
-      runningJob,
-      failureCode,
-      runningJob.requested_by,
-      validationResult.requestCount,
-      dependencies,
-    );
-    return Object.freeze({
-      status: "failed" as const,
-      failureCode,
-      job: failed,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const failed = await failRunningJob(runningJob, failureCode, runningJob.requested_by, validationResult.requestCount, dependencies);
+    return Object.freeze({ status: "failed" as const, failureCode, job: failed, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   if (validationResult.status === "cancelled") {
-    const jobToCancel = cancellationJob ?? await repository.loadForWorkspace(
-      runningJob.id,
-      runningJob.workspace_id,
-    ) ?? runningJob;
-    const cancelled = await cancelJob(
-      jobToCancel,
-      runningJob.requested_by,
-      dependencies,
-      { requestCount: validationResult.requestCount },
-    );
-    return Object.freeze({
-      status: "cancelled" as const,
-      job: cancelled,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const jobToCancel = cancellationJob ?? await repository.loadForWorkspace(runningJob.id, runningJob.workspace_id) ?? runningJob;
+    const cancelled = await cancelJob(jobToCancel, runningJob.requested_by, dependencies, { requestCount: validationResult.requestCount });
+    return Object.freeze({ status: "cancelled" as const, job: cancelled, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   if (!validationResult.observation) {
     const failureCode = "ACTIVE_EXECUTION_ERROR";
-    const failed = await failRunningJob(
-      runningJob,
-      failureCode,
-      runningJob.requested_by,
-      validationResult.requestCount,
-      dependencies,
-    );
-    return Object.freeze({
-      status: "failed" as const,
-      failureCode,
-      job: failed,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const failed = await failRunningJob(runningJob, failureCode, runningJob.requested_by, validationResult.requestCount, dependencies);
+    return Object.freeze({ status: "failed" as const, failureCode, job: failed, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   const cancelledBeforeRules = await cancellationSnapshot(runningJob, dependencies);
   if (cancelledBeforeRules) {
-    const cancelled = await cancelJob(
-      cancelledBeforeRules,
-      runningJob.requested_by,
-      dependencies,
-      { requestCount: validationResult.requestCount },
-    );
-    return Object.freeze({
-      status: "cancelled" as const,
-      job: cancelled,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const cancelled = await cancelJob(cancelledBeforeRules, runningJob.requested_by, dependencies, { requestCount: validationResult.requestCount });
+    return Object.freeze({ status: "cancelled" as const, job: cancelled, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   const matches = evaluateCorsPolicyRules({ observation: validationResult.observation });
-  const evidence = Object.freeze(matches.map((match) =>
-    mapActiveRuntimeRuleMatchToEvidence({ assetRef: authorization.target.assetRef, match })));
-  const findings = Object.freeze(matches.map((match) =>
-    mapActiveRuntimeRuleMatchToSecurityFinding({ assetRef: authorization.target.assetRef, match })));
+  const evidence = Object.freeze(matches.map((match) => mapActiveRuntimeRuleMatchToEvidence({ assetRef: authorization.target.assetRef, match })));
+  const findings = Object.freeze(matches.map((match) => mapActiveRuntimeRuleMatchToSecurityFinding({ assetRef: authorization.target.assetRef, match })));
 
   const cancelledBeforePersistence = await cancellationSnapshot(runningJob, dependencies);
   if (cancelledBeforePersistence) {
-    const cancelled = await cancelJob(
-      cancelledBeforePersistence,
-      runningJob.requested_by,
-      dependencies,
-      { requestCount: validationResult.requestCount },
-    );
-    return Object.freeze({
-      status: "cancelled" as const,
-      job: cancelled,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const cancelled = await cancelJob(cancelledBeforePersistence, runningJob.requested_by, dependencies, { requestCount: validationResult.requestCount });
+    return Object.freeze({ status: "cancelled" as const, job: cancelled, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   try {
-    await repository.persistObservation(
+    await repository.persistResult(
       runningJob,
       validationResult.observation,
+      findings,
+      evidence,
       authorization.budget.maxObservationBytes,
+      clock(dependencies)(),
     );
   } catch {
     const cancelled = await cancellationSnapshot(runningJob, dependencies);
     if (cancelled) {
-      const cancelledJob = await cancelJob(
-        cancelled,
-        runningJob.requested_by,
-        dependencies,
-        { requestCount: validationResult.requestCount },
-      );
-      return Object.freeze({
-        status: "cancelled" as const,
-        job: cancelledJob,
-        requestCount: validationResult.requestCount,
-        findings: Object.freeze([]),
-        evidence: Object.freeze([]),
-      });
+      const cancelledJob = await cancelJob(cancelled, runningJob.requested_by, dependencies, { requestCount: validationResult.requestCount });
+      return Object.freeze({ status: "cancelled" as const, job: cancelledJob, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
     }
     const failureCode = "ACTIVE_EXECUTION_ERROR";
-    const failed = await failRunningJob(
-      runningJob,
-      failureCode,
-      runningJob.requested_by,
-      validationResult.requestCount,
-      dependencies,
-    );
-    return Object.freeze({
-      status: "failed" as const,
-      failureCode,
-      job: failed,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const failed = await failRunningJob(runningJob, failureCode, runningJob.requested_by, validationResult.requestCount, dependencies);
+    return Object.freeze({ status: "failed" as const, failureCode, job: failed, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   const cancelledBeforeSuccess = await cancellationSnapshot(runningJob, dependencies);
   if (cancelledBeforeSuccess) {
-    const cancelled = await cancelJob(
-      cancelledBeforeSuccess,
-      runningJob.requested_by,
-      dependencies,
-      { requestCount: validationResult.requestCount },
-    );
-    return Object.freeze({
-      status: "cancelled" as const,
-      job: cancelled,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const cancelled = await cancelJob(cancelledBeforeSuccess, runningJob.requested_by, dependencies, { requestCount: validationResult.requestCount });
+    return Object.freeze({ status: "cancelled" as const, job: cancelled, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
   let succeeded: ScanJobRow;
   try {
-    succeeded = await repository.markSucceeded(runningJob, {
-      requestCount: validationResult.requestCount,
-      findingCount: findings.length,
-    });
+    succeeded = await repository.markSucceeded(runningJob, { requestCount: validationResult.requestCount, findingCount: findings.length });
   } catch {
     const cancelled = await cancellationSnapshot(runningJob, dependencies);
     if (cancelled) {
-      const cancelledJob = await cancelJob(
-        cancelled,
-        runningJob.requested_by,
-        dependencies,
-        { requestCount: validationResult.requestCount },
-      );
-      return Object.freeze({
-        status: "cancelled" as const,
-        job: cancelledJob,
-        requestCount: validationResult.requestCount,
-        findings: Object.freeze([]),
-        evidence: Object.freeze([]),
-      });
+      const cancelledJob = await cancelJob(cancelled, runningJob.requested_by, dependencies, { requestCount: validationResult.requestCount });
+      return Object.freeze({ status: "cancelled" as const, job: cancelledJob, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
     }
     const failureCode = "ACTIVE_EXECUTION_ERROR";
-    const failed = await failRunningJob(
-      runningJob,
-      failureCode,
-      runningJob.requested_by,
-      validationResult.requestCount,
-      dependencies,
-    );
-    return Object.freeze({
-      status: "failed" as const,
-      failureCode,
-      job: failed,
-      requestCount: validationResult.requestCount,
-      findings: Object.freeze([]),
-      evidence: Object.freeze([]),
-    });
+    const failed = await failRunningJob(runningJob, failureCode, runningJob.requested_by, validationResult.requestCount, dependencies);
+    return Object.freeze({ status: "failed" as const, failureCode, job: failed, requestCount: validationResult.requestCount, findings: Object.freeze([]), evidence: Object.freeze([]) });
   }
 
-  await writeAudit(dependencies, {
-    workspaceId: succeeded.workspace_id,
-    actorId: succeeded.requested_by,
-    eventType: "active_validation.succeeded",
-    jobId: succeeded.id,
-    assetId: succeeded.asset_id,
-    metadata: {
-      requestCount: validationResult.requestCount,
-      findingCount: findings.length,
-    },
-  });
+  await writeAudit(dependencies, { workspaceId: succeeded.workspace_id, actorId: succeeded.requested_by, eventType: "active_validation.succeeded", jobId: succeeded.id, assetId: succeeded.asset_id, metadata: { requestCount: validationResult.requestCount, findingCount: findings.length } });
 
-  return Object.freeze({
-    status: "succeeded" as const,
-    job: succeeded,
-    requestCount: validationResult.requestCount,
-    observation: validationResult.observation,
-    findings,
-    evidence,
-  });
+  return Object.freeze({ status: "succeeded" as const, job: succeeded, requestCount: validationResult.requestCount, observation: validationResult.observation, findings, evidence });
 }
 
 export async function requestActiveValidationCancellation(
@@ -525,9 +328,7 @@ export async function requestActiveValidationCancellation(
   const repository = dependencies.repository;
   const job = await repository.loadForWorkspace(input.jobId, input.workspaceId);
   if (!job) throw new ActiveValidationAuthorizationError("ACTIVE_JOB_NOT_AVAILABLE");
-  if (!isMutable(job)) {
-    throw new ActiveValidationAuthorizationError("ACTIVE_JOB_NOT_EXECUTABLE");
-  }
+  if (!isMutable(job)) throw new ActiveValidationAuthorizationError("ACTIVE_JOB_NOT_EXECUTABLE");
 
   let requested = job;
   if (!job.cancel_requested_at) {
@@ -535,22 +336,10 @@ export async function requestActiveValidationCancellation(
     if (updated) requested = updated;
   }
 
-  await writeAudit(dependencies, {
-    workspaceId: requested.workspace_id,
-    actorId: operator.actorId,
-    eventType: "active_validation.cancel_requested",
-    jobId: requested.id,
-    assetId: requested.asset_id,
-    metadata: { status: requested.status },
-  });
+  await writeAudit(dependencies, { workspaceId: requested.workspace_id, actorId: operator.actorId, eventType: "active_validation.cancel_requested", jobId: requested.id, assetId: requested.asset_id, metadata: { status: requested.status } });
 
   if (requested.status === "queued") {
-    const cancelled = await cancelJob(
-      requested,
-      operator.actorId,
-      dependencies,
-      { reasonCode: "ACTIVE_CANCELLATION_REQUESTED" },
-    );
+    const cancelled = await cancelJob(requested, operator.actorId, dependencies, { reasonCode: "ACTIVE_CANCELLATION_REQUESTED" });
     return Object.freeze({ status: "cancelled" as const, job: cancelled });
   }
 
