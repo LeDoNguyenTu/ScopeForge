@@ -111,7 +111,8 @@ describe("baseline contract", () => {
     });
     const applied = applyBaseline([existing, fresh], baseline);
 
-    expect(applied.map((item) => item.baselineState)).toEqual(["existing", "new"]);
+    expect(applied.findings.map((item) => item.baselineState)).toEqual(["existing", "new"]);
+    expect(applied.resolved).toEqual([]);
     expect(existing.baselineState).toBe("none");
     expect(fresh.baselineState).toBe("none");
   });
