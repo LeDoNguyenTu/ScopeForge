@@ -1,103 +1,117 @@
 # ScopeForge Test Status
 
-## Phase 4A supporting GREEN gate
+## Phase 4B supporting GREEN gate
 
-CI #375 passed on PR #23 supporting implementation head `c0e93ac0408a01a8c2b1ec513e38286a7f102cef`.
+CI #437 passed on PR #25 supporting implementation head `364ccd435c824bfdfab75407db967d027bf18656`.
 
 | Check | Result | Evidence |
 |---|---|---|
 | Reproducible dependency install | Passing | `npm ci --ignore-scripts --no-audit --no-fund` |
-| Vitest | Passing | 93 test files, 350 tests |
+| Vitest | Passing | 109 test files, 474 tests |
 | TypeScript strict typecheck | Passing | `npm run typecheck` |
 | CLI TypeScript build | Passing | `npm run build:cli` |
 | Compiled CLI runtime smoke | Passing | `ScopeForge 0.1.0` |
-| Medium scanner benchmark | Passing | 700 files, 0 findings, 0 errors, 919 ms wall time |
+| Medium scanner benchmark | Passing | 700 files, 0 findings, 0 errors, 971 ms wall time |
 | Next.js production build | Passing | `npm run build` |
 
 Benchmark line:
 
 ```text
-SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"scanDurationMs":860,"wallMs":919,"rssDeltaBytes":28692480,"maxWallMs":20000}
+SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"scanDurationMs":910,"wallMs":971,"rssDeltaBytes":34701312,"maxWallMs":20000}
 ```
 
 The benchmark is regression evidence on one GitHub-hosted runner, not a universal performance claim.
 
-Permanent project-state documentation changes the head after CI #375. Therefore CI #375 is supporting evidence, not the immutable final merge gate. PR #23 must receive a fresh complete run on its exact final documentation head.
+Permanent architecture/documentation and dependency-guard changes move the head after CI #437. Therefore CI #437 is supporting evidence, not the immutable final merge gate. PR #25 must receive a fresh complete run on its exact final head.
 
-## Phase 4A TDD evidence
+## Phase 4B TDD evidence
 
-The implementation used contract-first RED/GREEN checkpoints:
+The implementation used contract-first RED/GREEN checkpoints while preserving existing regression coverage.
 
-| Boundary | RED evidence | GREEN evidence |
-|---|---|---|
-| Domain primitives | Existing 331 tests stayed green; only the missing new domain module failed | CI #363 full gate passed |
-| Lifecycle, validation, advisory | Failures isolated to the missing new functions | CI #367 full gate passed |
-| Phase 3 adapter | CI #370 retained 91 existing test files / 346 existing tests green; only the missing adapter module failed | CI #373 full gate passed |
-| Architecture dependency direction | Conformance test expected to pass immediately | CI #375 full gate passed |
+### Shared network-safety extraction
 
-## New Phase 4A coverage
+- Phase 2 public-IP and resolution-result safety behavior was extracted into `packages/network-safety` with Phase 2 regression coverage retained.
+- Runtime code reuses the pure policy instead of copying SSRF rules.
 
-### Domain primitives
+### Runtime target, budget, DNS, and transport contracts
 
-- versioned product security contract
-- non-empty branded identity constructors
-- separate source and provenance concepts
+Coverage includes:
 
-### Finding lifecycle and validation
+- verified web/API target normalization
+- HTTPS port 443 and GET-only policy
+- same-host redirect restrictions
+- request, redirect, byte, observation, request-timeout, and total-time budgets
+- public DNS classification before connections
+- DNS-pinned HTTPS transport
+- timeout and network failure handling
 
-- explicit remediation/retest lifecycle transitions
-- terminal review states cannot silently reopen
-- idempotent lifecycle handling
-- advisory authority cannot promote validation
-- deterministic authority may establish supported scanner/runtime confirmation
-- user confirmation remains human-authority only
+### Passive observation and redaction
 
-### Advisory privacy boundary
+Coverage verifies:
 
-- secret-classified context is always excluded
-- sensitive remote context requires explicit opt-in
-- local execution remains available
-- item and character budgets are deterministic
-- provider-specific SDK/messages are absent from the domain contract
+- bounded HTTP status and redirect observations
+- selected response-header state
+- cookie security attributes without cookie values
+- TLS metadata
+- no response-body observation contract
+- deterministic redaction and observation-size enforcement
 
-### Phase 3 source adapter
+### Runtime finding mapping
 
-- deterministic mapping from stable fingerprint identity
-- explicit severity/confidence/validation translation
-- typed source, location, taxonomy, remediation, and evidence mapping
-- dependency-confirmed findings use dependency evidence
-- scanner metadata changes do not affect mapped output
-- scanner metadata is not copied
-- redacted snippets and data-flow internals are not copied
-- no product validation inflation for heuristic/informational Phase 3 findings
+Coverage verifies deterministic mapping of passive runtime rule matches into the Phase 4A `security-domain`, including stable identity, observed provenance, typed evidence, validation, severity/confidence, taxonomy, and remediation.
 
-### Architecture dependency guard
+### Persistence and authorization
 
-`tests/architecture/security-domain-dependencies.test.ts` recursively checks every TypeScript file under `packages/security-domain` and blocks imports from:
+Coverage verifies:
 
-- scanner packages
-- CLI implementation
-- Next.js
-- React
-- Supabase
-- application/component layers
-- named model providers
+- passive runtime job migration and RLS/write boundaries
+- allowed job-state transitions
+- bounded normalized observation persistence
+- workspace/operator checks
+- verified web/API requirement
+- immutable enqueue authorization snapshot
+- execution-time reauthorization before networking
+- changed authorization blocks execution
+- cancellation before persistence
+- stable failure codes
+- bounded audits without raw exception text
 
-This guard makes the clean dependency direction part of CI rather than documentation only.
+### Application service and UI
+
+The original PR #25 blocker was an intentional service contract suite whose production module was missing. `lib/runtime-observations/service.ts` was added and the full service suite now passes.
+
+The asset UI used a second RED/GREEN checkpoint:
+
+- RED: all existing suites remained green and only the missing `RuntimeObservationPanel` suite failed.
+- GREEN: the panel covers unverified/repository restrictions, verified web/API execution, queued/running cancellation controls, bounded success summaries, and safe blocked/failed reasons.
+
+CI #437 confirms the completed UI slice with 109 test files and 474 tests.
+
+## Architecture dependency guards
+
+The final Phase 4B head adds `tests/architecture/runtime-observer-dependencies.test.ts` alongside the existing security-domain guard.
+
+The guards require:
+
+- `security-domain` to remain independent of scanners, CLI, Next.js, React, Supabase, application/component layers, and named model providers
+- `runtime-observer` to remain independent of Next.js, React, Supabase, application/component layers, and named model providers
+- `network-safety` to remain free of DNS, HTTP, TLS, database, and framework dependencies
+
+These new architecture assertions require the final exact-head CI gate before merge.
 
 ## Phase 3 regression continuity
 
-All existing Phase 3 integration, hostile-repository, secret non-leakage, parser safety, no-execution, SCA/OSV, SBOM, IaC, baseline, JSON/SARIF/golden-output, policy, filesystem, and benchmark coverage remains green in CI #375.
+All existing Phase 3 integration, hostile-repository, secret non-leakage, parser safety, no-execution, SCA/OSV, SBOM, IaC, baseline, JSON/SARIF/golden-output, policy, filesystem, and benchmark coverage remained green in CI #437.
 
-No Phase 3 output schema, fingerprint, baseline, policy, CLI, scanner-rule, SARIF, SBOM, or benchmark semantic was intentionally changed by Phase 4A.
+No Phase 3 output schema, fingerprint, baseline, policy, CLI, scanner-rule, SARIF, SBOM, or benchmark semantic was intentionally changed by Phase 4B.
 
-## Database checks
+## Database boundary
 
-Phase 4A has no database migration, schema, RLS, RPC, storage, queue, worker, or hosted-ingestion change. Supabase advisor checks are not a merge dependency for this diff.
+Phase 4B adds a migration for passive runtime jobs and normalized observations. Tests cover schema constraints, guarded status transitions, immutable authorization snapshots, row-level workspace reads, bounded observation payloads, and revocation of direct authenticated writes. Runtime writes are performed through the trusted server adapter.
 
-## Phase 4A merge rule
+## Phase 4B merge rule
 
-The exact final PR #23 head must pass:
+The exact final PR #25 head must pass:
 
 ```bash
 npm ci --ignore-scripts --no-audit --no-fund
@@ -111,17 +125,18 @@ npm run build
 
 Merge is blocked by any of the following:
 
-- `security-domain` dependency reversal into scanners or infrastructure
-- advisory result provenance capable of representing observed/confirmed authority
-- advisory validation promotion
-- secret advisory context leakage
-- remote sensitive advisory context without explicit opt-in
-- arbitrary metadata added to product finding/evidence contracts
-- Phase 3 mapper metadata/snippet/data-flow passthrough
-- mapper filesystem/network/process behavior
-- unexpected Phase 3 scanner/output regression
+- unverified or repository assets reaching runtime network execution
+- authorization not being rechecked immediately before execution
+- redirects widening beyond same-host HTTPS port 443 policy
+- a connection occurring without fresh public-IP classification and pinning
+- response-body or cookie-value persistence
+- raw network/database exception text reaching audits or browser-facing errors
+- cancellation being ignored before persistence
+- runtime-observer dependency reversal into UI/database/provider code
+- network-safety gaining DNS/HTTP/TLS/database/framework behavior
+- unexpected Phase 2 or Phase 3 regression
 - unresolved blocking review thread
 
 ## Completion rule
 
-A green supporting run is not enough. Phase 4A is complete only after the exact final PR #23 head passes the full gate, the PR is squash merged with expected-head protection, and merged content is verified. The resulting `main` CI should also be verified when exposed by the available GitHub tooling.
+A green supporting run is not enough. Phase 4B is complete only after the exact final PR #25 head passes the full gate, the complete security-sensitive diff is reviewed, the PR is squash merged with head protection, and merged content is verified. The resulting `main` CI should also be verified when exposed by the available GitHub tooling.
