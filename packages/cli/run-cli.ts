@@ -19,6 +19,7 @@ import { evaluatePolicy, resolveScanExitCode } from "../scanner-core/policy/eval
 import { SCAN_EXIT, type ScanExitCode } from "../scanner-core/policy/exit-codes";
 import { generateCycloneDxSbom } from "../scanner-sca/sbom/generate";
 import { serializeScanResult } from "../scanner-output/json/serialize";
+import { serializeSarifResult } from "../scanner-output/sarif/serialize";
 import { createBuiltInScanners, formatBuiltInRuleList, validateBuiltInRules } from "./builtins";
 import { UnsafeOutputError, writeScanOutput } from "./safe-output";
 import { formatTerminalResult } from "./terminal";
@@ -61,7 +62,7 @@ function defaultIo(): CliIo {
 function usage(): string {
   return [
     "Usage:",
-    "  scopeforge scan [path] [--format terminal|json] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
+    "  scopeforge scan [path] [--format terminal|json|sarif] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
     "  scopeforge baseline create [path]",
     "  scopeforge rules list",
     "  scopeforge version",
@@ -88,8 +89,8 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
     const token = argv[index];
     if (token === "--format") {
       const value = requireValue(argv, index, token);
-      if (value !== "terminal" && value !== "json") {
-        throw new CliUsageError("Invalid format. Expected terminal or json.");
+      if (value !== "terminal" && value !== "json" && value !== "sarif") {
+        throw new CliUsageError("Invalid format. Expected terminal, json, or sarif.");
       }
       format = value;
       index += 1;
@@ -307,7 +308,9 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     const rendered =
       format === "json"
         ? serializeScanResult(result, { toolVersion: SCOPEFORGE_VERSION })
-        : formatTerminalResult(result, { baselineActive: baselinePath !== undefined });
+        : format === "sarif"
+          ? serializeSarifResult(result, { toolVersion: SCOPEFORGE_VERSION })
+          : formatTerminalResult(result, { baselineActive: baselinePath !== undefined });
 
     if (output) {
       await writeScanOutput(args.path, output, rendered, {

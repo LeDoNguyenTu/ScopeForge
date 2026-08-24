@@ -1,7 +1,7 @@
 import type { BaselineGate, Severity } from "../findings/types";
 import type { InventoryBudgets } from "../inventory/types";
 
-export type ScannerOutputFormat = "terminal" | "json";
+export type ScannerOutputFormat = "terminal" | "json" | "sarif";
 
 export interface ScannerRuleSelection {
   include: string[];
