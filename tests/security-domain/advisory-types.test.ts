@@ -34,13 +34,13 @@ describe("advisory type boundary", () => {
 
     expect(request.context).toHaveLength(1);
 
-    // @ts-expect-error Raw context must pass through buildAdvisoryContext first.
     const unsafeRequest: AdvisoryRequest = {
       purpose: "explain-finding",
+      // @ts-expect-error Raw context must pass through buildAdvisoryContext first.
       context: rawContext,
     };
 
-    expect(unsafeRequest.context).toHaveLength(1);
+    void unsafeRequest;
   });
 
   it("keeps relationship suggestions inferred at the type boundary", () => {
@@ -55,12 +55,12 @@ describe("advisory type boundary", () => {
 
     expect(suggestion.provenance.kind).toBe("inferred");
 
-    // @ts-expect-error Advisory relationship suggestions cannot claim observed provenance.
     const invalidSuggestion: AdvisoryRelationshipSuggestion = {
       ...suggestion,
+      // @ts-expect-error Advisory relationship suggestions cannot claim observed provenance.
       provenance: { kind: "observed" },
     };
 
-    expect(invalidSuggestion.provenance.kind).toBe("observed");
+    void invalidSuggestion;
   });
 });

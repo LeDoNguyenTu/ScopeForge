@@ -1,5 +1,6 @@
 import type { AdvisoryRecordId, SecurityFindingId } from "../common/identifiers";
 import type { ContentClassification } from "../evidence/types";
+import type { InferredProvenanceRecord } from "../provenance/types";
 import type { RiskRelationship } from "../relationships/types";
 
 export type AdvisoryPurpose =
@@ -24,21 +25,28 @@ export interface AdvisoryContextItem {
   classification: ContentClassification;
 }
 
+declare const preparedAdvisoryContextBrand: unique symbol;
+
+export type PreparedAdvisoryContext = readonly AdvisoryContextItem[] & {
+  readonly [preparedAdvisoryContextBrand]: true;
+};
+
 export interface AdvisoryRequest {
   purpose: AdvisoryPurpose;
   findingRefs?: readonly SecurityFindingId[];
-  context: readonly AdvisoryContextItem[];
+  context: PreparedAdvisoryContext;
 }
+
+export type AdvisoryRelationshipSuggestion = Omit<RiskRelationship, "provenance"> & {
+  provenance: InferredProvenanceRecord;
+};
 
 export interface AdvisoryResult {
   id: AdvisoryRecordId;
   kind: AdvisoryResultKind;
   summary: string;
-  provenance: {
-    kind: "inferred";
-    rationale?: string;
-  };
-  relationshipSuggestions?: readonly RiskRelationship[];
+  provenance: InferredProvenanceRecord;
+  relationshipSuggestions?: readonly AdvisoryRelationshipSuggestion[];
 }
 
 export interface AdvisoryService {

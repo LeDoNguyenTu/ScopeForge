@@ -1,4 +1,4 @@
-import type { AdvisoryContextItem } from "./types";
+import type { AdvisoryContextItem, PreparedAdvisoryContext } from "./types";
 
 export type AdvisoryExecution = "local" | "remote";
 
@@ -34,15 +34,19 @@ function isAllowedByClassification(
   return true;
 }
 
+function preparedContext(items: AdvisoryContextItem[]): PreparedAdvisoryContext {
+  return items as PreparedAdvisoryContext;
+}
+
 export function buildAdvisoryContext(
   items: readonly AdvisoryContextItem[],
   policy: AdvisoryContextPolicy,
-): AdvisoryContextItem[] {
+): PreparedAdvisoryContext {
   assertBudget(policy.maxItems, "maxItems");
   assertBudget(policy.maxCharacters, "maxCharacters");
 
   if (policy.maxItems === 0 || policy.maxCharacters === 0) {
-    return [];
+    return preparedContext([]);
   }
 
   const output: AdvisoryContextItem[] = [];
@@ -75,5 +79,5 @@ export function buildAdvisoryContext(
     }
   }
 
-  return output;
+  return preparedContext(output);
 }
