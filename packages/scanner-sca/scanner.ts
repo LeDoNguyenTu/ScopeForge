@@ -1,5 +1,5 @@
 import type { ScannerRuleSelection } from "../scanner-core/config/types";
-import type { Scanner, ScannerRunResult } from "../scanner-core/coordinator/types";
+import type { Scanner, ScannerContext, ScannerRunResult } from "../scanner-core/coordinator/types";
 import { compareFindings } from "../scanner-core/findings/severity";
 import type { Finding } from "../scanner-core/findings/types";
 import { createVulnerabilityFinding } from "./findings/create-vulnerability-finding";
@@ -17,6 +17,10 @@ export interface CreateScaScannerOptions {
   };
 }
 
+export interface ScaScanner extends Scanner {
+  scan(context: ScannerContext): Promise<ScannerRunResult>;
+}
+
 function ruleEnabled(selection: ScannerRuleSelection | undefined): boolean {
   if (!selection) return true;
   if (selection.exclude.includes(RULE_ID)) return false;
@@ -31,7 +35,7 @@ function dedupeFindings(findings: readonly Finding[]): Finding[] {
   return [...byFingerprint.values()].sort(compareFindings);
 }
 
-export function createScaScanner(options: CreateScaScannerOptions = {}): Scanner {
+export function createScaScanner(options: CreateScaScannerOptions = {}): ScaScanner {
   const osvEnabled = options.osv?.enabled ?? false;
 
   return {
