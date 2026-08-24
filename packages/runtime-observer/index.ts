@@ -24,4 +24,17 @@ export type {
   RuntimeTransportDependencies,
   RuntimeTransportResponse,
 } from "./https-transport";
+export { buildPassiveResponseObservations } from "./observations";
+export type { RuntimeObservation } from "./observations";
+export {
+  normalizeSelectedHeaderObservations,
+  parseSetCookieObservation,
+} from "./redaction";
+export { observeRuntimeTarget } from "./observe";
+export type {
+  RuntimeObservationFailureCode,
+  RuntimeObservationResult,
+  RuntimeObserverDependencies,
+  RuntimeTransport,
+} from "./observe";
 export { validateInitialRuntimeUrl, validateRedirectTarget } from "./target-policy";
