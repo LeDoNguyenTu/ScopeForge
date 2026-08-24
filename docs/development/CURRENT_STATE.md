@@ -53,7 +53,7 @@ No response body or cookie value is persisted. Persisted runtime URLs remove que
 
 ## Phase 4C-1 - Bounded CORS origin-policy validation
 
-The approved Phase 4C design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`. PR #27 implements the first active profile, `cors-origin-policy@1`, and is in its final exact-head completion gate.
+Phase 4C-1 is complete and merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`. The approved design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`.
 
 ### Shared low-level runtime network
 
@@ -132,9 +132,9 @@ CI guards:
 - `packages/runtime-validator` from passive-observer, UI, database, Supabase, and provider dependencies
 - `runtime-validator` from re-exporting generic transport authority
 
-## Supporting Phase 4C-1 verification
+## Phase 4C-1 verification
 
-CI #546 passed on implementation/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530` before the permanent documentation tail:
+Exact final PR head `11c49e8723654f4279c9d09eed014e0b878281f6` passed CI #555 immediately before merge with:
 
 - reproducible dependency install
 - 122 test files and 538 tests
@@ -143,12 +143,12 @@ CI #546 passed on implementation/security-hardening head `cc57248fd525e1a05312bb
 - 700-file scanner benchmark with 0 findings and 0 errors
 - Next.js production build
 
-CI #546 includes the final regression for cancellation/persistence linearization in addition to active authorization, request authority, DNS/pinning/deadlines, profile-versioned finding provenance, trusted persistence, UI/action boundaries, and dependency guards.
+The final branch tail after the security-reviewed code checkpoint contained documentation files only. The exact head remained mergeable with no review threads or submitted blocking reviews, then PR #27 was squash-merged using expected-head protection.
 
-The implementation is frozen. The current documentation tail changes no runtime behavior. The exact final PR #27 head must still pass the complete repository gate before merge; only that exact final head counts as the merge gate.
+The available commit-workflow query did not expose a post-merge run for squash commit `fb3aa27...`; no post-merge CI result is inferred.
 
 ## Next boundary
 
-Complete PR #27 only after the exact documentation head is fully green, mergeable, security-review clean, and free of unresolved blocking review threads. Merge with expected-head protection, verify merged content and post-merge CI when exposed by GitHub, then use the permanent roadmap to design the next delivery boundary without widening the active HTTP authority.
+The next major roadmap boundary is Phase 5 - Findings, Security Stories, and remediation. It should build hosted finding workflow, evidence/inference separation, relationships, explanation, remediation, and retesting on the existing `security-domain` rather than introducing a second finding model.
 
-Queue-backed isolated workers, dedicated egress infrastructure, concurrency/backpressure, private artifacts, fleet operations, and production abuse controls remain Phase 6 work and are not claimed by Phase 4C-1.
+Additional active validators are not implicitly authorized by Phase 4C-1. Queue-backed isolated workers, dedicated egress infrastructure, concurrency/backpressure, private artifacts, fleet operations, and production abuse controls remain Phase 6 work.

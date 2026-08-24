@@ -1,49 +1,53 @@
 # ScopeForge Next Steps
 
-## Current completion gate - Phase 4C-1
+## Phase 4C-1 completion
 
-PR #27 `Build Phase 4C-1 bounded CORS validation` implements the approved PR #26 design for the first narrowly active runtime profile, `cors-origin-policy@1`.
+Phase 4C-1 is complete. PR #27 `Build Phase 4C-1 bounded CORS validation` was squash-merged as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0` after the exact final head `11c49e8723654f4279c9d09eed014e0b878281f6` passed CI #555.
 
-Supporting implementation/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530` passed CI #546 with 122 test files / 538 tests, strict typecheck, CLI build/runtime, the 700-file scanner benchmark, and the production build.
+The exact merge gate passed:
 
-That supporting head includes regression coverage and production hardening for:
+- `npm ci --ignore-scripts --no-audit --no-fund`
+- 122 test files / 538 tests
+- strict TypeScript typecheck
+- CLI build and compiled `ScopeForge 0.1.0` smoke
+- 700-file scanner benchmark with 0 findings / 0 errors
+- Next.js production build
 
-- explicit owner/admin active authorization separate from verification
-- execution-time immutable-snapshot reauthorization before DNS/network
-- fixed one-request authority with no arbitrary URL/method/header/body/credential surface
-- shared fresh-DNS/public-IP/pinning/TLS/deadline transport without widening the passive observer
-- DNS resolution included inside the request deadline
-- bounded CORS-only observation persistence with response-body destruction
-- deterministic profile-versioned `runtime_validated` findings and bounded evidence
-- DB-backed active cancellation checks before persistence/success
-- parent-row locking during runtime observation persistence
-- cancellation/persistence linearization so committed active evidence cannot coexist with a cancelled terminal state
-- dependency guards preventing UI/application code from importing generic runtime transport authority
+The final tail after the reviewed code checkpoint was documentation-only. Before merge, the exact head was still mergeable and had no review threads or submitted blocking reviews. Merge used expected-head protection.
 
-The implementation is frozen. The remaining commits are permanent documentation only. The exact remaining Phase 4C-1 actions are:
+The available commit-workflow query did not expose a post-merge run for the squash commit, so no post-merge CI result is inferred.
 
-1. Require the exact final documentation head to pass the complete repository CI gate:
-   - `npm ci --ignore-scripts --no-audit --no-fund`
-   - `npm test`
-   - `npm run typecheck`
-   - `npm run build:cli`
-   - compiled CLI version smoke
-   - `npm run benchmark:scanner`
-   - `npm run build`
-2. Re-check the complete PR #27 security-sensitive diff for authorization bypass, target widening, SSRF/DNS rebinding, generic request authority, redirect behavior, timeout gaps, cancellation races, secret persistence, RLS/trusted-write regression, unbounded evidence, unsafe error disclosure, and passive/active dependency mixing.
-3. Confirm the exact head has no unresolved blocking review thread or blocking submitted review.
-4. Confirm GitHub still reports the unchanged head mergeable.
-5. Squash merge with `expected_head_sha` protection.
-6. Verify merged content on `main` and inspect resulting `main` CI when exposed by the available GitHub tooling. Never infer an unavailable post-merge result.
-7. Refresh post-merge state wording if required before beginning the next architectural slice.
+## Next planned delivery boundary - Phase 5
 
-## Next planned delivery boundary
+The next major roadmap boundary is Phase 5 - Findings, Security Stories, and remediation.
 
-After Phase 4C-1 is merged and verified, follow `docs/PHASES.md`. The next major product boundary is Phase 5 - Findings, Security Stories, and remediation.
+Phase 5 should build on `packages/security-domain` rather than define a second finding model. The first design should cover:
 
-Phase 5 should build on the existing `security-domain` rather than inventing a second finding model. The design should focus on hosted normalized finding lifecycle, evidence/inference separation, risk relationships, explanation workflows, remediation state, retesting, and developer/security views.
+- hosted normalized finding persistence and lifecycle
+- evidence versus inference separation
+- relationships between findings, assets, observations, and remediation work
+- Security Story explanation views that preserve provenance and uncertainty
+- remediation workflow/state without pretending a fix is verified before retest
+- explicit retesting/verification transitions
+- developer and security-oriented views over the same canonical finding state
 
-Do not widen Phase 4C into generalized DAST merely because an active transport now exists. Additional active profiles require their own narrow design/security review.
+The design should keep deterministic scanner/runtime evidence authoritative for validation state. AI/model assistance, if added later, must remain advisory/inferred and cannot independently promote a finding to validated or resolved.
+
+## Active-testing boundary remains narrow
+
+Do not widen Phase 4C into generalized DAST merely because an active transport exists. Additional active profiles require their own explicit design/security review.
+
+Still out of scope without a new approved active design:
+
+- broad crawling or endpoint discovery
+- OPTIONS/preflight probing
+- user-supplied origins
+- arbitrary methods/headers/bodies
+- authenticated/cookie/credential replay
+- SQLi/XSS/SSRF exploit probes
+- fuzzing or credential attacks
+- denial-of-service behavior
+- generalized exploit confirmation
 
 ## Worker-scale runtime execution
 
@@ -63,5 +67,5 @@ Before a new implementation session:
 2. Read `docs/development/CURRENT_STATE.md`.
 3. Read `docs/development/TEST_STATUS.md`.
 4. Read `docs/ARCHITECTURE.md` and `docs/PHASES.md`.
-5. Confirm PR #27 exact head and CI/merge state if it is still open.
-6. If Phase 4C-1 is merged and verified, begin the next approved roadmap/design boundary without widening `runtime-observer`, `runtime-validator`, or generic transport authority by convenience.
+5. Confirm `main` contains PR #27 squash commit `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
+6. Start Phase 5 from the existing `security-domain` and merged Phase 4 evidence/runtime contracts rather than widening scanner/runtime authority by convenience.
