@@ -2,17 +2,15 @@
 
 ## Current phase
 
-Phase 4C-1 - bounded CORS origin-policy validation, final exact-head completion gate.
+Phase 4C-1 is complete. The next roadmap boundary is Phase 5 - Findings, Security Stories, and remediation.
 
-Active branch: `feat/phase-4c-cors-origin-policy`
+Merged Phase 4C implementation: PR #27 `Build Phase 4C-1 bounded CORS validation`
 
-Active PR: #27 `Build Phase 4C-1 bounded CORS validation`
+Squash merge commit: `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`
 
-Approved design: `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
+Approved Phase 4C design: `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
 
-Approved implementation plan: `docs/superpowers/plans/2026-08-25-phase-4c-bounded-active-validation.md`
-
-The design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`.
+Approved Phase 4C implementation plan: `docs/superpowers/plans/2026-08-25-phase-4c-bounded-active-validation.md`
 
 ## Completed platform work
 
@@ -21,13 +19,13 @@ The design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`.
 - Phase 3 code and supply-chain security is complete and merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
 - Phase 4A security-domain contracts are complete and merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
 - Phase 4B passive runtime observations are complete and merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
-- Phase 4C-1 implementation and security hardening are complete in PR #27; only the exact final documentation-head gate and merge verification remain.
+- Phase 4C-1 bounded CORS origin-policy validation is complete and merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
 
-## Phase 4C-1 implementation
+## Phase 4C-1 completed boundary
 
 ### Runtime network extraction
 
-`packages/runtime-network` now owns shared low-level runtime networking:
+`packages/runtime-network` owns shared low-level runtime networking:
 
 - fresh DNS resolution before every connection
 - complete public-IP set validation through `packages/network-safety`
@@ -77,7 +75,7 @@ Changed authorization, target, verification, profile, budget, state, or cancella
 
 Phase 4C-1 reuses `scan_jobs` and `runtime_observations`; there is no parallel active job/finding system.
 
-The final migration hardening defines the persistence/cancellation ordering:
+The database defines the persistence/cancellation ordering:
 
 - `cors-policy` observations require an exact running, uncancelled `active_validation` parent
 - the observation insert trigger locks that workspace/job/asset parent row
@@ -85,8 +83,6 @@ The final migration hardening defines the persistence/cancellation ordering:
 - observation persistence that acquires the row first commits before a competing cancellation can proceed
 - once an active `cors-policy` observation exists, a later active cancellation request is rejected
 - final success still requires the job to be running and uncancelled
-
-This prevents a cancelled active job from retaining committed active evidence while preserving cancellation before the persistence linearization point.
 
 Authenticated browser access to runtime observations remains select-only. Trusted server adapters perform mutations.
 
@@ -98,40 +94,17 @@ Active CORS rules reuse the Phase 4A security domain:
 - exact synthetic-origin reflection without credentials -> low severity / high confidence
 - wildcard and missing Vary -> observation only
 
-Finding/evidence identities and source/rule provenance include `cors-origin-policy@1`, so a future profile version cannot collide with v1 identities. Evidence summaries are bounded and descriptions do not claim proven victim credential/data exfiltration.
+Finding/evidence identities and source/rule provenance include `cors-origin-policy@1`. Evidence summaries are bounded and descriptions do not claim proven victim credential/data exfiltration.
 
-### Asset workflow
+### Asset workflow and architecture guards
 
-`ActiveValidationPanel` is separate from the passive panel. It shows the fixed request/profile contract, requires explicit consent, exposes dedicated active run/cancel actions, and displays bounded normalized CORS evidence. The browser does not construct raw network requests.
+`ActiveValidationPanel` is separate from the passive panel. It shows the fixed request/profile contract, requires explicit consent, exposes dedicated active run/cancel actions, and displays bounded normalized CORS evidence.
 
-### Architecture guards
+Executable guards ensure application/UI code cannot import generic `runtime-network` directly, `runtime-observer` cannot import active-validator authority, `runtime-validator` cannot depend on passive/UI/database/provider layers or re-export generic transport authority, `runtime-network` remains low-level, and `network-safety` remains pure.
 
-Executable guards ensure:
+## Final Phase 4C verification
 
-- application/UI code cannot import generic `runtime-network` directly
-- `runtime-observer` cannot import active validator authority
-- `runtime-validator` cannot depend on passive/UI/database/provider layers
-- `runtime-validator` cannot re-export generic transport authority
-- `runtime-network` remains below observer/validator/application/domain layers
-- `network-safety` remains pure
-
-## TDD and security-review evidence
-
-Important RED/GREEN checkpoints in PR #27 include:
-
-- missing action/UI adapter boundary
-- distinct normalized Origin presentation in the active UI
-- dependency guards for runtime-network/runtime-validator/passive separation
-- active validator cancellation and total-deadline behavior
-- observation insert parent-row lock for cancellation/persistence serialization
-- profile-specific finding provenance/version identity
-- rejection of active cancellation after active evidence has already persisted
-
-The full security-sensitive diff has been reviewed for authorization bypass, arbitrary request authority, target widening, DNS/SSRF rebinding, pinning/TLS, redirect behavior, deadline gaps, cancellation races, persistence/privacy, RLS/trusted writes, evidence bounds, error disclosure, and passive/active dependency mixing. No known blocking security defect remains at the supporting code checkpoint.
-
-## Supporting verification
-
-CI #546 passed on code/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530` with:
+Exact final PR head `11c49e8723654f4279c9d09eed014e0b878281f6` passed CI #555 with:
 
 - 122 test files
 - 538 tests
@@ -141,24 +114,27 @@ CI #546 passed on code/security-hardening head `cc57248fd525e1a05312bb221ce35844
 - 700-file benchmark with 0 findings and 0 errors
 - Next.js production build
 
-CI #546 is supporting evidence only because the final permanent documentation tail moves the PR head afterward. The implementation is frozen; the documentation tail changes no runtime behavior.
+The final tail after security-reviewed code head `cc57248fd525e1a05312bb221ce35844c18a2530` was documentation-only. The exact head remained mergeable, had no review threads or submitted blocking reviews, and was squash-merged using expected-head protection.
 
-## Exact remaining actions
+The available commit-workflow query did not expose a post-merge CI run for `fb3aa27...`; no result is inferred.
 
-1. Require the complete repository CI gate on the exact final PR #27 documentation head.
-2. Re-check that exact head is mergeable and unchanged.
-3. Re-check review threads and submitted reviews for blockers.
-4. Reconfirm no new security issue was introduced by the docs-only tail.
-5. Squash merge PR #27 with `expected_head_sha` protection.
-6. Verify merged content on `main` and inspect post-merge CI when GitHub exposes it.
-7. Refresh post-merge status wording if needed.
-8. Continue from `docs/PHASES.md` into the next approved delivery/design boundary without widening active HTTP authority.
+## Next boundary - Phase 5
 
-## Next boundary
+Phase 5 is architectural work and should be designed before implementation. It should extend the existing `packages/security-domain` into hosted product workflows without duplicating the finding model.
 
-The next major roadmap boundary after Phase 4C-1 is Phase 5 - Findings, Security Stories, and remediation. It should build hosted workflow and explanation/remediation/retest behavior on the existing `security-domain` rather than inventing another finding model.
+The first Phase 5 design should determine the narrow initial slice across:
 
-Additional active validators are not implicitly authorized by Phase 4C-1. Broader crawling, endpoint discovery, preflight probing, arbitrary origins/methods/headers/bodies, authenticated testing, exploit payloads, fuzzing, credential attacks, DoS, and generalized DAST remain out of scope until separately designed and reviewed.
+- persistent hosted finding lifecycle
+- evidence versus inference storage and display
+- finding-to-asset/observation/remediation relationships
+- Security Story explanations with provenance and uncertainty
+- remediation state and ownership
+- retest/verification transitions
+- developer versus security views over the same canonical state
+
+The design should preserve this rule: deterministic scanner/runtime evidence or explicit human workflow can change validated security state; advisory/model output alone cannot.
+
+Additional active validators remain a separate design boundary. Broad crawling, endpoint discovery, arbitrary request authority, authenticated testing, exploit probes, fuzzing, credential attacks, DoS, and generalized DAST remain out of scope.
 
 Worker-scale execution, dedicated egress, queues, concurrency/backpressure, artifacts, fleet isolation, and abuse controls remain Phase 6 work.
 
@@ -171,8 +147,5 @@ Read in this order:
 3. `docs/development/TEST_STATUS.md`
 4. `docs/ARCHITECTURE.md`
 5. `docs/PHASES.md`
-6. `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
-7. `docs/superpowers/plans/2026-08-25-phase-4c-bounded-active-validation.md`
-8. PR #27 exact head and CI/merge state if still open
-
-Do not infer Phase 4C-1 completion from CI #546. The exact final documentation head must pass the full gate and the merge itself must be verified.
+6. Phase 4C design/plan only when runtime boundary context is needed
+7. Begin Phase 5 design from existing `security-domain` contracts and merged evidence sources
