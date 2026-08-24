@@ -4,6 +4,7 @@ import { InventoryReadError, readInventoryEntry } from "../scanner-core/filesyst
 import { compareFindings } from "../scanner-core/findings/severity";
 import type { Finding } from "../scanner-core/findings/types";
 import { scanDockerfile } from "./docker/scan";
+import { scanGitHubActionsYaml } from "./github-actions/scan";
 import { scanKubernetesYaml } from "./kubernetes/scan";
 import { scanTerraformHcl } from "./terraform/scan";
 
@@ -14,6 +15,7 @@ export interface CreateIacScannerOptions {
   maxKubernetesDocuments?: number;
   maxKubernetesAliasCount?: number;
   maxTerraformBlocks?: number;
+  maxGitHubActionsAliasCount?: number;
 }
 
 function isDockerfile(path: string): boolean {
@@ -28,6 +30,14 @@ function isYamlFile(path: string): boolean {
 
 function isTerraformFile(path: string): boolean {
   return path.toLowerCase().endsWith(".tf");
+}
+
+function isGitHubActionsWorkflow(path: string): boolean {
+  const normalized = path.toLowerCase();
+  return (
+    normalized.startsWith(".github/workflows/") &&
+    (normalized.endsWith(".yaml") || normalized.endsWith(".yml"))
+  );
 }
 
 function looksLikeKubernetesYaml(content: string): boolean {
@@ -64,6 +74,7 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
         const dockerfile = isDockerfile(entry.path);
         const yaml = isYamlFile(entry.path);
         const terraform = isTerraformFile(entry.path);
+        const githubActions = isGitHubActionsWorkflow(entry.path);
         if (!dockerfile && !yaml && !terraform) continue;
 
         let content: string;
@@ -104,6 +115,22 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
             parser: {
               ...(options.maxTerraformBlocks !== undefined
                 ? { maxBlocks: options.maxTerraformBlocks }
+                : {})
+            }
+          });
+          collectFindings(findingsByFingerprint, scanned.findings);
+          errors.push(...scanned.errors);
+          continue;
+        }
+
+        if (githubActions) {
+          const scanned = scanGitHubActionsYaml({
+            file: entry.path,
+            content,
+            ...(options.rules ? { rules: options.rules } : {}),
+            parser: {
+              ...(options.maxGitHubActionsAliasCount !== undefined
+                ? { maxAliasCount: options.maxGitHubActionsAliasCount }
                 : {})
             }
           });
