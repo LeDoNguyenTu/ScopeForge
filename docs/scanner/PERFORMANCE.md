@@ -1,32 +1,28 @@
 # ScopeForge Scanner Performance
 
-ScopeForge records scanner performance using a deterministic synthetic repository benchmark. The benchmark is evidence for regression tracking, not a general claim about production repositories.
+ScopeForge records scanner performance using a deterministic synthetic repository benchmark. This benchmark exists for regression tracking. It is not a general performance claim for arbitrary repositories.
 
 ## Benchmark command
-
-Build the CLI first, then run:
 
 ```bash
 npm run build:cli
 npm run benchmark:scanner
 ```
 
-The benchmark prints one machine-readable line beginning with `SCOPEFORGE_BENCHMARK` and exits non-zero only when the scan fails, the fixture contract changes unexpectedly, output is invalid, or wall-clock time exceeds the broad CI regression ceiling.
+The runner emits one machine-readable line beginning with `SCOPEFORGE_BENCHMARK`. It exits non-zero if the scan fails, the fixture contract changes unexpectedly, output is invalid, or wall-clock time exceeds the broad CI regression ceiling.
 
-## Benchmark module layout
+## Module layout
 
-The benchmark is intentionally split by responsibility:
+The benchmark is split by responsibility:
 
 - `benchmarks/scanner-medium-fixture.mjs` owns deterministic fixture composition and the expected analyzed-file contract
 - `benchmarks/scanner-medium.mjs` owns timing, CLI invocation, result validation, measurement serialization, and temporary-directory cleanup
 
-Keeping fixture construction separate from measurement logic makes it possible to add future fixture shapes without duplicating timing and validation behavior.
-
-Fixture generation happens under the operating-system temporary directory and is removed after the run. Fixture generation is not included in the timed interval.
+Fixture construction is outside the timed interval. Keeping fixture generation separate makes future benchmark shapes easier to add without duplicating measurement logic.
 
 ## Medium fixture
 
-The `scanner-medium-v1` fixture contains exactly 700 analyzed files:
+`scanner-medium-v1` contains exactly 700 analyzed files:
 
 - 310 TypeScript source files
 - 310 JavaScript source files
@@ -39,48 +35,49 @@ The `scanner-medium-v1` fixture contains exactly 700 analyzed files:
 - `package.json` and `package-lock.json` with no dependencies
 - 2 Markdown files
 
-The fixture is intentionally clean. Expected results are 0 findings and 0 scanner errors. OSV enrichment is disabled, so the benchmark performs no scanner-initiated network request.
+The fixture is intentionally clean. Expected output is 0 findings and 0 scanner errors. OSV enrichment is disabled, so the benchmark performs no scanner-initiated network request.
 
 ## What is measured
 
-The timer starts immediately before an in-process call to the compiled CLI and stops when the JSON scan finishes. The wall-clock measurement therefore includes repository inventory, bounded content reads, the built-in local scanners, coordination, policy evaluation, and native JSON serialization.
+The timer starts immediately before an in-process call to the compiled CLI and stops when native JSON scanning finishes. The interval includes repository inventory, bounded reads, built-in local scanners, coordination, policy evaluation, and JSON serialization.
 
-The benchmark also records:
+The benchmark records:
 
 - analyzed file count
 - finding count
 - scanner error count
 - scanner-reported duration
-- process RSS difference from immediately before to immediately after the scan
+- wall-clock duration
+- process RSS difference before and after the scan
 
-The RSS value is a before/after delta, not a peak-memory measurement. It is floored at zero because garbage collection and allocator behavior can make a simple after-minus-before observation negative.
+The RSS value is a before/after delta, not peak memory. It is floored at zero because garbage collection and allocator behavior can otherwise make the simple delta negative.
 
-The benchmark does not include dependency installation, TypeScript CLI compilation, fixture generation, process startup, fixture cleanup, OSV network enrichment, CycloneDX generation, SARIF file writing, hosted ingestion, or remote application testing.
+The measurement does not include dependency installation, CLI compilation, fixture construction, temporary-directory cleanup, OSV enrichment, CycloneDX generation, SARIF file writing, hosted ingestion, or remote application testing.
 
-## Recorded diagnostic CI measurement
+## Latest implementation GREEN measurement
 
-Phase 3O diagnostic CI run #311 executed on GitHub-hosted Ubuntu 24.04 with Node.js 22.23.2. The hosted runner was in Azure `westus`; hardware is shared GitHub Actions infrastructure rather than dedicated benchmark hardware.
+CI #346 ran on PR #21 head `6ffb249c0ac7463c410cfd1536b105ebca9507d3` using GitHub-hosted Ubuntu 24.04, Node.js 22.23.2, and npm 10.9.8.
 
 Observed line:
 
 ```text
-SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"wallMs":928,"scanDurationMs":859,"rssDeltaBytes":22900736,"maxWallMs":20000}
+SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"scanDurationMs":816,"wallMs":876,"rssDeltaBytes":17399808,"maxWallMs":20000}
 ```
 
 For that run:
 
-- total timed wall clock: 928 ms
-- scanner-reported duration: 859 ms
-- process RSS delta: 22,900,736 bytes, about 21.8 MiB
+- wall clock: 876 ms
+- scanner-reported duration: 816 ms
+- RSS delta: 17,399,808 bytes, about 16.6 MiB
 - findings: 0
 - scanner errors: 0
 
-This measurement was captured before the benchmark code was split into separate fixture and runner modules. The split does not change the timed scan contract because fixture generation remains outside the measurement interval. The exact final PR head must rerun the same benchmark successfully before merge.
+CI #346 also passed the reproducible dependency install, 86 test files / 331 tests, strict typecheck, CLI build/runtime smoke, and Next.js production build. Permanent evidence documentation changed the PR head after this checkpoint, so the final immutable PR head still requires the same complete gate before merge.
 
-These numbers are one CI observation. They should not be extrapolated to arbitrary repositories, hardware, language mixes, or network-enabled scans.
+The earlier CI #311 measurement remains historical evidence, but CI #346 supersedes it as the latest implementation-head performance observation.
 
 ## CI regression ceiling
 
-The current CI ceiling is 20,000 ms for the 700-file fixture. This is intentionally much looser than the observed measurement. It is designed to catch catastrophic regressions while avoiding false failures from normal GitHub-hosted runner variance.
+The ceiling is 20,000 ms for the 700-file fixture. It is intentionally much looser than the observed measurement and is designed to catch catastrophic regressions without creating flaky failures from normal hosted-runner variance.
 
-A future performance claim should use repeated measurements, controlled hardware, multiple repository shapes, percentile reporting, and separate network-enabled measurements where applicable.
+Future public performance claims should use repeated measurements, controlled hardware, multiple repository shapes, percentile reporting, and separate network-enabled measurements where applicable.
