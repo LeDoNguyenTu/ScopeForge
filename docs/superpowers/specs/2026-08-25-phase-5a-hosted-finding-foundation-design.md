@@ -39,7 +39,7 @@ Phase 5A must:
 7. Keep scanner authority unchanged - Phase 5A adds persistence/workflow, not broader scanning.
 8. Keep trusted writes out of the browser and preserve existing RLS/tenancy patterns.
 9. Support a basic findings list/detail product surface without introducing Security Story AI or generalized remediation workflow yet.
-10. Maintain idempotent ingestion so retries cannot duplicate findings or evidence.
+10. Maintain idempotent ingestion so retries cannot duplicate findings, evidence, occurrences, or events.
 
 ## Non-goals
 
@@ -152,7 +152,6 @@ Required logical fields:
 - `source_kind text`
 - `source_id text`
 - `source_version text null`
-- `scan_run_ref text null`
 - `rule_ref text`
 - `title text`
 - `description text`
@@ -178,6 +177,7 @@ Key and integrity rules:
 - severity/confidence/validation/provenance/lifecycle values must be constrained to domain-supported values
 - identity strings and text/JSON payloads must have explicit size bounds
 - `first_seen_at <= last_seen_at`
+- run-specific identifiers do not live on the current finding row; they belong to occurrences
 
 ### `security_evidence`
 
@@ -200,7 +200,7 @@ Key and integrity rules:
 - primary/unique identity: `(workspace_id, evidence_id)`
 - workspace/asset composite integrity
 - evidence IDs are immutable
-- content for an existing evidence ID must be byte-for-byte semantically compatible; conflicting reuse of the same ID is rejected rather than silently overwritten
+- content for an existing evidence ID must be semantically identical; conflicting reuse of the same ID is rejected rather than silently overwritten
 - runtime ingestion in Phase 5A accepts only the classifications produced by the bounded runtime mappers; it must not become a generic secret-storage channel
 - evidence summaries retain the existing 4 KiB runtime bound
 - no raw headers, response bodies, cookies, credentials, query strings, fragments, or unbounded exception text may be introduced through this table
@@ -233,6 +233,7 @@ Required logical fields:
 - `finding_id text`
 - `asset_id uuid`
 - `scan_job_id uuid`
+- `scan_run_ref text null`
 - `observed_at timestamptz`
 - `source_kind text`
 - `source_id text`
@@ -246,6 +247,7 @@ Rules:
 - occurrence rows are append-only
 - scan job must belong to the same workspace and asset
 - an occurrence records observation, not lifecycle authority
+- any domain `scanRunRef` belongs here rather than in the current finding identity
 
 ### `security_finding_events`
 
@@ -256,6 +258,7 @@ Required logical fields:
 - `id uuid`
 - `workspace_id uuid`
 - `finding_id text`
+- `scan_job_id uuid null`
 - `actor_type text` (`user` or `system`)
 - `actor_id uuid null`
 - `event_type text`
@@ -274,9 +277,13 @@ Initial event types:
 
 The table is append-only. Current lifecycle remains materialized on `security_findings` for efficient reads.
 
-## Trusted ingestion contract
+System observation events tied to a scan job must be retry-safe. The database must enforce at most one observation-derived event of a given type for `(workspace_id, finding_id, scan_job_id, event_type)`. Creation/re-observation events are emitted only when the corresponding occurrence is newly inserted, so retrying an already-committed batch does not append duplicate events.
 
-`lib/security-findings` exposes a source-neutral trusted application contract conceptually equivalent to:
+User lifecycle events are unique application mutations rather than scan retries and do not use the observation-event dedupe rule.
+
+## Canonical trusted ingestion contract
+
+The canonical record shape is source-neutral, but the **Phase 5A execution context is intentionally limited to an existing trusted hosted runtime job**. It is conceptually equivalent to:
 
 ```ts
 interface FindingIngestionBatch {
@@ -290,6 +297,8 @@ interface FindingIngestionBatch {
 ```
 
 This is an **internal trusted contract**, not a public browser API.
+
+A future Phase 3 import or external-scanner context must get its own reviewed ingestion context rather than bypassing the Phase 5A `scanJobId` authority requirement.
 
 ### Validation before persistence
 
@@ -327,7 +336,7 @@ If cancellation wins before this transaction, none of those records persist.
 
 If the result transaction wins first, the durable active observation and its canonical findings/evidence commit together before any late cancellation can relabel the job as cancelled.
 
-The later job-success transition remains a separate guarded state transition as today. A failure after result persistence but before success transition is recoverable through idempotent ledger/result persistence and must never duplicate evidence/findings/occurrences.
+The later job-success transition remains a separate guarded state transition as today. A failure after result persistence but before success transition is recoverable through idempotent ledger/result persistence and must never duplicate evidence/findings/occurrences/events.
 
 ### Passive runtime observation
 
@@ -352,7 +361,7 @@ For a new finding ID:
 - set `first_seen_at = last_seen_at = observedAt`
 - persist compatible evidence and links
 - add one occurrence
-- add `finding.created` system event
+- add one retry-safe `finding.created` system event for that occurrence
 
 ### Re-observation
 
@@ -360,7 +369,7 @@ For an existing finding ID from the same canonical identity:
 
 - update `last_seen_at` and `last_seen_job_id`
 - add one idempotent occurrence for the new scan job
-- add `finding.reobserved` event
+- add one retry-safe `finding.reobserved` event only when that occurrence is newly inserted
 - preserve human lifecycle state except for explicit deterministic recurrence rules below
 - allow current scanner-derived descriptive fields to refresh only when identity/source compatibility rules permit it
 
@@ -387,27 +396,32 @@ The existing domain lifecycle remains the basis:
 
 ### Phase 5A user actions
 
-Initial UI/server actions expose only the workflow needed for the hosted finding foundation:
+Initial UI/server actions expose only the workflow that has concrete semantics in Phase 5A:
 
 - `open -> acknowledged`
-- `open/acknowledged -> in_progress`
+- `open -> in_progress`
+- `acknowledged -> in_progress`
 - `in_progress -> resolved`
-- `resolved -> retest_pending`
-- supported return-to-work transitions already allowed by the domain
+- `resolved -> in_progress`
 
-Workspace `member`, `admin`, and `owner` may perform ordinary triage/remediation-state transitions through trusted server actions.
+Workspace `member`, `admin`, and `owner` may perform these ordinary triage/remediation-state transitions through trusted server actions.
 
 `viewer` is read-only.
 
-### Deferred high-impact decisions
+A transition to `resolved` requires a bounded non-empty resolution note. Reopening `resolved -> in_progress` also requires a bounded reason. Acknowledge/start-work actions may use an optional bounded note.
+
+### Deferred high-impact or not-yet-backed decisions
 
 Phase 5A does not expose production UI actions for:
 
+- `retest_pending`
 - `accepted_risk`
 - `false_positive`
 - manual `verified_fixed`
 
-Those require the richer authority/reason/expiry/review design in Phase 5C. The states remain part of the domain and may be displayed if encountered in tests/future imports.
+`retest_pending` is deferred because Phase 5A does not yet provide an actual retest orchestration contract. Risk acceptance, false-positive decisions, and verified-fix authority require the richer authority/reason/expiry/review design in Phase 5C.
+
+The states remain part of the domain and may be displayed if encountered in tests/future imports.
 
 ### Deterministic recurrence
 
@@ -417,7 +431,7 @@ Re-observation of an existing deterministic finding usually preserves lifecycle.
 - `retest_pending` + deterministic re-observation -> `in_progress`
 - `verified_fixed` + deterministic re-observation -> `open`
 
-Each automatic transition emits `finding.reopened` with system provenance and the scan job reference.
+Each automatic transition emits one retry-safe `finding.reopened` system event tied to the new occurrence/scan job.
 
 The existing domain transition table currently makes `verified_fixed` terminal. Phase 5A will make one narrow domain correction: allow `verified_fixed -> open`. Application-layer authority still ensures this transition is used only for trusted deterministic recurrence, not arbitrary browser mutation.
 
@@ -431,9 +445,17 @@ Phase 5A does not mark findings `verified_fixed` merely because they disappear f
 
 `security_findings` is the current materialized product view. `security_finding_occurrences` and `security_finding_events` retain observation/workflow history.
 
-Scanner-derived descriptive fields may evolve across source versions, but identity fields may not drift underneath one durable ID.
+Hosted runtime IDs are hardened so the source/profile version is part of deterministic identity before persistence begins. Therefore, for a given Phase 5A durable runtime finding ID, the following identity fields are immutable:
 
-Identity-compatible mutable fields include:
+- workspace
+- asset
+- finding ID
+- source kind
+- source ID
+- source version
+- rule ref
+
+Identity-compatible mutable scanner-derived fields include:
 
 - title
 - description
@@ -444,16 +466,7 @@ Identity-compatible mutable fields include:
 - remediation guidance
 - bounded location metadata
 
-Identity-critical fields include:
-
-- workspace
-- asset
-- finding ID
-- source kind
-- source ID
-- rule identity family
-
-A source version/profile version that materially changes identity must be reflected in the deterministic ID rule before ingestion.
+If a source/profile/rule version materially changes identity, it must generate a different durable ID rather than mutating the identity fields of an existing row.
 
 Human lifecycle state is never reset merely because scanner text/severity changes.
 
@@ -554,7 +567,7 @@ Displays:
 
 It exposes only the Phase 5A lifecycle actions described above.
 
-No Security Story generation control appears in Phase 5A.
+No Security Story generation, retest, risk acceptance, false-positive, or manual verified-fixed control appears in Phase 5A.
 
 ## Read model
 
@@ -600,13 +613,14 @@ Executable dependency tests should enforce:
 - existing lifecycle transitions remain valid
 - new `verified_fixed -> open` recurrence transition is covered
 - no arbitrary browser action can invoke recurrence-only authority
+- Phase 5A user actions do not expose retest/risk/false-positive/manual-verified-fixed authority
 
 ### Identity
 
 - passive runtime digest now includes source version
 - active runtime identity remains profile-versioned
 - repeated identical deterministic results produce the same finding/evidence IDs
-- incompatible content under one durable ID is rejected
+- incompatible identity/content under one durable ID is rejected
 
 ### Database/RLS
 
@@ -616,13 +630,14 @@ Executable dependency tests should enforce:
 - service-role trusted writes succeed
 - evidence/content bounds are enforced
 - occurrence uniqueness makes retries idempotent
+- observation-derived event uniqueness makes retries idempotent
 - event rows are append-only
 
 ### Ingestion
 
 - entire batch rejects on one invalid record
-- first observation inserts one finding/evidence/link/occurrence/event
-- re-observation updates last seen and adds exactly one occurrence
+- first observation inserts one finding/evidence/link/occurrence/created-event
+- re-observation updates last seen and adds exactly one occurrence/reobserved-event
 - retry of the same job does not duplicate occurrence/event/link rows
 - human lifecycle state survives ordinary re-observation
 - resolved/retest-pending recurrence moves to in-progress
@@ -643,7 +658,7 @@ Executable dependency tests should enforce:
 - workspace isolation on list/detail routes
 - viewers cannot mutate lifecycle
 - members/admins/owners only receive allowed Phase 5A transitions
-- accepted-risk/false-positive/manual-verified-fixed controls are absent
+- retest/accepted-risk/false-positive/manual-verified-fixed controls are absent
 - list pagination/filtering is bounded
 - evidence renders normalized summaries only
 
@@ -665,7 +680,7 @@ Executable dependency tests should enforce:
 
 - migrations/tables/indexes/RLS
 - trusted repository/read models
-- batch validation and idempotent upsert semantics
+- batch validation and idempotent upsert/event semantics
 
 ### 5A-2 - Runtime result integration
 
@@ -678,7 +693,7 @@ Executable dependency tests should enforce:
 
 - role-aware trusted lifecycle actions
 - occurrence/event history
-- recurrence transitions
+- deterministic recurrence transitions
 - workspace audit integration
 
 ### 5A-4 - Minimal findings UI
@@ -686,7 +701,7 @@ Executable dependency tests should enforce:
 - list/filter/pagination
 - detail/evidence/history
 - Phase 5A lifecycle controls
-- no Security Story/AI controls yet
+- no Security Story/AI/retest/risk controls yet
 
 ## Merge/security gate
 
