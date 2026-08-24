@@ -171,7 +171,7 @@ export default function RuntimeObservationPanel({
             <div><dt>Requests</dt><dd>{countLabel(latestJob.requestCount, "request")}</dd></div>
             <div><dt>Redirects</dt><dd>{countLabel(latestJob.redirectCount, "redirect")}</dd></div>
             <div><dt>Findings</dt><dd>{countLabel(latestJob.findingCount, "finding")}</dd></div>
-            <div><dt>TLS</dt><dd>{tlsObservation?.protocol ?? "No TLS metadata recorded"}</dd></div>
+            <div><dt>TLS metadata</dt><dd>{tlsObservation ? "Recorded" : "Not recorded"}</dd></div>
           </dl>
 
           {(headerObservations.length > 0 || tlsObservation) && (
