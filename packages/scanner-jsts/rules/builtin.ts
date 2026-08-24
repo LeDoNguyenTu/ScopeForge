@@ -2,6 +2,21 @@ import type { JstsRuleDefinition } from "./types";
 
 export const JSTS_RULES: readonly JstsRuleDefinition[] = [
   {
+    id: "jsts/command-injection",
+    version: "1.0.0",
+    title: "Command injection",
+    description: "Modeled untrusted Express request input reaches a Node.js shell-command execution sink.",
+    severity: "high",
+    confidence: "high",
+    cwe: ["CWE-78"],
+    owasp: ["A03:2021"],
+    remediation: {
+      summary: "Keep untrusted input out of shell command strings.",
+      guidance: "Replace shell-string execution with an argument-based API where possible, or strictly map user-controlled values to an allowlisted set before command construction.",
+      verification: "Rescan and confirm the modeled request-to-shell flow no longer reaches child_process.exec or child_process.execSync."
+    }
+  },
+  {
     id: "jsts/dynamic-code-execution",
     version: "1.0.0",
     title: "Dynamic code execution",

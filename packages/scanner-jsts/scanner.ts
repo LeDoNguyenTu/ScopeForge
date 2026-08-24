@@ -10,9 +10,11 @@ import { scanSourceFile } from "./scan-source";
 export interface CreateJstsScannerOptions {
   rules?: ScannerRuleSelection;
   maxAstNodes?: number;
+  maxTaintSteps?: number;
 }
 
 const DEFAULT_MAX_AST_NODES = 200_000;
+const DEFAULT_MAX_TAINT_STEPS = 50_000;
 
 function diagnosticForReadError(file: string, error: InventoryReadError): ScannerDiagnostic {
   return {
@@ -26,6 +28,11 @@ export function createJstsScanner(options: CreateJstsScannerOptions = {}): Scann
   const maxAstNodes = options.maxAstNodes ?? DEFAULT_MAX_AST_NODES;
   if (!Number.isSafeInteger(maxAstNodes) || maxAstNodes <= 0) {
     throw new Error("JavaScript/TypeScript AST node budget must be a positive safe integer.");
+  }
+
+  const maxTaintSteps = options.maxTaintSteps ?? DEFAULT_MAX_TAINT_STEPS;
+  if (!Number.isSafeInteger(maxTaintSteps) || maxTaintSteps <= 0) {
+    throw new Error("JavaScript/TypeScript taint-analysis step budget must be a positive safe integer.");
   }
 
   return {
@@ -68,17 +75,18 @@ export function createJstsScanner(options: CreateJstsScannerOptions = {}): Scann
           file: entry.path,
           sourceFile: parsed.sourceFile,
           rules: options.rules,
-          maxNodes: maxAstNodes
+          maxNodes: maxAstNodes,
+          maxTaintSteps
         });
-        if (scanned.error) {
-          errors.push(scanned.error);
-          continue;
-        }
 
         for (const finding of scanned.findings) {
           if (!findingsByFingerprint.has(finding.fingerprint)) {
             findingsByFingerprint.set(finding.fingerprint, finding);
           }
+        }
+
+        if (scanned.error) {
+          errors.push(scanned.error);
         }
       }
 
