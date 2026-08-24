@@ -98,7 +98,7 @@ function classifyEntry(repositoryPath: string): Pick<InventoryEntry, "kind" | "l
     return { kind: "infrastructure" };
   }
 
-  if ([".json", ".toml", ".ini", ".conf"].includes(extension)) {
+  if (name === ".npmrc" || [".json", ".toml", ".ini", ".conf"].includes(extension)) {
     return { kind: "config" };
   }
 
