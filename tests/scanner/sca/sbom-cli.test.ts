@@ -109,4 +109,18 @@ describe("CycloneDX SBOM CLI", () => {
     await expect(readFile(join(root, "scopeforge.cdx.json"), "utf8")).rejects.toMatchObject({ code: "ENOENT" });
     expect(capture.stderr).toContain("SBOM error");
   });
+
+  it("refuses to let normal scan output and the SBOM target the same file", async () => {
+    const root = await dependencyRoot("scopeforge-sbom-cli-collision-");
+    const capture = captureIo();
+
+    expect(
+      await runCli(
+        ["scan", root, "--format", "json", "--output", "artifact.json", "--sbom", "artifact.json"],
+        { io: capture.io }
+      )
+    ).toBe(SCAN_EXIT.USAGE_ERROR);
+    await expect(readFile(join(root, "artifact.json"), "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+    expect(capture.stderr).toContain("different path");
+  });
 });

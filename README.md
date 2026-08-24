@@ -34,6 +34,7 @@ Shipped foundation:
 - built-in secret scanning
 - syntax-aware JavaScript/TypeScript structural SAST and bounded command taint analysis
 - bounded JavaScript dependency inventory with optional OSV vulnerability enrichment
+- CycloneDX 1.7 JSON SBOM generation using the maintained CycloneDX JavaScript library
 
 The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, complete private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
 
@@ -41,7 +42,9 @@ The JavaScript/TypeScript scanner parses JavaScript, TypeScript, JSX, TSX, MJS, 
 
 The SCA scanner inventories JavaScript dependencies from `npm-shrinkwrap.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, and `package.json` fallback. Resolved lockfile versions are preferred over manifest ranges. OSV enrichment is disabled by default and must be explicitly enabled. When enabled, ScopeForge sends only normalized npm package identity and exact version to the fixed OSV API. Repository source text, arbitrary files, and detected secrets are not sent to OSV. OSV lookup failures are returned as scanner errors and never represented as a clean vulnerability result.
 
-CycloneDX SBOM, IaC rules, baselines, and SARIF are still Phase 3 work.
+CycloneDX SBOM generation is fully local and independent of OSV. `scopeforge scan . --sbom scopeforge.cdx.json` emits a CycloneDX 1.7 JSON artifact containing the root application, discovered npm dependencies, Package URLs, direct dependency relationships where the local dependency inventory can establish them, ScopeForge tool metadata, a timestamp, and a serial number. SBOM generation uses the same bounded dependency inventory as SCA and does not execute package scripts or require network access.
+
+IaC rules, baselines, and SARIF are still Phase 3 work.
 
 Remote DAST, API fuzzing, exploit validation, credential attacks, persistence, and destructive behavior remain outside Phase 3.
 
@@ -54,12 +57,14 @@ npm run scopeforge -- rules list
 npm run scopeforge -- scan .
 npm run scopeforge -- scan . --format json
 npm run scopeforge -- scan . --format json --output scopeforge-results.json
+npm run scopeforge -- scan . --sbom scopeforge.cdx.json
+npm run scopeforge -- scan . --format json --output scopeforge-results.json --sbom scopeforge.cdx.json
 npm run scopeforge -- scan . --fail-on high
 ```
 
 Repository configuration is read from the explicit scan root as `.scopeforge.json`. The current schema is version `1`. Repository configuration may tighten scan budgets but cannot raise ScopeForge's safe defaults.
 
-The CLI is report-only unless `--fail-on` or valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode. Scanner execution or per-file analysis errors remain distinct from policy failures and do not masquerade as a clean result.
+The CLI is report-only unless `--fail-on` or valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode. Scanner execution, dependency parsing, or requested SBOM generation errors remain distinct from policy failures and do not masquerade as a clean result.
 
 Example scanner configuration:
 
@@ -81,7 +86,9 @@ Example scanner configuration:
 }
 ```
 
-Set `sca.osv.enabled` to `true` only when you want online vulnerability enrichment. The setting enables ScopeForge's fixed OSV integration only. Repository configuration cannot provide an alternate OSV endpoint, custom outbound URL, or request headers.
+Set `sca.osv.enabled` to `true` only when you want online vulnerability enrichment. The setting enables ScopeForge's fixed OSV integration only. Repository configuration cannot provide an alternate OSV endpoint, custom outbound URL, or request headers. SBOM generation does not depend on this setting and remains available offline.
+
+SBOM output uses the same no-follow file-writing boundary as normal scan artifacts. Existing symlinks are refused, and the CLI will not allow `--sbom` and `--output` to point to the same destination.
 
 Use `scopeforge:allow-secret` only for an intentional fixture on the same line or on a standalone immediately preceding comment line. Prefer fingerprint allowlisting for reviewed long-lived exceptions.
 
@@ -140,9 +147,10 @@ ScopeForge CLI
   +--> secret scanner
   +--> JS/TS parser + structural SAST + bounded taint scanner
   +--> dependency inventory + optional fixed-endpoint OSV enrichment
+  +--> local CycloneDX 1.7 SBOM generator
   +--> scanner coordinator
   +--> normalized findings + explicit scanner errors
-  +--> terminal / JSON outputs
+  +--> terminal / JSON output + CycloneDX artifact
 
 Browser
   |
@@ -164,7 +172,7 @@ Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-commu
 
 ## Security and safety
 
-ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Secret values must not be emitted in terminal or JSON findings, scanner reads remain behind bounded filesystem checks, and optional OSV enrichment receives only normalized package identity and exact version.
+ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Secret values must not be emitted in terminal or JSON findings, scanner reads remain behind bounded filesystem checks, optional OSV enrichment receives only normalized package identity and exact version, and CycloneDX SBOM generation remains local and network-independent.
 
 Please report ScopeForge vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
