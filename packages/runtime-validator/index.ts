@@ -17,6 +17,12 @@ export type {
   CorsPolicyObservation,
 } from "./contracts";
 export { buildCorsPolicyObservation } from "./observations";
+export { evaluateCorsPolicyRules } from "./rules/evaluate";
+export type { ActiveRuntimeRuleMatch } from "./rules/types";
+export {
+  mapActiveRuntimeRuleMatchToEvidence,
+  mapActiveRuntimeRuleMatchToSecurityFinding,
+} from "./domain-mapper";
 export { validateCorsOriginPolicy } from "./validate";
 export type {
   RuntimeValidationTransport,
