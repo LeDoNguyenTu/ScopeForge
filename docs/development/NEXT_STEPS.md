@@ -1,27 +1,16 @@
 # ScopeForge Next Steps
 
-## Current completion gate: Phase 3O release hardening
+## Current completion gate - Phase 4A
 
-The Phase 3 scanner feature set is implemented. PR #21 is the final Phase 3 release-hardening pull request.
+PR #23 `Build Phase 4A security domain contracts` contains the completed Phase 4A implementation. The supporting implementation head `c0e93ac0408a01a8c2b1ec513e38286a7f102cef` passed CI #375 with 93 test files / 350 tests, strict typecheck, CLI build/runtime, the 700-file scanner benchmark, and the production build.
 
-The latest implementation GREEN checkpoint is CI #346 on `6ffb249c0ac7463c410cfd1536b105ebca9507d3`:
+The permanent state documentation changes the head after that supporting gate. The exact remaining Phase 4A actions are:
 
-- reproducible `npm ci --ignore-scripts` install passed from committed lockfile v3
-- 86 test files and 331 tests passed
-- strict TypeScript typecheck passed
-- CLI build and compiled `ScopeForge 0.1.0` smoke passed
-- 700-file benchmark passed with 0 findings and 0 errors
-- Next.js production build passed
-
-The benchmark observation was 876 ms wall time, 816 ms scanner duration, and 17,399,808 bytes RSS delta on that GitHub-hosted runner. It is regression evidence, not a universal performance claim.
-
-Before Phase 3 is declared complete:
-
-1. Keep PR #21 in draft while permanent evidence documentation changes the head.
-2. Review the complete final changed-file set and the Phase 3 trust boundaries.
-3. Confirm no unresolved blocking review thread remains.
-4. Mark PR #21 ready only when the documentation head is final.
-5. Require the exact final PR head to pass:
+1. Commit the final permanent project-state documentation.
+2. Review the complete PR #23 changed-file set and security/architecture boundaries.
+3. Confirm no unresolved blocking review thread exists.
+4. Mark PR #23 ready for review only when no further head-changing edit is expected.
+5. Require the exact final head to pass the complete repository CI gate:
    - `npm ci --ignore-scripts --no-audit --no-fund`
    - `npm test`
    - `npm run typecheck`
@@ -29,49 +18,35 @@ Before Phase 3 is declared complete:
    - compiled CLI version smoke
    - `npm run benchmark:scanner`
    - `npm run build`
-6. Squash merge PR #21 using expected-head protection.
-7. Verify the merged `main` CI run is green.
-8. Only then treat Phase 3 as complete.
+6. Squash merge with `expected_head_sha` protection.
+7. Verify the merged content and the resulting `main` CI when exposed by the available GitHub tooling. Never infer an unavailable post-merge result.
+8. Remove merged historical feature/design branches that are no longer needed, preserving `main` and any branch associated with open work.
+9. Begin Phase 4B design and implementation.
 
-## Phase 4 - Verified runtime and API security
+## Phase 4B - Verified passive runtime and API observations
 
-Phase 4 is the next implementation boundary after Phase 3 completion.
+Phase 4B should reuse the Phase 4A `security-domain` instead of creating runtime-specific finding objects.
 
-Phase 4 must be designed before implementation because it introduces active remote behavior and materially different authorization and execution risks.
+The first slice should design the execution and safety contract before implementing broad network behavior. It should cover:
 
-The approved long-term direction requires Phase 4 to preserve these principles:
-
-- scan only assets with valid workspace authorization and proof of control
-- separate local/passive scanning from active remote execution
-- enforce explicit target scope, redirect, DNS, IP, port, and egress boundaries
-- isolate active scanner workers from the web control plane
-- apply strict request, time, concurrency, response-size, and cancellation budgets
-- log security-relevant authorization and execution events
-- distinguish observed runtime evidence from inference
-- avoid persistence, destructive changes, credential attacks, denial of service, or unsafe side effects
-- keep active validation narrow until worker isolation and authorization are proven
-
-The first Phase 4 work should be an architecture and threat-model slice, not direct scanner implementation.
-
-## Phase 4 design questions to resolve
-
-The design should explicitly decide:
-
-- active worker isolation model
-- job queue and cancellation model
-- workspace and asset authorization checks at enqueue and execution time
-- DNS resolution and rebinding defenses for every outbound connection
-- allowed schemes, ports, methods, redirects, and target transitions
+- workspace and asset authorization at enqueue and execution time
+- proof-of-control continuity from Phase 2
+- canonical target and allowed-target-transition rules
+- DNS resolution, IP classification, rebinding defenses, and redirect validation for every outbound connection
+- allowed schemes, ports, and methods
 - egress-deny defaults
-- request and response budgets
-- authenticated API secret storage and redaction boundaries, if authenticated testing is introduced
-- audit records and operator-visible safety state
-- initial DAST/API rule scope and false-positive controls
-- artifact retention and private storage boundaries
-- abuse prevention and quota enforcement
-- local development/test harness for active scanning without unsafe internet targets
+- request count, response size, body capture, time, concurrency, and retry budgets
+- cancellation and timeout semantics
+- audit records for authorization and execution decisions
+- explicit evidence classification and redaction before persistence or advisory use
+- deterministic mapping from passive runtime observations into `security-domain`
+- local test fixtures that do not require unsafe public targets
 
-## Deferred beyond the first Phase 4 slice
+The first Phase 4B implementation should prefer passive, directly observable properties such as bounded HTTP/TLS/security-header/API-surface observations. It must not silently become a crawler or exploit engine.
+
+## Phase 4C - Bounded active validation
+
+Only after the Phase 4B safety properties are implemented and testable should ScopeForge add narrow active validation. Keep it non-destructive and explicitly authorized.
 
 Do not jump directly to:
 
@@ -79,12 +54,17 @@ Do not jump directly to:
 - generalized fuzzing
 - exploit frameworks
 - credential attacks
+- denial-of-service behavior
 - cloud-account posture connectors
 - persistence
 - destructive validation
 - arbitrary internet-wide scanning
 
-Start with a narrow, highly bounded authorized runtime-security contract and expand only after its safety properties are testable and enforced.
+## Future AI work
+
+Do not add a provider merely to prove that AI can be connected. Phase 4A already establishes the integration seam.
+
+When a concrete workflow benefits from model assistance, add a small provider adapter behind `AdvisoryService`. Apply the advisory context policy before the provider boundary, validate provider output into domain-owned inferred result types, and retain deterministic or human confirmation for any security-state change. Core product behavior must continue to work with no provider configured.
 
 ## Resume protocol
 
@@ -92,6 +72,6 @@ Before a new implementation session:
 
 1. Read `docs/development/SESSION_HANDOFF.md`.
 2. Read `docs/development/CURRENT_STATE.md`.
-3. Read `docs/scanner/RELEASE_READINESS.md`.
-4. Confirm whether PR #21 and merged `main` completed the final Phase 3 gate.
-5. If Phase 3 is complete, begin Phase 4 with architecture and threat-boundary design rather than active scanner code.
+3. Read `docs/development/TEST_STATUS.md`.
+4. Confirm PR #23 exact head and CI/merge status.
+5. If Phase 4A is merged and its completion gate is satisfied, start Phase 4B from the approved security-domain boundary rather than modifying scanner-core or introducing active behavior directly.

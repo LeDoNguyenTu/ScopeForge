@@ -2,115 +2,115 @@
 
 ## Current phase
 
-Phase 3O - release hardening and Phase 3 completion gate.
+Phase 4A - security domain contracts, final completion gate.
 
-Active branch: `feat/phase-3o-release-hardening`
+Active branch: `feat/phase-4a-security-domain-contracts`
 
-Active PR: #21 `Complete Phase 3 release hardening`
+Active PR: #23 `Build Phase 4A security domain contracts`
 
-PR #21 remains draft while permanent evidence documentation changes the head. Mark it ready only when the head is final and must not change again before merge.
+Approved design and implementation plan were merged through PR #22 as `13fb2c3e914181d44f9e6957f9fe66eea2069eb4`.
 
-## Completed before Phase 3O
+## Completed platform work
 
-- Phase 1 foundation merged.
-- Phase 2 asset control and authorization merged through PR #4.
-- Phase 3 scanner architecture merged through PR #5.
-- Phase 3A scanner foundation merged through PR #6.
-- Phase 3B safe reads, configuration, policy, and CLI merged through PR #7.
-- Phase 3C secret scanner merged through PR #8.
-- Phase 3D JavaScript/TypeScript structural SAST merged through PR #9.
-- Phase 3E bounded command taint analysis merged through PR #10.
-- Phase 3F dependency inventory and optional OSV enrichment merged through PR #11.
-- Phase 3G CycloneDX SBOM merged through PR #12.
-- Phase 3H Docker IaC merged through PR #13.
-- CI noise reduction merged through PR #14.
-- Phase 3I Kubernetes IaC merged through PR #15.
-- Phase 3J Terraform IaC merged through PR #16.
-- Phase 3K GitHub Actions IaC merged through PR #17.
-- Phase 3L baseline model merged through PR #18.
-- Phase 3M generic configuration security merged through PR #19 as `474bd82a1cad014e796a7faf83369c09f0d3dfc5`.
-- Phase 3N SARIF output merged through PR #20 as `f2859f5028965276c9dc69ddf10398740a6f9ec7`.
+- Phase 1 foundation is complete.
+- Phase 2 asset control and authorization is complete.
+- Phase 3 code and supply-chain security is complete and merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
+- Phase 4A Tasks 1 through 5 are implemented in PR #23.
 
-## Phase 3O completed work
+## Phase 4A implementation
 
-PR #21 contains the final Phase 3 completion hardening:
+### Product domain
 
-- mixed-repository end-to-end coverage across all built-in scanner families
-- hostile-repository no-execution, no-default-network, symlink, budget, malformed-input, and sentinel non-leakage coverage
-- byte-for-byte native JSON, SARIF, and terminal golden fixtures
-- deterministic 700-file `scanner-medium-v1` benchmark with a broad 20-second regression ceiling
-- benchmark fixture generation separated from measurement/validation logic
-- GitHub Actions and Code Scanning documentation
-- performance methodology and canonical limitations documentation
-- shared `scanner-core` locale-independent text ordering
-- detector/output dependency-direction review keeping the CLI as the composition layer
-- committed npm lockfile v3
-- CI upgraded to current checkout/setup-node v7 actions
-- read-only CI token permissions and disabled checkout credential persistence
-- deterministic `npm ci --ignore-scripts --no-audit --no-fund`
-- whole-Phase-3 trust-boundary release review
+`packages/security-domain` now contains pure, framework-independent contracts for:
 
-No Phase 3O detector semantic expansion, database migration, hosted ingestion, or active remote scanning was introduced.
+- contract versioning and branded identifiers
+- severity and confidence
+- finding sources and provenance
+- typed evidence and content classification
+- product findings and locations
+- remediation
+- validation states and authority-aware transitions
+- finding lifecycle transitions
+- typed risk relationships
+- provider-neutral advisory requests/results/service
+- advisory context privacy and size policy
 
-## Latest implementation GREEN evidence
+### Future AI seam
 
-CI #346 passed on head `6ffb249c0ac7463c410cfd1536b105ebca9507d3` after the final code, maintainability, lockfile, and CI hardening:
+The advisory boundary is intentionally provider-neutral:
 
-- reproducible dependency install passed
-- 86 test files
-- 331 tests
+- advisory results are always inferred provenance
+- advisory authority cannot promote validation
+- secret-classified context is always excluded
+- remote sensitive context requires explicit opt-in
+- no provider SDK type is allowed in `security-domain`
+- local or hosted adapters can be introduced later without changing scanner/domain contracts
+- core scanning and security workflows remain fully usable without AI
+
+There is no model runtime or provider call in Phase 4A.
+
+### Phase 3 adapter
+
+`packages/security-domain-adapters/phase3` maps normalized Phase 3 findings into the product domain.
+
+It is deliberately one-way and does not copy scanner metadata, baseline state, redacted snippets, or data-flow internals. It performs no repository read, scanner rerun, environment access, process execution, or network work.
+
+### Architecture guard
+
+`tests/architecture/security-domain-dependencies.test.ts` prevents `packages/security-domain` from importing scanner packages, CLI code, Next.js, React, Supabase, application/component layers, or named model providers.
+
+## TDD and verification evidence
+
+Intentional RED checkpoints established the new contracts without hiding existing regressions:
+
+- Task 1 RED: all 331 existing tests stayed green; only the missing new domain module failed.
+- Tasks 2/3 RED: failures were isolated to missing lifecycle, validation, and advisory behavior.
+- Task 4 RED, CI #370: 91 existing test files and 346 existing tests passed; only the missing Phase 3 adapter suite failed.
+
+Supporting GREEN gates:
+
+- Task 1: CI #363 passed the complete gate.
+- Tasks 2/3: CI #367 passed the complete gate.
+- Phase 3 adapter: CI #373 passed the complete gate.
+- Architecture guard and documentation: CI #375 passed the complete gate on `c0e93ac0408a01a8c2b1ec513e38286a7f102cef`.
+
+CI #375 evidence:
+
+- 93 test files
+- 350 tests
 - strict TypeScript typecheck
 - CLI build
-- compiled `ScopeForge 0.1.0` runtime smoke
-- scanner benchmark
+- compiled `ScopeForge 0.1.0` smoke
+- 700-file benchmark with 0 findings and 0 errors
+- scanner duration 860 ms
+- wall time 919 ms
+- RSS delta 28,692,480 bytes
 - Next.js production build
 
-Benchmark evidence:
+CI #375 is supporting evidence only because the permanent state documentation changes the head afterward.
 
-```text
-SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"scanDurationMs":816,"wallMs":876,"rssDeltaBytes":17399808,"maxWallMs":20000}
-```
+## Database and active-scanning status
 
-CI #346 is supporting implementation evidence. Documentation commits after it changed the head, so it is not the final immutable merge gate.
+Phase 4A has no Supabase migration, schema, RLS, RPC, storage, queue, worker, or hosted-ingestion change. Database advisor checks are not a PR #23 merge dependency.
 
-## Phase 3 trust boundary
-
-Repository content remains hostile input. Phase 3 must preserve:
-
-- no target repository code or lifecycle-script execution
-- no target dependency installation
-- no target module/import execution during JS/TS analysis
-- no Dockerfile/RUN execution
-- no Terraform CLI/provider/module/provisioner/cloud execution
-- no Kubernetes cluster, kubectl, Helm, or Kustomize execution
-- no GitHub Actions workflow/action execution
-- no default scanner network access
-- OSV network access only when explicitly enabled
-- only normalized npm package identity/version sent to OSV
-- no raw detected secret values in normalized findings or output artifacts
-- bounded inventory, parser, taint, response, and analysis budgets
-- repository symlink non-following and identity-checked bounded reads
-- safe output and baseline writes
-- scanner errors distinct from policy failures and clean results
-- deterministic locale-independent ordering
-- SARIF fixed property allowlist and unsafe-path omission
-
-The full review decision is in `docs/scanner/RELEASE_READINESS.md`; canonical coverage limits are in `docs/scanner/LIMITATIONS.md`.
+Phase 4A also has no remote DAST, crawler, fuzzing, exploit validation, credential attack, persistence, destructive action, or active worker execution.
 
 ## Exact remaining actions
 
-1. Finish the permanent evidence-only documentation commits.
-2. Review the complete final PR #21 changed-file set.
+1. Commit this final permanent state documentation set.
+2. Review the complete PR #23 diff against the approved design and security boundary.
 3. Confirm no unresolved blocking review thread exists.
-4. Mark PR #21 ready for review.
-5. Require a new CI run on that exact immutable head.
-6. Confirm `npm ci --ignore-scripts`, all tests, typecheck, CLI build/runtime, benchmark, and production build pass.
-7. Update PR metadata only if needed, without changing the verified head.
-8. Squash merge using `expected_head_sha`.
-9. Verify the resulting `main` push CI is green.
-10. Only then declare Phase 3 complete.
-11. Clean historical merged branches while preserving `main` and any branch associated with open work.
-12. Begin Phase 4 with architecture/threat-boundary design, not active scanner implementation.
+4. Mark PR #23 ready.
+5. Require a new complete CI run on the exact final documentation head.
+6. Update PR metadata without changing the verified head.
+7. Squash merge with expected-head protection.
+8. Verify merged content and `main` CI if exposed by the available GitHub tooling.
+9. Clean merged historical branches while preserving `main` and open work.
+10. Start Phase 4B verified passive runtime/API observation design.
+
+## Next boundary
+
+Phase 4B must reuse `security-domain` and preserve Phase 2 authorization/network safety. It should establish passive authorized runtime observation and worker/network safety contracts before Phase 4C introduces any bounded active validation.
 
 ## Resume protocol
 
@@ -119,8 +119,8 @@ Read in this order:
 1. `docs/development/SESSION_HANDOFF.md`
 2. `docs/development/CURRENT_STATE.md`
 3. `docs/development/TEST_STATUS.md`
-4. `docs/scanner/RELEASE_READINESS.md`
-5. `docs/scanner/LIMITATIONS.md`
-6. PR #21 exact head and CI status
+4. `docs/ARCHITECTURE.md`
+5. `docs/roadmap/FUTURE_AI_ASSISTANCE.md`
+6. PR #23 exact head and CI/merge state
 
-Do not infer Phase 3 completion from CI #346 or any other older green run. The exact final PR head and merged `main` must both be green.
+Do not infer final Phase 4A completion from CI #375. The exact final documentation head must pass and the merge must be verified first.

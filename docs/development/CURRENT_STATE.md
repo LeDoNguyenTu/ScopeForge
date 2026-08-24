@@ -6,10 +6,11 @@ ScopeForge is an open-source application-security and cyber-risk awareness platf
 
 `Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify`
 
-Approved architecture:
+Primary design references:
 
 - `docs/superpowers/specs/2026-08-24-community-platform-design.md`
 - `docs/superpowers/specs/2026-08-24-phase-3-code-supply-chain-design.md`
+- `docs/superpowers/specs/2026-08-24-phase-4a-security-domain-contracts-design.md`
 
 ## Completed foundations
 
@@ -28,161 +29,108 @@ Approved architecture:
 - public HTTPS verification with DNS, IP, and SSRF boundaries
 - trusted server writes, roles, quotas, audit events, and asset UI
 
-Remote active scanning remains disabled through Phase 3.
+### Phase 3 - Code and supply-chain security
 
-## Phase 3 - Code and supply-chain security
+Phase 3 is complete and merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
 
-The Phase 3 local scanner feature set is implemented. PR #21 contains the final release-hardening slice. Phase 3 is complete only after the exact final PR head is green, the PR is squash merged with expected-head protection, and the resulting `main` CI validation is green.
+The local scanner remains a separate passive execution path and includes:
 
-Phase 3N SARIF was merged through PR #20 as `f2859f5028965276c9dc69ddf10398740a6f9ec7`.
+- bounded hostile-repository inventory and no-follow reads
+- normalized findings, stable fingerprints, policy, baselines, and deterministic output
+- redacted secret detection
+- JavaScript/TypeScript structural SAST and bounded command taint analysis
+- npm dependency inventory, optional OSV enrichment, and CycloneDX 1.7 SBOM
+- Docker, Kubernetes, Terraform, GitHub Actions, `.npmrc`, and `vercel.json` analysis
+- terminal, native JSON, and SARIF 2.1.0 output
+- integration, hostile-input, golden-output, and 700-file benchmark coverage
 
-### Scanner foundation and safety
+Canonical scanner coverage and limits are documented in `docs/scanner/LIMITATIONS.md`, `docs/scanner/PERFORMANCE.md`, and `docs/scanner/RELEASE_READINESS.md`.
 
-- deterministic bounded repository inventory
-- generated/vendor exclusions and root ignore handling
-- file-count, per-file byte, and total-byte ceilings
-- repository symlink non-following
-- identity-checked no-follow content reads
-- normalized findings and scanner diagnostics
-- stable finding fingerprints
-- shared deterministic code-unit text ordering for output-sensitive sorting
-- strict root `.scopeforge.json` version 1
-- repository configuration may tighten but not raise safe inventory ceilings
-- report-only default policy and explicit inclusive severity gating
-- distinct success, policy, usage/configuration, and scanner-error exits
-- safe no-follow output and baseline file handling
+## Phase 4A - Security domain contracts
 
-### Modular package boundaries
+PR #23 implements the approved Phase 4A architecture. Its implementation is complete and is in the final documentation and exact-head merge gate.
 
-Phase 3 keeps scanner logic split by responsibility:
+### Framework-independent domain
 
-- `packages/scanner-core` owns shared safety, inventory, findings, coordination, configuration, policy, baseline, and deterministic-order contracts
-- `packages/scanner-secrets` owns secret matching, redaction, suppression, and secret findings
-- `packages/scanner-jsts` owns JS/TS parsing, structural SAST, and bounded command taint analysis
-- `packages/scanner-sca` owns npm dependency inventory, optional OSV enrichment, vulnerability findings, and CycloneDX generation
-- `packages/scanner-iac` owns Docker, Kubernetes, Terraform, GitHub Actions, and recognized configuration analyzers
-- `packages/scanner-output` owns native JSON and SARIF serialization over normalized results
-- `packages/cli` is the composition and presentation layer, not a detector package
+`packages/security-domain` owns product-level contracts that do not depend on scanners, UI, database, workers, or provider SDKs:
 
-Detector packages do not depend back on the CLI. This dependency direction is documented in `docs/ARCHITECTURE.md` so future workers and packaged front ends can reuse scanner engines without duplicating CLI behavior.
+- versioned contract and branded identifiers
+- security severity and confidence vocabulary
+- explicit finding source and provenance
+- typed evidence with public/internal/sensitive/secret classification
+- product finding, location, taxonomy, remediation, and lifecycle contracts
+- validation states and authority-aware transitions
+- typed risk relationships
+- provider-neutral advisory requests/results/service contract
+- deterministic advisory context privacy and size policy
 
-### Secret scanner
+The domain contains no network access, filesystem access, environment reads, process control, database calls, UI behavior, or model-provider code.
 
-- GitHub token detection
-- Stripe live secret-key detection
-- Slack token detection
-- complete private-key block detection
-- contextual high-entropy assignment detection
-- mandatory redaction before normalized output
-- stable one-way `sfs1:` secret fingerprints
-- safe-fixture annotation and reviewed fingerprint allowlisting
+### One-way Phase 3 adapter
 
-### JavaScript and TypeScript SAST
+`packages/security-domain-adapters/phase3` translates normalized Phase 3 findings into the product domain without changing Phase 3 scanner behavior.
 
-Supported syntax families: JS, JSX, MJS, CJS, TS, TSX, MTS, and CTS.
+The adapter:
 
-The parser treats target files as syntax data only. It does not resolve or execute target modules.
+- derives stable product identity from the existing Phase 3 fingerprint
+- maps severity and confidence explicitly
+- maps static/dependency confirmation conservatively to product validation
+- emits scanner-derived provenance
+- maps repository location, taxonomy, and deterministic remediation
+- creates a typed internal evidence record from the normalized evidence summary
+- does not copy scanner `metadata`, baseline state, redacted snippets, or data-flow internals
+- performs no filesystem, environment, process, or network work
 
-Current structural checks include direct `eval` / `new Function` and statically established Node HTTPS verification disablement.
+### Maintainability boundary
 
-Bounded taint coverage is intentionally narrow:
+`tests/architecture/security-domain-dependencies.test.ts` recursively enforces that `packages/security-domain` cannot import scanner packages, CLI code, Next.js, React, Supabase, application/component layers, or named model-provider SDKs.
 
-- statically established Express route handlers
-- request query, route-param, and body fields
-- selected local propagation and string construction
-- statically established Node `child_process.exec` and `execSync`
-- conservative shadowing, mutation, sanitizer, unsupported-control-flow, and step-budget handling
+The intended dependency direction is:
 
-No generalized whole-program or cross-file taint engine exists yet.
+```text
+scanner-core / detector packages
+          |
+          v
+security-domain-adapters/phase3
+          |
+          v
+     security-domain
+          ^
+          |
+ application services
+    ^      ^      ^
+    |      |      |
+  UI/API  workers  provider adapters
+```
 
-### Software composition analysis
+### Future AI integration boundary
 
-Supported npm dependency sources:
+Phase 4A deliberately makes future AI integration possible without making AI a core dependency.
 
-- `npm-shrinkwrap.json`
-- `package-lock.json`
-- `pnpm-lock.yaml`
-- `yarn.lock`
-- `package.json` fallback
+Future model integrations must sit behind the provider-neutral `AdvisoryService` and the advisory context policy. Advisory results are typed as inferred provenance, advisory authority cannot promote validation state, secret-classified context is always removed, and remote sensitive context requires explicit opt-in. Local-model and hosted-provider adapters can therefore be added later without rewriting scanners or the product security domain.
 
-Resolved lockfile versions are preferred. npm Package URLs are normalized where possible.
+No model runtime, SDK, provider call, prompt store, vector store, autonomous agent, or model-driven scanner authority exists in Phase 4A.
 
-OSV enrichment is disabled by default. When enabled, only normalized npm package identity and exact version are sent to ScopeForge's fixed OSV endpoint. Lookup failures are scanner errors and cannot appear as clean results.
+## Supporting Phase 4A verification
 
-### CycloneDX SBOM
+CI #375 passed on supporting implementation head `c0e93ac0408a01a8c2b1ec513e38286a7f102cef`:
 
-- CycloneDX 1.7 JSON
-- root application component
-- supported discovered npm dependencies and purls
-- direct dependency relationships where local inventory establishes them
-- tool metadata, timestamp, and serial number
-- independent from OSV availability
+- reproducible `npm ci --ignore-scripts --no-audit --no-fund`
+- 93 test files and 350 tests
+- strict TypeScript typecheck
+- CLI build and compiled `ScopeForge 0.1.0` smoke
+- 700-file benchmark with 0 findings and 0 errors
+- benchmark observation: 919 ms wall, 860 ms scanner duration, 28,692,480 bytes RSS delta
+- Next.js production build
 
-### Infrastructure and configuration analysis
+This is supporting implementation evidence. Permanent state documentation changes the PR head after CI #375, so PR #23 still requires a fresh complete CI run on its exact final documentation head before merge.
 
-Implemented local/passive analysis:
+## Database status
 
-- Dockerfiles
-- Kubernetes manifests
-- selected Terraform AWS resources and IAM policy documents
-- GitHub Actions workflows under `.github/workflows/`
-- `.npmrc`
-- `vercel.json`
+Phase 4A contains no Supabase migration, schema, RLS, RPC, storage, queue, worker, or hosted-ingestion change. Database advisor checks are therefore not a merge dependency for PR #23.
 
-The scanner does not execute Dockerfiles, RUN commands, Terraform, providers, modules, provisioners, external data sources, Kubernetes manifests, Helm, Kustomize, kubectl, workflows, target package managers, or cloud APIs.
+## Safety boundary and next phase
 
-### Baselines and output
+Phase 4A introduces contracts only. It adds no remote DAST, crawler, fuzzing, exploit validation, credential attack, persistence, destructive behavior, remote worker fleet, or active scanner execution.
 
-- deterministic version 1 baselines
-- bounded exact-schema parser
-- no-follow baseline reads and symlink refusal
-- stable fingerprint matching with `new` / `existing` classification
-- new-only policy gating by default when a baseline is active
-- explicit `--baseline-gate all`
-- terminal output
-- native ScopeForge JSON schema version 1
-- SARIF 2.1.0 compatible with GitHub Code Scanning
-- fixed SARIF property allowlist and safe repository-relative locations
-- CycloneDX 1.7 JSON SBOM artifact
-
-## Phase 3O release hardening
-
-PR #21 adds completion evidence rather than broadening detector scope:
-
-- mixed-repository end-to-end coverage
-- hostile-repository no-execution, no-default-network, symlink, budget, malformed-input, and output-leakage coverage
-- byte-for-byte native JSON, SARIF, and terminal golden outputs
-- `scanner-medium-v1` benchmark over exactly 700 synthetic files
-- benchmark fixture generation separated from timing/validation logic
-- GitHub Code Scanning, performance, limitations, and release-readiness documentation
-- committed npm lockfile v3 for reproducible installs
-- current `actions/checkout@v7` and `actions/setup-node@v7`
-- read-only CI token permissions, disabled checkout credential persistence, and `npm ci --ignore-scripts`
-- shared `scanner-core` deterministic text comparator reused by findings, secret output, SCA, OSV, SBOM, and rule listing
-
-Latest implementation GREEN evidence is CI #346 on `6ffb249c0ac7463c410cfd1536b105ebca9507d3`:
-
-- 86 test files and 331 tests passed
-- strict TypeScript typecheck passed
-- CLI build and compiled `ScopeForge 0.1.0` smoke passed
-- 700-file benchmark passed with 0 findings and 0 errors
-- benchmark: 876 ms wall, 816 ms scanner duration, 17,399,808 bytes RSS delta
-- Next.js production build passed
-
-The permanent evidence documentation changes the PR head after that checkpoint, so one exact final documentation-head CI run is still required before merge.
-
-## Database status for Phase 3O
-
-Phase 3O contains no Supabase schema, migration, policy, RPC, storage, or hosted-ingestion change. Database advisor checks are not a merge dependency for this local-scanner-only diff.
-
-## Safety boundary
-
-Phase 3 remains local and passive. It does not perform remote DAST, authenticated crawling, API fuzzing, exploit validation, generalized network scanning, cloud-account posture access, credential attacks, persistence, destructive actions, or hosted remote scanner execution.
-
-Canonical scanner limitations are in `docs/scanner/LIMITATIONS.md`.
-
-## Next boundary
-
-After PR #21 passes its exact final gate, merges, and `main` CI is green, Phase 4 verified runtime and API security is next.
-
-Phase 4 must start with architecture and threat-boundary design. Do not add active remote scanning inside PR #21.
+After PR #23 passes its exact final gate and merges, Phase 4B is the next boundary: design and implement verified passive runtime/API observations while reusing `security-domain` and preserving Phase 2 authorization and network-safety controls. Bounded active validation remains Phase 4C.
