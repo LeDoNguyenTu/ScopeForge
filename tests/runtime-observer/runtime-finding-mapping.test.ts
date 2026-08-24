@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { assetRef } from "@/packages/security-domain";
 import {
@@ -120,5 +121,28 @@ describe("runtime security-domain mapping", () => {
     const second = mapRuntimeRuleMatchToSecurityFinding({ assetRef: assetRef("asset-2"), match });
 
     expect(first.id).not.toBe(second.id);
+  });
+
+  it("includes source version in the durable runtime identity", () => {
+    const match = evaluateRuntimeRules({
+      observations: [header("strict-transport-security", false)],
+    })[0];
+    expect(match).toBeDefined();
+    if (!match) return;
+
+    const digest = createHash("sha256")
+      .update("asset-1", "utf8")
+      .update("\u0000", "utf8")
+      .update(match.ruleId, "utf8")
+      .update("\u0000", "utf8")
+      .update("0.1", "utf8")
+      .update("\u0000", "utf8")
+      .update(match.observationKey, "utf8")
+      .digest("hex");
+
+    expect(mapRuntimeRuleMatchToSecurityFinding({ assetRef: runtimeAssetRef, match }).id)
+      .toBe(`runtime:${digest}`);
+    expect(mapRuntimeRuleMatchToEvidence({ assetRef: runtimeAssetRef, match }).id)
+      .toBe(`runtime-evidence:${digest}`);
   });
 });
