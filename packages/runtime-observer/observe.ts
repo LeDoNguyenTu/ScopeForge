@@ -4,7 +4,11 @@ import type {
 } from "./contracts";
 import { validateRuntimeObservationBudget } from "./budget";
 import { requestPinnedHttps, type RuntimeTransportResponse } from "./https-transport";
-import { buildPassiveResponseObservations, type RuntimeObservation } from "./observations";
+import {
+  buildPassiveResponseObservations,
+  redactRuntimeObservationUrl,
+  type RuntimeObservation,
+} from "./observations";
 import { getHeaderValues } from "./redaction";
 import { validateInitialRuntimeUrl, validateRedirectTarget } from "./target-policy";
 
@@ -160,10 +164,11 @@ export async function observeRuntimeTarget(
 
     const decision = validateRedirectTarget(current, location, target);
     const toHost = redirectHost(current, location);
+    const redactedCurrent = redactRuntimeObservationUrl(current);
     if (!decision.allowed) {
       const redirect: RuntimeObservation = Object.freeze({
         kind: "redirect",
-        from: current.toString(),
+        from: redactedCurrent,
         toHost,
         followed: false,
         reason: decision.reason,
@@ -177,7 +182,7 @@ export async function observeRuntimeTarget(
     if (redirectCount >= budget.maxRedirects) {
       const redirect: RuntimeObservation = Object.freeze({
         kind: "redirect",
-        from: current.toString(),
+        from: redactedCurrent,
         toHost,
         followed: false,
         reason: "REDIRECT_LIMIT",
@@ -191,7 +196,7 @@ export async function observeRuntimeTarget(
     if (requestCount >= budget.maxRequests) {
       const redirect: RuntimeObservation = Object.freeze({
         kind: "redirect",
-        from: current.toString(),
+        from: redactedCurrent,
         toHost,
         followed: false,
         reason: "REQUEST_LIMIT",
@@ -211,7 +216,7 @@ export async function observeRuntimeTarget(
 
     const redirect: RuntimeObservation = Object.freeze({
       kind: "redirect",
-      from: current.toString(),
+      from: redactedCurrent,
       toHost,
       followed: true,
     });
