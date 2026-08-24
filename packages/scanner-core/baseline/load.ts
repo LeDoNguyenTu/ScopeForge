@@ -11,6 +11,12 @@ export const MAX_BASELINE_ENTRIES = 50_000;
 const FINGERPRINT = /^sfs?1:[a-f0-9]{64}$/;
 const SEVERITIES = new Set<Severity>(["critical", "high", "medium", "low", "info"]);
 
+function compareText(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 function isContained(root: string, candidate: string): boolean {
   const pathFromRoot = relative(root, candidate);
   return (
@@ -92,7 +98,7 @@ function parseBaseline(value: unknown): BaselineFile {
     entries.push(entry);
   }
 
-  entries.sort((left, right) => left.fingerprint.localeCompare(right.fingerprint));
+  entries.sort((left, right) => compareText(left.fingerprint, right.fingerprint));
   return {
     version: 1,
     tool: { name: "ScopeForge", version: value.tool.version },
