@@ -15,8 +15,8 @@ type ScanJobRow = Database["public"]["Tables"]["scan_jobs"]["Row"];
 type RuntimeObservationRow = Database["public"]["Tables"]["runtime_observations"]["Row"];
 
 const ALLOWED_TRANSITIONS: Readonly<Record<ScanJobStatus, readonly ScanJobStatus[]>> = Object.freeze({
-  queued: Object.freeze(["running", "blocked", "cancelled"]),
-  running: Object.freeze(["succeeded", "failed", "blocked", "cancelled"]),
+  queued: Object.freeze(["running", "blocked", "cancelled"] as const),
+  running: Object.freeze(["succeeded", "failed", "blocked", "cancelled"] as const),
   succeeded: Object.freeze([]),
   failed: Object.freeze([]),
   blocked: Object.freeze([]),
