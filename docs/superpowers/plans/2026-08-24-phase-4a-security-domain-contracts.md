@@ -303,6 +303,7 @@ Commit message: `feat: add advisory and relationship contracts`
   - public `security-domain` contracts from Tasks 1-3
 - Produces:
   - `mapPhase3Finding(finding: Finding): { finding: SecurityFinding; evidence: EvidenceRecord[] }`
+  - `mapPhase3Validation(validation: Finding["validation"]): ValidationState`
 
 - [ ] **Step 1: Write deterministic/no-leak RED test**
 
@@ -323,10 +324,10 @@ expect(first.finding.provenance.kind).toBe("scanner-derived");
 Also assert validation mapping:
 
 ```ts
-expect(mapValidation("static_confirmed")).toBe("static_confirmed");
-expect(mapValidation("dependency_confirmed")).toBe("static_confirmed");
-expect(mapValidation("heuristic")).toBe("unvalidated");
-expect(mapValidation("informational")).toBe("unvalidated");
+expect(mapPhase3Validation("static_confirmed")).toBe("static_confirmed");
+expect(mapPhase3Validation("dependency_confirmed")).toBe("static_confirmed");
+expect(mapPhase3Validation("heuristic")).toBe("unvalidated");
+expect(mapPhase3Validation("informational")).toBe("unvalidated");
 ```
 
 - [ ] **Step 2: Verify RED**
