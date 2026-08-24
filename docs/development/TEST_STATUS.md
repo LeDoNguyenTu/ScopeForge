@@ -1,39 +1,110 @@
 # ScopeForge Test Status
 
-| Check | Result | Evidence / notes |
+## Phase 3O diagnostic completion gate
+
+CI #311 on PR #21 head `4d7dbc43a41e15a26d6dd634e29eb1a96a299ea0` passed the complete implementation and benchmark gate before the final documentation commits.
+
+| Check | Result | Evidence |
 |---|---|---|
-| Phase 3D implementation checkpoint | Passing | CI #152 on `41f2e331b829b7914c18de139ed0e04dd0f99b53` |
-| Vitest implementation checkpoint | Passing | 30 test files, 141 tests on CI #152 |
-| TypeScript strict typecheck | Passing | CI #152 |
-| CLI TypeScript build | Passing | `npm run build:cli` on CI #152 |
-| Compiled CLI runtime smoke | Passing | `node .scopeforge-build/packages/cli/index.js version` printed `ScopeForge 0.1.0` on CI #152 |
-| Next.js production build | Passing | CI #152 |
-| Coordinator partial-error tests | Passing | structured per-file scanner errors preserve valid findings and sanitize messages |
-| Deterministic JSON error tests | Passing | scanner/file/code/message ordering is deterministic |
-| JS/TS parser tests | Passing | JS, JSX, MJS, CJS, TS, TSX, MTS, CTS plus generic syntax-error isolation |
-| AST traversal tests | Passing | iterative deterministic walk, fixed node budget, stable semantic context |
-| Structural rule tests | Review hardened | direct dynamic execution plus recognized TLS disablement; framework-name-only cookie inference is rejected |
-| Node HTTPS binding regression | RED then fixed | CI #164 showed a fake local `https` object triggered the Agent rule; implementation now requires a static `https`/`node:https` binding |
-| JS/TS scanner integration | Fixture corrected after hardening | CI #165 showed rule-selection fixture lacked the newly required Node HTTPS binding; fixture now imports `node:https` explicitly |
-| No-execution regression | Passing at implementation checkpoint | target imports, `require`, and filesystem side-effect code are parsed as data and never executed |
-| Source-evidence no-leak | Passing at implementation checkpoint | unrelated source sentinel absent from terminal, JSON, and finding evidence |
-| CLI integration | Passing at implementation checkpoint | default `secrets` + `jsts`, deterministic rules list, scanner-family selection, unknown-rule fail-closed behavior |
-| Secret scanner regression suite | Passing at implementation checkpoint | Phase 3C secret behavior remains green after coordinator union support |
-| Remote active scanning | Disabled | Phase 3 remains local/passive |
+| Vitest | Passing | 85 test files, 329 tests on CI #311 |
+| TypeScript strict typecheck | Passing | `npm run typecheck` on CI #311 |
+| CLI TypeScript build | Passing | `npm run build:cli` on CI #311 |
+| Compiled CLI runtime smoke | Passing | `ScopeForge 0.1.0` on CI #311 |
+| Medium scanner benchmark | Passing | 700 files, 0 findings, 0 errors, 928 ms wall time on CI #311 |
+| Next.js production build | Passing | `npm run build` on CI #311 |
 
-## TDD and debugging evidence
+Benchmark line:
 
-- CI #132: Phase 3D RED checkpoint. Existing behavior stayed healthy while the new JS/TS contracts failed because production modules and registration were absent.
-- CI #150: all 141 runtime tests passed. Strict typecheck then isolated two type-contract problems rather than detector defects.
-- Type fix 1: TypeScript runtime parse diagnostics remain accessed only at the parser boundary through a narrow compatibility type because `SourceFile.parseDiagnostics` is not exposed on the public 5.8 type.
-- Type fix 2: `createSecretScanner` preserves its narrower `Promise<Finding[]>` return type while remaining assignable to the coordinator's compatible scanner union.
-- CI #152: all 141 tests, strict typecheck, CLI build/runtime smoke, and production build passed.
-- Security review removed the insecure-cookie candidate from this slice because `res`/`response` names alone are insufficient framework evidence.
-- CI #164: RED reproduced the fake-HTTPS-binding false positive while the other 140 tests passed.
-- The TLS Agent matcher was hardened using static import/require binding recognition only, without module resolution or execution.
-- CI #165: the hardened rule tests passed and one stale repository-scanner fixture failed because it omitted the new binding requirement; that fixture was corrected.
-- The exact final documentation/hardening head must pass the complete gate before merge.
+```text
+SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"wallMs":928,"scanDurationMs":859,"rssDeltaBytes":22900736,"maxWallMs":20000}
+```
 
-## Final merge rule
+CI #311 is supporting evidence only because documentation commits changed the PR head afterward. The exact final PR head must run the same complete gate before merge.
 
-PR #9 must not merge unless its exact final documentation and hardening head passes `npm test`, `npm run typecheck`, `npm run build:cli`, the compiled CLI runtime smoke command, and `npm run build`. Any repository-execution path, unbounded traversal regression, arbitrary source-text leakage, false clean result, framework-name-only false positive, or unjustified source-to-sink vulnerability claim blocks merge.
+## Phase 3O completion coverage
+
+| Area | Result | Evidence / intent |
+|---|---|---|
+| Mixed-repository integration | Passing | `tests/scanner/integration/phase3-e2e.test.ts` |
+| Report-only vs policy enforcement | Passing | Same mixed repository returns success by default and policy failure with `--fail-on high` |
+| Baseline new/existing behavior | Passing | Baseline creation plus one introduced high-severity secret gates only the new finding by default |
+| SARIF and CycloneDX integration | Passing | Same mixed repository emits parseable SARIF 2.1.0 and CycloneDX 1.7 |
+| Secret non-leak in combined scan | Passing | Raw synthetic token absent from native JSON, SARIF, and baseline artifacts |
+| Hostile target no-execution | Passing | Executable-looking JS and package lifecycle content never creates the marker file |
+| Default scanner no-network | Passing | Global fetch guard remains unused when OSV is disabled |
+| Symlink boundary | Passing | External symlink is skipped and outside secret content is not read into output |
+| Tightened file-size boundary | Passing | Oversized synthetic source file appears in inventory skip counts |
+| Malformed supported input | Passing | Structured scanner diagnostics prevent incomplete coverage from appearing clean |
+| Hostile sentinel non-leak | Passing | Source/config/outside-secret sentinels absent from terminal, JSON, and SARIF output |
+| Native JSON golden output | Passing | Byte-for-byte committed `scan-result.json` |
+| SARIF golden output | Passing | Byte-for-byte committed `scan-result.sarif` |
+| Terminal golden output | Passing | Byte-for-byte committed `scan-result.txt` |
+| Repeated serialization determinism | Passing | Golden tests repeat serialization and require identical bytes |
+| Medium benchmark contract | Passing | Exactly 700 analyzed files, clean result, broad 20-second ceiling |
+
+## Existing Phase 3 security/regression coverage
+
+The full test suite also retains dedicated regression coverage for:
+
+- repository inventory budgets and ignore semantics
+- no-follow identity-checked content reads
+- secret redaction and one-way secret fingerprints
+- secret provider and entropy rule false-positive controls
+- JS/TS no-execution parsing
+- generic parser diagnostics without source-line leakage
+- AST traversal budget
+- Node HTTPS binding identity and shadowing
+- bounded taint step budget
+- Express and child-process binding shadowing/mutation
+- unsupported control-flow conservatism
+- npm lockfile parser failures
+- OSV request/response boundaries and failure semantics
+- CycloneDX generation
+- Docker parser/rules and no-execution behavior
+- Kubernetes parser/rules, alias/document limits, and hostile YAML
+- Terraform parser/rules and no Terraform/provider/module/cloud execution
+- GitHub Actions parser/rules and no workflow/action execution
+- `.npmrc` and `vercel.json` configuration rules and source-value non-leakage
+- baseline size/schema/duplicate/symlink/path security
+- SARIF metadata/source/secret/path leakage prevention
+- safe output path behavior
+- policy exit-code distinctions
+
+## Phase 3 trust-boundary merge rule
+
+PR #21 must not merge unless the exact final head passes all of these commands:
+
+```bash
+npm test
+npm run typecheck
+npm run build:cli
+node .scopeforge-build/packages/cli/index.js version
+npm run benchmark:scanner
+npm run build
+```
+
+Any of the following blocks merge:
+
+- target repository execution path
+- target package lifecycle execution
+- repository symlink following for scanner content reads
+- unbounded or materially weakened scanner resource limit
+- raw detected secret leakage
+- arbitrary hostile source/configuration text reflected into unsafe output
+- default scanner network access
+- OSV sending data beyond normalized package identity/version
+- false clean result when supported analysis fails
+- policy/scanner error conflation
+- unsafe output or baseline path regression
+- SARIF arbitrary metadata/source/root-path leakage
+- unexpected golden-output contract change without explicit review
+- benchmark fixture count/result mismatch
+- unresolved blocking review thread
+
+## Database checks
+
+Phase 3O has no database migration, schema, RLS, RPC, storage, or hosted-ingestion change. Supabase advisor checks are not a merge dependency for this local-scanner-only diff.
+
+## Post-merge completion rule
+
+A green PR #21 head is necessary but not sufficient. Phase 3 is complete only after PR #21 is merged and the resulting `main` CI run also passes the repository validation workflow.
