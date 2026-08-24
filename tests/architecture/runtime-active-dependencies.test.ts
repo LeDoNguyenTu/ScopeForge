@@ -10,7 +10,7 @@ async function listTypeScriptFiles(directory: string): Promise<string[]> {
     const absolutePath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       files.push(...(await listTypeScriptFiles(absolutePath)));
-    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+    } else if (entry.isFile() && (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx"))) {
       files.push(absolutePath);
     }
   }
@@ -99,6 +99,21 @@ describe("active runtime dependency direction", () => {
     const root = path.resolve(process.cwd(), "packages/runtime-observer");
     const violations = await dependencyViolations(root, (specifier) =>
       specifier.toLowerCase().includes("runtime-validator") ? "active validator layer" : null);
+
+    expect(violations).toEqual([]);
+  });
+
+  it("prevents application code from importing shared runtime transport authority directly", async () => {
+    const roots = ["app", "components", "lib"].map((directory) =>
+      path.resolve(process.cwd(), directory));
+    const violations: string[] = [];
+
+    for (const root of roots) {
+      violations.push(...await dependencyViolations(root, (specifier) =>
+        specifier.toLowerCase().includes("runtime-network")
+          ? "shared runtime transport authority"
+          : null));
+    }
 
     expect(violations).toEqual([]);
   });
