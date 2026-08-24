@@ -74,7 +74,7 @@ function repository(overrides: Partial<ActiveValidationRepository> = {}): Active
     markFailed: vi.fn(async (_job, code) => job({ status: "failed", failure_code: code, finished_at: grantedAt })),
     markCancelled: vi.fn(async () => job({ status: "cancelled", finished_at: grantedAt })),
     requestCancellation: vi.fn(async () => running),
-    persistObservation: vi.fn(async () => undefined),
+    persistResult: vi.fn(async () => undefined),
     listObservations: vi.fn(async () => []),
     ...overrides,
   } as ActiveValidationRepository;
@@ -132,7 +132,7 @@ describe("active validation service", () => {
     expect(repo.markBlocked).toHaveBeenCalled();
   });
 
-  it("persists one bounded observation and maps deterministic runtime_validated findings", async () => {
+  it("atomically persists one bounded observation with deterministic runtime_validated findings", async () => {
     const repo = repository({
       load: vi.fn(async () => job()),
       loadForWorkspace: vi.fn(async () => job({ status: "running", started_at: grantedAt })),
@@ -154,7 +154,15 @@ describe("active validation service", () => {
     const result = await executeActiveValidation("job-1", deps);
 
     expect(result.status).toBe("succeeded");
-    expect(repo.persistObservation).toHaveBeenCalledTimes(1);
+    expect(repo.persistResult).toHaveBeenCalledTimes(1);
+    expect(repo.persistResult).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "job-1", status: "running" }),
+      expect.objectContaining({ kind: "cors-policy" }),
+      expect.arrayContaining([expect.objectContaining({ validation: "runtime_validated" })]),
+      expect.arrayContaining([expect.objectContaining({ kind: "http-observation" })]),
+      ACTIVE_VALIDATION_MAX_BUDGET.maxObservationBytes,
+      new Date(grantedAt),
+    );
     expect(repo.markSucceeded).toHaveBeenCalledWith(expect.anything(), {
       requestCount: 1,
       findingCount: 1,
@@ -188,7 +196,7 @@ describe("active validation service", () => {
     const result = await executeActiveValidation("job-1", deps);
 
     expect(result.status).toBe("cancelled");
-    expect(repo.persistObservation).not.toHaveBeenCalled();
+    expect(repo.persistResult).not.toHaveBeenCalled();
     expect(repo.markSucceeded).not.toHaveBeenCalled();
   });
 });
