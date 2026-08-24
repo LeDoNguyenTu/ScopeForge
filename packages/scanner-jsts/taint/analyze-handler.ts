@@ -55,15 +55,6 @@ function lineOf(node: ts.Node, sourceFile: ts.SourceFile): number {
   return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
 }
 
-function isNestedFunction(node: ts.Node): boolean {
-  return (
-    ts.isArrowFunction(node) ||
-    ts.isFunctionExpression(node) ||
-    ts.isFunctionDeclaration(node) ||
-    ts.isMethodDeclaration(node)
-  );
-}
-
 export function analyzeExpressHandler(input: AnalyzeExpressHandlerInput): HandlerTaintResult {
   const environment = new Map<string, TaintValue>();
   const sinkFlows: CommandTaintFlow[] = [];
@@ -109,25 +100,6 @@ export function analyzeExpressHandler(input: AnalyzeExpressHandlerInput): Handle
     if (ts.isCallExpression(expression)) inspectSink(expression);
   }
 
-  function inspectUnsupportedStatement(statement: ts.Statement): void {
-    const stack: ts.Node[] = [statement];
-    while (stack.length > 0 && !input.budget.exceeded) {
-      if (!chargeTaintBudget(input.budget)) return;
-      const node = stack.pop() as ts.Node;
-      if (node !== statement && isNestedFunction(node)) continue;
-      if (ts.isCallExpression(node)) inspectSink(node);
-      if (input.budget.exceeded) return;
-
-      const children: ts.Node[] = [];
-      ts.forEachChild(node, (child) => {
-        children.push(child);
-      });
-      for (let index = children.length - 1; index >= 0; index -= 1) {
-        stack.push(children[index] as ts.Node);
-      }
-    }
-  }
-
   function processStatement(statement: ts.Statement): void {
     if (!chargeTaintBudget(input.budget)) return;
 
@@ -164,7 +136,7 @@ export function analyzeExpressHandler(input: AnalyzeExpressHandlerInput): Handle
       return;
     }
 
-    inspectUnsupportedStatement(statement);
+    environment.clear();
   }
 
   if (ts.isBlock(input.handler.body)) {
