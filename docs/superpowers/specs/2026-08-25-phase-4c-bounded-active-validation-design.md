@@ -1,70 +1,92 @@
 # Phase 4C Bounded Active Validation Design
 
 Date: 2026-08-25
-Status: Approved design direction
+Status: Approved design direction, self-reviewed
 
 ## 1. Purpose
 
 Phase 4C introduces the first narrowly active remote security validation capability in ScopeForge.
 
-The phase must preserve the authorization, target-transition, DNS/IP safety, timeout, cancellation, evidence, audit, and persistence guarantees established by Phase 4B. It must not turn the control plane into a general-purpose request proxy, crawler, exploit engine, fuzzing platform, credential tester, or arbitrary internet scanner.
+The phase preserves the authorization, target-transition, DNS/IP safety, timeout, cancellation, evidence, audit, persistence, and architecture guarantees established by Phase 4B. It must not turn the control plane into a general-purpose request proxy, crawler, exploit engine, fuzzing platform, credential tester, or arbitrary internet scanner.
 
-The first active slice is intentionally small: a deterministic CORS origin-policy validator for a verified web or API asset. ScopeForge sends a fixed synthetic Origin header to the exact authorized HTTPS target and evaluates only bounded response metadata. It sends no request body, no cookies, no credentials, no user-controlled headers, no exploit payloads, and no arbitrary paths.
+The first active slice is intentionally small: a deterministic CORS origin-policy validator for a verified web or API asset. ScopeForge sends one fixed synthetic Origin header to the exact authorized HTTPS canonical target and evaluates only bounded response metadata. It sends no request body, no cookies, no credentials, no user-controlled headers, no exploit payloads, and no arbitrary paths.
 
 Phase 4C is an active-validation architecture boundary, not an excuse to widen the passive observer. Passive and active execution remain separate capabilities with separate contracts and authorization semantics.
 
-## 2. Design principles
+## 2. Roadmap resolution
 
-Phase 4C follows these principles:
+An older Phase 4A design anticipated worker isolation before active validation. The current permanent roadmap in `docs/PHASES.md`, the Phase 4B design, and the completed Phase 4B architecture now place narrow Phase 4C active validation before the later worker-scale phase.
+
+This design follows the current roadmap.
+
+Phase 4C-1 may run through the existing trusted synchronous control-plane orchestration only because its authority is deliberately tiny: one exact verified target, one fixed request variation, one sequential request, strict deadlines, no redirects, no body, no credentials, and bounded metadata only.
+
+This does not declare worker hardening complete. Isolated workers, dedicated egress controls, queue backpressure, fleet-level concurrency, private artifacts, abuse controls, and production-scale orchestration remain Phase 6 concerns. Any later active validator that materially widens network authority or workload scale must be re-evaluated against that boundary before implementation.
+
+## 3. Design principles
+
+Phase 4C follows these rules:
 
 1. Active authority is explicit and separate from proof-of-control verification.
-2. Every active request is deterministic and generated from a versioned validator profile.
+2. Active execution is limited to built-in, versioned validator profiles.
 3. User input cannot become arbitrary method, URL, path, header, body, credential, or payload input.
-4. The exact verified asset hostname remains the authorization boundary.
-5. Every outbound connection repeats fresh DNS resolution, public-IP classification, and IP pinning.
-6. DNS time is part of the request and total execution deadline.
+4. The exact verified asset hostname and canonical target remain the authorization boundary.
+5. Every outbound connection performs fresh DNS resolution, public-IP validation, and IP pinning.
+6. DNS time is part of the request deadline and total execution budget.
 7. Cancellation is observable between network operations and before persistence.
-8. Response bodies remain uncaptured and unpersisted in the first active slice.
-9. Active observations map into the existing Phase 4A security-domain instead of creating a competing finding model.
+8. Response bodies remain uncaptured and unpersisted in Phase 4C-1.
+9. Active results map into the existing Phase 4A security-domain instead of creating a second finding model.
 10. Passive runtime behavior remains structurally independent from active validators.
-11. Worker fleet, queue scale, dedicated egress infrastructure, and backpressure remain later delivery concerns unless a Phase 4C implementation proves they are required for correctness.
-12. A successful policy probe is not automatically proof of practical data exfiltration or exploitability. Finding language and severity must match what was actually demonstrated.
+11. The browser never receives arbitrary active-request primitives.
+12. Finding severity and wording must match what the validator actually demonstrated.
 
-## 3. Architecture decision
+## 4. Architecture decision
 
 Three approaches were considered.
 
 ### Option A - Add active checks directly to packages/runtime-observer
 
-This would reuse the Phase 4B package by allowing additional methods or headers inside the passive observer.
-
 Rejected.
 
-`packages/runtime-observer` has a deliberately passive security contract. Adding active request profiles there would mix two authorities and make later review harder. A passive refactor could accidentally widen active behavior, or an active feature could silently broaden the passive package.
+`packages/runtime-observer` has a deliberately passive contract. Adding active request profiles there would mix authorities and make later review harder. Passive refactors could accidentally widen active behavior, while active work could weaken passive guarantees.
 
 ### Option B - Separate runtime-validator and shared runtime-network packages
 
 Selected.
 
-A new framework-independent `packages/runtime-validator` package owns active validator contracts, versioned profiles, active observation types, deterministic evaluation, and security-domain mapping.
+A new framework-independent `packages/runtime-validator` package owns:
 
-A new `packages/runtime-network` package owns the reusable outbound network primitive extracted from the already hardened Phase 4B transport path. It performs DNS resolution, public-IP validation, deterministic address selection, IP-pinned HTTPS requests, TLS identity preservation, end-to-end request deadlines, and bounded response metadata extraction needed by its callers.
+- active validator contracts
+- versioned built-in profile registry
+- active request-plan construction
+- active observation types
+- deterministic rule evaluation
+- security-domain mapping
 
-`packages/runtime-observer` remains passive and depends on `runtime-network` for transport rather than owning the transport internals itself.
+A new `packages/runtime-network` package owns the reusable outbound network primitive extracted from the already hardened Phase 4B transport path. It owns:
 
-Trusted application services remain outside both packages and own workspace authorization, explicit active consent, job state, persistence, cancellation state, audit records, quotas, and orchestration.
+- fresh DNS resolution
+- public-IP classification
+- deterministic address selection
+- DNS-pinned HTTPS requests
+- TLS hostname/SNI preservation
+- end-to-end DNS plus HTTPS deadlines
+- abort handling
+- bounded selected response-header normalization
+- no automatic redirects
+- no response-body buffering
 
-### Option C - Build isolated worker infrastructure before active validation
+`packages/runtime-observer` remains passive and consumes `runtime-network` for transport.
+
+Trusted application services remain outside these packages and own workspace authorization, explicit active consent, job state, persistence, cancellation, audit records, quotas, and orchestration.
+
+### Option C - Build isolated worker infrastructure first
 
 Deferred.
 
-Isolated workers and dedicated egress policy remain important production-scale controls, but they do not define what active behavior ScopeForge is allowed to perform. Building the worker fleet first would enlarge the delivery surface before the active capability contract is stable and testable.
+Workers remain important for scale and stronger production isolation, but they do not define what active behavior ScopeForge is allowed to perform. Phase 4C first stabilizes a deterministic active-validator contract that a later worker can call without widening authority.
 
-The active validator interface must be deterministic enough that a later worker can invoke it without widening authority.
-
-## 4. Layering and dependency direction
-
-The intended dependency direction is:
+## 5. Dependency direction
 
 ```text
 Next.js UI / server actions / future worker
@@ -96,157 +118,170 @@ Next.js UI / server actions / future worker
 
 Rules:
 
-- `packages/security-domain` stays pure and must never import runtime packages.
-- `packages/network-safety` stays pure and performs no DNS, HTTP, TLS, database, filesystem, environment, process, or framework I/O.
-- `packages/runtime-network` may use Node DNS/HTTPS/TLS APIs, but it must not import Next.js, React, Supabase, application actions, components, or model-provider SDKs.
+- `packages/security-domain` remains pure and never imports runtime packages.
+- `packages/network-safety` remains pure and performs no DNS, HTTP, TLS, database, filesystem, environment, process, or framework I/O.
+- `packages/runtime-network` may use Node DNS/HTTPS/TLS APIs but must not import Next.js, React, Supabase, application actions, components, provider SDKs, runtime-validator rules, or runtime-observer rules.
 - `packages/runtime-observer` remains passive and must not import `runtime-validator`.
-- `packages/runtime-validator` must not import Next.js, React, Supabase, application actions, components, provider SDKs, or passive UI code.
+- `packages/runtime-validator` must not import Next.js, React, Supabase, application actions, components, provider SDKs, or passive application-service modules.
 - Application services are the only layer allowed to bind validator execution to workspace, asset, user, job, persistence, and audit state.
 - UI code never decides that a target or active action is authorized.
 
-## 5. Shared runtime-network boundary
+## 6. Shared runtime-network boundary
 
-Phase 4C should extract the already reviewed transport logic from `packages/runtime-observer` into `packages/runtime-network` with no behavioral widening.
+Phase 4C begins by extracting the already reviewed network behavior from `packages/runtime-observer` into `packages/runtime-network` without widening it.
 
-The shared network package owns only low-level outbound safety mechanics:
+The shared package owns only low-level outbound mechanics:
 
 - HTTPS only
 - port 443 only
-- GET-only support for the first extraction unless a later approved validator explicitly needs another safe method
-- no request body support in Phase 4C-1
-- caller-supplied URL must already be policy-approved by the caller
+- GET only for Phase 4C-1 and current Phase 4B consumers
+- no request body
+- caller-supplied URL must already be policy-approved
+- caller-supplied headers must come from a typed trusted request plan, not raw browser input
 - fresh DNS resolution before every connection
-- reject empty DNS answers
+- reject empty DNS results
 - normalize and de-duplicate resolved addresses
-- reject the request if any resolved address is non-public or invalid
+- reject the request if any resolved address is invalid or non-public
 - deterministic public address selection
-- socket lookup pinned to the selected address
-- original hostname preserved for Host/SNI/certificate verification
+- pin socket lookup to the selected address
+- preserve original hostname for Host, SNI, and certificate verification
 - automatic redirects disabled
-- end-to-end deadline covering DNS plus HTTPS request
-- AbortSignal support so the underlying request can be destroyed on cancellation or deadline
-- bounded normalized response headers only
-- no response-body buffering or persistence
+- enforce one end-to-end deadline covering DNS plus HTTPS
+- support AbortSignal so the request can be destroyed on cancellation or timeout
+- expose only bounded normalized response metadata requested by a trusted caller contract
+- never buffer or persist response bodies
 
-The extraction must be proven behavior-preserving through existing Phase 4B tests plus new architecture guards. Phase 4C must not weaken or rewrite the successful Phase 4B security semantics as a side effect of code reuse.
+The extraction is behavior-preserving. Existing Phase 4B tests must remain green before any active-validator code is added.
 
-## 6. Active target contract
+## 7. Active target contract
 
-Phase 4C-1 supports only assets already verified through the Phase 2 proof-of-control flow and already eligible for Phase 4B runtime observation:
+Phase 4C-1 supports verified `web_application` and `api` assets only.
 
-- `web_application`
-- `api`
+Repository assets remain on the local Phase 3 path.
 
-Repository assets remain on the local Phase 3 scanner path.
-
-The authorized active target contains:
+The immutable active authorization snapshot contains:
 
 - workspace id
 - asset id
 - asset ref
 - asset kind
-- canonical URL snapshot
+- canonical URL
 - canonical hostname
-- verification timestamp snapshot
-- active validation profile id
-- active validation profile version
-- explicit active authorization timestamp
+- verification timestamp
+- validator profile id
+- validator profile version
+- active authorization timestamp
 - requesting actor id
+- validated budget
 
-The canonical URL remains the only request target in Phase 4C-1. The CORS validator must not discover or derive additional paths.
+The canonical URL is the only request target in Phase 4C-1. The CORS validator cannot discover, append, substitute, or probe additional paths.
 
 Every outbound URL must satisfy:
 
-- scheme `https:`
+- `https:` scheme
 - port absent or `443`
 - exact verified hostname match
-- no username/password
+- no username or password
 - no fragment
-- path derived only from the immutable canonical target
-- query derived only from the immutable canonical target, never validator or user input
+- path exactly from the immutable canonical target
+- query exactly from the immutable canonical target, if any historical row contains one
+
+Current asset normalization rejects query strings, so normal Phase 4C-1 targets contain no query. The runtime layer still redacts query and fragment data defensively before persistence.
 
 Cross-host redirects are never authorization to validate another host.
 
-## 7. Explicit active authorization
+## 8. Explicit active authorization
 
 Proof of control is necessary but insufficient for active validation.
 
-A verified asset proves that the workspace controls or is authorized to manage the asset. Phase 4C additionally requires an explicit active-validation consent action because active requests intentionally vary request metadata.
+### 8.1 Allowed roles
 
-### 7.1 Enqueue authorization
+Phase 4C-1 active validation is restricted to workspace `owner` and `admin` roles.
 
-Before a job can be queued, the trusted application service must verify:
+`member` and `viewer` roles cannot enqueue active validation jobs in the first slice. Passive Phase 4B role behavior remains unchanged.
+
+### 8.2 Consent event
+
+There is no standing global active-scanning consent in Phase 4C-1.
+
+The user must invoke the dedicated bounded active-validation action for a specific verified asset. That dedicated action is the explicit active authorization event for one job. The trusted service records `active_authorized_at` and `requested_by` in the immutable job snapshot and emits an `active_validation.authorized` audit event.
+
+The UI must clearly explain the exact fixed behavior before the action is submitted.
+
+### 8.3 Enqueue authorization
+
+Before queueing, the trusted application service verifies:
 
 1. caller is authenticated
 2. caller belongs to the target workspace
-3. caller role is allowed to request active validation
+3. caller role is `owner` or `admin`
 4. asset belongs to the workspace
 5. asset kind is supported
 6. asset remains verified
 7. `verified_at` is present
-8. canonical target and hostname are valid under existing runtime policy
-9. requested validator profile is a known built-in profile and version
-10. caller explicitly requested active validation rather than passive observation
-11. no caller-controlled request configuration is present
+8. canonical target and hostname satisfy runtime target policy
+9. requested validator profile is exactly a known built-in profile and version
+10. request originated from the dedicated active-validation action
+11. no caller-controlled request configuration exists
 12. budget is valid and no greater than system maxima
 13. quota and active-job conflict rules permit the job
 
-The job stores an immutable authorization snapshot.
+The job stores the immutable authorization snapshot.
 
-### 7.2 Execution authorization
+### 8.4 Execution authorization
 
 Immediately before DNS or network work, the trusted executor reloads the job and asset and verifies:
 
-- job is the expected active-validation job kind
-- status is executable
+- job kind is `active_validation`
+- job status is executable
 - cancellation has not been requested
 - asset still exists in the same workspace
 - asset kind remains supported
 - asset remains verified
-- current `verified_at` exactly equals the enqueue snapshot
-- canonical target exactly equals the enqueue snapshot
-- hostname exactly equals the enqueue snapshot
-- active validator profile id/version exactly equals the snapshot
-- stored budget is still valid under current system maxima
+- current `verified_at` exactly matches the enqueue snapshot
+- canonical target exactly matches the snapshot
+- hostname exactly matches the snapshot
+- validator profile id/version exactly matches the snapshot
+- stored budget remains valid under current maxima
 
 Any mismatch produces a blocked terminal state and zero outbound traffic.
 
-### 7.3 No generic active request API
+### 8.5 No generic active request API
 
-No application action or package contract may accept a structure equivalent to:
+No server action, service API, or package contract may accept raw arbitrary fields equivalent to:
 
-- arbitrary URL
-- arbitrary path
-- arbitrary HTTP method
-- arbitrary headers
-- arbitrary request body
-- arbitrary cookie
-- arbitrary Authorization value
-- arbitrary payload string
+- URL
+- path
+- method
+- headers map
+- request body
+- cookie
+- Authorization value
+- payload string
 
-The caller selects a known validator profile. The validator itself constructs the complete active request variation from constants and the authorized target.
+The caller selects a known validator profile. The validator constructs the complete request plan from constants and the immutable authorized target.
 
-## 8. Phase 4C-1 validator profile
+## 9. Phase 4C-1 profile
 
-The first validator is:
+The first validator profile is:
 
-`cors-origin-policy@1`
+```text
+cors-origin-policy@1
+```
 
-Its purpose is to determine whether the target reflects or explicitly allows a fixed untrusted origin in a security-relevant CORS configuration.
+It tests whether the target explicitly permits a fixed synthetic untrusted origin.
 
-The fixed synthetic origin is:
+The origin constant is:
 
 ```text
 https://scopeforge.invalid
 ```
 
-`.invalid` is reserved for names that must not resolve and therefore cannot identify a real external site.
+`.invalid` is reserved for names that must not resolve. The value is compiled into the validator profile and cannot be supplied by a user.
 
-The value is compiled into the validator profile and cannot be supplied by the user.
+### 9.1 Request behavior
 
-### 8.1 Request behavior
-
-The first request is:
+Exactly one request is permitted:
 
 - method: GET
 - URL: exact authorized canonical target
@@ -262,212 +297,239 @@ The first request is:
 - no browser state
 - no JavaScript execution
 
-A second request is permitted only if required by the final approved deterministic CORS algorithm. Phase 4C-1 should avoid preflight unless the rule cannot be evaluated safely without it.
+Phase 4C-1 does not send an OPTIONS preflight. A later profile may add one only after a separate design review.
 
-The default design is one GET request because a simple-origin request is sufficient to observe the most important credentialed reflection patterns without introducing OPTIONS-specific policy ambiguity.
+### 9.2 Redirect handling
 
-### 8.2 Redirect handling
+CORS v1 follows zero redirects.
 
-For Phase 4C-1, the CORS validator does not follow redirects.
+A 3xx response is recorded as bounded metadata and ends the validator without evaluating the destination.
 
-A redirect response is recorded as bounded metadata and terminates the validator successfully without evaluating the destination.
+This is intentionally stricter than Phase 4B so the active synthetic Origin is never propagated through a redirect chain.
 
-This is stricter than Phase 4B and avoids creating an active-input propagation chain through redirect hops. A later validator may explicitly support same-host redirects only after a separate design review.
+### 9.3 Response handling
 
-### 8.3 Response handling
-
-Only the following metadata may cross the validator boundary:
+Only these response properties may cross the validator boundary:
 
 - HTTP status
 - `Access-Control-Allow-Origin`
 - `Access-Control-Allow-Credentials`
 - `Vary`
-- bounded redirect metadata if present
-- TLS metadata already available through runtime-network when useful for audit/debugging
+- bounded redirect host metadata if present
 
-Response body bytes are neither buffered for analysis nor persisted.
+TLS metadata remains available to the lower runtime-network layer for transport correctness but is not persisted as an active CORS observation unless a later design explicitly requires it.
+
+Response bodies are destroyed without analysis.
 
 Arbitrary response headers are not retained.
 
-Header values are normalized and bounded before creating an observation object.
+Selected header values are normalized and bounded before an active observation object is created.
 
-## 9. CORS observations
+## 10. Active observation contract
 
-The validator produces normalized observations rather than findings directly.
+CORS v1 creates one normalized `cors-policy` observation containing:
 
-Initial observation shape should capture:
-
-- profile id/version
-- target path identifier without query/fragment secrets
+- profile id: `cors-origin-policy`
+- profile version: `1`
+- sanitized target URL containing scheme, host, port if explicit, and path only
 - response status
-- whether ACAO is present
-- normalized ACAO value if present and bounded
-- whether ACAC is present
-- normalized boolean interpretation of ACAC
-- whether `Vary` includes `Origin`
-- whether a redirect was returned
-- bounded redirect host metadata without query or fragment
+- ACAO presence
+- bounded normalized ACAO value if present
+- ACAC presence
+- boolean `credentialsAllowed` only when normalized value is exactly `true`
+- whether `Vary` contains the token `Origin`
+- redirect returned boolean
+- bounded redirect hostname when safely parseable
 
-No response body, Set-Cookie value, cookie value, Authorization value, arbitrary header, or unbounded text is stored.
+The observation never contains:
 
-## 10. Deterministic CORS rules
+- response body
+- Set-Cookie values
+- cookie values
+- Authorization values
+- arbitrary headers
+- query strings
+- fragments
+- unbounded exception text
 
-The first rule set should be conservative.
+## 11. Deterministic CORS rules
 
-### Rule CORS-1 - Untrusted origin explicitly allowed with credentials
+### CORS-1 - Credentialed untrusted origin allowed
 
 Condition:
 
 - request Origin is the fixed ScopeForge synthetic origin
-- response `Access-Control-Allow-Origin` exactly equals that synthetic origin
-- response `Access-Control-Allow-Credentials` is `true`
+- ACAO exactly equals `https://scopeforge.invalid`
+- ACAC normalized value is exactly `true`
+
+Finding:
+
+- rule id: `runtime/cors/credentialed-untrusted-origin`
+- severity: `high`
+- confidence: `high`
+- validation: `runtime_validated`
+- source kind: existing `deterministic-runtime-scanner`
+- source id: `scopeforge:runtime-validator`
+- source version: validator package/profile version
 
 Interpretation:
 
-The server actively allowed a known untrusted origin while advertising credentialed cross-origin access.
+The server actively allowed a known untrusted origin while advertising credentialed cross-origin access. ScopeForge does not claim that useful victim credentials exist or that a specific sensitive response was exfiltrated because Phase 4C-1 does not capture response bodies or victim state.
 
-This is a strong policy weakness, but ScopeForge still has not proved that a victim possesses useful credentials, that sensitive data is returned, or that a browser can successfully exfiltrate a particular response. The finding must state exactly what was observed.
-
-Suggested initial severity: high
-Suggested confidence: high
-Validation: active_observed or the closest approved security-domain validation vocabulary available after design review
-
-### Rule CORS-2 - Untrusted origin explicitly reflected without credential allowance
+### CORS-2 - Untrusted origin reflected without credential allowance
 
 Condition:
 
 - ACAO exactly equals the synthetic origin
-- ACAC is absent or not true
+- ACAC is absent or not exactly `true`
+
+Finding:
+
+- rule id: `runtime/cors/untrusted-origin-reflection`
+- severity: `low`
+- confidence: `high`
+- validation: `runtime_validated`
+- source kind: `deterministic-runtime-scanner`
+- source id: `scopeforge:runtime-validator`
 
 Interpretation:
 
-The server reflects or allows an untrusted origin. This may expose non-credentialed cross-origin data depending on endpoint behavior, but the first slice does not inspect response bodies.
+The server allowed a known untrusted origin. The first slice does not inspect response content and therefore does not claim sensitive data exposure.
 
-Suggested initial severity: low or medium depending on existing domain conventions
-Suggested confidence: high
-
-The implementation plan must choose one severity deterministically before code is written.
-
-### Rule CORS-3 - Wildcard origin
+### CORS-3 - Wildcard origin
 
 Condition:
 
 - ACAO is `*`
 
-Interpretation:
+Result:
 
-Wildcard CORS is not automatically a vulnerability. Many public APIs intentionally permit it.
+Observation only. No vulnerability finding in Phase 4C-1.
 
-Default behavior: observation only, no security finding in Phase 4C-1.
+Wildcard CORS is commonly intentional for public APIs and is not sufficient evidence of a vulnerability by itself.
 
 ### Vary behavior
 
-Missing `Vary: Origin` may be security relevant for dynamically reflected origins behind shared caches, but proving cache poisoning or cross-user exposure requires more context than Phase 4C-1 collects.
+Missing `Vary: Origin` is observation only in Phase 4C-1. Proving cache-mediated cross-user impact would require a separate validator and threat review.
 
-Default behavior: observation only, not a finding.
+## 12. Security-domain mapping
 
-## 11. Resource budgets
+Active rule matches map directly into the existing Phase 4A security-domain.
 
-Active validation starts with a stricter maximum than passive observation.
+The active mapper uses:
 
-System maxima for Phase 4C-1:
+- source kind `deterministic-runtime-scanner`
+- source id `scopeforge:runtime-validator`
+- `runtime_validated` validation state
+- scanner-derived provenance for the finding
+- observed provenance for evidence
+- bounded public-classified evidence summaries containing only normalized CORS metadata
+- stable deterministic identity derived from asset ref, validator profile/version, rule id, and normalized observation key
+- structured remediation
 
-- validator requests: 1 by default, hard maximum 2
+Phase 4C does not add a new source-kind enum unless later requirements prove that source id/version is insufficient to distinguish passive and active runtime sources.
+
+## 13. Resource budgets
+
+Phase 4C-1 system maxima are:
+
+- requests: exactly 1
 - redirects followed: 0
 - concurrent requests: 1
 - per-request timeout: 5 seconds
-- total validator execution time: 10 seconds
+- total active execution time: 10 seconds
 - retries: 0
 - request body bytes: 0
 - captured response body bytes: 0
-- persisted normalized observation payload: 32 KiB per active job
+- persisted normalized active observation payload: 32 KiB per job
 - persisted evidence summary: 4 KiB per generated finding
 
-Callers may tighten budgets but cannot widen them beyond these maxima.
+Callers may tighten time and persistence limits if the shared budget contract supports tightening, but no caller can increase request count, redirect count, body allowance, or profile authority.
 
 Budget validation occurs before DNS resolution.
 
-DNS resolution and HTTPS request time are both included in the request deadline and total execution deadline.
+DNS plus HTTPS share the request deadline. The service total deadline remains an outer bound.
 
-## 12. Cancellation semantics
+## 14. Cancellation semantics
 
-Cancellation remains cooperative but must be checked at every safe boundary.
-
-The trusted service injects a database-backed cancellation callback or signal.
+The trusted service injects a database-backed cancellation callback and, where useful, an AbortSignal into the runtime network operation.
 
 Required cancellation boundaries:
 
 - before first DNS resolution
-- after DNS resolution and before socket creation if the architecture exposes that boundary
-- after the request completes
-- before any optional second network operation
-- before rule evaluation if expensive processing is ever introduced
+- before opening the pinned HTTPS request
+- after the request returns
+- before deterministic rule evaluation
 - before persistence
 - before successful terminal transition
 
-If cancellation becomes true after a response is received but before persistence, the job becomes `cancelled` and active observations/findings are not persisted.
+If cancellation becomes true after response metadata is received but before persistence, the job becomes `cancelled` and active observations/findings are not persisted.
 
-Cancellation is never stored as a generic failure.
+Cancellation is never classified as generic failure.
 
-## 13. Failure semantics
+## 15. Failure semantics
 
 Failure codes remain stable and machine-readable.
 
-Phase 4C should reuse shared runtime-network failure classification where it accurately describes the failure and introduce active-specific codes only where necessary.
+Categories:
 
-Categories include:
-
-- authorization changed or revoked: blocked
-- cancellation requested: cancelled
-- invalid validator profile: blocked
+- authorization changed: blocked
+- verification revoked: blocked
+- unsupported or mismatched validator profile: blocked
 - invalid stored budget: blocked
-- DNS/public-IP policy denial: failed or blocked according to the existing runtime convention selected by the implementation plan
+- cancellation: cancelled
+- DNS/public-IP safety rejection: failed with the existing safe network classification used by runtime transport
 - request timeout: failed
 - total timeout: failed
 - TLS/network error: failed
 - observation budget exceeded: failed
-- persistence conflict: failed with safe generic browser-facing text
+- persistence conflict: failed with safe generic browser text
 
-Raw resolver, socket, TLS, database, or framework exception text must not be persisted to audit metadata or returned to the browser.
+Raw resolver, socket, TLS, database, or framework exception text must not be persisted to audits or returned to the browser.
 
-## 14. Persistence model
+## 16. Persistence decision
 
-Phase 4C should evolve the existing runtime job system instead of creating a disconnected active-job platform.
+Phase 4C extends the existing runtime job and observation model rather than adding a parallel active-job platform.
 
-The implementation plan should prefer one of these compatible approaches:
+### 16.1 scan_jobs
 
-- extend `scan_job_kind` with a bounded active-validation job kind and add immutable validator profile fields, or
-- introduce a narrowly typed runtime security job discriminator if enum evolution shows material migration risk
+Extend `scan_job_kind` with:
 
-The selected migration must preserve existing Phase 2 and Phase 4B rows and constraints.
+```text
+active_validation
+```
 
-The immutable snapshot for an active job includes at minimum:
+Add nullable columns guarded by a conditional check for active jobs:
 
-- workspace id
-- asset id
-- requested actor
-- canonical target
-- hostname
-- asset kind
-- verification timestamp
-- validator profile id
-- validator profile version
-- active authorization timestamp
-- budget
+- `validator_profile_id`
+- `validator_profile_version`
+- `active_authorized_at`
 
-Active observations may use the existing normalized runtime observation table only if the schema can distinguish passive and active observation contracts unambiguously and all constraints remain safe. Otherwise a dedicated `active_runtime_observations` table is acceptable.
+For `active_validation` rows these fields are required and immutable. For historical Phase 2 and Phase 4B rows they remain null.
 
-The implementation plan must choose one persistence route explicitly before coding.
+Existing authorization snapshot fields continue to store canonical target, asset kind, verified timestamp, workspace, asset, requester, and budget.
 
-Authenticated browser clients remain read-only for runtime job and observation state. Trusted server adapters own writes.
+The migration must preserve existing rows and existing Phase 4B state-transition guarantees.
 
-Durable product findings should continue to wait for the hosted finding lifecycle unless that lifecycle already exists when Phase 4C implementation begins. Phase 4C must not create a competing permanent finding table.
+### 16.2 runtime_observations
 
-## 15. Audit requirements
+Reuse `runtime_observations` because it already provides composite workspace/job/asset integrity, bounded JSON payloads, authenticated select-only RLS, and trusted-server writes.
 
-Active execution requires explicit auditability.
+Extend the allowed `kind` constraint with:
 
-Events should include:
+```text
+cors-policy
+```
+
+CORS v1 persists at most one `cors-policy` row for a successful active job.
+
+The application repository validates that active jobs persist only active observation kinds and passive jobs persist only passive observation kinds. Tests must cover this service boundary.
+
+No new durable finding table is introduced in Phase 4C. Findings remain deterministic in-memory outputs until the later hosted finding lifecycle provides the canonical durable repository.
+
+## 17. Audit requirements
+
+Required event types:
 
 - `active_validation.authorized`
 - `active_validation.enqueued`
@@ -478,7 +540,7 @@ Events should include:
 - `active_validation.succeeded`
 - `active_validation.failed`
 
-Audit metadata may include:
+Allowed bounded metadata:
 
 - job id
 - asset id
@@ -488,213 +550,235 @@ Audit metadata may include:
 - elapsed milliseconds
 - finding count
 
-Audit metadata must not include:
+Forbidden audit content:
 
 - response bodies
 - cookie values
 - Authorization values
 - raw Set-Cookie values
 - arbitrary response headers
-- DNS resolver internals beyond deliberately bounded public diagnostic metadata
-- query secrets
+- query strings
 - fragments
-- unbounded exception strings
+- unbounded exception text
+- private resolver internals
 
-## 16. Application and UI behavior
+## 18. Application and UI behavior
 
-Passive observation and bounded active validation must be visibly distinct operations.
+Passive observation and bounded active validation are visibly distinct operations.
 
-For a verified supported asset, the UI may expose:
+For a verified supported asset, the asset page may expose:
 
 - Passive observation
 - Bounded active validation
 
-The active action explains that ScopeForge will send a fixed synthetic cross-origin request to the verified canonical target and will not send credentials, cookies, request bodies, exploit payloads, or user-defined input.
+The active section explains that ScopeForge sends exactly one GET request to the verified canonical target with a fixed synthetic `Origin: https://scopeforge.invalid` header and sends no credentials, cookies, request body, exploit payload, or user-defined input.
 
-The user selects the active-validation action, not a request configuration form.
+Only owner/admin users see an enabled active action.
 
-The server action receives only the asset identifier and known profile identifier needed for the approved workflow. It must not accept arbitrary URL/method/header/body parameters from the browser.
+The server action accepts only:
 
-The result view may show:
+- asset id
+- a known profile identifier if the UI supports more than one profile later
 
-- validator profile and version
+For Phase 4C-1 the profile may be server-fixed so the browser needs to submit only the asset id.
+
+The browser never sends target URL, HTTP method, raw headers, body, cookie, credential, or payload configuration.
+
+The result view may display:
+
+- validator profile/version
 - job status
 - request count
-- safe failure/block reason
-- bounded CORS policy observations
+- safe block/failure reason
+- bounded CORS observation summary
 - deterministic finding summaries
 
-The UI does not perform DNS, fetch target data directly, authorize execution, construct custom security payloads, or duplicate rule logic.
+The UI does not perform target networking, DNS checks, authorization, or rule evaluation.
 
-## 17. Architecture guards
+## 19. Architecture guards
 
-CI must make the active/passive separation executable.
+CI must enforce:
 
-Required guard rules:
-
-`packages/runtime-validator` must not import:
+### packages/runtime-validator must not import
 
 - Next.js
 - React
 - Supabase
-- app/
-- components/
+- `app/`
+- `components/`
 - provider SDKs
-- runtime-observation application service modules
+- runtime-observation application services
 
-`packages/runtime-observer` must not import:
+### packages/runtime-observer must not import
 
 - runtime-validator
 - Next.js
 - React
 - Supabase
-- app/
-- components/
+- `app/`
+- `components/`
 - provider SDKs
 
-`packages/runtime-network` must not import:
+### packages/runtime-network must not import
 
 - security-domain
-- runtime-validator
-- runtime-observer policy/rules
+- runtime-validator rules
+- runtime-observer rules
 - Next.js
 - React
 - Supabase
-- app/
-- components/
+- `app/`
+- `components/`
 - provider SDKs
 
-`packages/network-safety` retains its existing no-I/O constraint.
+### packages/network-safety
 
-## 18. Test architecture
+Retains the existing no-I/O constraint.
 
-No active-validator test may depend on a public internet target.
+## 20. Test architecture
 
-Dependency injection must allow deterministic fixtures for:
+No active-validator test depends on a public internet target.
+
+Dependency injection must model:
 
 - allowed public DNS
 - mixed public/private DNS
 - empty DNS
-- DNS rebinding attempts
+- rebinding attempts
 - DNS deadline exhaustion
 - TLS/network timeout
-- request cancellation
+- cancellation
 - reflected synthetic origin
 - credentialed reflected origin
 - wildcard origin
 - absent CORS headers
-- malformed or oversized CORS header values
-- redirect responses
+- malformed or oversized CORS headers
+- redirects
 - observation-size limits
 - database cancellation during execution
 
-Required test families:
+Required suites:
 
-### 18.1 Shared runtime-network regression
+### 20.1 runtime-network extraction
 
-- all existing Phase 4B transport behavior remains green after extraction
-- fresh DNS for every connection
+- every existing Phase 4B transport regression remains green
+- fresh DNS per connection
 - reject any non-public address in a resolution set
 - deterministic pinning
 - preserve SNI/hostname verification
 - DNS included in request timeout
-- cancellation destroys the live request
-- no automatic redirect following
+- abort destroys live request
+- no automatic redirects
 
-### 18.2 Validator contract
+### 20.2 validator contract
 
-- exact known profile only
+- only `cors-origin-policy@1` accepted
 - fixed synthetic origin only
-- no arbitrary method/header/body/url input
-- one exact canonical target
-- redirect not followed
+- exact canonical target only
+- GET only
+- one request only
+- zero redirects followed
+- zero body bytes
 - zero cookies/credentials
+- no arbitrary header API
 - response body ignored
-- normalized bounded CORS metadata only
+- only bounded selected CORS metadata emitted
 
-### 18.3 Authorization service
+### 20.3 authorization service
 
-- verification alone is insufficient without active action authorization
-- workspace mismatch blocks before network
-- stale verification blocks before network
-- changed canonical target blocks before network
-- profile/version mismatch blocks before network
-- cancellation before start prevents network
+- verified asset alone is insufficient for member/viewer roles
+- owner/admin active action authorizes one job
+- workspace mismatch blocks before DNS
+- stale verification blocks before DNS
+- changed canonical target blocks before DNS
+- profile/version mismatch blocks before DNS
+- pre-start cancellation prevents network
 - cancellation during execution prevents persistence
 
-### 18.4 Finding mapping
+### 20.4 CORS rules and mapping
 
-- credentialed untrusted-origin reflection maps deterministically
-- non-credentialed reflection maps conservatively
-- wildcard alone does not generate a vulnerability finding
-- evidence and finding identifiers are stable
-- evidence summaries are bounded
-- no response body or secret-bearing text enters evidence
+- credentialed untrusted-origin reflection produces high-confidence high-severity `runtime_validated` finding
+- non-credentialed reflection produces low-severity `runtime_validated` finding
+- wildcard alone produces no finding
+- missing Vary alone produces no finding
+- stable identities
+- bounded evidence summaries
+- no body or secret-bearing text in evidence
 
-### 18.5 Database and RLS
+### 20.5 persistence and RLS
 
-- immutable active authorization snapshot
-- valid state transitions only
+- `active_validation` job snapshot fields required and immutable
+- historical rows remain valid
+- valid job transitions only
 - composite workspace/asset/job integrity
 - authenticated clients remain read-only
-- bounded payload constraints
+- `cors-policy` payload bounded
+- active jobs cannot persist passive-only observation kinds through the trusted repository API
+- passive jobs cannot persist active-only kinds through the trusted repository API
 
-### 18.6 UI
+### 20.6 UI
 
-- active validation unavailable for unverified assets
+- unverified assets cannot run active validation
 - repository assets unsupported
-- active action clearly distinct from passive observation
-- browser cannot supply arbitrary target or request parameters
-- cancellation and safe terminal states render correctly
+- member/viewer active action disabled or absent
+- owner/admin see the explicit bounded active action
+- passive and active actions are visually distinct
+- browser cannot supply arbitrary request primitives
+- cancellation and terminal states render safely
 
-### 18.7 Architecture
+### 20.7 architecture
 
-- active/passive/network package dependency guards
+- runtime-validator dependency guard
+- runtime-network dependency guard
+- existing runtime-observer guard remains green
 - existing security-domain and network-safety guards remain green
 
-## 19. Security review checklist
+## 21. Security review checklist
 
-A Phase 4C implementation must not merge until the complete changed-file set has been reviewed for:
+No implementation PR may merge until the full changed-file set is reviewed for:
 
 - explicit active authorization separate from verification
+- owner/admin role restriction
 - authorization before every network path
 - immutable enqueue snapshot
 - execution-time reauthorization
-- exact canonical hostname boundary
-- HTTPS-only and port-443-only behavior
+- exact canonical target and hostname boundary
+- HTTPS only
+- port 443 only
 - fixed validator-generated input only
 - no arbitrary request API
 - fresh DNS resolution
-- rejection of mixed public/private resolution sets
+- reject mixed public/private DNS results
 - DNS rebinding protection
 - IP pinning
 - SNI/certificate hostname preservation
 - DNS included in request deadline
-- total runtime deadline
-- zero redirects followed for CORS v1
+- total runtime budget
+- exactly one request for CORS v1
+- zero redirects followed
 - cancellation between operations
 - no request body
 - no cookies or credentials
 - no response-body persistence
 - bounded selected-header handling
-- no query/fragment secret persistence
+- no query/fragment persistence
 - stable failure codes
 - bounded audit metadata
 - trusted-server-only writes
 - workspace-bound persistence
 - no UI-side networking or authorization duplication
-- passive runtime observer behavior unchanged
-- architecture guards passing
+- passive runtime behavior unchanged
+- dependency guards passing
 
-## 20. Non-goals
+## 22. Non-goals
 
 Phase 4C-1 does not add:
 
 - arbitrary URL probing
-- user-defined request paths
+- user-defined paths
 - user-defined headers
 - request bodies
-- POST/PUT/PATCH/DELETE requests
+- POST, PUT, PATCH, or DELETE
 - browser automation
 - JavaScript execution
 - broad crawling
@@ -707,7 +791,7 @@ Phase 4C-1 does not add:
 - SSRF payloads
 - file inclusion payloads
 - path traversal payloads
-- file upload tests
+- file uploads
 - CSRF exploitation
 - authentication replay
 - credential stuffing
@@ -721,70 +805,74 @@ Phase 4C-1 does not add:
 - exploit frameworks
 - autonomous agents
 - model-generated payloads
-- arbitrary community executable validators
+- arbitrary executable community validators
 
 Each later active validator requires its own bounded profile, explicit authorization semantics, resource budget, deterministic tests, and threat review.
 
-## 21. Delivery slices
+## 23. Delivery slices
 
 ### Phase 4C-0 - Design and transport factoring
 
-- commit this approved design
-- write implementation plan after spec review
+- land this design through a design-only PR
+- write the implementation plan after design review
 - extract behavior-preserving `packages/runtime-network`
 - migrate Phase 4B observer transport to the shared package
-- keep all Phase 4B tests green
-- add architecture guards before active behavior
+- keep every Phase 4B test green
+- add dependency guards before active behavior
 
 ### Phase 4C-1 - Active validator core
 
 - add active validator contracts and profile registry
 - implement `cors-origin-policy@1`
-- add deterministic observations and CORS rules
+- add deterministic observation and CORS rules
 - add security-domain mapping
 - prove no arbitrary request construction path exists
 
 ### Phase 4C-2 - Trusted active job orchestration
 
-- evolve job persistence for active profile snapshots
-- add explicit active authorization service
+- extend `scan_job_kind` with `active_validation`
+- add immutable validator profile snapshot fields
+- extend runtime observations with `cors-policy`
+- add owner/admin explicit active authorization
 - add execution-time reauthorization
 - add cancellation, audit, stable failure handling, and bounded persistence
 
 ### Phase 4C-3 - Minimal asset UI
 
 - add bounded active-validation action for verified web/API assets
-- display profile, safe status, observations, and deterministic finding summaries
+- display profile, safe status, observations, and deterministic findings
 - keep passive observation UI and semantics separate
 
-### Later active profiles
+### Later profiles
 
-Only after CORS v1 is merged and reviewed should ScopeForge consider another narrow active validator. The next validator must be selected for high security value and minimal authority, not simply because it is easy to implement.
+Only after CORS v1 is merged and reviewed should ScopeForge select another active profile. Selection should optimize security value per unit of additional authority, not feature count.
 
-## 22. Completion criteria
+## 24. Completion criteria
 
 Phase 4C-1 architecture is complete only when:
 
-- `runtime-network` extraction preserves Phase 4B behavior
+- runtime-network extraction preserves Phase 4B behavior
 - passive runtime package remains passive
 - active validator accepts only known versioned profiles
 - active authorization is distinct from proof-of-control verification
-- CORS v1 uses the fixed synthetic origin and exact authorized target
-- redirects are not followed
+- only owner/admin can authorize CORS v1 jobs
+- CORS v1 uses the fixed synthetic origin and exact canonical target
+- exactly one GET request is sent
+- redirects are never followed
 - every connection is freshly DNS-classified and pinned
 - DNS and HTTPS share one enforced deadline
-- cancellation can stop execution between network boundaries and before persistence
+- cancellation can stop execution before persistence
 - no request body, cookie, credential, arbitrary header, or response body enters the active path
-- persisted observations are bounded and redact query/fragment secrets
-- deterministic findings use the existing security-domain
+- persisted active observations are bounded and contain no query/fragment data
+- deterministic findings use the existing security-domain with `runtime_validated`
 - browser clients remain read-only for runtime state
 - application service owns workspace authorization and persistence
-- all new dependency guards pass
+- new dependency guards pass
 - all existing Phase 2, Phase 3, Phase 4A, and Phase 4B tests remain green
-- the exact final implementation PR head passes the complete repository CI gate
+- the exact final implementation PR head passes the complete repository gate
 - final security diff review finds no blocking issue
 
-## 23. Required repository gate
+## 25. Required repository gate
 
 Every implementation PR must pass on its exact final head:
 
@@ -800,10 +888,10 @@ npm run build
 
 No earlier green checkpoint may substitute for the final exact-head gate.
 
-## 24. Later worker boundary
+## 26. Later worker boundary
 
 Phase 4C does not declare worker-scale hardening complete.
 
-A later phase must place runtime execution behind production-grade isolated workers with dedicated egress controls, concurrency/backpressure, operational telemetry, private artifact boundaries, and abuse controls.
+Phase 6 must place runtime execution behind production-grade isolated workers with dedicated egress controls, concurrency/backpressure, operational telemetry, private artifact boundaries, and abuse controls.
 
-That later move must reuse the active validator profile contracts and the shared runtime-network safety primitives without widening target policy or introducing arbitrary request authority.
+That move must reuse the versioned active validator profiles and shared runtime-network safety primitives without widening target policy or introducing arbitrary request authority.
