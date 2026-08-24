@@ -5,6 +5,7 @@ import { compareFindings } from "../scanner-core/findings/severity";
 import type { Finding } from "../scanner-core/findings/types";
 import { scanDockerfile } from "./docker/scan";
 import { scanKubernetesYaml } from "./kubernetes/scan";
+import { scanTerraformHcl } from "./terraform/scan";
 
 export interface CreateIacScannerOptions {
   rules?: ScannerRuleSelection;
@@ -12,6 +13,7 @@ export interface CreateIacScannerOptions {
   maxDockerInstructionBytes?: number;
   maxKubernetesDocuments?: number;
   maxKubernetesAliasCount?: number;
+  maxTerraformBlocks?: number;
 }
 
 function isDockerfile(path: string): boolean {
@@ -22,6 +24,10 @@ function isDockerfile(path: string): boolean {
 function isYamlFile(path: string): boolean {
   const normalized = path.toLowerCase();
   return normalized.endsWith(".yaml") || normalized.endsWith(".yml");
+}
+
+function isTerraformFile(path: string): boolean {
+  return path.toLowerCase().endsWith(".tf");
 }
 
 function looksLikeKubernetesYaml(content: string): boolean {
@@ -57,7 +63,8 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
         if (entry.kind !== "infrastructure") continue;
         const dockerfile = isDockerfile(entry.path);
         const yaml = isYamlFile(entry.path);
-        if (!dockerfile && !yaml) continue;
+        const terraform = isTerraformFile(entry.path);
+        if (!dockerfile && !yaml && !terraform) continue;
 
         let content: string;
         try {
@@ -81,6 +88,22 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
                 : {}),
               ...(options.maxDockerInstructionBytes !== undefined
                 ? { maxInstructionBytes: options.maxDockerInstructionBytes }
+                : {})
+            }
+          });
+          collectFindings(findingsByFingerprint, scanned.findings);
+          errors.push(...scanned.errors);
+          continue;
+        }
+
+        if (terraform) {
+          const scanned = await scanTerraformHcl({
+            file: entry.path,
+            content,
+            ...(options.rules ? { rules: options.rules } : {}),
+            parser: {
+              ...(options.maxTerraformBlocks !== undefined
+                ? { maxBlocks: options.maxTerraformBlocks }
                 : {})
             }
           });
