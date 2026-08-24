@@ -19,6 +19,11 @@ describe("SCA built-in registration", () => {
     const config = await loadScannerConfig(root);
 
     expect(formatBuiltInRuleList()).toContain("sca/known-vulnerability\t1.0.0\tKnown vulnerable dependency");
-    expect(createBuiltInScanners(config).map((scanner) => scanner.name)).toEqual(["secrets", "jsts", "sca"]);
+    expect(createBuiltInScanners(config).map((scanner) => scanner.name)).toEqual([
+      "secrets",
+      "jsts",
+      "sca",
+      "iac"
+    ]);
   });
 });
