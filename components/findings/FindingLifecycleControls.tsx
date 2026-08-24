@@ -5,12 +5,12 @@ import type { FindingLifecycleState, WorkspaceRole } from "@/lib/database.types"
 import { changeFindingLifecycleAction } from "@/app/dashboard/findings/[findingId]/actions";
 import type { Phase5ALifecycleAction } from "@/lib/security-findings/service";
 
-const actionsByState = {
+const actionsByState: Partial<Record<FindingLifecycleState, readonly Phase5ALifecycleAction[]>> = {
   open: ["acknowledge", "start_work"],
   acknowledged: ["start_work"],
   in_progress: ["resolve"],
   resolved: ["reopen"],
-} as const satisfies Partial<Record<FindingLifecycleState, readonly Phase5ALifecycleAction[]>>;
+};
 
 const ACTION_LABELS: Readonly<Record<Phase5ALifecycleAction, string>> = Object.freeze({
   acknowledge: "Acknowledge",
@@ -45,7 +45,7 @@ export default function FindingLifecycleControls({
     );
   }
 
-  const actions = actionsByState[currentState as keyof typeof actionsByState] ?? [];
+  const actions = actionsByState[currentState] ?? [];
   if (actions.length === 0) {
     return (
       <div className="guardrail">
