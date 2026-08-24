@@ -1,8 +1,8 @@
 # ScopeForge Test Status
 
-## Phase 4C-1 supporting GREEN gate
+## Phase 4C-1 final GREEN gate
 
-CI #546 passed on PR #27 implementation/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530`.
+Exact final PR #27 head `11c49e8723654f4279c9d09eed014e0b878281f6` passed CI #555 immediately before merge.
 
 | Check | Result | Evidence |
 |---|---|---|
@@ -14,11 +14,15 @@ CI #546 passed on PR #27 implementation/security-hardening head `cc57248fd525e1a
 | Medium scanner benchmark | Passing | 700 files, 0 findings, 0 errors |
 | Next.js production build | Passing | `npm run build` |
 
-CI #546 is supporting implementation evidence. Permanent documentation commits move the branch beyond that commit, so PR #27 requires a fresh complete run on its exact final head before merge.
+PR #27 was then squash-merged with expected-head protection as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
+
+The final branch tail after security-reviewed code head `cc57248fd525e1a05312bb221ce35844c18a2530` changed documentation files only. Before merge, GitHub still reported the exact head mergeable with no review threads or submitted blocking reviews.
+
+The available commit-workflow query did not expose a post-merge run for the squash commit; no post-merge CI result is inferred.
 
 ## Phase 4C-1 TDD and security-regression evidence
 
-The implementation used explicit RED/GREEN checkpoints while preserving all earlier Phase 2, Phase 3, Phase 4A, and Phase 4B regression coverage.
+The implementation used explicit RED/GREEN checkpoints while preserving earlier Phase 2, Phase 3, Phase 4A, and Phase 4B coverage.
 
 ### Shared runtime-network extraction
 
@@ -135,42 +139,20 @@ CI enforces:
 
 Existing Phase 3 integration, hostile-repository, secret non-leakage, parser safety, no-execution, SCA/OSV, SBOM, IaC, baseline, JSON/SARIF/golden-output, policy, filesystem, and benchmark coverage remain part of the full repository gate.
 
-Existing Phase 4B target, redirect, budget, cancellation, redaction, observation, finding, persistence, authorization, service, UI, and architecture tests remain part of the full gate. No passive authority is intentionally widened by Phase 4C-1.
+Existing Phase 4B target, redirect, budget, cancellation, redaction, observation, finding, persistence, authorization, service, UI, and architecture tests remain part of the full gate. No passive authority was widened by Phase 4C-1.
 
-## Phase 4C-1 exact merge rule
+## Current baseline
 
-The exact final PR #27 head must pass:
+As of merged Phase 4C-1, the verified repository baseline is:
 
-```bash
+```text
 npm ci --ignore-scripts --no-audit --no-fund
-npm test
+npm test                         # 122 files / 538 tests
 npm run typecheck
 npm run build:cli
 node .scopeforge-build/packages/cli/index.js version
-npm run benchmark:scanner
+npm run benchmark:scanner        # 700 files / 0 findings / 0 errors
 npm run build
 ```
 
-Merge is blocked by any of the following:
-
-- a non-owner/admin actor authorizing active validation
-- verification being treated as sufficient active consent
-- execution proceeding after target/verification/profile/budget/snapshot drift
-- caller-controlled URL, path, method, Origin, header map, body, credential, redirect policy, profile, or budget reaching the active network layer
-- anything other than the fixed one-request unauthenticated HTTPS/443 GET authority
-- a connection occurring without fresh complete public-IP classification and pinning
-- DNS or HTTPS work escaping the request/total deadlines
-- response-body, cookie-value, Authorization, arbitrary-header, query, fragment, or raw infrastructure exception persistence
-- active observation persistence after cancellation has linearized
-- a late cancellation producing a cancelled job after active evidence has committed
-- browser direct write authority to runtime jobs/observations
-- runtime-network being imported directly by application/UI code
-- passive observer gaining active validator authority
-- runtime-validator gaining passive/UI/database/provider dependencies or generic transport re-export authority
-- unexpected earlier-phase regression
-- unresolved blocking review thread or blocking submitted review
-- exact final head not being fully green and mergeable
-
-## Completion rule
-
-A supporting green run is not enough. Phase 4C-1 is complete only after the exact final PR #27 head passes the full gate, the complete security-sensitive diff is reviewed, the PR is squash merged with expected-head protection, merged content is verified, and post-merge `main` CI is inspected when exposed by GitHub tooling.
+Future phases must preserve this baseline unless a deliberate, reviewed test-count change is introduced.
