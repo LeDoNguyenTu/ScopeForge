@@ -19,6 +19,8 @@ function stableRuntimeDigest(assetRef: AssetRef, match: RuntimeRuleMatch): strin
     .update("\u0000", "utf8")
     .update(match.ruleId, "utf8")
     .update("\u0000", "utf8")
+    .update(RUNTIME_SOURCE_VERSION, "utf8")
+    .update("\u0000", "utf8")
     .update(match.observationKey, "utf8")
     .digest("hex");
 }
