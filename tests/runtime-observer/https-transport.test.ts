@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildPinnedHttpsRequestOptions,
   requestPinnedHttps,
+  type RuntimeRequester,
   type RuntimeTransportResponse,
 } from "@/packages/runtime-observer";
 
@@ -57,7 +58,7 @@ describe("pinned HTTPS transport", () => {
     const resolver = {
       resolve: vi.fn(async () => ["8.8.8.8", "1.1.1.1"]),
     };
-    const requester = vi.fn(async () => response);
+    const requester = vi.fn(async (_options: Parameters<RuntimeRequester>[0]) => response);
 
     await requestPinnedHttps(
       { url: new URL("https://example.com/app"), timeoutMs: 2_000 },
@@ -76,7 +77,7 @@ describe("pinned HTTPS transport", () => {
 
   it("returns redirects without following them automatically", async () => {
     const resolver = { resolve: vi.fn(async () => ["1.1.1.1"]) };
-    const requester = vi.fn(async () => response);
+    const requester = vi.fn(async (_options: Parameters<RuntimeRequester>[0]) => response);
 
     await expect(
       requestPinnedHttps(
