@@ -115,7 +115,7 @@ Phase 4B merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
 
 ### Phase 4C-1 bounded active validator
 
-The Phase 4C design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`. PR #27 implements only `cors-origin-policy@1`.
+The Phase 4C design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`. Phase 4C-1 implementation merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0` and contains only `cors-origin-policy@1` active authority.
 
 `packages/runtime-validator` owns the built-in active profile and deterministic CORS policy interpretation. It may depend on `runtime-network` and `security-domain`, but it must not depend on `runtime-observer`, Next.js, React, Supabase, application/component code, or model-provider SDKs.
 
@@ -164,7 +164,7 @@ These tests are security controls, not style checks: they prevent later refactor
 
 ## Current orchestration and future isolation
 
-Phase 4B and the initial Phase 4C-1 slice execute through trusted server-side control-plane services. This is deliberately bounded but is not the final worker-scale topology.
+Phase 4B and Phase 4C-1 execute through trusted server-side control-plane services. This is deliberately bounded but is not the final worker-scale topology.
 
 Phase 6 remains responsible for queue-backed isolated workers, dedicated egress infrastructure, concurrency/backpressure, private artifacts, operational scanner isolation, and abuse controls. Moving runtime execution behind that boundary must reuse the existing target, authorization, budget, cancellation, network, evidence, and audit contracts rather than widening them.
 
