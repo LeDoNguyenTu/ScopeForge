@@ -144,18 +144,33 @@ export function createActiveValidationRepository(admin: SupabaseClient<Database>
     });
   }
 
-  function markSucceeded(
+  async function markSucceeded(
     job: ScanJobRow,
     counts: ActiveValidationJobCompletionCounts,
   ): Promise<ScanJobRow> {
-    return transition(job, "succeeded", {
-      request_count: counts.requestCount,
-      redirect_count: 0,
-      finding_count: counts.findingCount,
-      failure_code: null,
-      blocked_reason: null,
-      finished_at: new Date().toISOString(),
-    });
+    assertActiveValidationJobTransition(job.status, "succeeded");
+    const { data, error } = await admin
+      .from("scan_jobs")
+      .update({
+        status: "succeeded",
+        request_count: counts.requestCount,
+        redirect_count: 0,
+        finding_count: counts.findingCount,
+        failure_code: null,
+        blocked_reason: null,
+        finished_at: new Date().toISOString(),
+      })
+      .eq("id", job.id)
+      .eq("workspace_id", job.workspace_id)
+      .eq("job_kind", "active_validation")
+      .eq("status", "running")
+      .is("cancel_requested_at", null)
+      .select("*")
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("Active validation job success transition conflict.");
+    return data;
   }
 
   function markFailed(job: ScanJobRow, failureCode: string): Promise<ScanJobRow> {
