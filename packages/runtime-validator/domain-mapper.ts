@@ -7,10 +7,11 @@ import {
   type EvidenceRecord,
   type SecurityFinding,
 } from "@/packages/security-domain";
+import { CORS_ORIGIN_POLICY_PROFILE } from "./contracts";
 import type { ActiveRuntimeRuleMatch } from "./rules/types";
 
 const ACTIVE_RUNTIME_SOURCE_ID = "scopeforge:runtime-validator";
-const ACTIVE_RUNTIME_SOURCE_VERSION = "0.1";
+const ACTIVE_RUNTIME_SOURCE_VERSION = `${CORS_ORIGIN_POLICY_PROFILE.id}@${CORS_ORIGIN_POLICY_PROFILE.version}`;
 const MAX_EVIDENCE_SUMMARY_LENGTH = 4_096;
 
 function stableActiveRuntimeDigest(
@@ -21,6 +22,8 @@ function stableActiveRuntimeDigest(
     .update(String(assetRef), "utf8")
     .update("\u0000", "utf8")
     .update(match.ruleId, "utf8")
+    .update("\u0000", "utf8")
+    .update(ACTIVE_RUNTIME_SOURCE_VERSION, "utf8")
     .update("\u0000", "utf8")
     .update(match.observationKey, "utf8")
     .digest("hex");
