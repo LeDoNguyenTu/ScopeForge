@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   const { supabase, workspace, role, displayName } = await getDashboardContext();
   const [
     { data: assets, error: assetsError },
-    { data: findings, error: findingsError },
+    { count: openFindingCount, error: findingsError },
   ] = await Promise.all([
     supabase
       .from("assets")
@@ -25,8 +25,9 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("security_findings")
-      .select("finding_id,lifecycle_state")
-      .eq("workspace_id", workspace.id),
+      .select("finding_id", { count: "exact", head: true })
+      .eq("workspace_id", workspace.id)
+      .in("lifecycle_state", ["open", "acknowledged", "in_progress", "resolved", "retest_pending"]),
   ]);
   if (assetsError) throw new Error(assetsError.message);
   if (findingsError) throw new Error(findingsError.message);
@@ -34,8 +35,7 @@ export default async function DashboardPage() {
   const totalAssets = assets?.length ?? 0;
   const verifiedAssets = (assets ?? []).filter((asset) => asset.verification_status === "verified");
   const firstNeedsProof = (assets ?? []).find((asset) => asset.verification_status !== "verified");
-  const openWorkCount = (findings ?? []).filter((finding) =>
-    !["verified_fixed", "accepted_risk", "false_positive"].includes(finding.lifecycle_state)).length;
+  const openWorkCount = openFindingCount ?? 0;
 
   const nextHref = totalAssets === 0
     ? "/dashboard/assets/new"
