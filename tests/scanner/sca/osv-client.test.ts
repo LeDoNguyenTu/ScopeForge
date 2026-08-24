@@ -35,8 +35,8 @@ describe("queryOsvDependencies", () => {
           return new Response(
             JSON.stringify({
               results: [
-                { vulns: [{ id: "GHSA-aaaa", modified: "2026-01-01T00:00:00Z" }], next_page_token: "page-2" },
-                { vulns: [{ id: "CVE-2026-0002", modified: "2026-01-02T00:00:00Z" }] }
+                { vulns: [{ id: "CVE-2026-0002", modified: "2026-01-02T00:00:00Z" }] },
+                { vulns: [{ id: "GHSA-aaaa", modified: "2026-01-01T00:00:00Z" }], next_page_token: "page-2" }
               ]
             }),
             { status: 200, headers: { "content-type": "application/json" } }
