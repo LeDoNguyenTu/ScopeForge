@@ -46,12 +46,12 @@ const ACTION_TARGET: Readonly<Record<Phase5ALifecycleAction, FindingLifecycleSta
   reopen: "in_progress",
 });
 
-const ACTION_FROM: Readonly<Record<Phase5ALifecycleAction, readonly FindingLifecycleState[]>> = Object.freeze({
-  acknowledge: Object.freeze(["open"]),
-  start_work: Object.freeze(["open", "acknowledged"]),
-  resolve: Object.freeze(["in_progress"]),
-  reopen: Object.freeze(["resolved"]),
-});
+const ACTION_FROM = {
+  acknowledge: ["open"],
+  start_work: ["open", "acknowledged"],
+  resolve: ["in_progress"],
+  reopen: ["resolved"],
+} as const satisfies Readonly<Record<Phase5ALifecycleAction, readonly FindingLifecycleState[]>>;
 
 export class FindingLifecycleWorkflowError extends Error {
   readonly code: FindingLifecycleWorkflowErrorCode;
@@ -97,7 +97,7 @@ export async function changeFindingLifecycle(
 
   const nextLifecycle = ACTION_TARGET[input.action];
   if (!nextLifecycle
-      || !ACTION_FROM[input.action].includes(current.lifecycle_state)
+      || !(ACTION_FROM[input.action] as readonly FindingLifecycleState[]).includes(current.lifecycle_state)
       || !canTransitionFindingLifecycle(current.lifecycle_state, nextLifecycle)) {
     throw new FindingLifecycleWorkflowError("FINDING_LIFECYCLE_ACTION_INVALID");
   }
