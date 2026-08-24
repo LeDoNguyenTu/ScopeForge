@@ -2,13 +2,17 @@
 
 ## Current phase
 
-Phase 4B - verified passive runtime observations, final completion gate.
+Phase 4C-1 - bounded CORS origin-policy validation, final exact-head completion gate.
 
-Active branch: `feat/phase-4b-passive-runtime-observations`
+Active branch: `feat/phase-4c-cors-origin-policy`
 
-Active PR: #25 `Build Phase 4B passive runtime observations`
+Active PR: #27 `Build Phase 4C-1 bounded CORS validation`
 
-Approved Phase 4B design and implementation plan were merged through PR #24 as `d59e55c2d5123f0adb2b2c6d18eaace3b5790276`.
+Approved design: `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
+
+Approved implementation plan: `docs/superpowers/plans/2026-08-25-phase-4c-bounded-active-validation.md`
+
+The design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`.
 
 ## Completed platform work
 
@@ -16,97 +20,148 @@ Approved Phase 4B design and implementation plan were merged through PR #24 as `
 - Phase 2 asset control and authorization is complete.
 - Phase 3 code and supply-chain security is complete and merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
 - Phase 4A security-domain contracts are complete and merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
-- Phase 4B implementation and final security hardening are complete in PR #25. The PR is in its exact-head merge gate.
+- Phase 4B passive runtime observations are complete and merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
+- Phase 4C-1 implementation and security hardening are complete in PR #27; only the exact final documentation-head gate and merge verification remain.
 
-## Phase 4B implementation
+## Phase 4C-1 implementation
 
-### Network-safety boundary
+### Runtime network extraction
 
-`packages/network-safety` contains pure public-IP classification and resolution-result validation. It is shared by Phase 2 verification and Phase 4B runtime execution without owning DNS or transport behavior.
+`packages/runtime-network` now owns shared low-level runtime networking:
 
-### Runtime observer
+- fresh DNS resolution before every connection
+- complete public-IP set validation through `packages/network-safety`
+- deterministic socket pinning
+- original hostname retained for Host/SNI/certificate verification
+- HTTPS/443 GET-only transport contract
+- DNS and HTTPS inside one absolute request deadline
+- abort of active HTTPS on the outer deadline
+- no automatic redirects
+- response-body destruction
 
-`packages/runtime-observer` contains:
+`packages/runtime-observer` remains passive-only and delegates only low-level mechanics to this package.
 
-- verified web/API target policy
-- HTTPS port 443 and GET-only behavior
-- explicit request-count, redirect-count, observation-size, request-timeout, and total-time budgets
-- fresh DNS classification before each connection
-- DNS-pinned HTTPS transport
-- DNS resolution included inside each request deadline
-- same-host redirect enforcement
-- selected/redacted HTTP and TLS observations
-- deterministic passive runtime rules
-- deterministic mapping into the Phase 4A security domain
+### Active validator
 
-No response body or cookie value is persisted. Persisted runtime URLs remove query strings and fragments. Crawling, fuzzing, authentication replay, exploit payloads, credential attacks, and destructive behavior are not part of Phase 4B.
+`packages/runtime-validator` implements only `cors-origin-policy@1`:
 
-### Trusted application layer
+- verified web/API targets only
+- exact canonical HTTPS target, port 443
+- fixed synthetic `Origin: https://scopeforge.invalid`
+- exactly one unauthenticated GET
+- zero redirect following and zero retries
+- zero request body
+- no cookie, Authorization, browser state, user headers, or caller request configuration
+- DNS-inclusive 5-second request limit and 10-second total bound
+- bounded `cors-policy` observation only
+- no response-body persistence
+- deterministic conservative `runtime_validated` findings
 
-`lib/runtime-observations` contains the migration-backed repository, authorization logic, and service orchestration.
+The validator cannot be used as a generic HTTP API. Profile/version and budget are bound server-side.
 
-The service requires authorization at enqueue and again immediately before network execution. It injects workspace-bound asynchronous database cancellation checks into the framework-independent observer, owns stable failure handling and bounded audits, and prevents cancelled executions from reaching observation/finding persistence.
+### Authorization and trusted service
 
-The browser does not write runtime jobs or observations directly. Trusted server actions adapt the asset workflow to the service.
+`lib/active-validation` owns:
+
+- owner/admin-only active authorization
+- separate explicit consent beyond verification
+- immutable target/kind/verified-at/profile/version/authorization-time/actor/budget snapshot
+- execution-time reauthorization immediately before DNS/network
+- DB-backed async cancellation
+- stable bounded failure and audit metadata
+- active-only repository operations
+
+Changed authorization, target, verification, profile, budget, state, or cancellation blocks execution before network traffic.
+
+### Persistence and cancellation linearization
+
+Phase 4C-1 reuses `scan_jobs` and `runtime_observations`; there is no parallel active job/finding system.
+
+The final migration hardening defines the persistence/cancellation ordering:
+
+- `cors-policy` observations require an exact running, uncancelled `active_validation` parent
+- the observation insert trigger locks that workspace/job/asset parent row
+- cancellation that acquires the row first prevents observation persistence
+- observation persistence that acquires the row first commits before a competing cancellation can proceed
+- once an active `cors-policy` observation exists, a later active cancellation request is rejected
+- final success still requires the job to be running and uncancelled
+
+This prevents a cancelled active job from retaining committed active evidence while preserving cancellation before the persistence linearization point.
+
+Authenticated browser access to runtime observations remains select-only. Trusted server adapters perform mutations.
+
+### Findings and evidence
+
+Active CORS rules reuse the Phase 4A security domain:
+
+- credentialed exact synthetic-origin allowance -> high severity / high confidence
+- exact synthetic-origin reflection without credentials -> low severity / high confidence
+- wildcard and missing Vary -> observation only
+
+Finding/evidence identities and source/rule provenance include `cors-origin-policy@1`, so a future profile version cannot collide with v1 identities. Evidence summaries are bounded and descriptions do not claim proven victim credential/data exfiltration.
 
 ### Asset workflow
 
-`RuntimeObservationPanel` exposes the minimal verified asset workflow:
-
-- unverified assets must be verified first
-- repository assets are unsupported
-- verified web/API assets may run the bounded passive observation
-- queued/running jobs expose cancellation
-- succeeded jobs show bounded request/redirect/finding counts and selected HTTP/TLS summaries
-- failed/blocked jobs show stable safe reasons
+`ActiveValidationPanel` is separate from the passive panel. It shows the fixed request/profile contract, requires explicit consent, exposes dedicated active run/cancel actions, and displays bounded normalized CORS evidence. The browser does not construct raw network requests.
 
 ### Architecture guards
 
-The final Phase 4B head includes executable dependency rules for `security-domain`, `runtime-observer`, and `network-safety` so framework/infrastructure dependencies cannot silently move inward.
+Executable guards ensure:
 
-## TDD and verification evidence
+- application/UI code cannot import generic `runtime-network` directly
+- `runtime-observer` cannot import active validator authority
+- `runtime-validator` cannot depend on passive/UI/database/provider layers
+- `runtime-validator` cannot re-export generic transport authority
+- `runtime-network` remains below observer/validator/application/domain layers
+- `network-safety` remains pure
 
-Important security checkpoints:
+## TDD and security-review evidence
 
-- the original service contract failed because `lib/runtime-observations/service.ts` did not exist; the trusted production orchestration was implemented against that contract
-- asynchronous cancellation regression tests demonstrated that a Promise-based cancellation callback was previously treated synchronously and that the service did not inject a database-backed cancellation check
-- the total-runtime regression demonstrated that a request could receive the full per-request timeout even when less total budget remained
-- URL-redaction regressions demonstrated that query secrets could appear in persisted status and redirect observations
-- DNS-deadline regressions demonstrated that DNS resolution previously sat outside the request timeout and that DNS elapsed time was not deducted from the HTTPS timeout
+Important RED/GREEN checkpoints in PR #27 include:
 
-Supporting GREEN gate:
+- missing action/UI adapter boundary
+- distinct normalized Origin presentation in the active UI
+- dependency guards for runtime-network/runtime-validator/passive separation
+- active validator cancellation and total-deadline behavior
+- observation insert parent-row lock for cancellation/persistence serialization
+- profile-specific finding provenance/version identity
+- rejection of active cancellation after active evidence has already persisted
 
-CI #459 passed on head `3fa117745a002ba6f3c0b01107593b2ff9913254` with:
+The full security-sensitive diff has been reviewed for authorization bypass, arbitrary request authority, target widening, DNS/SSRF rebinding, pinning/TLS, redirect behavior, deadline gaps, cancellation races, persistence/privacy, RLS/trusted writes, evidence bounds, error disclosure, and passive/active dependency mixing. No known blocking security defect remains at the supporting code checkpoint.
 
-- 112 test files
-- 484 tests
+## Supporting verification
+
+CI #546 passed on code/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530` with:
+
+- 122 test files
+- 538 tests
 - strict TypeScript typecheck
-- CLI build
+- CLI TypeScript build
 - compiled `ScopeForge 0.1.0` smoke
 - 700-file benchmark with 0 findings and 0 errors
 - Next.js production build
 
-CI #459 is supporting evidence only because permanent documentation commits change the head afterward.
-
-## Database status
-
-Phase 4B adds passive runtime job and observation persistence with immutable authorization snapshots, guarded transitions, bounded payloads, workspace-scoped reads, and trusted-server-only writes for runtime state.
+CI #546 is supporting evidence only because final permanent documentation commits move the PR head afterward.
 
 ## Exact remaining actions
 
-1. Complete the final security-sensitive changed-file review.
-2. Confirm no unresolved blocking review thread exists.
-3. Require a new complete CI run on the exact final documentation head.
-4. Squash merge with expected-head protection.
-5. Verify the merged PR/main content and resulting `main` CI when available.
-6. Clean merged historical branches only when safe tooling is available.
-7. Begin Phase 4C design only after Phase 4B merge completion.
+1. Finish the remaining permanent documentation updates.
+2. Require the complete repository CI gate on the exact final PR #27 head.
+3. Re-check that exact head is mergeable and unchanged.
+4. Re-check review threads and submitted reviews for blockers.
+5. Reconfirm no new security issue was introduced by the docs-only tail.
+6. Squash merge PR #27 with `expected_head_sha` protection.
+7. Verify merged content on `main` and inspect post-merge CI when GitHub exposes it.
+8. Refresh post-merge status wording if needed.
+9. Continue from `docs/PHASES.md` into the next approved delivery/design boundary without widening active HTTP authority.
 
 ## Next boundary
 
-Phase 4C may introduce only narrow, explicitly authorized, non-destructive active validation. It must reuse Phase 4B authorization, target-transition, network-safety, budget, cancellation, evidence, and audit contracts. Broad crawling, generalized fuzzing, exploit frameworks, credential attacks, denial-of-service behavior, persistence, and destructive validation remain out of scope.
+The next major roadmap boundary after Phase 4C-1 is Phase 5 - Findings, Security Stories, and remediation. It should build hosted workflow and explanation/remediation/retest behavior on the existing `security-domain` rather than inventing another finding model.
 
-Worker-scale runtime execution remains a separate later delivery boundary. Queue-backed isolated workers, dedicated egress controls, concurrency/backpressure, private artifacts, and operational worker isolation are not claimed complete by Phase 4B.
+Additional active validators are not implicitly authorized by Phase 4C-1. Broader crawling, endpoint discovery, preflight probing, arbitrary origins/methods/headers/bodies, authenticated testing, exploit payloads, fuzzing, credential attacks, DoS, and generalized DAST remain out of scope until separately designed and reviewed.
+
+Worker-scale execution, dedicated egress, queues, concurrency/backpressure, artifacts, fleet isolation, and abuse controls remain Phase 6 work.
 
 ## Resume protocol
 
@@ -116,7 +171,9 @@ Read in this order:
 2. `docs/development/CURRENT_STATE.md`
 3. `docs/development/TEST_STATUS.md`
 4. `docs/ARCHITECTURE.md`
-5. `docs/superpowers/specs/2026-08-25-phase-4b-passive-runtime-observations-design.md`
-6. PR #25 exact head and CI/merge state
+5. `docs/PHASES.md`
+6. `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
+7. `docs/superpowers/plans/2026-08-25-phase-4c-bounded-active-validation.md`
+8. PR #27 exact head and CI/merge state if still open
 
-Do not infer final Phase 4B completion from CI #459. The exact final documentation head must pass and the merge must be verified first.
+Do not infer Phase 4C-1 completion from CI #546. The exact final documentation head must pass the full gate and the merge itself must be verified.
