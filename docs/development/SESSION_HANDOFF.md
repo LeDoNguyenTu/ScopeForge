@@ -141,19 +141,18 @@ CI #546 passed on code/security-hardening head `cc57248fd525e1a05312bb221ce35844
 - 700-file benchmark with 0 findings and 0 errors
 - Next.js production build
 
-CI #546 is supporting evidence only because final permanent documentation commits move the PR head afterward.
+CI #546 is supporting evidence only because the final permanent documentation tail moves the PR head afterward. The implementation is frozen; the documentation tail changes no runtime behavior.
 
 ## Exact remaining actions
 
-1. Finish the remaining permanent documentation updates.
-2. Require the complete repository CI gate on the exact final PR #27 head.
-3. Re-check that exact head is mergeable and unchanged.
-4. Re-check review threads and submitted reviews for blockers.
-5. Reconfirm no new security issue was introduced by the docs-only tail.
-6. Squash merge PR #27 with `expected_head_sha` protection.
-7. Verify merged content on `main` and inspect post-merge CI when GitHub exposes it.
-8. Refresh post-merge status wording if needed.
-9. Continue from `docs/PHASES.md` into the next approved delivery/design boundary without widening active HTTP authority.
+1. Require the complete repository CI gate on the exact final PR #27 documentation head.
+2. Re-check that exact head is mergeable and unchanged.
+3. Re-check review threads and submitted reviews for blockers.
+4. Reconfirm no new security issue was introduced by the docs-only tail.
+5. Squash merge PR #27 with `expected_head_sha` protection.
+6. Verify merged content on `main` and inspect post-merge CI when GitHub exposes it.
+7. Refresh post-merge status wording if needed.
+8. Continue from `docs/PHASES.md` into the next approved delivery/design boundary without widening active HTTP authority.
 
 ## Next boundary
 
