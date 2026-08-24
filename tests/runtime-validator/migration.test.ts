@@ -36,6 +36,7 @@ describe("Phase 4C active validation migration", () => {
     expect(sql).toContain("job_status <> 'running'");
     expect(sql).toContain("job_cancel_requested_at is not null");
     expect(sql).toContain("Runtime observations require a running uncancelled job");
+    expect(sql).toMatch(/from public\.scan_jobs[\s\S]*for update;/i);
   });
 
   it("preserves authenticated select-only access for runtime observations", async () => {
