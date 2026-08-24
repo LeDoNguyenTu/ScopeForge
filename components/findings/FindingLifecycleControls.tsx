@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import type { FindingLifecycleState, WorkspaceRole } from "@/lib/database.types";
 import { changeFindingLifecycleAction } from "@/app/dashboard/findings/[findingId]/actions";
 import type { Phase5ALifecycleAction } from "@/lib/security-findings/service";
@@ -33,7 +32,6 @@ export default function FindingLifecycleControls({
   lifecycleState,
   role,
 }: FindingLifecycleControlsProps) {
-  const router = useRouter();
   const [currentState, setCurrentState] = useState<FindingLifecycleState>(lifecycleState);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -75,7 +73,6 @@ export default function FindingLifecycleControls({
       setCurrentState(result.data.lifecycleState as FindingLifecycleState);
       setNote("");
       setMessage("Finding lifecycle updated.");
-      router.refresh();
     });
   }
 
