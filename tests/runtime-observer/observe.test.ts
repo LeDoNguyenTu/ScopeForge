@@ -78,6 +78,29 @@ describe("observeRuntimeTarget", () => {
     });
   });
 
+  it("does not persist query secrets in redirect source observations", async () => {
+    const transport = vi.fn(async () => response(302, { location: "/next" }));
+    const targetWithSecretQuery = {
+      ...target(),
+      canonicalUrl: "https://example.com/app?token=super-secret",
+    };
+
+    const result = await observeRuntimeTarget(
+      targetWithSecretQuery,
+      budget({ maxRedirects: 0 }),
+      { transport },
+    );
+
+    expect(result.observations).toContainEqual({
+      kind: "redirect",
+      from: "https://example.com/app",
+      toHost: "example.com",
+      followed: false,
+      reason: "REDIRECT_LIMIT",
+    });
+    expect(JSON.stringify(result.observations)).not.toContain("super-secret");
+  });
+
   it("records but never follows a cross-host redirect", async () => {
     const transport = vi.fn(async () => response(302, { location: "https://attacker.example/next" }));
 
