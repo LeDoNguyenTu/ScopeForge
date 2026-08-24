@@ -51,6 +51,17 @@
 - Produces:
 
 ```ts
+import type { RequestOptions } from "node:https";
+
+export interface RuntimeResolvedAddress {
+  address: string;
+  family: 4 | 6;
+}
+
+export type RuntimeResolver = (
+  hostname: string,
+) => Promise<readonly RuntimeResolvedAddress[]>;
+
 export interface RuntimeTlsMetadata {
   protocol: string | null;
   validFrom: string | null;
@@ -64,6 +75,10 @@ export interface RuntimeNetworkResponse {
   tls: RuntimeTlsMetadata;
 }
 
+export type RuntimeRequester = (
+  options: RequestOptions,
+) => Promise<RuntimeNetworkResponse>;
+
 export interface TrustedRuntimeRequestPlan {
   readonly method: "GET";
   readonly url: URL;
@@ -76,6 +91,12 @@ export interface RuntimeNetworkDependencies {
   requester?: RuntimeRequester;
   now?: () => number;
 }
+
+export function buildPinnedHttpsRequestOptions(input: {
+  plan: TrustedRuntimeRequestPlan;
+  address: string;
+  family: 4 | 6;
+}): RequestOptions;
 
 export async function requestPinnedHttps(
   plan: TrustedRuntimeRequestPlan,
@@ -151,8 +172,6 @@ Do not add active profile imports or active branching to `runtime-observer`.
 
 - [ ] **Step 5: Run the focused extraction and passive suites**
 
-Run:
-
 ```bash
 npx vitest run tests/runtime-network tests/runtime-observer
 ```
@@ -175,13 +194,14 @@ git commit -m "refactor: extract hardened runtime network boundary"
 - Create: `packages/runtime-validator/budget.ts`
 - Create: `packages/runtime-validator/cors-profile.ts`
 - Create: `packages/runtime-validator/observations.ts`
+- Create: `packages/runtime-validator/validate.ts`
 - Create: `packages/runtime-validator/index.ts`
 - Create: `tests/runtime-validator/budget.test.ts`
 - Create: `tests/runtime-validator/cors-profile.test.ts`
 - Create: `tests/runtime-validator/observations.test.ts`
 
 **Interfaces:**
-- Consumes: `TrustedRuntimeRequestPlan`, `SCOPEFORGE_SYNTHETIC_ORIGIN`, and active user-agent constant from `runtime-network`; `AssetRef` from `security-domain`.
+- Consumes: `TrustedRuntimeRequestPlan`, `RuntimeNetworkDependencies`, `SCOPEFORGE_SYNTHETIC_ORIGIN`, and active user-agent constant from `runtime-network`; `AssetRef` from `security-domain`.
 - Produces:
 
 ```ts
@@ -219,6 +239,33 @@ export interface CorsPolicyObservation {
   redirected: boolean;
   redirectHostname: string | null;
 }
+
+export type ActiveValidationStatus = "succeeded" | "failed" | "cancelled";
+
+export interface ActiveValidationResult {
+  status: ActiveValidationStatus;
+  requestCount: 0 | 1;
+  redirectCount: 0;
+  observation?: CorsPolicyObservation;
+  failureCode?: string;
+}
+
+export interface ActiveValidatorDependencies {
+  network?: RuntimeNetworkDependencies;
+  now?: () => number;
+  isCancelled?: () => boolean | Promise<boolean>;
+}
+
+export function buildCorsOriginPolicyRequestPlan(
+  target: AuthorizedActiveTarget,
+  timeoutMs: number,
+): TrustedRuntimeRequestPlan;
+
+export async function validateCorsOriginPolicyTarget(
+  target: AuthorizedActiveTarget,
+  budget: ActiveValidationBudget,
+  dependencies?: ActiveValidatorDependencies,
+): Promise<ActiveValidationResult>;
 ```
 
 - [ ] **Step 1: Write failing profile and budget tests**
@@ -286,9 +333,40 @@ git commit -m "feat: add bounded CORS validator contract"
 - Create: `tests/runtime-validator/domain-mapper.test.ts`
 
 **Interfaces:**
-- Produces `ActiveRuntimeRuleMatch` with stable fields: `ruleId`, `title`, `description`, `severity`, `confidence`, `observationKey`, `evidenceKind`, `evidenceSummary`, `classification`, `remediation`.
-- Produces `evaluateCorsPolicyRules(observation): readonly ActiveRuntimeRuleMatch[]`.
-- Produces `mapActiveRuntimeRuleMatchToEvidence` and `mapActiveRuntimeRuleMatchToSecurityFinding`.
+
+```ts
+export interface ActiveRuntimeRuleMatch {
+  ruleId: string;
+  title: string;
+  description: string;
+  severity: "info" | "low" | "medium" | "high" | "critical";
+  confidence: "low" | "medium" | "high";
+  observationKey: string;
+  evidenceKind: "runtime-observation";
+  evidenceSummary: string;
+  classification: "public";
+  remediation: {
+    summary: string;
+    steps: readonly string[];
+  };
+}
+
+export function evaluateCorsPolicyRules(
+  observation: CorsPolicyObservation,
+): readonly ActiveRuntimeRuleMatch[];
+
+export function mapActiveRuntimeRuleMatchToEvidence(input: {
+  assetRef: AssetRef;
+  match: ActiveRuntimeRuleMatch;
+}): EvidenceRecord;
+
+export function mapActiveRuntimeRuleMatchToSecurityFinding(input: {
+  assetRef: AssetRef;
+  profileId: "cors-origin-policy";
+  profileVersion: "1";
+  match: ActiveRuntimeRuleMatch;
+}): SecurityFinding;
+```
 
 - [ ] **Step 1: Write RED rule tests for the three specified outcomes**
 
@@ -394,8 +472,6 @@ Use `alter type public.scan_job_kind add value if not exists 'active_validation'
 
 - [ ] **Step 4: Extend `lib/database.types.ts` exactly to the migration**
 
-Set:
-
 ```ts
 export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation";
 ```
@@ -430,22 +506,22 @@ git commit -m "feat: persist bounded active validation jobs"
 - Create: `lib/active-validations/authorization.ts`
 - Create: `lib/active-validations/service.ts`
 - Modify: `lib/active-validations/types.ts`
+- Modify: `packages/runtime-validator/validate.ts`
 - Create: `tests/active-validations/authorization.test.ts`
 - Create: `tests/active-validations/service.test.ts`
 - Create: `tests/active-validations/async-cancellation-service.test.ts`
+- Create: `tests/runtime-validator/validate.test.ts`
 
 **Interfaces:**
 - `authorizeActiveValidationEnqueue(input)` accepts actor, workspace, role, asset, exact profile id/version, and budget, and returns immutable enqueue input plus `AuthorizedActiveTarget`.
 - `reauthorizeActiveValidationExecution({ job, asset })` reloads and compares job/asset snapshot before any DNS/network operation.
-- `executeActiveValidation(jobId, dependencies)` calls a dependency `validate?: typeof validateCorsOriginPolicyTarget`.
+- `executeActiveValidation(jobId, dependencies)` calls dependency `validate?: typeof validateCorsOriginPolicyTarget`.
 
 - [ ] **Step 1: Write RED authorization tests**
 
 Cover unauthenticated, viewer, member, cross-workspace asset, unsupported repository asset, unverified asset, stale `verified_at`, changed canonical target, changed kind/hostname, unknown profile, wrong version, invalid budget, cancellation-before-start, and executable-state checks. Explicitly assert owner and admin are accepted while member remains accepted for passive Phase 4B tests.
 
 - [ ] **Step 2: Implement stable active authorization codes**
-
-Use active-specific codes such as:
 
 ```ts
 "ACTIVE_UNAUTHENTICATED"
@@ -467,9 +543,9 @@ Safe user-facing reasons must describe bounded active validation without exposin
 
 Inject a spy validator and assert it is never called when execution reauthorization fails. Assert audit sequence includes `active_validation.authorized`, `active_validation.enqueued`, `active_validation.started`, and exactly one terminal event.
 
-- [ ] **Step 4: Implement `validateCorsOriginPolicyTarget` inside `packages/runtime-validator`**
+- [ ] **Step 4: Implement `validateCorsOriginPolicyTarget`**
 
-The validator checks cancellation before request-plan construction/DNS, calls `runtime-network` once, checks cancellation after response, normalizes one CORS observation, checks cancellation before rule evaluation, evaluates rules, and returns a result containing `requestCount` 0 or 1, `redirectCount: 0`, observation, findings, and evidence. 3xx responses end after one response and are never followed.
+The validator checks cancellation before request-plan construction/DNS, calls `runtime-network` once, checks cancellation after response, normalizes one CORS observation, checks cancellation before rule evaluation, evaluates rules, and returns a result containing `requestCount` 0 or 1, `redirectCount: 0`, observation, findings, and evidence. 3xx responses end after one response and are never followed. Extend `ActiveValidationResult` in `contracts.ts` with readonly `findings` and `evidence` arrays whose types are the return types of the active mapper functions.
 
 - [ ] **Step 5: Implement trusted service orchestration**
 
@@ -552,7 +628,7 @@ git commit -m "feat: expose bounded CORS validation control"
 - Create: `tests/architecture/runtime-validator-dependencies.test.ts`
 - Create: `tests/runtime-validator/authority-boundary.test.ts`
 - Create: `tests/runtime-validator/network-safety-regressions.test.ts`
-- Modify as needed only when a failing test proves a production defect in Phase 4C files.
+- Modify only the Phase 4C production file implicated by a failing regression test.
 
 **Interfaces:** none new. This task locks the allowed dependency and network authority surface.
 
@@ -648,11 +724,11 @@ Use expected-head protection and squash merge. After merge, verify `main` contai
 
 ## Self-Review Checklist
 
-Before executing this plan, verify:
+Before execution, verify:
 
 - Every spec requirement maps to at least one task above.
 - No task widens Phase 4C-1 beyond one fixed CORS GET.
-- No placeholder strings such as TBD/TODO/implement later remain in this plan.
+- All code-facing steps identify concrete files, interfaces, tests, commands, and expected outcomes.
 - Active budget names and field names are consistent across validator, authorization, migration, repository, service, action, and UI tasks.
 - Active profile id/version are consistently `cors-origin-policy` and `1`.
 - Active job kind is consistently `active_validation`.
