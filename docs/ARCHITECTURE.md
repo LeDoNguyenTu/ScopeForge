@@ -218,16 +218,17 @@ trusted repository adapter
 - fresh DNS resolution and public-IP classification for every outbound connection
 - connection pinned to an IP that passed classification
 - same-host redirects only, with the same validation repeated before the next connection
-- explicit request-count, redirect-count, response-size, observation-size, request-timeout, and total-time budgets
+- explicit request-count, redirect-count, observation-size, request-timeout, and total-time budgets
+- DNS resolution is included inside each request deadline rather than occurring outside the timeout budget
 - no crawling, generalized endpoint discovery, fuzzing, exploit payloads, authentication replay, credential attacks, persistence, or destructive actions
 
 The runtime package may depend on `network-safety` and `security-domain`, but it must not depend on Next.js, React, Supabase, application/component code, or model-provider SDKs. `tests/architecture/runtime-observer-dependencies.test.ts` enforces this direction together with the purity boundary for `network-safety`.
 
 ### Observation and persistence boundary
 
-Runtime collection stores normalized observations rather than raw responses. Response bodies are not persisted. Cookie values are not persisted. Only bounded selected header state, cookie security attributes, redirect/status information, and TLS metadata cross the observation boundary.
+Runtime collection stores normalized observations rather than raw responses. Response bodies are not persisted. Cookie values are not persisted. URL query strings and fragments are removed before runtime URLs cross the persistence boundary. Only bounded selected header state, cookie security attributes, redirect/status information, and TLS metadata cross the observation boundary.
 
-`lib/runtime-observations` is the trusted application layer. It owns workspace/role checks, proof-of-control continuity, immutable authorization snapshots, execution-time reauthorization immediately before networking, state transitions, cancellation semantics, stable failure codes, persistence ordering, and bounded audit events. Database writes use the trusted server client; browser-facing code does not write scan jobs or observations directly.
+`lib/runtime-observations` is the trusted application layer. It owns workspace/role checks, proof-of-control continuity, immutable authorization snapshots, execution-time reauthorization immediately before networking, state transitions, asynchronous database-backed cancellation checks between network operations, stable failure codes, persistence ordering, and bounded audit events. Database writes use the trusted server client; browser-facing code does not write scan jobs or observations directly.
 
 Authorization is checked twice by design. A job is authorized when enqueued and reauthorized against the current asset state immediately before network execution. A changed workspace, asset target, asset kind, verification state, or cancellation request blocks network behavior instead of trusting a stale queue decision.
 
