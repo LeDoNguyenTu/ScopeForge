@@ -13,7 +13,7 @@ const LIMITS = Object.freeze({
   id: 256,
   sourceId: 256,
   sourceVersion: 128,
-  scanRunRef: 512,
+  scanRunRef: 256,
   ruleRef: 512,
   title: 240,
   description: 8_192,
