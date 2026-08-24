@@ -29,11 +29,30 @@ function stableActiveRuntimeDigest(
     .digest("hex");
 }
 
+function boundedEvidenceSummary(match: ActiveRuntimeRuleMatch): string {
+  return match.evidenceSummary.slice(0, MAX_EVIDENCE_SUMMARY_LENGTH);
+}
+
+function activeRuntimeEvidenceDigest(
+  assetRef: AssetRef,
+  match: ActiveRuntimeRuleMatch,
+): string {
+  return createHash("sha256")
+    .update(stableActiveRuntimeDigest(assetRef, match), "utf8")
+    .update("\u0000", "utf8")
+    .update(match.evidenceKind, "utf8")
+    .update("\u0000", "utf8")
+    .update(match.classification, "utf8")
+    .update("\u0000", "utf8")
+    .update(boundedEvidenceSummary(match), "utf8")
+    .digest("hex");
+}
+
 function activeRuntimeEvidenceId(
   assetRef: AssetRef,
   match: ActiveRuntimeRuleMatch,
 ) {
-  return evidenceId(`active-runtime-evidence:${stableActiveRuntimeDigest(assetRef, match)}`);
+  return evidenceId(`active-runtime-evidence:${activeRuntimeEvidenceDigest(assetRef, match)}`);
 }
 
 export function mapActiveRuntimeRuleMatchToEvidence(input: {
@@ -44,7 +63,7 @@ export function mapActiveRuntimeRuleMatchToEvidence(input: {
     id: activeRuntimeEvidenceId(input.assetRef, input.match),
     kind: input.match.evidenceKind,
     provenance: { kind: "observed" },
-    summary: input.match.evidenceSummary.slice(0, MAX_EVIDENCE_SUMMARY_LENGTH),
+    summary: boundedEvidenceSummary(input.match),
     classification: input.match.classification,
   };
 }
