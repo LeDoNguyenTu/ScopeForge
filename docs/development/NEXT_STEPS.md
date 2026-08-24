@@ -20,7 +20,7 @@ That supporting head includes regression coverage and production hardening for:
 - cancellation/persistence linearization so committed active evidence cannot coexist with a cancelled terminal state
 - dependency guards preventing UI/application code from importing generic runtime transport authority
 
-Permanent documentation changes move the PR beyond CI #546. The exact remaining Phase 4C-1 actions are:
+The implementation is frozen. The remaining commits are permanent documentation only. The exact remaining Phase 4C-1 actions are:
 
 1. Require the exact final documentation head to pass the complete repository CI gate:
    - `npm ci --ignore-scripts --no-audit --no-fund`
@@ -35,7 +35,7 @@ Permanent documentation changes move the PR beyond CI #546. The exact remaining 
 4. Confirm GitHub still reports the unchanged head mergeable.
 5. Squash merge with `expected_head_sha` protection.
 6. Verify merged content on `main` and inspect resulting `main` CI when exposed by the available GitHub tooling. Never infer an unavailable post-merge result.
-7. Refresh any post-merge state wording if required before beginning the next architectural slice.
+7. Refresh post-merge state wording if required before beginning the next architectural slice.
 
 ## Next planned delivery boundary
 
