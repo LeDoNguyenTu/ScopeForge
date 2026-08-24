@@ -68,6 +68,18 @@ begin
        or old.status not in ('queued'::public.scan_job_status, 'running'::public.scan_job_status) then
       raise exception 'Invalid runtime cancellation request transition';
     end if;
+
+    if old.job_kind::text = 'active_validation'
+       and exists (
+         select 1
+           from public.runtime_observations
+          where job_id = old.id
+            and workspace_id = old.workspace_id
+            and asset_id = old.asset_id
+            and kind = 'cors-policy'
+       ) then
+      raise exception 'Active validation cannot be cancelled after observation persistence';
+    end if;
   end if;
 
   if new.status is distinct from old.status then
