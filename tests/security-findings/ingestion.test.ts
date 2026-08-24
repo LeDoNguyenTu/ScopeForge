@@ -3,6 +3,7 @@ import {
   assetRef,
   evidenceId,
   ruleRef,
+  scanRunRef,
   securityFindingId,
   type EvidenceRecord,
   type SecurityFinding,
@@ -123,5 +124,9 @@ describe("prepareFindingIngestionBatch", () => {
       ...finding,
       taxonomy: { ...finding.taxonomy, references: ["x".repeat(20_000)] },
     }] })).toThrow(/taxonomy/i);
+    expect(() => prepare({ findings: [{
+      ...finding,
+      source: { ...finding.source, scanRunRef: scanRunRef("x".repeat(257)) },
+    }] })).toThrow(/scan run reference/i);
   });
 });
