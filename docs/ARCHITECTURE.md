@@ -1,6 +1,6 @@
 # ScopeForge Architecture
 
-ScopeForge separates the web control plane from scanner execution so the public application does not become an unrestricted scanning proxy.
+ScopeForge separates control-plane authorization from scanner execution so the public application cannot become an unrestricted scanning proxy. Safety boundaries are expressed both in package dependency direction and in executable runtime policy.
 
 ## Control plane
 
@@ -13,39 +13,31 @@ Vercel / Next.js control plane
   +--> Supabase Auth
   +--> Supabase PostgreSQL
   |
+  +--> trusted server actions
+  |
   +--> future scan queue
            |
            +--> isolated workers
            +--> private artifact storage
+           +--> dedicated egress controls
 ```
 
-### Tenancy
+Every authenticated user belongs to one or more workspaces through `workspace_members`. Exposed tables use Row Level Security and workspace membership helpers. Security-sensitive runtime writes use trusted server adapters; browser roles receive read access only where required.
 
-Every authenticated user belongs to one or more workspaces through `workspace_members`. Exposed tables use Row Level Security and workspace membership helpers. The `private` schema contains security-definer helpers and is not intended to be exposed through PostgREST.
-
-### Domain and edge
-
-`scopeforge.dev` should use Cloudflare as authoritative DNS while the Vercel application records remain DNS-only. This avoids placing an unsupported reverse proxy in front of Vercel while retaining Cloudflare DNS, R2, and Turnstile. Vercel provisions application TLS after DNS verification.
-
-### Abuse protection
-
-Supabase Auth rate limits provide the authentication baseline. Before opening a public trial, high-value authentication and application endpoints require explicit abuse controls. Future scanner jobs also require per-user and per-workspace quotas independent of authentication rate limits.
+`scopeforge.dev` should use Cloudflare as authoritative DNS while Vercel application records remain DNS-only. Supabase Auth rate limits provide the authentication baseline, while public scanner workflows require separate product quotas and abuse controls.
 
 ## Phase 3 local scanner
 
-The Phase 3 scanner is a separate local execution path. It does not require the web control plane or a ScopeForge account.
+The Phase 3 scanner is a separate local execution path and does not require the hosted control plane.
 
 ```text
 Target repository
   |
   v
 scanner-core
-  +--> bounded inventory
-  +--> safe no-follow reads
-  +--> normalized finding model
-  +--> coordinator
-  +--> config and policy
-  +--> baseline model
+  +--> bounded inventory and safe reads
+  +--> normalized findings
+  +--> coordination, policy, baseline
   |
   +--> scanner-secrets
   +--> scanner-jsts
@@ -53,189 +45,128 @@ scanner-core
   +--> scanner-iac
   |
   v
-scanner-output
-  +--> native JSON
-  +--> SARIF
+scanner-output -> JSON / SARIF
   |
   v
-cli composition root
-  +--> terminal presentation
-  +--> safe artifact writing
-  +--> CycloneDX request orchestration
-  +--> process exit semantics
+CLI composition root
 ```
 
-### Module responsibilities
+Repository content is hostile data. Phase 3 does not execute target modules, lifecycle scripts, Dockerfiles, Terraform, Kubernetes, GitHub Actions, package managers, or cloud tooling. OSV enrichment is opt-in and sends only normalized npm package identity/version data.
 
-`packages/scanner-core` owns shared scanner contracts and safety primitives. Repository inventory, bounded file reads, findings, fingerprints, configuration, coordination, policy, and baselines live here because detector families need them without depending on a user interface.
+Dependency direction remains one-way: detector packages may depend on `scanner-core`, output adapters consume normalized results, and the CLI orchestrates rather than owning detector logic.
 
-`packages/scanner-secrets` owns secret-specific matching, redaction, suppression, and secret finding construction. Raw detected values must not cross its normalized finding boundary.
+## Product security domain
 
-`packages/scanner-jsts` owns JavaScript and TypeScript parsing, structural rules, and bounded taint analysis. It parses syntax only and does not resolve or execute target modules.
-
-`packages/scanner-sca` owns npm dependency inventory, optional OSV enrichment, vulnerability normalization, and CycloneDX generation. Network access is opt-in and isolated behind the OSV client.
-
-`packages/scanner-iac` owns Docker, Kubernetes, Terraform, GitHub Actions, and recognized generic configuration analyzers. Each format keeps a parser/rule boundary instead of sharing broad text heuristics.
-
-`packages/scanner-output` owns serialization adapters over normalized `ScanResult` data. Output modules must not rerun detectors or reach back into repository files.
-
-`packages/cli` is the composition root and presentation layer. It selects built-ins, coordinates user options, writes artifacts safely, renders terminal output, and maps scan state to process exit codes. Detector packages must not depend on the CLI.
-
-### Dependency direction
-
-The maintainable dependency direction is intentionally one-way:
+`packages/security-domain` is the framework-independent product domain for findings, evidence, provenance, validation, lifecycle, remediation, relationships, and provider-neutral advisory contracts.
 
 ```text
-scanner-core <- detector packages <- CLI composition
-      ^
-      |
-scanner-output reads normalized core results
+scanner packages -> security-domain-adapters/phase3 -> security-domain
+                                                    ^
+                                                    |
+                                             runtime mappings
 ```
 
-Rules for future work:
+The domain must not import scanners, CLI, Next.js, React, Supabase, database adapters, workers, or model-provider SDKs. Advisory/model systems are downstream consumers of normalized domain records and cannot independently promote security validation state.
 
-- detector packages may depend on `scanner-core`, not on `packages/cli`
-- output adapters consume normalized findings/results and must not call scanners
-- format-specific parsers stay inside their detector package
-- shared safety behavior belongs in `scanner-core` only when at least two consumers genuinely need the same contract
-- the CLI should orchestrate behavior rather than contain detector logic
-- hosted workers should reuse scanner packages instead of copying CLI internals
-- active runtime scanning belongs in a separate later execution boundary rather than being inserted into passive repository detector packages
+## Runtime security architecture
 
-This keeps modules independently testable, reduces circular dependencies, and allows later workers, APIs, or packaged distributions to reuse the scanner engines behind different front ends.
-
-### Passive execution boundary
-
-Phase 3 treats repository content as hostile data. The local scanner does not execute target repository code, lifecycle scripts, Dockerfiles, Terraform, Kubernetes manifests, GitHub Actions workflows, package managers, or cloud tooling.
-
-OSV enrichment is the only Phase 3 scanner network path and is disabled by default. When explicitly enabled, it sends normalized npm package identity and exact version only.
-
-Remote DAST and API testing are later concerns and require a separate authorization, isolation, egress, quota, timeout, cancellation, and audit model.
-
-## Phase 4A product security domain
-
-Phase 4A adds a framework-independent product domain above individual scanner implementations. The purpose is to let repository scanners, passive runtime scanners, hosted application services, UI, and optional advisory systems share stable security concepts without coupling those concepts to one execution engine or infrastructure provider.
+Phase 4 runtime work is intentionally split into four layers:
 
 ```text
-scanner-core / detector packages
-          |
-          v
-security-domain-adapters/phase3
-          |
-          v
-     security-domain
-          ^
-          |
- application services
-    ^      ^      ^
-    |      |      |
-  UI/API  workers  provider adapters
+trusted application services
+        |
+        +----------------------+----------------------+
+        |                                             |
+        v                                             v
+runtime-observer                               runtime-validator
+(passive authority)                           (bounded active authority)
+        |                                             |
+        +----------------------+----------------------+
+                               |
+                               v
+                         runtime-network
+                    DNS + HTTPS + pinning + deadlines
+                               |
+                               v
+                         network-safety
+                       pure IP/DNS policy
 ```
 
-The dependency rule is one-way. `packages/security-domain` contains only pure product contracts and helpers. It must not import scanner packages, the CLI, Next.js, React, Supabase, worker code, database adapters, or model-provider SDKs. `tests/architecture/security-domain-dependencies.test.ts` makes this boundary executable in CI.
+`packages/network-safety` is pure policy. It validates public IP addresses and complete DNS resolution sets, but performs no DNS lookup, HTTP/TLS I/O, database work, framework work, or application behavior.
 
-`packages/security-domain-adapters/phase3` is an edge adapter. It may consume Phase 3 scanner findings and map them into the product domain, but the product domain must never import that adapter or scanner types. The adapter maps only normalized, explicitly selected fields. Scanner `metadata`, baseline state, source snippets, and data-flow internals are not copied into the product finding contract by default.
+`packages/runtime-network` is the shared low-level network implementation. It performs fresh DNS resolution, rejects unsafe or mixed resolution sets, pins HTTPS connections to a validated IP while retaining the authorized hostname for Host/SNI/certificate verification, destroys response bodies, and includes DNS plus HTTPS inside one absolute request deadline. It does not know about findings, UI, database state, passive redirects, or active validation profiles.
 
-### Product security concepts
+### Phase 4B passive runtime observer
 
-The domain separates concepts that were previously scanner-specific:
+`packages/runtime-observer` remains passive-only. It owns:
 
-- source identifies where a finding came from
-- provenance distinguishes observed, scanner-derived, user-confirmed, and inferred information
-- evidence has an explicit content classification
-- validation state records what level of confirmation exists
-- lifecycle tracks remediation and review independently from validation
-- relationships model typed security connections between product entities
-- remediation is structured data rather than an infrastructure-specific blob
+- verified web/API target and same-host redirect policy
+- HTTPS port 443 and GET-only passive behavior
+- request-count, redirect-count, observation-size, request-timeout, and total-time budgets
+- same-host redirect decisions with fresh network validation on every connection
+- bounded/redacted HTTP status, selected-header, cookie-attribute, redirect, and TLS observations
+- deterministic passive runtime rules and security-domain mapping
 
-This separation allows passive runtime/API scanners to produce the same product finding shape without pretending to be Phase 3 repository scanners.
+It delegates DNS/TLS/IP-pinning/deadline mechanics to `runtime-network`. It does not expose arbitrary headers, methods, bodies, credentials, crawling, fuzzing, exploit payloads, or active-validation authority.
 
-### Advisory and future model boundary
+`lib/runtime-observations` owns trusted enqueue authorization, immutable target/verification snapshots, execution-time reauthorization, job transitions, database-backed asynchronous cancellation, persistence ordering, stable failure codes, and bounded audit events.
 
-Optional model assistance is downstream from normalized product data:
+Phase 4B merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
 
-```text
-normalized domain records
-        |
-        v
-advisory context policy
-        |
-        v
-provider-neutral AdvisoryService
-        |
-        v
-future local or remote provider adapter
-```
+### Phase 4C-1 bounded active validator
 
-`AdvisoryService` accepts domain requests rather than provider prompts or SDK message types. Advisory results are typed as inferred provenance. Advisory authority cannot promote validation state. Secret-classified context is always removed, and sensitive context cannot reach a remote provider unless a future caller explicitly opts in through the context policy.
+The Phase 4C design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`. PR #27 implements only `cors-origin-policy@1`.
 
-Future provider adapters may support hosted or local models without changing scanner packages or the security domain. Models do not receive direct scanner authority, direct network-scanning authority, or an implicit path to repository content. Core scanning, validation, lifecycle, and remediation workflows must remain usable when no model integration is configured.
+`packages/runtime-validator` owns the built-in active profile and deterministic CORS policy interpretation. It may depend on `runtime-network` and `security-domain`, but it must not depend on `runtime-observer`, Next.js, React, Supabase, application/component code, or model-provider SDKs.
 
-## Phase 4B verified passive runtime observations
+The fixed Phase 4C-1 authority is:
 
-Phase 4B introduces a separate remote observation path without turning the web application into a general-purpose scanner. The approved design and implementation plan were merged through PR #24 before runtime behavior was added.
+- verified `web_application` or `api` asset only
+- separate explicit owner/admin authorization; verification alone is insufficient
+- immutable canonical target, asset kind, verification timestamp, profile/version, consent timestamp, and budget snapshot
+- execution-time reauthorization before DNS/network
+- exact verified HTTPS hostname on port 443
+- exactly one unauthenticated GET
+- fixed `Origin: https://scopeforge.invalid`
+- fixed safe request headers only
+- zero redirect following and zero retries
+- zero request body
+- zero cookies, Authorization, credential replay, or caller-provided headers
+- DNS-inclusive 5-second request deadline and 10-second total bound
+- no response-body capture or persistence
+- one bounded normalized `cors-policy` observation
+- deterministic `runtime_validated` security-domain findings
 
-```text
-verified web/API asset
-        |
-        v
-application service
-  +--> enqueue authorization snapshot
-  +--> execution-time reauthorization
-  +--> cancellation and audit
-        |
-        v
-runtime-observer
-  +--> target and redirect policy
-  +--> explicit budgets
-  +--> fresh DNS classification
-  +--> DNS-pinned HTTPS transport
-  +--> redacted HTTP/TLS observations
-  +--> deterministic runtime rules
-        |
-        +--> network-safety
-        |
-        +--> security-domain mapping
-        |
-        v
-trusted repository adapter
-  +--> scan_jobs
-  +--> runtime_observations
-```
+The validator is deliberately not a generic HTTP API. Callers cannot choose URL, path, method, Origin, headers, body, credentials, redirect policy, profile, or budget.
 
-### Pure network-safety boundary
+`lib/active-validation` owns the trusted application boundary: owner/admin authorization, immutable snapshot persistence, execution reauthorization, stable audit/failure semantics, DB-backed cancellation, and active-only repository mutations. Active observations reuse `scan_jobs` and `runtime_observations`; no parallel finding/job schema is introduced.
 
-`packages/network-safety` owns reusable public-IP classification and resolution-result validation. It is deliberately pure: no DNS lookup, HTTP client, TLS socket, database call, framework dependency, or application behavior belongs there. Phase 2 verification and Phase 4B runtime execution can therefore share deny rules without sharing transport code.
+The database guards `cors-policy` observations so they can only be attached to a running, uncancelled `active_validation` job, while passive observation kinds remain limited to `passive_runtime` jobs. The final active success transition also requires the job to remain running and uncancelled atomically.
 
-### Runtime execution boundary
+The asset UI keeps passive and active controls separate. The active panel shows the fixed request contract and requires an explicit consent checkbox before calling the dedicated server action. Browser input is limited to asset identity plus consent; cancellation is scoped to job identity.
 
-`packages/runtime-observer` owns the bounded network behavior. Its policy is intentionally narrow:
+### Evidence and secret boundary
 
-- verified `web_application` and `api` assets only
-- HTTPS only on port 443
-- GET requests only
-- no request body
-- fresh DNS resolution and public-IP classification for every outbound connection
-- connection pinned to an IP that passed classification
-- same-host redirects only, with the same validation repeated before the next connection
-- explicit request-count, redirect-count, observation-size, request-timeout, and total-time budgets
-- DNS resolution is included inside each request deadline rather than occurring outside the timeout budget
-- no crawling, generalized endpoint discovery, fuzzing, exploit payloads, authentication replay, credential attacks, persistence, or destructive actions
+Runtime persistence stores normalized observations, not raw responses. Response bodies and cookie values are never persisted. Persisted runtime URLs remove query strings, fragments, and credentials. Active CORS persistence keeps only URL, status, Access-Control-Allow-Origin, credential allowance, and Vary-on-Origin state. Raw Set-Cookie values, arbitrary response headers, exception text, and upstream bodies do not cross the persistence boundary.
 
-The runtime package may depend on `network-safety` and `security-domain`, but it must not depend on Next.js, React, Supabase, application/component code, or model-provider SDKs. `tests/architecture/runtime-observer-dependencies.test.ts` enforces this direction together with the purity boundary for `network-safety`.
+## Executable dependency boundaries
 
-### Observation and persistence boundary
+CI guards the following directions:
 
-Runtime collection stores normalized observations rather than raw responses. Response bodies are not persisted. Cookie values are not persisted. URL query strings and fragments are removed before runtime URLs cross the persistence boundary. Only bounded selected header state, cookie security attributes, redirect/status information, and TLS metadata cross the observation boundary.
+- `security-domain` remains independent of scanner/infrastructure/provider layers
+- `network-safety` remains pure and free of DNS/HTTP/TLS/database/framework dependencies
+- `runtime-network` stays below observers/validators and outside application/domain layers
+- `runtime-observer` stays independent of web/database/provider layers and imports no active validator authority
+- `runtime-validator` stays independent of passive/web/database/provider layers and does not re-export shared generic transport authority
 
-`lib/runtime-observations` is the trusted application layer. It owns workspace/role checks, proof-of-control continuity, immutable authorization snapshots, execution-time reauthorization immediately before networking, state transitions, asynchronous database-backed cancellation checks between network operations, stable failure codes, persistence ordering, and bounded audit events. Database writes use the trusted server client; browser-facing code does not write scan jobs or observations directly.
+These tests are security controls, not style checks: they prevent later refactors from silently turning a narrow validator into a generic scanning proxy.
 
-Authorization is checked twice by design. A job is authorized when enqueued and reauthorized against the current asset state immediately before network execution. A changed workspace, asset target, asset kind, verification state, or cancellation request blocks network behavior instead of trusting a stale queue decision.
+## Current orchestration and future isolation
 
-### Product finding mapping
+Phase 4B and the initial Phase 4C-1 slice execute through trusted server-side control-plane services. This is deliberately bounded but is not the final worker-scale topology.
 
-Passive observations are evaluated deterministically and mapped into the Phase 4A `security-domain`. Runtime evidence is typed as observed runtime evidence and uses stable deterministic identifiers. No model is needed to decide whether an observed security header or TLS property exists.
+Phase 6 remains responsible for queue-backed isolated workers, dedicated egress infrastructure, concurrency/backpressure, private artifacts, operational scanner isolation, and abuse controls. Moving runtime execution behind that boundary must reuse the existing target, authorization, budget, cancellation, network, evidence, and audit contracts rather than widening them.
 
-### Current orchestration and future isolation
+## Active-testing non-goals
 
-The Phase 4B implementation exposes the bounded service through trusted Next.js server actions for the minimal asset workflow. This is not the long-term worker-scale topology. Queue-backed isolated workers, dedicated egress controls, concurrency/backpressure, private artifacts, and operational worker isolation remain later delivery work. Moving execution behind that worker boundary must reuse the same authorization, runtime-observer, budget, cancellation, audit, and persistence contracts rather than widening network policy.
+The current architecture does not authorize broad crawling, generalized endpoint discovery, OPTIONS/preflight probing, user-supplied origins, SQL injection, XSS, SSRF payloads, file discovery, arbitrary methods/headers/bodies, authenticated testing, cookie replay, browser automation, JavaScript execution, fuzzing, credential attacks, exploit confirmation, denial-of-service behavior, persistence, cross-host redirects, generalized DAST, or automatic remediation.
