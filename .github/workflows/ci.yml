@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -20,22 +20,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           package-manager-cache: false
-      - name: Bootstrap package lock once
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && hashFiles('package-lock.json') == ''
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build:cli
+      - run: node .scopeforge-build/packages/cli/index.js version
+      - run: npm run benchmark:scanner
+      - run: npm run build
         env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          set -euo pipefail
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore: lock dependencies"
-          git push origin "HEAD:${HEAD_REF}"
-      - name: Validate lock exists
-        run: test -f package-lock.json
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
