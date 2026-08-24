@@ -46,7 +46,7 @@ const input: Finding = {
 };
 
 describe("Phase 3 finding adapter", () => {
-  it("maps deterministically without copying scanner metadata", () => {
+  it("maps deterministically without copying scanner-private detail", () => {
     const first = mapPhase3Finding(input);
     const second = mapPhase3Finding({
       ...input,
@@ -79,7 +79,7 @@ describe("Phase 3 finding adapter", () => {
     expect(serialized).not.toContain("must-not-copy");
     expect(serialized).not.toContain("also-not-copy");
     expect(serialized).not.toContain("exec(<redacted>)");
-    expect(serialized).not.toContain("source\");
+    expect(serialized).not.toContain("dataFlow");
   });
 
   it("maps Phase 3 validation conservatively", () => {
