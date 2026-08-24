@@ -39,6 +39,15 @@ describe("Phase 4C active validation migration", () => {
     expect(sql).toMatch(/from public\.scan_jobs[\s\S]*for update;/i);
   });
 
+  it("does not record active cancellation after the bounded observation has persisted", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+
+    expect(sql).toContain("Active validation cannot be cancelled after observation persistence");
+    expect(sql).toMatch(
+      /new\.cancel_requested_at is distinct from old\.cancel_requested_at[\s\S]*old\.job_kind::text = 'active_validation'[\s\S]*exists \([\s\S]*from public\.runtime_observations[\s\S]*kind = 'cors-policy'/i,
+    );
+  });
+
   it("preserves authenticated select-only access for runtime observations", async () => {
     const sql = await readFile(migrationPath, "utf8");
 
