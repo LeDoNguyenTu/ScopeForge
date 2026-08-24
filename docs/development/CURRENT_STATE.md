@@ -55,9 +55,9 @@ PR #24 merged the approved Phase 4B design as `d59e55c2d5123f0adb2b2c6d18eaace3b
 
 - verified web/API target contract
 - HTTPS port 443 and GET-only target policy
-- explicit request, redirect, byte, observation, request-timeout, and total-time budgets
+- explicit request-count, redirect-count, observation-size, request-timeout, and total-time budgets
 - fresh DNS classification before each outbound connection
-- DNS-pinned HTTPS transport
+- DNS-pinned HTTPS transport with DNS resolution included in the per-request deadline
 - same-host redirects only, with full validation repeated before each connection
 - normalized HTTP status, redirect, selected-header, cookie-attribute, and TLS observations
 - no response-body persistence and no cookie-value persistence
@@ -75,7 +75,7 @@ The Phase 4B database migration adds passive runtime job state, immutable author
 - immutable canonical target, asset kind, and verification timestamp snapshot
 - reauthorization immediately before DNS/network execution
 - queued/running/succeeded/failed/blocked/cancelled transitions
-- cancellation before persistence
+- asynchronous database-backed cancellation checks between network operations and before persistence
 - stable failure codes and bounded audit metadata
 - deterministic finding/evidence mapping after successful observation
 
@@ -95,17 +95,18 @@ CI contains dependency-direction guards for:
 
 ## Supporting Phase 4B verification
 
-CI #437 passed on supporting implementation head `364ccd435c824bfdfab75407db967d027bf18656` before the final architecture/documentation changes:
+CI #459 passed on security-hardening implementation head `3fa117745a002ba6f3c0b01107593b2ff9913254` before these final documentation corrections:
 
 - reproducible dependency install
-- 109 test files and 474 tests
+- 112 test files and 484 tests
 - strict TypeScript typecheck
 - CLI build and compiled `ScopeForge 0.1.0` smoke
 - 700-file scanner benchmark with 0 findings and 0 errors
-- benchmark observation: 910 ms scanner duration, 971 ms wall time, 34,701,312 bytes RSS delta
 - Next.js production build
 
-This is supporting implementation evidence only. The architecture guard and permanent documentation change the PR head afterward, so PR #25 still requires the complete repository gate on its exact final head before merge.
+CI #459 includes regression coverage for asynchronous database-backed cancellation, remaining-total-budget request timeouts, URL query/fragment redaction in persisted observations, and DNS resolution inside the request deadline.
+
+This is supporting implementation evidence only. Permanent documentation changes the PR head afterward, so PR #25 still requires the complete repository gate on its exact final head before merge.
 
 ## Next boundary
 
