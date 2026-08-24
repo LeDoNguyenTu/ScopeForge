@@ -45,7 +45,7 @@ This log records major delivery boundaries and merge evidence. Detailed implemen
 - PR #21 exact final head `5d1fa820eda4bbc660f92950bbee6568e820f2a9` passed CI #353 with 86 test files / 331 tests, strict typecheck, CLI build/runtime, 700 clean benchmark files, and production build.
 - Phase 3 merged as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
 
-Phase 3 remains local/passive. Repository content is treated as hostile data and is not executed by the scanner. OSV remains the only optional scanner network path and receives normalized npm identity/version only when explicitly enabled.
+Phase 3 remains local/passive. Repository content is treated as hostile data and is not executed by the scanner. OSV remains the only optional Phase 3 scanner network path and receives normalized npm identity/version only when explicitly enabled.
 
 ## Phase 4A - Security domain contracts
 
@@ -55,62 +55,74 @@ Phase 3 remains local/passive. Repository content is treated as hostile data and
 - PR #22 exact design/plan head passed CI #358 and merged as `13fb2c3e914181d44f9e6957f9fe66eea2069eb4`.
 - Phase 4 was split into 4A contracts, 4B verified passive runtime/API observations, and 4C bounded active validation so later active behavior cannot bypass authorization and network-safety design.
 
-### Task 1 - Domain primitives
+### Implementation
 
-- Added `packages/security-domain` contract versioning, branded identifiers, severity/confidence, finding-source types, and provenance types.
-- Intentional RED preserved all 331 existing tests; only the missing new domain module failed.
-- CI #363 passed the complete GREEN gate.
+- Added `packages/security-domain` contract versioning, branded identifiers, severity/confidence, finding sources, provenance, typed evidence, product findings, remediation, validation, lifecycle, relationships, provider-neutral advisory contracts, and deterministic advisory context privacy/budget policy.
+- Added `packages/security-domain-adapters/phase3` as a one-way adapter from normalized Phase 3 findings into the product domain without copying scanner metadata, baseline state, redacted snippets, or data-flow internals.
+- Added `tests/architecture/security-domain-dependencies.test.ts` to block scanner, CLI, Next.js, React, Supabase, application/component, and named model-provider dependencies from the product domain.
+- Supporting implementation CI #375 passed with 93 test files / 350 tests, strict typecheck, CLI build/runtime, the 700-file benchmark, and production build.
+- Phase 4A final implementation merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
 
-### Task 2 - Findings, evidence, validation, lifecycle, remediation
+Phase 4A adds no live model provider, remote DAST, crawler, fuzzing, exploit validation, credential attack, persistence migration, worker fleet, or active runtime behavior.
 
-- Added typed evidence with content classification, product finding contracts, structured remediation, validation states, authority-aware validation transitions, and explicit finding lifecycle transitions.
-- Product evidence/findings intentionally have no arbitrary scanner metadata escape hatch.
+## Phase 4B - Verified passive runtime observations
 
-### Task 3 - Relationships and future advisory boundary
+### Design
 
-- Added typed risk relationships.
-- Added provider-neutral `AdvisoryRequest`, `AdvisoryResult`, and `AdvisoryService` contracts.
-- Advisory results are type-level inferred provenance.
-- Advisory authority cannot promote validation state.
-- Added a pure advisory context policy that always removes secret-classified context, requires explicit opt-in for remote sensitive context, and applies deterministic size budgets.
-- CI #367 passed the complete Tasks 2/3 GREEN gate.
+- PR #24 defined the safety-first passive runtime architecture and TDD implementation plan before enabling network behavior.
+- The design requires verified web/API assets, authorization at enqueue and execution time, same-host HTTPS port 443 transitions, fresh DNS classification and connection pinning, explicit budgets, cancellation, bounded audit/persistence, and deterministic security-domain mapping.
+- PR #24 merged as `d59e55c2d5123f0adb2b2c6d18eaace3b5790276`.
 
-### Task 4 - Phase 3 source adapter
+### Shared network safety
 
-- Added `packages/security-domain-adapters/phase3` as a one-way adapter from normalized Phase 3 findings into the product domain.
-- Adapter identity derives from the existing Phase 3 fingerprint and maps severity, confidence, validation, source, location, taxonomy, remediation, and normalized evidence explicitly.
-- Scanner `metadata`, baseline state, redacted snippets, and data-flow internals are not copied.
-- The mapper performs no filesystem, environment, process, scanner-rerun, or network work.
-- CI #370 established the intentional RED while 91 existing test files / 346 existing tests remained green.
-- CI #373 passed the complete adapter GREEN gate.
+- Extracted reusable public-IP classification and resolution-result validation into `packages/network-safety`.
+- Retained Phase 2 SSRF/network-boundary regression coverage while making the policy reusable by Phase 4B.
+- Kept DNS, HTTP, TLS, database, and framework behavior outside the pure package.
 
-### Task 5 - Executable architecture boundary
+### Runtime execution engine
 
-- Added `tests/architecture/security-domain-dependencies.test.ts` to block scanner, CLI, Next.js, React, Supabase, application/component, and named model-provider imports from `packages/security-domain`.
-- Updated `docs/ARCHITECTURE.md` with the one-way source-adapter/domain/application dependency direction.
-- Updated `docs/roadmap/FUTURE_AI_ASSISTANCE.md` so future local or hosted models integrate only behind the advisory context policy and provider-neutral service contract.
-- No AI SDK, provider runtime, model call, database migration, worker, queue, or active remote scanner was added.
-- CI #375 passed on supporting head `c0e93ac0408a01a8c2b1ec513e38286a7f102cef`:
-  - 93 test files / 350 tests
-  - strict TypeScript typecheck
-  - CLI build and compiled `ScopeForge 0.1.0` smoke
-  - benchmark: 700 files, 0 findings, 0 errors, 860 ms scan duration, 919 ms wall time, 28,692,480-byte RSS delta
-  - Next.js production build
+- Added `packages/runtime-observer` with verified target contracts, HTTPS port 443 and GET-only policy, same-host redirect rules, explicit request/redirect/byte/observation/timeout budgets, fresh DNS classification, and DNS-pinned HTTPS transport.
+- Added normalized HTTP status, redirect, selected security-header, cookie-attribute, and TLS observations.
+- Response bodies and cookie values are not part of the persistence contract.
+- Added deterministic passive runtime rules and mapping into Phase 4A `security-domain` findings/evidence.
 
-### Phase 4A final gate
+### Persistence and double authorization
 
-PR #23 is the active implementation PR. The permanent project-state documentation changes the head after CI #375, so CI #375 is supporting evidence only.
+- Added the Phase 4B migration for passive runtime `scan_jobs`, immutable authorization snapshots, bounded `runtime_observations`, guarded state transitions, workspace-scoped reads, and trusted-server-only writes.
+- Added `lib/runtime-observations/authorization.ts` and repository contracts.
+- Added `lib/runtime-observations/service.ts` after its contract suite exposed that the orchestration module was missing from the PR head.
+- The service authorizes at enqueue and reauthorizes immediately before networking, owns cancellation, stable failure codes, bounded audits, persistence ordering, and deterministic result mapping.
 
-Before Phase 4A is complete:
+### Minimal asset workflow
 
-1. commit final state documentation
-2. review the complete changed-file set and security boundary
-3. confirm no unresolved blocking review thread
-4. require complete CI on the exact final PR head
-5. squash merge with expected-head protection
-6. verify merged content and `main` CI when exposed by available tooling
-7. clean merged historical branches that are no longer needed
+- Added trusted server actions and `RuntimeObservationPanel` to the asset detail workflow.
+- Unverified assets cannot run observations and repository assets remain unsupported.
+- Verified web/API assets can run the bounded passive check, queued/running jobs expose cancellation, and terminal states render safe bounded summaries.
+- The UI suite used an intentional RED checkpoint while the component was missing; a later duplicate TLS rendering failure was fixed in production without weakening the assertion.
+
+### Executable architecture boundary
+
+- Added `tests/architecture/runtime-observer-dependencies.test.ts`.
+- `runtime-observer` cannot depend on Next.js, React, Supabase, application/component code, or named model-provider SDKs.
+- `network-safety` cannot gain DNS, HTTP, TLS, database, or framework behavior.
+
+### Supporting GREEN gate
+
+CI #437 passed on supporting implementation head `364ccd435c824bfdfab75407db967d027bf18656` before the final architecture/documentation changes:
+
+- 109 test files / 474 tests
+- strict TypeScript typecheck
+- CLI build and compiled `ScopeForge 0.1.0` smoke
+- 700-file benchmark with 0 findings and 0 errors
+- scanner duration 910 ms
+- wall time 971 ms
+- RSS delta 34,701,312 bytes
+- Next.js production build
+
+CI #437 is supporting evidence only. The final architecture/documentation changes move the head and require a new complete exact-head gate before merge.
 
 ## Current boundary
 
-Phase 4A implementation is complete pending its final exact-head merge gate. Phase 4B is next and must reuse `security-domain` while designing verified passive runtime/API observations and authorization/network safety before Phase 4C introduces any bounded active validation.
+Phase 4B implementation is complete in PR #25 pending full changed-file review, review-thread clearance, exact-final-head CI, squash merge with head protection, and merged-content verification.
+
+Phase 4C may be designed only after Phase 4B is merged. It must remain narrow, explicitly authorized, isolated, and non-destructive while reusing Phase 4B target, network-safety, budget, cancellation, evidence, and audit contracts.

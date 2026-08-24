@@ -114,7 +114,7 @@ Remote DAST and API testing are later concerns and require a separate authorizat
 
 ## Phase 4A product security domain
 
-Phase 4A adds a framework-independent product domain above individual scanner implementations. The purpose is to let repository scanners, future passive runtime scanners, hosted application services, UI, and optional advisory systems share stable security concepts without coupling those concepts to one execution engine or infrastructure provider.
+Phase 4A adds a framework-independent product domain above individual scanner implementations. The purpose is to let repository scanners, passive runtime scanners, hosted application services, UI, and optional advisory systems share stable security concepts without coupling those concepts to one execution engine or infrastructure provider.
 
 ```text
 scanner-core / detector packages
@@ -148,7 +148,7 @@ The domain separates concepts that were previously scanner-specific:
 - relationships model typed security connections between product entities
 - remediation is structured data rather than an infrastructure-specific blob
 
-This separation allows later passive runtime/API scanners to produce the same product finding shape without pretending to be Phase 3 repository scanners.
+This separation allows passive runtime/API scanners to produce the same product finding shape without pretending to be Phase 3 repository scanners.
 
 ### Advisory and future model boundary
 
@@ -170,3 +170,72 @@ future local or remote provider adapter
 `AdvisoryService` accepts domain requests rather than provider prompts or SDK message types. Advisory results are typed as inferred provenance. Advisory authority cannot promote validation state. Secret-classified context is always removed, and sensitive context cannot reach a remote provider unless a future caller explicitly opts in through the context policy.
 
 Future provider adapters may support hosted or local models without changing scanner packages or the security domain. Models do not receive direct scanner authority, direct network-scanning authority, or an implicit path to repository content. Core scanning, validation, lifecycle, and remediation workflows must remain usable when no model integration is configured.
+
+## Phase 4B verified passive runtime observations
+
+Phase 4B introduces a separate remote observation path without turning the web application into a general-purpose scanner. The approved design and implementation plan were merged through PR #24 before runtime behavior was added.
+
+```text
+verified web/API asset
+        |
+        v
+application service
+  +--> enqueue authorization snapshot
+  +--> execution-time reauthorization
+  +--> cancellation and audit
+        |
+        v
+runtime-observer
+  +--> target and redirect policy
+  +--> explicit budgets
+  +--> fresh DNS classification
+  +--> DNS-pinned HTTPS transport
+  +--> redacted HTTP/TLS observations
+  +--> deterministic runtime rules
+        |
+        +--> network-safety
+        |
+        +--> security-domain mapping
+        |
+        v
+trusted repository adapter
+  +--> scan_jobs
+  +--> runtime_observations
+```
+
+### Pure network-safety boundary
+
+`packages/network-safety` owns reusable public-IP classification and resolution-result validation. It is deliberately pure: no DNS lookup, HTTP client, TLS socket, database call, framework dependency, or application behavior belongs there. Phase 2 verification and Phase 4B runtime execution can therefore share deny rules without sharing transport code.
+
+### Runtime execution boundary
+
+`packages/runtime-observer` owns the bounded network behavior. Its policy is intentionally narrow:
+
+- verified `web_application` and `api` assets only
+- HTTPS only on port 443
+- GET requests only
+- no request body
+- fresh DNS resolution and public-IP classification for every outbound connection
+- connection pinned to an IP that passed classification
+- same-host redirects only, with the same validation repeated before the next connection
+- explicit request-count, redirect-count, observation-size, request-timeout, and total-time budgets
+- DNS resolution is included inside each request deadline rather than occurring outside the timeout budget
+- no crawling, generalized endpoint discovery, fuzzing, exploit payloads, authentication replay, credential attacks, persistence, or destructive actions
+
+The runtime package may depend on `network-safety` and `security-domain`, but it must not depend on Next.js, React, Supabase, application/component code, or model-provider SDKs. `tests/architecture/runtime-observer-dependencies.test.ts` enforces this direction together with the purity boundary for `network-safety`.
+
+### Observation and persistence boundary
+
+Runtime collection stores normalized observations rather than raw responses. Response bodies are not persisted. Cookie values are not persisted. URL query strings and fragments are removed before runtime URLs cross the persistence boundary. Only bounded selected header state, cookie security attributes, redirect/status information, and TLS metadata cross the observation boundary.
+
+`lib/runtime-observations` is the trusted application layer. It owns workspace/role checks, proof-of-control continuity, immutable authorization snapshots, execution-time reauthorization immediately before networking, state transitions, asynchronous database-backed cancellation checks between network operations, stable failure codes, persistence ordering, and bounded audit events. Database writes use the trusted server client; browser-facing code does not write scan jobs or observations directly.
+
+Authorization is checked twice by design. A job is authorized when enqueued and reauthorized against the current asset state immediately before network execution. A changed workspace, asset target, asset kind, verification state, or cancellation request blocks network behavior instead of trusting a stale queue decision.
+
+### Product finding mapping
+
+Passive observations are evaluated deterministically and mapped into the Phase 4A `security-domain`. Runtime evidence is typed as observed runtime evidence and uses stable deterministic identifiers. No model is needed to decide whether an observed security header or TLS property exists.
+
+### Current orchestration and future isolation
+
+The Phase 4B implementation exposes the bounded service through trusted Next.js server actions for the minimal asset workflow. This is not the long-term worker-scale topology. Queue-backed isolated workers, dedicated egress controls, concurrency/backpressure, private artifacts, and operational worker isolation remain later delivery work. Moving execution behind that worker boundary must reuse the same authorization, runtime-observer, budget, cancellation, audit, and persistence contracts rather than widening network policy.
