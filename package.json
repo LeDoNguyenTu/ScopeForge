@@ -16,6 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@cdktf/hcl2json": "0.21.0",
     "@cyclonedx/cyclonedx-library": "10.2.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.55.0",
