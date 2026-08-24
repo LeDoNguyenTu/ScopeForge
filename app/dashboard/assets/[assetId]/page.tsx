@@ -1,17 +1,42 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Ban, CircleCheck, Clock3, FileClock, ShieldCheck } from "lucide-react";
+import { Activity, ArrowLeft, CircleCheck, Clock3, FileClock, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
+import RuntimeObservationPanel, {
+  type RuntimeObservationPanelObservation,
+} from "@/components/assets/RuntimeObservationPanel";
 import VerificationPanel from "@/components/assets/VerificationPanel";
+import type { Json } from "@/lib/database.types";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
+
+function observationSummary(payload: Json): RuntimeObservationPanelObservation | null {
+  if (!payload || Array.isArray(payload) || typeof payload !== "object") return null;
+  const kind = typeof payload.kind === "string" ? payload.kind : null;
+  if (!kind) return null;
+
+  return {
+    kind,
+    name: typeof payload.name === "string" ? payload.name : undefined,
+    present: typeof payload.present === "boolean" ? payload.present : undefined,
+    value: typeof payload.value === "string" ? payload.value : undefined,
+    protocol: typeof payload.protocol === "string" || payload.protocol === null ? payload.protocol : undefined,
+    validFrom: typeof payload.validFrom === "string" || payload.validFrom === null ? payload.validFrom : undefined,
+    validTo: typeof payload.validTo === "string" || payload.validTo === null ? payload.validTo : undefined,
+    status: typeof payload.status === "number" ? payload.status : undefined,
+  };
+}
 
 export default async function AssetDetailPage({ params }: { params: Promise<{ assetId: string }> }) {
   const { assetId } = await params;
   const { supabase, workspace, role, displayName } = await getDashboardContext();
 
-  const [{ data: asset, error }, { data: events }] = await Promise.all([
+  const [
+    { data: asset, error },
+    { data: events },
+    { data: latestJob, error: latestJobError },
+  ] = await Promise.all([
     supabase
       .from("assets")
       .select("id,name,kind,canonical_target,hostname,verification_status,verified_at,created_at")
@@ -24,13 +49,48 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       .eq("workspace_id", workspace.id)
       .eq("target_id", assetId)
       .order("created_at", { ascending: false })
-      .limit(8)
+      .limit(8),
+    supabase
+      .from("scan_jobs")
+      .select("id,status,blocked_reason,failure_code,request_count,redirect_count,finding_count,cancel_requested_at,created_at")
+      .eq("workspace_id", workspace.id)
+      .eq("asset_id", assetId)
+      .eq("job_kind", "passive_runtime")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (error) throw new Error(error.message);
+  if (latestJobError) throw new Error(latestJobError.message);
   if (!asset) notFound();
 
+  let observations: RuntimeObservationPanelObservation[] = [];
+  if (latestJob?.status === "succeeded") {
+    const { data: observationRows, error: observationError } = await supabase
+      .from("runtime_observations")
+      .select("payload,sequence")
+      .eq("workspace_id", workspace.id)
+      .eq("asset_id", asset.id)
+      .eq("job_id", latestJob.id)
+      .order("sequence", { ascending: true });
+    if (observationError) throw new Error(observationError.message);
+    observations = (observationRows ?? [])
+      .map((row) => observationSummary(row.payload))
+      .filter((item): item is RuntimeObservationPanelObservation => item !== null);
+  }
+
   const isVerified = asset.verification_status === "verified";
+  const jobSummary = latestJob ? {
+    id: latestJob.id,
+    status: latestJob.status,
+    blockedReason: latestJob.blocked_reason,
+    failureCode: latestJob.failure_code,
+    requestCount: latestJob.request_count,
+    redirectCount: latestJob.redirect_count,
+    findingCount: latestJob.finding_count,
+    cancelRequestedAt: latestJob.cancel_requested_at,
+  } : null;
 
   return (
     <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
@@ -51,13 +111,23 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
           </dl>
         </article>
         <article className="panel">
-          <div className="panelTitle"><div><span>Security testing</span><h2>Execution state</h2></div><Ban size={18} /></div>
-          <div className="guardrail"><ShieldCheck size={17} /><p><strong>Not enabled in Phase 2.</strong> Verification establishes a safety prerequisite only. No DAST, fuzzing, exploitation, or background scanning starts from this page.</p></div>
+          <div className="panelTitle"><div><span>Security testing</span><h2>Passive execution boundary</h2></div><Activity size={18} /></div>
+          <div className="guardrail"><ShieldCheck size={17} /><p><strong>Passive observation only.</strong> Verified web and API assets may run bounded HTTPS and TLS checks. Crawling, fuzzing, authentication replay, exploit payloads, and destructive behavior remain disabled.</p></div>
         </article>
       </section>
 
       <section className="panel verificationSection">
         <VerificationPanel assetId={asset.id} status={asset.verification_status} kind={asset.kind} />
+      </section>
+
+      <section className="panel verificationSection">
+        <RuntimeObservationPanel
+          assetId={asset.id}
+          assetKind={asset.kind}
+          verificationStatus={asset.verification_status}
+          latestJob={jobSummary}
+          observations={observations}
+        />
       </section>
 
       <section className="panel assetPanel">
