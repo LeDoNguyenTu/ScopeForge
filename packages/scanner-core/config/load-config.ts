@@ -8,6 +8,7 @@ import {
   type ScannerConfig,
   type ScannerOutputConfig,
   type ScannerRuleSelection,
+  type ScannerScaConfig,
   type ScannerSecretsConfig
 } from "./types";
 
@@ -27,6 +28,7 @@ function defaults(): ScannerConfig {
     scanners: null,
     rules: { include: [], exclude: [] },
     secrets: { allowFingerprints: [] },
+    sca: { osv: { enabled: false } },
     budgets: { ...defaultInventoryBudgets },
     failOn: undefined,
     output: { format: "terminal", path: undefined }
@@ -88,6 +90,21 @@ function parseSecrets(value: unknown): ScannerSecretsConfig {
   }
 
   return { allowFingerprints };
+}
+
+function parseSca(value: unknown): ScannerScaConfig {
+  if (value === undefined) return { osv: { enabled: false } };
+  const object = requireObject(value, "sca");
+  rejectUnknownKeys(object, ["osv"], "sca");
+  if (object.osv === undefined) return { osv: { enabled: false } };
+
+  const osv = requireObject(object.osv, "sca.osv");
+  rejectUnknownKeys(osv, ["enabled"], "sca.osv");
+  if (osv.enabled === undefined) return { osv: { enabled: false } };
+  if (typeof osv.enabled !== "boolean") {
+    throw new ScannerConfigError("invalid_config", "sca.osv.enabled must be a boolean.");
+  }
+  return { osv: { enabled: osv.enabled } };
 }
 
 function positiveInteger(value: unknown, label: string): number {
@@ -168,7 +185,7 @@ function parseConfig(value: unknown, sourcePath: string): ScannerConfig {
   const object = requireObject(value, "ScopeForge configuration");
   rejectUnknownKeys(
     object,
-    ["version", "scanners", "rules", "secrets", "budgets", "failOn", "output"],
+    ["version", "scanners", "rules", "secrets", "sca", "budgets", "failOn", "output"],
     "ScopeForge configuration"
   );
 
@@ -188,6 +205,7 @@ function parseConfig(value: unknown, sourcePath: string): ScannerConfig {
     scanners,
     rules: parseRules(object.rules),
     secrets: parseSecrets(object.secrets),
+    sca: parseSca(object.sca),
     budgets: parseBudgets(object.budgets),
     failOn: failOn as Severity | undefined,
     output: parseOutput(object.output)
