@@ -14,15 +14,15 @@ ScopeForge follows the approved community-platform roadmap. Phase boundaries are
 4. **Verified runtime and API security - in progress**
    Phase 4 is deliberately split so active behavior cannot bypass authorization and network-safety design.
 
-   - **4A Security domain contracts - implementation complete, final merge gate in PR #23.** Framework-independent findings, evidence, provenance, validation, lifecycle, remediation, risk relationships, a one-way Phase 3 adapter, provider-neutral advisory contracts, advisory privacy policy, and an executable dependency-direction guard.
-   - **4B Verified passive runtime observations - next.** Authorized, bounded runtime/API observation contracts and execution design that reuse `security-domain`, preserve Phase 2 target authorization, and establish DNS/IP/redirect/egress, timeout, quota, cancellation, and audit boundaries before active validation.
-   - **4C Bounded active validation - later.** Narrow non-destructive active checks only after 4B safety and isolation properties are implemented and testable. Broad crawling, fuzzing, exploitation, credential attacks, denial-of-service behavior, persistence, and destructive actions remain out of scope.
+   - **4A Security domain contracts - complete.** Framework-independent findings, evidence, provenance, validation, lifecycle, remediation, risk relationships, a one-way Phase 3 adapter, provider-neutral advisory contracts, advisory privacy policy, and an executable dependency-direction guard. Phase 4A merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
+   - **4B Verified passive runtime observations - implementation complete, final merge gate in PR #25.** The approved design from PR #24 is implemented with shared pure network-safety rules, verified web/API authorization, immutable enqueue snapshots, execution-time reauthorization, fresh DNS classification, DNS-pinned HTTPS transport, same-host redirects, explicit budgets, cancellation, bounded persistence/audit, deterministic runtime finding mapping, and minimal asset UI. Crawling, fuzzing, exploit payloads, credential behavior, response-body persistence, and destructive actions remain disabled.
+   - **4C Bounded active validation - later.** Narrow non-destructive active checks only after the 4B safety and isolation properties remain proven in the final merge gate. Broad crawling, fuzzing, exploitation, credential attacks, denial-of-service behavior, persistence, and destructive actions remain out of scope.
 
 5. **Findings, Security Stories, and remediation**
    Hosted normalized finding lifecycle, evidence/inference separation, risk relationships, Security Story explanations, remediation workflows, retesting, and developer/security views. This phase builds on the Phase 4A `security-domain` contracts rather than defining a second finding model.
 
 6. **Isolated workers and scanner scale**
-   Production scan orchestration, isolated workers, queues, concurrency budgets, backpressure, cancellation, artifact boundaries, and operational controls.
+   Production scan orchestration, isolated workers, queues, concurrency budgets, backpressure, cancellation, artifact boundaries, dedicated egress controls, and operational controls. Phase 4B's bounded runtime contracts should move behind this execution boundary without widening target policy.
 
 7. **Community Security Packs**
    Versioned community detection metadata, safe declarative/static extensions, mappings, explainers, remediation guidance, preparedness content, fixtures, validation, and contribution governance without arbitrary plugin execution.
