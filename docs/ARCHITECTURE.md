@@ -110,4 +110,63 @@ Phase 3 treats repository content as hostile data. The local scanner does not ex
 
 OSV enrichment is the only Phase 3 scanner network path and is disabled by default. When explicitly enabled, it sends normalized npm package identity and exact version only.
 
-Remote DAST and API testing are Phase 4 concerns and require a separate authorization, isolation, egress, quota, timeout, cancellation, and audit model.
+Remote DAST and API testing are later concerns and require a separate authorization, isolation, egress, quota, timeout, cancellation, and audit model.
+
+## Phase 4A product security domain
+
+Phase 4A adds a framework-independent product domain above individual scanner implementations. The purpose is to let repository scanners, future passive runtime scanners, hosted application services, UI, and optional advisory systems share stable security concepts without coupling those concepts to one execution engine or infrastructure provider.
+
+```text
+scanner-core / detector packages
+          |
+          v
+security-domain-adapters/phase3
+          |
+          v
+     security-domain
+          ^
+          |
+ application services
+    ^      ^      ^
+    |      |      |
+  UI/API  workers  provider adapters
+```
+
+The dependency rule is one-way. `packages/security-domain` contains only pure product contracts and helpers. It must not import scanner packages, the CLI, Next.js, React, Supabase, worker code, database adapters, or model-provider SDKs. `tests/architecture/security-domain-dependencies.test.ts` makes this boundary executable in CI.
+
+`packages/security-domain-adapters/phase3` is an edge adapter. It may consume Phase 3 scanner findings and map them into the product domain, but the product domain must never import that adapter or scanner types. The adapter maps only normalized, explicitly selected fields. Scanner `metadata`, baseline state, source snippets, and data-flow internals are not copied into the product finding contract by default.
+
+### Product security concepts
+
+The domain separates concepts that were previously scanner-specific:
+
+- source identifies where a finding came from
+- provenance distinguishes observed, scanner-derived, user-confirmed, and inferred information
+- evidence has an explicit content classification
+- validation state records what level of confirmation exists
+- lifecycle tracks remediation and review independently from validation
+- relationships model typed security connections between product entities
+- remediation is structured data rather than an infrastructure-specific blob
+
+This separation allows later passive runtime/API scanners to produce the same product finding shape without pretending to be Phase 3 repository scanners.
+
+### Advisory and future model boundary
+
+Optional model assistance is downstream from normalized product data:
+
+```text
+normalized domain records
+        |
+        v
+advisory context policy
+        |
+        v
+provider-neutral AdvisoryService
+        |
+        v
+future local or remote provider adapter
+```
+
+`AdvisoryService` accepts domain requests rather than provider prompts or SDK message types. Advisory results are typed as inferred provenance. Advisory authority cannot promote validation state. Secret-classified context is always removed, and sensitive context cannot reach a remote provider unless a future caller explicitly opts in through the context policy.
+
+Future provider adapters may support hosted or local models without changing scanner packages or the security domain. Models do not receive direct scanner authority, direct network-scanning authority, or an implicit path to repository content. Core scanning, validation, lifecycle, and remediation workflows must remain usable when no model integration is configured.

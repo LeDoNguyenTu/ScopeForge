@@ -1,26 +1,61 @@
 # Future Optional AI Assistance
 
-Status: deferred placeholder only. No AI runtime, model dependency, network dependency, or model-driven security decision is part of the current ScopeForge implementation.
+Status: Phase 4A now defines the provider-neutral domain and advisory contracts required for future integration. ScopeForge still has no AI runtime, model SDK, model network call, or model-driven security decision in the current implementation.
 
-ScopeForge may later add an optional, model-agnostic assistance layer after the core scanner, finding, remediation, verification, and platform workflows are mature. Possible backends could include local/open-source runtimes such as Ollama and large open models, including 120B-class models when practical.
+## Architecture already in place
 
-Potential future roles include:
+Future assistance must integrate after normalization into `packages/security-domain`. Provider-specific SDKs and prompt formats belong in edge adapters, never in scanner packages or the product domain.
 
-- assisting with finding triage and prioritization
-- explaining observed evidence and remediation in clearer language
-- correlating related findings into security stories
-- suggesting additional authorized pentest checks for a human operator to review
-- helping interpret scanner output and likely attack paths
-- assisting rule authors with safe detector development and test generation
+```text
+scanner/runtime sources
+        |
+        v
+source adapters
+        |
+        v
+security-domain
+        |
+        v
+advisory context policy
+        |
+        v
+provider-neutral AdvisoryService
+        |
+        +--> future local provider adapter
+        +--> future hosted provider adapter
+```
 
-Non-goals and guardrails for any future design:
+This design keeps local-model support possible and allows hosted providers to be replaced without rewriting scanners, findings, lifecycle rules, or remediation workflows.
 
-- deterministic scanners remain the source of truth for confirmed findings
-- model output must be clearly distinguished from observed scanner evidence
-- model suggestions must not silently expand scan scope or authorization
-- repository content and secrets must not be sent to a remote model without an explicit privacy design and user opt-in
-- local model support should remain possible so users can keep sensitive code on-device
-- no model may directly perform credential attacks, persistence, destructive actions, or other out-of-scope behavior
-- AI assistance must be optional and removable without breaking the core scanner
+## Intended future roles
 
-This placeholder intentionally contains no implementation commitment. The architecture, supported models, local-versus-hosted execution, hardware requirements, privacy controls, and pentest-assistance boundaries should be designed later when the majority of ScopeForge's core software is implemented.
+Potential assistance includes:
+
+- explaining normalized findings and remediation in clearer language
+- correlating related findings into candidate security stories
+- suggesting follow-up checks for a human operator to review
+- clarifying deterministic remediation guidance
+- helping rule authors draft detectors and tests behind normal review gates
+
+These functions are advisory. They do not replace deterministic scanning or confirmation.
+
+## Required safety and privacy properties
+
+The Phase 4A contracts establish the following requirements for any later provider implementation:
+
+- deterministic scanners remain authoritative for their observed and scanner-derived conclusions
+- advisory results are represented as inferred provenance
+- advisory authority cannot promote finding validation state
+- model suggestions cannot silently expand scan scope or authorization
+- secret-classified context is always excluded from advisory context
+- sensitive context cannot reach a remote provider without explicit opt-in
+- provider SDK types cannot enter `packages/security-domain`
+- local providers must remain possible so sensitive users can keep processing on-device
+- model output cannot gain direct scanner, credential, persistence, destructive, or unrestricted network authority
+- all core scanner, finding, lifecycle, validation, and remediation workflows must work with no model configured
+
+## What remains deferred
+
+Phase 4A intentionally does not choose or implement OpenAI, Anthropic, Gemini, Ollama, or any other provider. It also does not define model hosting, hardware sizing, billing, prompt storage, conversation UI, vector storage, autonomous agents, or model-driven active testing.
+
+Those choices should be made only when a concrete product workflow needs them. A future implementation should add a small provider adapter behind `AdvisoryService`, apply the existing context policy before the provider boundary, validate returned data into domain-owned result types, and retain explicit human or deterministic confirmation for any security-state change.
