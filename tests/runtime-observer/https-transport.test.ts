@@ -88,4 +88,47 @@ describe("pinned HTTPS transport", () => {
 
     expect(requester).toHaveBeenCalledTimes(1);
   });
+
+  it("includes DNS resolution in the request deadline", async () => {
+    vi.useFakeTimers();
+    try {
+      const resolver = {
+        resolve: vi.fn(() => new Promise<readonly string[]>(() => undefined)),
+      };
+      const requester = vi.fn(async (_options: Parameters<RuntimeRequester>[0]) => response);
+      let settled = false;
+      let failure: unknown;
+
+      void requestPinnedHttps(
+        { url: new URL("https://example.com/app"), timeoutMs: 1_000 },
+        { resolver, requester },
+      ).catch((error: unknown) => {
+        failure = error;
+      }).finally(() => {
+        settled = true;
+      });
+
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      expect(settled).toBe(true);
+      expect(failure).toMatchObject({ name: "TimeoutError" });
+      expect(requester).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("gives HTTPS only the timeout remaining after DNS resolution", async () => {
+    const resolver = { resolve: vi.fn(async () => ["1.1.1.1"]) };
+    const requester = vi.fn(async (_options: Parameters<RuntimeRequester>[0]) => response);
+    const times = [0, 400];
+
+    await requestPinnedHttps(
+      { url: new URL("https://example.com/app"), timeoutMs: 1_000 },
+      { resolver, requester, now: () => times.shift() ?? 400 },
+    );
+
+    expect(requester).toHaveBeenCalledTimes(1);
+    expect(requester.mock.calls[0]?.[0].timeout).toBe(600);
+  });
 });
