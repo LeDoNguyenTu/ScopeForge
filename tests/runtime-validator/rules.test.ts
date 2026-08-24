@@ -81,6 +81,7 @@ describe("deterministic active CORS findings", () => {
       source: {
         kind: "deterministic-runtime-scanner",
         sourceId: "scopeforge:runtime-validator",
+        sourceVersion: "cors-origin-policy@1",
       },
       severity: "high",
       confidence: "high",
