@@ -3,7 +3,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export type AssetKind = "web_application" | "api" | "repository";
 export type AssetVerificationStatus = "unverified" | "pending" | "verified" | "failed";
-export type ScanJobStatus = "queued" | "blocked" | "cancelled";
+export type ScanJobStatus = "queued" | "running" | "succeeded" | "failed" | "blocked" | "cancelled";
+export type ScanJobKind = "phase2_blocked" | "passive_runtime";
 export type AuditActorType = "user" | "system";
 
 export type Database = {
@@ -43,12 +44,82 @@ export type Database = {
         ];
       };
       scan_jobs: {
-        Row: { id: string; workspace_id: string; asset_id: string; status: ScanJobStatus; requested_by: string; blocked_reason: string; created_at: string };
-        Insert: { id?: string; workspace_id: string; asset_id: string; status?: ScanJobStatus; requested_by: string; blocked_reason?: string; created_at?: string };
-        Update: { id?: string; workspace_id?: string; asset_id?: string; status?: ScanJobStatus; requested_by?: string; blocked_reason?: string; created_at?: string };
+        Row: {
+          id: string;
+          workspace_id: string;
+          asset_id: string;
+          job_kind: ScanJobKind;
+          status: ScanJobStatus;
+          requested_by: string;
+          blocked_reason: string | null;
+          authorization_canonical_target: string | null;
+          authorization_asset_kind: AssetKind | null;
+          authorization_verified_at: string | null;
+          budget: Json;
+          cancel_requested_at: string | null;
+          started_at: string | null;
+          finished_at: string | null;
+          failure_code: string | null;
+          request_count: number;
+          redirect_count: number;
+          finding_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          asset_id: string;
+          job_kind?: ScanJobKind;
+          status?: ScanJobStatus;
+          requested_by: string;
+          blocked_reason?: string | null;
+          authorization_canonical_target?: string | null;
+          authorization_asset_kind?: AssetKind | null;
+          authorization_verified_at?: string | null;
+          budget?: Json;
+          cancel_requested_at?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
+          failure_code?: string | null;
+          request_count?: number;
+          redirect_count?: number;
+          finding_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          asset_id?: string;
+          job_kind?: ScanJobKind;
+          status?: ScanJobStatus;
+          requested_by?: string;
+          blocked_reason?: string | null;
+          authorization_canonical_target?: string | null;
+          authorization_asset_kind?: AssetKind | null;
+          authorization_verified_at?: string | null;
+          budget?: Json;
+          cancel_requested_at?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
+          failure_code?: string | null;
+          request_count?: number;
+          redirect_count?: number;
+          finding_count?: number;
+          created_at?: string;
+        };
         Relationships: [
           { foreignKeyName: "scan_jobs_asset_workspace_fkey"; columns: ["asset_id", "workspace_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id", "workspace_id"] },
           { foreignKeyName: "scan_jobs_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }
+        ];
+      };
+      runtime_observations: {
+        Row: { id: string; workspace_id: string; job_id: string; asset_id: string; sequence: number; kind: string; payload: Json; created_at: string };
+        Insert: { id?: string; workspace_id: string; job_id: string; asset_id: string; sequence: number; kind: string; payload: Json; created_at?: string };
+        Update: { id?: string; workspace_id?: string; job_id?: string; asset_id?: string; sequence?: number; kind?: string; payload?: Json; created_at?: string };
+        Relationships: [
+          { foreignKeyName: "runtime_observations_job_workspace_asset_fkey"; columns: ["job_id", "workspace_id", "asset_id"]; isOneToOne: false; referencedRelation: "scan_jobs"; referencedColumns: ["id", "workspace_id", "asset_id"] },
+          { foreignKeyName: "runtime_observations_asset_workspace_fkey"; columns: ["asset_id", "workspace_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id", "workspace_id"] },
+          { foreignKeyName: "runtime_observations_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }
         ];
       };
       audit_events: {
@@ -71,6 +142,7 @@ export type Database = {
       asset_kind: AssetKind;
       asset_verification_status: AssetVerificationStatus;
       scan_job_status: ScanJobStatus;
+      scan_job_kind: ScanJobKind;
       audit_actor_type: AuditActorType;
     };
     CompositeTypes: Record<string, never>;
