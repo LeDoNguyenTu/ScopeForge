@@ -141,7 +141,7 @@ The validator is deliberately not a generic HTTP API. Callers cannot choose URL,
 
 `lib/active-validation` owns the trusted application boundary: owner/admin authorization, immutable snapshot persistence, execution reauthorization, stable audit/failure semantics, DB-backed cancellation, and active-only repository mutations. Active observations reuse `scan_jobs` and `runtime_observations`; no parallel finding/job schema is introduced.
 
-The database guards `cors-policy` observations so they can only be attached to a running, uncancelled `active_validation` job, while passive observation kinds remain limited to `passive_runtime` jobs. The final active success transition also requires the job to remain running and uncancelled atomically.
+The database makes active persistence and cancellation a serialized state transition. A `cors-policy` insert must lock and match the exact workspace/job/asset parent row, and that parent must still be a running, uncancelled `active_validation` job. If a cancellation update acquires the parent row first, the observation insert is rejected. If observation persistence acquires it first, the observation commits before the competing cancellation can proceed; once that active observation exists, a later cancellation request is rejected. The final active success transition still requires the job to remain running and uncancelled. This prevents committed active evidence from coexisting with a `cancelled` terminal state while preserving cancellation before the persistence linearization point.
 
 The asset UI keeps passive and active controls separate. The active panel shows the fixed request contract and requires an explicit consent checkbox before calling the dedicated server action. Browser input is limited to asset identity plus consent; cancellation is scoped to job identity.
 
@@ -156,6 +156,7 @@ CI guards the following directions:
 - `security-domain` remains independent of scanner/infrastructure/provider layers
 - `network-safety` remains pure and free of DNS/HTTP/TLS/database/framework dependencies
 - `runtime-network` stays below observers/validators and outside application/domain layers
+- application, component, and trusted application code cannot import generic `runtime-network` authority directly
 - `runtime-observer` stays independent of web/database/provider layers and imports no active validator authority
 - `runtime-validator` stays independent of passive/web/database/provider layers and does not re-export shared generic transport authority
 
