@@ -1,44 +1,86 @@
 # ScopeForge Next Steps
 
-## Current phase: Phase 3D - JavaScript/TypeScript structural SAST
+## Current completion gate: Phase 3O release hardening
 
-PR #9 implements the syntax-aware JavaScript/TypeScript scanner and is in its final exact-head verification cycle after security hardening. The shipped structural scope intentionally remains small: direct dynamic-code execution and explicit TLS verification disablement with strong binding evidence. Framework-sensitive cookie/session checks are deferred rather than inferred from variable names.
+The Phase 3 scanner feature set is implemented. PR #21 is the final Phase 3 release-hardening pull request.
 
-Immediate actions:
+Before Phase 3 is declared complete:
 
-1. Verify the exact final PR #9 head passes tests, strict typecheck, CLI build/runtime smoke, and Next.js production build.
-2. Confirm no unresolved Critical or Important review findings remain.
-3. Mark PR #9 ready and squash merge it into `main` using expected-head protection.
+1. Review the complete PR #21 changed-file set and the Phase 3 trust boundaries.
+2. Confirm no unresolved blocking review thread remains.
+3. Mark PR #21 ready only after documentation is final.
+4. Require the exact final PR head to pass:
+   - `npm test`
+   - `npm run typecheck`
+   - `npm run build:cli`
+   - compiled CLI version smoke
+   - `npm run benchmark:scanner`
+   - `npm run build`
+5. Squash merge PR #21 using expected-head protection.
+6. Verify the merged `main` CI run is green.
+7. Only then treat Phase 3 as complete.
 
-## Next slice: Phase 3E - Limited high-confidence JavaScript/TypeScript taint analysis
+Diagnostic CI #311 already passed 85 test files / 329 tests, strict typecheck, CLI build/runtime, the 700-file benchmark, and the Next.js production build. That evidence validates the completion contracts and benchmark implementation, but it does not replace the required exact final documentation-head gate.
 
-Implement test-first after PR #9 merges:
+## Phase 4 - Verified runtime and API security
 
-- extend the existing `scanner-jsts` package rather than creating a second JavaScript scanner
-- model a deliberately small source vocabulary for recognized Node.js/Next.js request query, route/path, body, and selected header access
-- model a deliberately small sink vocabulary for command execution, SQL execution, filesystem paths, server-side outbound requests, and unsafe HTML APIs
-- start with bounded intra-file propagation and explicitly modeled aliases/assignments
-- model recognized sanitizers and safe APIs before broadening a vulnerability class
-- produce data-flow evidence only from normalized source/sink steps, not arbitrary repository lines
-- distinguish direct structural findings from source-to-sink findings by rule ID and evidence
-- preserve the per-file AST budget and introduce an explicit taint-state/propagation budget
-- discard partial taint findings and report an analysis error when a resource budget is exceeded
-- add strong negative fixtures so variable names alone cannot create attacker-controlled-flow claims
-- only add framework-sensitive cookie/session rules when framework identity can be established structurally rather than guessed from receiver names
+Phase 4 is the next implementation boundary after Phase 3 completion.
 
-Do not attempt whole-program cross-repository data flow in this slice. Add narrow interprocedural-light handling only after direct intra-file flows are stable and tested.
+Phase 4 must be designed before implementation because it introduces active remote behavior and materially different authorization and execution risks.
 
-## Remaining approved Phase 3 sequence
+The approved long-term direction requires Phase 4 to preserve these principles:
 
-1. Dependency inventory and OSV enrichment.
-2. CycloneDX SBOM generation independent of OSV availability.
-3. Docker, Kubernetes, Terraform, GitHub Actions, and generic configuration rules.
-4. Baseline engine.
-5. SARIF 2.1.0 adapter and GitHub Code Scanning example.
-6. Integration, golden-output, hostile-input security, and benchmark suites.
-7. Documentation and release-readiness review.
-8. Optional hosted ingestion only after the local contract is stable.
+- scan only assets with valid workspace authorization and proof of control
+- separate local/passive scanning from active remote execution
+- enforce explicit target scope, redirect, DNS, IP, port, and egress boundaries
+- isolate active scanner workers from the web control plane
+- apply strict request, time, concurrency, response-size, and cancellation budgets
+- log security-relevant authorization and execution events
+- distinguish observed runtime evidence from inference
+- avoid exploit behavior that causes persistence, destructive changes, credential attacks, denial of service, or unsafe side effects
+- keep active validation narrow until the worker isolation and authorization model is proven
 
-## Phase boundary
+The first Phase 4 work should be an architecture/design slice, not direct scanner implementation.
 
-Do not begin remote DAST, authenticated crawling, API fuzzing, exploit validation, generalized network scanning, credential attacks, persistence, or destructive behavior during Phase 3.
+## Phase 4 design questions to resolve
+
+The design should explicitly decide:
+
+- active worker isolation model
+- job queue and cancellation model
+- workspace and asset authorization checks at enqueue and execution time
+- DNS resolution and rebinding defenses for every outbound connection
+- allowed schemes, ports, methods, redirects, and target transitions
+- egress-deny defaults
+- request and response budgets
+- authenticated API secret storage and redaction boundaries, if authenticated testing is introduced
+- audit records and operator-visible safety state
+- initial DAST/API rule scope and false-positive controls
+- artifact retention and private storage boundaries
+- abuse prevention and quota enforcement
+- local development/test harness for active scanning without unsafe internet targets
+
+## Deferred beyond the first Phase 4 slice
+
+Do not jump directly to:
+
+- broad crawling
+- generalized fuzzing
+- exploit frameworks
+- credential attacks
+- cloud-account posture connectors
+- persistence
+- destructive validation
+- arbitrary internet-wide scanning
+
+Start with a narrow, highly bounded authorized runtime-security contract and expand only after its safety properties are testable and enforced.
+
+## Resume protocol
+
+Before any new implementation session:
+
+1. Read `docs/development/SESSION_HANDOFF.md`.
+2. Read `docs/development/CURRENT_STATE.md`.
+3. Read `docs/scanner/RELEASE_READINESS.md`.
+4. Confirm whether PR #21 and merged `main` completed the final Phase 3 gate.
+5. If Phase 3 is complete, begin Phase 4 with design and threat-boundary work rather than scanner code.
