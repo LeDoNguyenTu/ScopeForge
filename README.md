@@ -1,84 +1,160 @@
 # ScopeForge
 
-**Open-source application security that helps you discover vulnerabilities, understand what they could lead to, and prepare before they become incidents.**
+**Open-source application security that helps developers discover security problems, understand the evidence, and verify fixes without turning a scanner into another source of risk.**
 
-ScopeForge is built for developers first, while making security findings understandable to anyone responsible for an application. It combines practical security testing, evidence, risk context, remediation, retesting, and community-maintained security knowledge in one workflow.
-
-> ScopeForge is for systems you own or are explicitly authorized to assess.
-
-## Why ScopeForge
-
-Most security tools stop at "we found a vulnerability." ScopeForge is designed around a longer loop:
+ScopeForge is designed around a practical security loop:
 
 **Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify**
 
-The goal is not only to surface technical weaknesses, but also to help people understand what they could affect, what to prioritize, what to prepare for, how to fix them, and how to verify that the risk is actually gone.
+The project combines a local/passive repository scanner with a web control plane that will later support authorized runtime security, normalized findings, remediation workflows, and community security knowledge.
+
+> Use ScopeForge only on systems and repositories you own or are explicitly authorized to assess.
 
 ## Current status
 
-**Phase 3 - Code and supply-chain security is in development.**
+The Phase 3 code and supply-chain security feature set is implemented. Final completion is gated by the release-readiness process in `docs/scanner/RELEASE_READINESS.md`, including exact-head CI and post-merge `main` verification.
 
-Shipped foundation:
+Phase 3 scanning is local and passive. It does not require a ScopeForge account.
 
-- Next.js control plane and Supabase authentication/workspaces
-- workspace-scoped asset registration and proof-of-control verification
-- Row Level Security and trusted server-side mutation boundaries
-- bounded hostile-repository inventory
-- normalized scanner findings and stable fingerprints
-- deterministic native ScopeForge JSON
-- bounded no-follow inventory-entry reads
-- strict root-only `.scopeforge.json` configuration
-- report-only default policy with explicit `--fail-on` severity enforcement
-- distinct success, policy, usage/configuration, and scanner-error exit codes
-- local CLI with terminal and JSON output
-- built-in secret scanning
-- syntax-aware JavaScript/TypeScript structural SAST and bounded command taint analysis
-- bounded JavaScript dependency inventory with optional OSV vulnerability enrichment
-- CycloneDX 1.7 JSON SBOM generation using the maintained CycloneDX JavaScript library
-- bounded Dockerfile and Kubernetes IaC scanning with conservative security rules
+### Local scanner capabilities
 
-The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, complete private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
+- bounded hostile-repository inventory with file-count, file-size, total-byte, ignore, and symlink boundaries
+- safe no-follow content reads with file identity and size revalidation
+- normalized findings, stable fingerprints, deterministic ordering, explicit scanner errors, and policy exit codes
+- report-only default with opt-in severity enforcement
+- provider-aware secret detection with mandatory redaction and one-way fingerprints
+- JavaScript/TypeScript syntax-aware structural SAST without target module execution
+- bounded high-confidence Express request-input to Node `child_process.exec` / `execSync` command-injection analysis
+- npm dependency inventory from supported lockfiles and manifest fallback
+- optional OSV vulnerability enrichment, disabled by default
+- CycloneDX 1.7 JSON SBOM generation independent of OSV availability
+- Dockerfile security analysis
+- Kubernetes manifest security analysis
+- selected Terraform AWS configuration analysis
+- GitHub Actions workflow security analysis
+- `.npmrc` and `vercel.json` security checks
+- versioned baselines with new/existing finding classification
+- terminal, deterministic native JSON, and deterministic SARIF 2.1.0 output
+- GitHub Code Scanning compatible SARIF generation
+- committed golden-output continuity tests
+- mixed-repository and hostile-input integration coverage
+- deterministic 700-file CI benchmark for catastrophic performance regression detection
 
-The JavaScript/TypeScript scanner parses JavaScript, TypeScript, JSX, TSX, MJS, CJS, MTS, and CTS as hostile data using the TypeScript parser without executing repository code or resolving imports. Structural rules detect direct `eval`/`new Function` use, explicit TLS certificate-verification disablement, and bounded Express request-input flows to `child_process.exec` and `execSync`. Framework-sensitive checks are only reported when the relevant bindings can be established statically. Malformed or over-budget files are surfaced as scanner errors while valid files continue to produce findings.
+Detailed limitations are documented in `docs/scanner/LIMITATIONS.md`.
 
-The SCA scanner inventories JavaScript dependencies from `npm-shrinkwrap.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, and `package.json` fallback. Resolved lockfile versions are preferred over manifest ranges. OSV enrichment is disabled by default and must be explicitly enabled. When enabled, ScopeForge sends only normalized npm package identity and exact version to the fixed OSV API. Repository source text, arbitrary files, and detected secrets are not sent to OSV. OSV lookup failures are returned as scanner errors and never represented as a clean vulnerability result.
+## Quick start
 
-CycloneDX SBOM generation is fully local and independent of OSV. `scopeforge scan . --sbom scopeforge.cdx.json` emits a CycloneDX 1.7 JSON artifact containing the root application, discovered npm dependencies, Package URLs, direct dependency relationships where the local dependency inventory can establish them, ScopeForge tool metadata, a timestamp, and a serial number. SBOM generation uses the same bounded dependency inventory as SCA and does not execute package scripts or require network access.
+Requirements:
 
-The IaC scanner analyzes Dockerfiles through a bounded logical-instruction parser. Docker rules detect untagged or `latest` base images, an explicitly effective root `USER` in the final stage, remote `ADD` sources, curl/wget output piped directly to a shell, and world-writable `chmod 777` or `0777`. Dynamic base-image references are treated conservatively, missing `USER` is not reported because inherited image metadata is unavailable locally, and Dockerfile contents are never executed or sent to a registry or other network service.
+- Node.js 22
+- npm
 
-Kubernetes manifests are parsed structurally as bounded multi-document YAML. Initial checks cover privileged containers, explicit privilege escalation, broad Linux capabilities, host network/PID/IPC namespaces, hostPath mounts, explicit UID 0 execution, explicitly writable root filesystems, explicit service-account token automounting, and wildcard RBAC grants where the local manifest provides enough evidence. Missing hardening fields are not automatically treated as vulnerabilities. ScopeForge does not contact a Kubernetes cluster, download schemas, invoke kubectl, or execute Helm or Kustomize while scanning manifests.
-
-Terraform, GitHub Actions/configuration rules, baselines, and SARIF are still Phase 3 work.
-
-Remote DAST, API fuzzing, exploit validation, credential attacks, persistence, and destructive behavior remain outside Phase 3.
-
-## Local scanner
+From this repository:
 
 ```bash
 npm install
 npm run scopeforge -- version
 npm run scopeforge -- rules list
 npm run scopeforge -- scan .
+```
+
+The repository is currently source-installed. ScopeForge is not yet published as a standalone npm package or reusable GitHub Action.
+
+## CLI examples
+
+Terminal report:
+
+```bash
+npm run scopeforge -- scan .
+```
+
+Native JSON:
+
+```bash
 npm run scopeforge -- scan . --format json
 npm run scopeforge -- scan . --format json --output scopeforge-results.json
+```
+
+SARIF 2.1.0:
+
+```bash
+npm run scopeforge -- scan . --format sarif --output scopeforge.sarif
+```
+
+CycloneDX 1.7 SBOM:
+
+```bash
 npm run scopeforge -- scan . --sbom scopeforge.cdx.json
-npm run scopeforge -- scan . --format json --output scopeforge-results.json --sbom scopeforge.cdx.json
+```
+
+JSON and SBOM together:
+
+```bash
+npm run scopeforge -- scan . \
+  --format json \
+  --output scopeforge-results.json \
+  --sbom scopeforge.cdx.json
+```
+
+Opt-in severity gate:
+
+```bash
 npm run scopeforge -- scan . --fail-on high
 ```
 
-Repository configuration is read from the explicit scan root as `.scopeforge.json`. The current schema is version `1`. Repository configuration may tighten scan budgets but cannot raise ScopeForge's safe defaults.
+Create a baseline:
 
-The CLI is report-only unless `--fail-on` or valid root configuration enables a severity gate. Findings alone do not produce a non-zero exit code in report-only mode. Scanner execution, dependency parsing, or requested SBOM generation errors remain distinct from policy failures and do not masquerade as a clean result.
+```bash
+npm run scopeforge -- baseline create .
+```
 
-Example scanner configuration:
+Gate only new high-severity findings against a baseline:
+
+```bash
+npm run scopeforge -- scan . \
+  --baseline .scopeforge-baseline.json \
+  --fail-on high
+```
+
+Gate on both existing and new findings explicitly:
+
+```bash
+npm run scopeforge -- scan . \
+  --baseline .scopeforge-baseline.json \
+  --baseline-gate all \
+  --fail-on high
+```
+
+List built-in rules:
+
+```bash
+npm run scopeforge -- rules list
+```
+
+## Exit codes
+
+| Code | Meaning |
+|---:|---|
+| 0 | Successful scan. Findings are allowed by the active policy. |
+| 1 | Policy gate failed. |
+| 2 | Usage, configuration, baseline, or unsafe-output error. |
+| 3 | Scanner execution or incomplete-analysis error. |
+
+Findings alone return 0 in report-only mode. Scanner failures remain distinct from policy failures so incomplete coverage cannot masquerade as a clean scan.
+
+## Repository configuration
+
+ScopeForge reads configuration only from `.scopeforge.json` at the explicit scan root. Nested repository configuration cannot silently weaken scanner behavior.
+
+Example:
 
 ```json
 {
   "version": 1,
   "scanners": ["secrets", "jsts", "sca", "iac"],
   "rules": {
-    "exclude": ["secrets/high-entropy-assignment"]
+    "include": [],
+    "exclude": []
   },
   "secrets": {
     "allowFingerprints": []
@@ -87,60 +163,77 @@ Example scanner configuration:
     "osv": {
       "enabled": false
     }
+  },
+  "baseline": ".scopeforge-baseline.json",
+  "baselineGate": "new",
+  "failOn": "high",
+  "output": {
+    "format": "sarif",
+    "path": "scopeforge.sarif"
   }
 }
 ```
 
-Set `sca.osv.enabled` to `true` only when you want online vulnerability enrichment. The setting enables ScopeForge's fixed OSV integration only. Repository configuration cannot provide an alternate OSV endpoint, custom outbound URL, or request headers. SBOM generation does not depend on this setting and remains available offline.
+Repository configuration may tighten inventory budgets but cannot raise ScopeForge's built-in safe ceilings.
 
-SBOM output uses the same no-follow file-writing boundary as normal scan artifacts. Existing symlinks are refused, and the CLI will not allow `--sbom` and `--output` to point to the same destination.
+## Secret handling
 
-Use `scopeforge:allow-secret` only for an intentional fixture on the same line or on a standalone immediately preceding comment line. Prefer fingerprint allowlisting for reviewed long-lived exceptions.
+The current provider-aware scanner includes GitHub, Stripe live, Slack, complete private-key block, and contextual high-entropy assignment rules.
 
-## What ScopeForge is becoming
+Raw detected secret values are redacted before normalized findings are constructed. They must not appear in terminal, native JSON, SARIF, baselines, benchmark output, or hosted audit data.
 
-### Security Story
+Use `scopeforge:allow-secret` only for intentional fixture content on the same line or on an exact standalone immediately preceding comment. Prefer reviewed fingerprint allowlisting for durable exceptions.
 
-Important findings should explain what was observed, how confident ScopeForge is, what assets or data may be affected, and what plausible consequence chain could follow. Observed evidence and inferred risk are kept distinct.
+## JavaScript and TypeScript analysis
 
-### Explain Mode
+ScopeForge parses JS, JSX, MJS, CJS, TS, TSX, MTS, and CTS using the TypeScript parser without executing repository code or resolving target modules.
 
-Security information should be progressively disclosed in plain language, developer detail, and security detail.
+Current structural rules include direct dynamic-code execution constructs and explicit TLS certificate-verification disablement where Node HTTPS identity can be established statically.
 
-### Prepare Mode
+The current bounded taint rule proves selected Express `req.query`, `req.params`, and `req.body` field flows into statically established Node `child_process.exec` or `execSync` sinks. It is intentionally narrow and does not claim generalized whole-program taint coverage.
 
-Findings should lead to practical preparation: what to fix now, what related systems to review, what logs to inspect, whether credentials may need rotation, what controls to add, and how to verify remediation.
+## Dependency and SBOM behavior
 
-### Community Security Packs
+JavaScript dependency inventory currently supports:
 
-ScopeForge is planned to support versioned, machine-validated community packs containing safe detection logic, mappings, explainers, remediation recipes, preparedness guidance, test fixtures, and false-positive notes.
+- `npm-shrinkwrap.json`
+- `package-lock.json`
+- `pnpm-lock.yaml`
+- `yarn.lock`
+- `package.json` fallback
 
-## Community
+Resolved lockfile versions are preferred. OSV enrichment is disabled by default. When enabled, only normalized npm package identity and exact version are sent to ScopeForge's fixed OSV endpoint. Repository source, arbitrary target configuration, and detected secret values are not sent.
 
-ScopeForge is a community project. Useful contributions include scanner rules, fixtures, vulnerability explainers, remediation recipes, preparedness checklists, security mappings, documentation, accessibility, UX, security architecture, and testing.
+CycloneDX generation is local and independent of OSV. A network outage does not prevent supported dependency inventory or SBOM generation.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a contribution.
+## Infrastructure and workflow analysis
 
-## Local development
+Phase 3 includes conservative local checks for:
 
-```bash
-cp .env.example .env.local
-npm install
-npm run dev
-```
+- Dockerfiles
+- Kubernetes YAML
+- selected Terraform AWS resources and policy documents
+- GitHub Actions workflows under `.github/workflows/`
+- `.npmrc`
+- `vercel.json`
 
-Validation commands:
+ScopeForge does not execute Dockerfiles, shell commands, Terraform, providers, provisioners, Kubernetes manifests, Helm, Kustomize, kubectl, GitHub Actions workflows, package managers from the target repository, or cloud APIs while scanning.
 
-```bash
-npm test
-npm run typecheck
-npm run build:cli
-npm run build
-```
+## GitHub Actions and Code Scanning
+
+A complete source-install and SARIF upload example is documented in `docs/scanner/CI.md`.
+
+Until a standalone distribution exists, CI users should pin a reviewed ScopeForge revision, install ScopeForge's own dependencies with lifecycle scripts disabled in an isolated tool directory, build the CLI there, and pass the target repository path explicitly.
+
+## Performance evidence
+
+The Phase 3 completion benchmark generates a deterministic 700-file mixed repository and invokes the compiled CLI in-process with OSV disabled.
+
+Diagnostic CI #311 observed 700 files analyzed, 0 findings, 0 errors, 928 ms wall time, 859 ms scanner duration, and a 22,900,736-byte process RSS delta on a GitHub-hosted Ubuntu 24.04 runner. The CI gate uses a deliberately broad 20-second ceiling only to catch catastrophic regressions.
+
+These values are benchmark evidence, not a production performance guarantee. Methodology and caveats are in `docs/scanner/PERFORMANCE.md`.
 
 ## Architecture
-
-ScopeForge separates the web control plane from local scanner execution. Phase 3 scanning is local and passive.
 
 ```text
 Repository
@@ -148,39 +241,79 @@ Repository
   v
 ScopeForge CLI
   +--> bounded inventory
-  +--> safe content-read boundary
-  +--> secret scanner
-  +--> JS/TS parser + structural SAST + bounded taint scanner
-  +--> dependency inventory + optional fixed-endpoint OSV enrichment
-  +--> bounded Dockerfile + Kubernetes IaC scanner
-  +--> local CycloneDX 1.7 SBOM generator
-  +--> scanner coordinator
+  +--> safe no-follow content reads
+  +--> secrets
+  +--> JS/TS structural SAST
+  +--> bounded command taint analysis
+  +--> dependency inventory
+  +--> optional fixed-endpoint OSV enrichment
+  +--> Docker / Kubernetes / Terraform / GitHub Actions / config checks
   +--> normalized findings + explicit scanner errors
-  +--> terminal / JSON output + CycloneDX artifact
+  +--> baseline classification + policy
+  +--> terminal / JSON / SARIF
+  +--> local CycloneDX SBOM
 
 Browser
   |
   v
 Next.js / Vercel control plane
   +--> Supabase Auth + PostgreSQL
-  +--> future isolated scan queue
+  +--> future authorized runtime-security workflows
 ```
 
-## Documentation and resuming development
+The local scanner and web control plane are deliberately separated. Phase 3 does not upload local scan results to the hosted application by default.
 
-Start with:
+## Security boundary
 
-1. `docs/development/SESSION_HANDOFF.md`
-2. `docs/development/CURRENT_STATE.md`
-3. the active plan under `docs/superpowers/plans/`
+Scanned repositories are hostile input.
 
-Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-community-platform-design.md`. Phase 3 scanner architecture is documented in `docs/superpowers/specs/2026-08-24-phase-3-code-supply-chain-design.md`.
+ScopeForge Phase 3:
 
-## Security and safety
+- reads only through bounded repository inventory and safe content-read boundaries
+- does not follow repository symlinks for scanner content reads
+- does not execute target repository code or lifecycle scripts
+- does not install target project dependencies
+- does not execute target Docker, Terraform, Kubernetes, or workflow definitions
+- does not send source code to OSV
+- does not send detected secret values anywhere
+- fails distinctly when requested analysis is incomplete
+- uses no-follow output and baseline file handling
+- remains local/passive and does not perform remote application security testing
 
-ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Docker analysis parses bounded logical instructions only and performs no image pulls, registry lookups, or RUN execution. Kubernetes analysis parses bounded YAML documents only and performs no cluster access, schema download, kubectl invocation, Helm rendering, or Kustomize build. Secret values must not be emitted in terminal or JSON findings, scanner reads remain behind bounded filesystem checks, optional OSV enrichment receives only normalized package identity and exact version, and CycloneDX SBOM generation remains local and network-independent.
+Report ScopeForge vulnerabilities privately as described in `SECURITY.md`.
 
-Please report ScopeForge vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+## Development validation
+
+```bash
+npm test
+npm run typecheck
+npm run build:cli
+node .scopeforge-build/packages/cli/index.js version
+npm run benchmark:scanner
+npm run build
+```
+
+Current Phase 3O diagnostic evidence is tracked in `docs/development/TEST_STATUS.md` and `docs/scanner/RELEASE_READINESS.md`.
+
+## Project direction
+
+ScopeForge is being built around more than detection.
+
+### Security Story
+
+Important findings should separate observed evidence from inferred consequence and help people understand what could be affected.
+
+### Explain Mode
+
+Security information should support progressive disclosure from plain-language explanation to developer and security detail.
+
+### Prepare Mode
+
+Findings should lead to practical preparation, including what to fix, what related systems to review, what telemetry to inspect, whether credentials may need rotation, and how to verify remediation.
+
+### Community Security Packs
+
+Future packs are intended to carry versioned detection metadata, mappings, explainers, remediation guidance, preparedness information, fixtures, and false-positive notes. Phase 3 does not execute arbitrary community JavaScript plugins.
 
 ## Roadmap
 
@@ -194,8 +327,29 @@ Please report ScopeForge vulnerabilities privately as described in [SECURITY.md]
 8. Validation, benchmarks, and public methodology
 9. Production hardening and public release
 
-See `docs/PHASES.md` and the approved design documents for details.
+Phase 4 is the next implementation boundary after the final Phase 3 completion gate.
+
+## Documentation
+
+Start with:
+
+1. `docs/development/SESSION_HANDOFF.md`
+2. `docs/development/CURRENT_STATE.md`
+3. `docs/scanner/CI.md`
+4. `docs/scanner/LIMITATIONS.md`
+5. `docs/scanner/PERFORMANCE.md`
+6. `docs/scanner/RELEASE_READINESS.md`
+
+Long-term product architecture is in `docs/superpowers/specs/2026-08-24-community-platform-design.md`.
+
+Phase 3 scanner architecture is in `docs/superpowers/specs/2026-08-24-phase-3-code-supply-chain-design.md`.
+
+## Community
+
+ScopeForge is a community project. Contributions can include scanner rules, safe fixtures, parsers, vulnerability explanations, remediation recipes, preparedness guidance, security mappings, accessibility, UX, documentation, test infrastructure, and security architecture.
+
+See `CONTRIBUTING.md` before opening a contribution.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See `LICENSE`.

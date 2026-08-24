@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "ScopeForge",
+    "version": "0.1.0"
+  },
+  "scan": {
+    "root": "./fixture",
+    "startedAt": "2026-08-24T00:00:00.000Z",
+    "durationMs": 123,
+    "scanners": [
+      "jsts@1.0.0",
+      "secrets@1.0.0"
+    ]
+  },
+  "inventory": {
+    "filesAnalyzed": 2,
+    "filesSkipped": 1,
+    "totalBytes": 42,
+    "languages": {
+      "TypeScript": 2
+    },
+    "manifests": [
+      "package-lock.json"
+    ],
+    "infrastructure": [
+      "Dockerfile"
+    ],
+    "skippedByReason": {
+      "default_exclude": 0,
+      "file_limit": 0,
+      "file_too_large": 0,
+      "gitignore": 0,
+      "scopeforgeignore": 0,
+      "symlink": 1,
+      "total_bytes_limit": 0,
+      "unreadable": 0
+    }
+  },
+  "findings": [
+    {
+      "baselineState": "new",
+      "category": "code",
+      "confidence": "high",
+      "cwe": [
+        "CWE-78"
+      ],
+      "description": "Attacker-controlled request input reaches a command execution sink.",
+      "evidence": {
+        "redactedSnippet": "request input -> child_process.exec(...)",
+        "summary": "Observed a bounded Express request-input flow to child_process.exec."
+      },
+      "fingerprint": "sf1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "id": "sf1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "location": {
+        "endColumn": 22,
+        "endLine": 7,
+        "file": "src/app.ts",
+        "startColumn": 3,
+        "startLine": 7
+      },
+      "metadata": {
+        "structuralContext": "Express handler -> child_process.exec"
+      },
+      "owasp": [
+        "A03:2021"
+      ],
+      "provenance": "observed",
+      "references": [],
+      "remediation": {
+        "guidance": "Use a non-shell API with fixed executable and validated arguments.",
+        "summary": "Avoid shell command construction from request input.",
+        "verification": "Rescan and confirm the source-to-sink flow is absent."
+      },
+      "ruleId": "jsts/command-injection",
+      "ruleVersion": "1.0.0",
+      "scanner": "jsts",
+      "severity": "high",
+      "title": "Command injection",
+      "validation": "static_confirmed"
+    },
+    {
+      "baselineState": "existing",
+      "category": "code",
+      "confidence": "high",
+      "cwe": [
+        "CWE-95"
+      ],
+      "description": "A direct dynamic JavaScript execution construct is present.",
+      "evidence": {
+        "summary": "Observed direct eval invocation."
+      },
+      "fingerprint": "sf1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "id": "sf1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "location": {
+        "endColumn": 5,
+        "endLine": 3,
+        "file": "src/legacy.ts",
+        "startColumn": 1,
+        "startLine": 3
+      },
+      "metadata": {
+        "structuralContext": "top-level eval call"
+      },
+      "owasp": [
+        "A03:2021"
+      ],
+      "provenance": "observed",
+      "references": [],
+      "remediation": {
+        "guidance": "Replace eval with explicit parsing or dispatch logic.",
+        "summary": "Remove dynamic code evaluation.",
+        "verification": "Rescan and confirm the dynamic execution construct is absent."
+      },
+      "ruleId": "jsts/dynamic-code-execution",
+      "ruleVersion": "1.0.0",
+      "scanner": "jsts",
+      "severity": "medium",
+      "title": "Dynamic code execution",
+      "validation": "static_confirmed"
+    }
+  ],
+  "errors": [
+    {
+      "scanner": "iac",
+      "code": "invalid_fixture",
+      "file": "deploy/broken.yaml",
+      "message": "Infrastructure fixture could not be analyzed."
+    }
+  ],
+  "policy": {
+    "mode": "enforce",
+    "passed": false,
+    "failOn": "high",
+    "baselineGate": "new"
+  }
+}

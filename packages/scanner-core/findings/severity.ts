@@ -1,3 +1,4 @@
+import { compareText } from "../determinism/compare-text";
 import type { Finding, Severity } from "./types";
 
 export const severityRank = {
@@ -14,12 +15,6 @@ export function compareSeverity(left: Severity, right: Severity): number {
 
 export function isSeverityAtLeast(actual: Severity, threshold: Severity): boolean {
   return compareSeverity(actual, threshold) >= 0;
-}
-
-function compareText(left: string, right: string): number {
-  if (left < right) return -1;
-  if (left > right) return 1;
-  return 0;
 }
 
 export function compareFindings(left: Finding, right: Finding): number {

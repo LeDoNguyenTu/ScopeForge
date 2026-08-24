@@ -1,0 +1,13 @@
+ScopeForge scan
+
+Repository  ./fixture
+Files       2 analyzed, 1 skipped
+Duration    123ms
+
+HIGH    Command injection  src/app.ts:7
+MEDIUM  Dynamic code execution  src/legacy.ts:3
+
+2 findings: 1 high, 1 medium
+Baseline: 1 new, 1 existing
+Policy: failed (fail-on high, baseline new)
+Scanner errors: 1

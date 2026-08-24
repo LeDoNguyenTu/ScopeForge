@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ScopeForge",
+          "version": "0.1.0",
+          "informationUri": "https://github.com/LeDoNguyenTu/ScopeForge",
+          "rules": [
+            {
+              "id": "jsts/command-injection",
+              "name": "jsts/command-injection",
+              "shortDescription": {
+                "text": "Command injection"
+              },
+              "fullDescription": {
+                "text": "Attacker-controlled request input reaches a command execution sink."
+              },
+              "help": {
+                "text": "Avoid shell command construction from request input.\n\nUse a non-shell API with fixed executable and validated arguments.\n\nVerification: Rescan and confirm the source-to-sink flow is absent."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "CWE-78",
+                  "A03:2021"
+                ],
+                "scopeforge/severity": "high"
+              }
+            },
+            {
+              "id": "jsts/dynamic-code-execution",
+              "name": "jsts/dynamic-code-execution",
+              "shortDescription": {
+                "text": "Dynamic code execution"
+              },
+              "fullDescription": {
+                "text": "A direct dynamic JavaScript execution construct is present."
+              },
+              "help": {
+                "text": "Remove dynamic code evaluation.\n\nReplace eval with explicit parsing or dispatch logic.\n\nVerification: Rescan and confirm the dynamic execution construct is absent."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "CWE-95",
+                  "A03:2021"
+                ],
+                "scopeforge/severity": "medium"
+              }
+            }
+          ]
+        }
+      },
+      "originalUriBaseIds": {
+        "%SRCROOT%": {
+          "uri": "./"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "jsts/command-injection",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Command injection: Observed a bounded Express request-input flow to child_process.exec."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.ts",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 7,
+                  "startColumn": 3,
+                  "endLine": 7,
+                  "endColumn": 22
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "scopeforge/v1": "sf1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "baselineState": "new",
+          "properties": {
+            "scopeforge/severity": "high",
+            "scopeforge/confidence": "high",
+            "scopeforge/validation": "static_confirmed",
+            "scopeforge/provenance": "observed",
+            "scopeforge/baselineState": "new"
+          }
+        },
+        {
+          "ruleId": "jsts/dynamic-code-execution",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "Dynamic code execution: Observed direct eval invocation."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/legacy.ts",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 3,
+                  "startColumn": 1,
+                  "endLine": 3,
+                  "endColumn": 5
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "scopeforge/v1": "sf1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "baselineState": "unchanged",
+          "properties": {
+            "scopeforge/severity": "medium",
+            "scopeforge/confidence": "high",
+            "scopeforge/validation": "static_confirmed",
+            "scopeforge/provenance": "observed",
+            "scopeforge/baselineState": "existing"
+          }
+        }
+      ]
+    }
+  ]
+}

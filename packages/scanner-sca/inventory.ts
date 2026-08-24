@@ -1,6 +1,7 @@
 import { posix } from "node:path";
 
 import type { ScannerDiagnostic } from "../scanner-core/coordinator/types";
+import { compareText } from "../scanner-core/determinism/compare-text";
 import { readInventoryEntry } from "../scanner-core/filesystem/read-inventory-entry";
 import type { RepositoryInventory } from "../scanner-core/inventory/types";
 import { parsePackageLock } from "./lockfiles/package-lock";
@@ -35,15 +36,15 @@ function parserFor(file: string): (input: { file: string; content: string }) => 
 
 function compareComponents(left: NpmDependencyComponent, right: NpmDependencyComponent): number {
   return (
-    left.sourceFile.localeCompare(right.sourceFile) ||
-    left.name.localeCompare(right.name) ||
-    left.version.localeCompare(right.version) ||
+    compareText(left.sourceFile, right.sourceFile) ||
+    compareText(left.name, right.name) ||
+    compareText(left.version, right.version) ||
     left.sourceLine - right.sourceLine
   );
 }
 
 function compareErrors(left: ScannerDiagnostic, right: ScannerDiagnostic): number {
-  return (left.file ?? "").localeCompare(right.file ?? "") || left.code.localeCompare(right.code);
+  return compareText(left.file ?? "", right.file ?? "") || compareText(left.code, right.code);
 }
 
 export async function collectNpmDependencies(inventory: RepositoryInventory): Promise<DependencyInventoryResult> {
@@ -62,7 +63,7 @@ export async function collectNpmDependencies(inventory: RepositoryInventory): Pr
   const components: NpmDependencyComponent[] = [];
   const errors: ScannerDiagnostic[] = [];
 
-  for (const directory of [...byDirectory.keys()].sort()) {
+  for (const directory of [...byDirectory.keys()].sort(compareText)) {
     const files = byDirectory.get(directory) as DirectoryFiles;
     let selected: string | undefined;
     for (const name of LOCKFILE_PRIORITY) {

@@ -1,5 +1,6 @@
 import { ScannerConfigError, type ScannerConfig, type ScannerRuleSelection } from "../scanner-core/config/types";
 import type { Scanner } from "../scanner-core/coordinator/types";
+import { compareText } from "../scanner-core/determinism/compare-text";
 import { IAC_RULES, IAC_RULE_IDS, createIacScanner } from "../scanner-iac";
 import { JSTS_RULES, JSTS_RULE_IDS, createJstsScanner } from "../scanner-jsts";
 import { SCA_RULES, SCA_RULE_IDS, createScaScanner } from "../scanner-sca";
@@ -18,7 +19,7 @@ export const BUILTIN_RULES: readonly BuiltInRuleSummary[] = [
   ...IAC_RULES
 ]
   .map((rule) => ({ id: rule.id, version: rule.version, title: rule.title }))
-  .sort((left, right) => left.id.localeCompare(right.id));
+  .sort((left, right) => compareText(left.id, right.id));
 
 const builtInRuleIds = new Set([
   ...SECRET_RULE_IDS,
@@ -30,7 +31,7 @@ const builtInRuleIds = new Set([
 export function validateBuiltInRules(selection: ScannerRuleSelection): void {
   const unknown = [...selection.include, ...selection.exclude]
     .filter((ruleId) => !builtInRuleIds.has(ruleId))
-    .sort();
+    .sort(compareText);
   if (unknown.length > 0) {
     throw new ScannerConfigError(
       "invalid_config",

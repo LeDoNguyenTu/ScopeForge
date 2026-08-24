@@ -1,4 +1,5 @@
 import type { Scanner, ScannerContext } from "../scanner-core/coordinator/types";
+import { compareText } from "../scanner-core/determinism/compare-text";
 import { readInventoryEntry } from "../scanner-core/filesystem/read-inventory-entry";
 import type { Finding } from "../scanner-core/findings/types";
 import { scanSecretText } from "./scan-file";
@@ -13,13 +14,13 @@ export interface SecretScanner extends Scanner {
   scan(context: ScannerContext): Promise<Finding[]>;
 }
 
-function compareFindings(left: Finding, right: Finding): number {
+function compareSecretFindings(left: Finding, right: Finding): number {
   return (
-    left.location.file.localeCompare(right.location.file) ||
+    compareText(left.location.file, right.location.file) ||
     left.location.startLine - right.location.startLine ||
     left.location.startColumn - right.location.startColumn ||
-    left.ruleId.localeCompare(right.ruleId) ||
-    left.fingerprint.localeCompare(right.fingerprint)
+    compareText(left.ruleId, right.ruleId) ||
+    compareText(left.fingerprint, right.fingerprint)
   );
 }
 
@@ -42,7 +43,7 @@ export function createSecretScanner(options: CreateSecretScannerOptions = {}): S
         }
       }
 
-      return [...byFingerprint.values()].sort(compareFindings);
+      return [...byFingerprint.values()].sort(compareSecretFindings);
     }
   };
 }
