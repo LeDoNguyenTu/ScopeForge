@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -19,25 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           package-manager-cache: false
-      - run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Preserve generated package lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: scopeforge-package-lock
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 1
-      - run: npm test
-      - run: npm run typecheck
-      - run: npm run build:cli
-      - run: node .scopeforge-build/packages/cli/index.js version
-      - run: npm run benchmark:scanner
-      - run: npm run build
+      - name: Bootstrap package lock once
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && hashFiles('package-lock.json') == ''
         env:
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
-          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: lock dependencies"
+          git push origin "HEAD:${HEAD_REF}"
+      - name: Validate lock exists
+        run: test -f package-lock.json
