@@ -178,6 +178,24 @@ describe("observeRuntimeTarget", () => {
     });
   });
 
+  it("reports total timeout when the remaining total budget expires first", async () => {
+    const timeout = Object.assign(new Error("deadline reached"), { name: "TimeoutError" });
+    const transport = vi.fn(async () => Promise.reject(timeout));
+    const times = [0, 14_000];
+
+    const result = await observeRuntimeTarget(target(), budget(), {
+      transport,
+      now: () => times.shift() ?? 14_000,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.failureCode).toBe("TOTAL_TIMEOUT");
+    expect(transport).toHaveBeenCalledWith({
+      url: expect.any(URL),
+      timeoutMs: 1_000,
+    });
+  });
+
   it("fails on total timeout before starting another request", async () => {
     const transport = vi.fn(async () => response(200));
     const times = [0, 15_001];
