@@ -27,6 +27,11 @@ function ruleEnabled(selection: ScannerRuleSelection | undefined): boolean {
   return selection.include.length === 0 || selection.include.includes(RULE_ID);
 }
 
+function hasSupportedRuntimeModules(sourceFile: import("typescript").SourceFile): boolean {
+  const text = sourceFile.text;
+  return text.includes("express") && text.includes("child_process");
+}
+
 function budgetError(file: string): ScanCommandInjectionResult {
   return {
     findings: [],
@@ -52,6 +57,8 @@ export function scanCommandInjection(input: ScanCommandInjectionInput): ScanComm
       }
     };
   }
+
+  if (!hasSupportedRuntimeModules(input.sourceFile)) return { findings: [] };
 
   const budget: TaintBudget = { maxSteps: input.maxSteps, steps: 0 };
   const bindings = collectTaintBindings(input.sourceFile, budget);
