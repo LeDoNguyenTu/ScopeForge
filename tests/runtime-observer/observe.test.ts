@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { assetRef } from "@/packages/security-domain";
+import type { RuntimeNetworkResponse } from "@/packages/runtime-network";
 import {
   observeRuntimeTarget,
   type AuthorizedRuntimeTarget,
   type RuntimeObservationBudget,
   type RuntimeTransport,
-  type RuntimeTransportResponse,
 } from "@/packages/runtime-observer";
 
 function target(): AuthorizedRuntimeTarget {
@@ -30,8 +30,8 @@ function budget(overrides: Partial<RuntimeObservationBudget> = {}): RuntimeObser
 
 function response(
   status: number,
-  headers: RuntimeTransportResponse["headers"] = {},
-): RuntimeTransportResponse {
+  headers: RuntimeNetworkResponse["headers"] = {},
+): RuntimeNetworkResponse {
   return {
     status,
     headers,
