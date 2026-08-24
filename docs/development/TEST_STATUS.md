@@ -2,36 +2,29 @@
 
 ## Phase 4B supporting GREEN gate
 
-CI #437 passed on PR #25 supporting implementation head `364ccd435c824bfdfab75407db967d027bf18656`.
+CI #459 passed on PR #25 security-hardening implementation head `3fa117745a002ba6f3c0b01107593b2ff9913254`.
 
 | Check | Result | Evidence |
 |---|---|---|
 | Reproducible dependency install | Passing | `npm ci --ignore-scripts --no-audit --no-fund` |
-| Vitest | Passing | 109 test files, 474 tests |
+| Vitest | Passing | 112 test files, 484 tests |
 | TypeScript strict typecheck | Passing | `npm run typecheck` |
 | CLI TypeScript build | Passing | `npm run build:cli` |
 | Compiled CLI runtime smoke | Passing | `ScopeForge 0.1.0` |
-| Medium scanner benchmark | Passing | 700 files, 0 findings, 0 errors, 971 ms wall time |
+| Medium scanner benchmark | Passing | 700 files, 0 findings, 0 errors |
 | Next.js production build | Passing | `npm run build` |
 
-Benchmark line:
+CI #459 is supporting implementation evidence. Permanent documentation changes move the branch beyond that commit, so PR #25 still requires a fresh complete run on its exact final head before merge.
 
-```text
-SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"scanDurationMs":910,"wallMs":971,"rssDeltaBytes":34701312,"maxWallMs":20000}
-```
+## Phase 4B TDD and security-regression evidence
 
-The benchmark is regression evidence on one GitHub-hosted runner, not a universal performance claim.
-
-Permanent architecture/documentation and dependency-guard changes move the head after CI #437. Therefore CI #437 is supporting evidence, not the immutable final merge gate. PR #25 must receive a fresh complete run on its exact final head.
-
-## Phase 4B TDD evidence
-
-The implementation used contract-first RED/GREEN checkpoints while preserving existing regression coverage.
+The implementation used RED/GREEN checkpoints while preserving existing regression coverage.
 
 ### Shared network-safety extraction
 
 - Phase 2 public-IP and resolution-result safety behavior was extracted into `packages/network-safety` with Phase 2 regression coverage retained.
 - Runtime code reuses the pure policy instead of copying SSRF rules.
+- Dependency guards keep `packages/network-safety` free of DNS, HTTP, TLS, database, and framework I/O.
 
 ### Runtime target, budget, DNS, and transport contracts
 
@@ -40,10 +33,23 @@ Coverage includes:
 - verified web/API target normalization
 - HTTPS port 443 and GET-only policy
 - same-host redirect restrictions
-- request, redirect, byte, observation, request-timeout, and total-time budgets
-- public DNS classification before connections
+- request-count, redirect-count, observation-size, request-timeout, and total-time budgets
+- public DNS classification before every outbound connection
 - DNS-pinned HTTPS transport
-- timeout and network failure handling
+- DNS resolution included inside each request deadline
+- HTTPS timeout reduced by time already spent resolving DNS
+- remaining-total-budget enforcement when a request begins near the global deadline
+- timeout and network failure classification through stable codes
+
+### Cancellation hardening
+
+Regression coverage verifies:
+
+- cancellation before initial networking
+- asynchronous cancellation checks after a request and before another network operation
+- a workspace-bound database cancellation callback injected by the trusted service
+- cancellation remains a distinct terminal state
+- observations/findings are not persisted after the observer reports cancellation
 
 ### Passive observation and redaction
 
@@ -53,7 +59,8 @@ Coverage verifies:
 - selected response-header state
 - cookie security attributes without cookie values
 - TLS metadata
-- no response-body observation contract
+- no response-body persistence
+- URL query strings and fragments removed from persisted HTTP-status and redirect-source observations
 - deterministic redaction and observation-size enforcement
 
 ### Runtime finding mapping
@@ -72,38 +79,35 @@ Coverage verifies:
 - immutable enqueue authorization snapshot
 - execution-time reauthorization before networking
 - changed authorization blocks execution
-- cancellation before persistence
 - stable failure codes
 - bounded audits without raw exception text
 
 ### Application service and UI
 
-The original PR #25 blocker was an intentional service contract suite whose production module was missing. `lib/runtime-observations/service.ts` was added and the full service suite now passes.
+The original PR #25 blocker was a service contract suite whose production module was missing. `lib/runtime-observations/service.ts` now implements the trusted orchestration layer.
 
-The asset UI used a second RED/GREEN checkpoint:
+The asset workflow covers:
 
-- RED: all existing suites remained green and only the missing `RuntimeObservationPanel` suite failed.
-- GREEN: the panel covers unverified/repository restrictions, verified web/API execution, queued/running cancellation controls, bounded success summaries, and safe blocked/failed reasons.
-
-CI #437 confirms the completed UI slice with 109 test files and 474 tests.
+- unverified/repository restrictions
+- verified web/API execution
+- queued/running cancellation controls
+- bounded success summaries
+- safe blocked/failed reasons
+- no UI-side networking or duplicated authorization logic
 
 ## Architecture dependency guards
 
-The final Phase 4B head adds `tests/architecture/runtime-observer-dependencies.test.ts` alongside the existing security-domain guard.
+CI enforces:
 
-The guards require:
-
-- `security-domain` to remain independent of scanners, CLI, Next.js, React, Supabase, application/component layers, and named model providers
-- `runtime-observer` to remain independent of Next.js, React, Supabase, application/component layers, and named model providers
-- `network-safety` to remain free of DNS, HTTP, TLS, database, and framework dependencies
-
-These new architecture assertions require the final exact-head CI gate before merge.
+- `security-domain` remains independent of scanners, CLI, Next.js, React, Supabase, application/component layers, and named model providers
+- `runtime-observer` remains independent of Next.js, React, Supabase, application/component layers, and named model providers
+- `network-safety` remains free of DNS, HTTP, TLS, database, and framework dependencies
 
 ## Phase 3 regression continuity
 
-All existing Phase 3 integration, hostile-repository, secret non-leakage, parser safety, no-execution, SCA/OSV, SBOM, IaC, baseline, JSON/SARIF/golden-output, policy, filesystem, and benchmark coverage remained green in CI #437.
+Existing Phase 3 integration, hostile-repository, secret non-leakage, parser safety, no-execution, SCA/OSV, SBOM, IaC, baseline, JSON/SARIF/golden-output, policy, filesystem, and benchmark coverage remain part of the full repository gate.
 
-No Phase 3 output schema, fingerprint, baseline, policy, CLI, scanner-rule, SARIF, SBOM, or benchmark semantic was intentionally changed by Phase 4B.
+No Phase 3 output schema, fingerprint, baseline, policy, CLI, scanner-rule, SARIF, SBOM, or benchmark semantic is intentionally changed by Phase 4B.
 
 ## Database boundary
 
@@ -129,9 +133,10 @@ Merge is blocked by any of the following:
 - authorization not being rechecked immediately before execution
 - redirects widening beyond same-host HTTPS port 443 policy
 - a connection occurring without fresh public-IP classification and pinning
-- response-body or cookie-value persistence
+- DNS work escaping the request deadline
+- response-body, cookie-value, or URL query-secret persistence
 - raw network/database exception text reaching audits or browser-facing errors
-- cancellation being ignored before persistence
+- cancellation being ignored between network operations or before persistence
 - runtime-observer dependency reversal into UI/database/provider code
 - network-safety gaining DNS/HTTP/TLS/database/framework behavior
 - unexpected Phase 2 or Phase 3 regression
