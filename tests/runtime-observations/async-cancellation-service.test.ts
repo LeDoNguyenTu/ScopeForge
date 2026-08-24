@@ -99,7 +99,7 @@ describe("runtime observation service async cancellation", () => {
     const observe = vi.fn(async (
       _target: unknown,
       _budget: unknown,
-      observerDependencies: RuntimeObserverDependencies,
+      observerDependencies: RuntimeObserverDependencies = {},
     ) => {
       expect(observerDependencies.isCancelled).toEqual(expect.any(Function));
       const cancelled = await observerDependencies.isCancelled?.();
