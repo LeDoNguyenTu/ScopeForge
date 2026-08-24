@@ -25,6 +25,7 @@ export type RuntimeRequester = (options: RequestOptions) => Promise<RuntimeTrans
 export interface RuntimeTransportDependencies {
   resolver?: RuntimeResolver;
   requester?: RuntimeRequester;
+  now?: () => number;
 }
 
 export interface PinnedHttpsRequestInput {
@@ -34,13 +35,23 @@ export interface PinnedHttpsRequestInput {
   timeoutMs: number;
 }
 
+function assertRuntimeTimeout(timeoutMs: number): void {
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+    throw new Error("Runtime transport timeout must be a positive integer.");
+  }
+}
+
+function runtimeTimeoutError(): Error {
+  return Object.assign(new Error("Runtime HTTPS request timed out."), {
+    name: "TimeoutError",
+  });
+}
+
 export function buildPinnedHttpsRequestOptions(input: PinnedHttpsRequestInput): RequestOptions {
   if (input.url.protocol !== "https:") {
     throw new Error("Runtime transport requires HTTPS.");
   }
-  if (!Number.isInteger(input.timeoutMs) || input.timeoutMs <= 0) {
-    throw new Error("Runtime transport timeout must be a positive integer.");
-  }
+  assertRuntimeTimeout(input.timeoutMs);
 
   const hostname = input.url.hostname.toLowerCase();
   const port = input.url.port ? Number(input.url.port) : 443;
@@ -118,7 +129,7 @@ export const defaultRuntimeRequester: RuntimeRequester = (options) =>
     });
 
     request.on("timeout", () => {
-      request.destroy(Object.assign(new Error("Runtime HTTPS request timed out."), { name: "TimeoutError" }));
+      request.destroy(runtimeTimeoutError());
     });
     request.on("error", finishReject);
     request.end();
@@ -128,12 +139,46 @@ export async function requestPinnedHttps(
   input: { url: URL; timeoutMs: number },
   dependencies: RuntimeTransportDependencies = {},
 ): Promise<RuntimeTransportResponse> {
+  assertRuntimeTimeout(input.timeoutMs);
+
   const resolver = dependencies.resolver ?? defaultRuntimeResolver;
   const requester = dependencies.requester ?? defaultRuntimeRequester;
-  const pinned = await resolvePinnedRuntimeAddress(input.url.hostname, resolver);
-  const options = buildPinnedHttpsRequestOptions({
-    ...input,
-    ...pinned,
+  const now = dependencies.now ?? Date.now;
+  const startedAt = now();
+  const controller = new AbortController();
+  let expired = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const operation = (async () => {
+    const pinned = await resolvePinnedRuntimeAddress(input.url.hostname, resolver);
+    const elapsedMs = Math.max(0, now() - startedAt);
+    const remainingTimeoutMs = input.timeoutMs - elapsedMs;
+    if (expired || remainingTimeoutMs <= 0) {
+      throw runtimeTimeoutError();
+    }
+
+    const options = buildPinnedHttpsRequestOptions({
+      url: input.url,
+      timeoutMs: remainingTimeoutMs,
+      ...pinned,
+    });
+    return requester({
+      ...options,
+      signal: controller.signal,
+    });
+  })();
+
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      expired = true;
+      reject(runtimeTimeoutError());
+      controller.abort();
+    }, input.timeoutMs);
   });
-  return requester(options);
+
+  try {
+    return await Promise.race([operation, deadline]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
