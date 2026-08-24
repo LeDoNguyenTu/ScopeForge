@@ -2,17 +2,22 @@
 
 ## Current completion gate - Phase 4B
 
-PR #25 `Build Phase 4B passive runtime observations` contains the completed implementation of the approved PR #24 design.
+PR #25 `Build Phase 4B passive runtime observations` contains the completed implementation of the approved PR #24 design plus final security hardening discovered during diff review.
 
-Supporting implementation head `364ccd435c824bfdfab75407db967d027bf18656` passed CI #437 with 109 test files / 474 tests, strict typecheck, CLI build/runtime, the 700-file scanner benchmark, and the production build.
+Supporting security-hardening head `3fa117745a002ba6f3c0b01107593b2ff9913254` passed CI #459 with 112 test files / 484 tests, strict typecheck, CLI build/runtime, the 700-file scanner benchmark, and the production build.
 
-The permanent architecture/documentation and dependency-guard changes move the PR head beyond that supporting checkpoint. The exact remaining Phase 4B actions are:
+That supporting head includes regression coverage and production fixes for:
 
-1. Complete the runtime-observer/network-safety architecture dependency guard.
-2. Commit the permanent Phase 4B project-state documentation.
-3. Review the complete PR #25 changed-file set against the approved design and security boundary.
-4. Confirm there is no unresolved blocking review thread.
-5. Require the exact final head to pass the complete repository CI gate:
+- asynchronous database-backed cancellation checks between runtime network operations
+- per-request timeouts capped by the remaining total runtime budget
+- URL query/fragment redaction before observation persistence
+- DNS resolution included inside the request deadline, with the HTTPS socket receiving only the remaining budget
+
+Permanent documentation changes move the PR head beyond CI #459. The exact remaining Phase 4B actions are:
+
+1. Review the complete PR #25 changed-file set against the approved design and security boundary.
+2. Confirm there is no unresolved blocking review thread.
+3. Require the exact final head to pass the complete repository CI gate:
    - `npm ci --ignore-scripts --no-audit --no-fund`
    - `npm test`
    - `npm run typecheck`
@@ -20,9 +25,9 @@ The permanent architecture/documentation and dependency-guard changes move the P
    - compiled CLI version smoke
    - `npm run benchmark:scanner`
    - `npm run build`
-6. Squash merge with expected-head protection.
-7. Verify merged content and the resulting `main` CI when exposed by the available GitHub tooling. Never infer an unavailable post-merge result.
-8. Remove merged historical feature/design branches only if they are no longer needed and tooling permits safe deletion.
+4. Squash merge with expected-head protection.
+5. Verify merged content and the resulting `main` CI when exposed by the available GitHub tooling. Never infer an unavailable post-merge result.
+6. Remove merged historical feature/design branches only if they are no longer needed and tooling permits safe deletion.
 
 ## Phase 4C - Bounded active validation
 
