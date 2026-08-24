@@ -35,7 +35,7 @@ function isAllowedByClassification(
 }
 
 function preparedContext(items: AdvisoryContextItem[]): PreparedAdvisoryContext {
-  return items as PreparedAdvisoryContext;
+  return items as unknown as PreparedAdvisoryContext;
 }
 
 export function buildAdvisoryContext(
