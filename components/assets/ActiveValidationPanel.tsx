@@ -210,7 +210,10 @@ export default function ActiveValidationPanel({
             <div className="auditList">
               <div className="auditRow">
                 <span className="auditDot" />
-                <div><strong>Allowed origin: {observation.allowedOrigin ?? "not returned"}</strong></div>
+                <div>
+                  <strong>Allowed origin</strong>
+                  <small>{observation.allowedOrigin ?? "not returned"}</small>
+                </div>
               </div>
               <div className="auditRow">
                 <span className="auditDot" />
