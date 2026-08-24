@@ -108,7 +108,7 @@ function repository(overrides: Partial<RuntimeObservationRepository> = {}): Runt
     requestCancellation: vi.fn(async () => job({
       cancel_requested_at: "2026-08-24T12:01:00.000Z",
     })),
-    persistObservations: vi.fn(async () => undefined),
+    persistResult: vi.fn(async () => undefined),
     listObservations: vi.fn(async () => []),
   };
 
@@ -229,7 +229,7 @@ describe("executeRuntimeObservation", () => {
     expect(repo.markCancelled).toHaveBeenCalledWith(cancelledJob);
   });
 
-  it("executes an unchanged authorization snapshot and persists only normalized observations and deterministic finding counts", async () => {
+  it("executes an unchanged authorization snapshot and atomically persists observations with canonical findings", async () => {
     const runningJob = job({
       status: "running",
       started_at: "2026-08-24T12:01:00.000Z",
@@ -238,6 +238,7 @@ describe("executeRuntimeObservation", () => {
       load: vi.fn()
         .mockResolvedValueOnce(job())
         .mockResolvedValueOnce(runningJob),
+      loadForWorkspace: vi.fn(async () => runningJob),
       markRunning: vi.fn(async () => runningJob),
     });
     const observe = vi.fn(async () => succeededResult());
@@ -257,10 +258,13 @@ describe("executeRuntimeObservation", () => {
       RUNTIME_OBSERVATION_MAX_BUDGET,
       expect.objectContaining({ now: expect.any(Function) }),
     );
-    expect(repo.persistObservations).toHaveBeenCalledWith(
+    expect(repo.persistResult).toHaveBeenCalledWith(
       runningJob,
       succeededResult().observations,
+      expect.arrayContaining([expect.objectContaining({ validation: "runtime_observed" })]),
+      expect.arrayContaining([expect.objectContaining({ kind: "http-observation" })]),
       RUNTIME_OBSERVATION_MAX_BUDGET.maxObservationBytes,
+      new Date("2026-08-24T12:02:00.000Z"),
     );
     expect(repo.markSucceeded).toHaveBeenCalledWith(
       runningJob,
@@ -315,7 +319,7 @@ describe("executeRuntimeObservation", () => {
     expect(JSON.stringify(audit.mock.calls)).not.toContain("secret upstream response text");
   });
 
-  it("honors a cancellation requested while the bounded observer was running before persisting observations", async () => {
+  it("honors a cancellation requested while the bounded observer was running before persisting results", async () => {
     const runningJob = job({ status: "running", started_at: createdAt });
     const cancelledRunningJob = job({
       status: "running",
@@ -335,7 +339,7 @@ describe("executeRuntimeObservation", () => {
     );
 
     expect(result.status).toBe("cancelled");
-    expect(repo.persistObservations).not.toHaveBeenCalled();
+    expect(repo.persistResult).not.toHaveBeenCalled();
     expect(repo.markSucceeded).not.toHaveBeenCalled();
     expect(repo.markCancelled).toHaveBeenCalledWith(cancelledRunningJob);
   });
