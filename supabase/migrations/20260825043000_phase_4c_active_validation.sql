@@ -114,7 +114,8 @@ begin
     from public.scan_jobs
    where id = new.job_id
      and workspace_id = new.workspace_id
-     and asset_id = new.asset_id;
+     and asset_id = new.asset_id
+   for update;
 
   if job_kind_text is null then
     raise exception 'Runtime observation job is not available';
