@@ -123,7 +123,7 @@ describe("runtime security-domain mapping", () => {
     expect(first.id).not.toBe(second.id);
   });
 
-  it("includes source version in the durable runtime identity", () => {
+  it("includes source version in the durable runtime finding identity", () => {
     const match = evaluateRuntimeRules({
       observations: [header("strict-transport-security", false)],
     })[0];
@@ -142,7 +142,31 @@ describe("runtime security-domain mapping", () => {
 
     expect(mapRuntimeRuleMatchToSecurityFinding({ assetRef: runtimeAssetRef, match }).id)
       .toBe(`runtime:${digest}`);
-    expect(mapRuntimeRuleMatchToEvidence({ assetRef: runtimeAssetRef, match }).id)
-      .toBe(`runtime-evidence:${digest}`);
+  });
+
+  it("keeps finding identity stable while immutable evidence identity follows observed content", () => {
+    const firstMatch = evaluateRuntimeRules({
+      observations: [header("x-content-type-options", true, "legacy")],
+    })[0];
+    const secondMatch = evaluateRuntimeRules({
+      observations: [header("x-content-type-options", true, "incorrect")],
+    })[0];
+    expect(firstMatch).toBeDefined();
+    expect(secondMatch).toBeDefined();
+    if (!firstMatch || !secondMatch) return;
+
+    expect(firstMatch.ruleId).toBe(secondMatch.ruleId);
+    expect(firstMatch.observationKey).toBe(secondMatch.observationKey);
+    expect(firstMatch.evidenceSummary).not.toBe(secondMatch.evidenceSummary);
+
+    const firstFinding = mapRuntimeRuleMatchToSecurityFinding({ assetRef: runtimeAssetRef, match: firstMatch });
+    const secondFinding = mapRuntimeRuleMatchToSecurityFinding({ assetRef: runtimeAssetRef, match: secondMatch });
+    const firstEvidence = mapRuntimeRuleMatchToEvidence({ assetRef: runtimeAssetRef, match: firstMatch });
+    const secondEvidence = mapRuntimeRuleMatchToEvidence({ assetRef: runtimeAssetRef, match: secondMatch });
+
+    expect(firstFinding.id).toBe(secondFinding.id);
+    expect(firstEvidence.id).not.toBe(secondEvidence.id);
+    expect(firstFinding.evidenceRefs).toEqual([firstEvidence.id]);
+    expect(secondFinding.evidenceRefs).toEqual([secondEvidence.id]);
   });
 });
