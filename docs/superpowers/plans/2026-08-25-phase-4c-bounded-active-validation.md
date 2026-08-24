@@ -1,143 +1,74 @@
 # Phase 4C Bounded Active Validation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 
 **Status:** Approved for execution
 
 **Goal:** Add the first explicitly authorized, narrowly active runtime validator to ScopeForge using one fixed CORS origin-policy request against an exact verified target, while preserving every Phase 4B passive-runtime safety invariant.
 
-**Architecture:** Keep `packages/runtime-observer` passive. Extract the reviewed DNS, public-IP classification, IP pinning, TLS, deadline, abort, and body-discard behavior into `packages/runtime-network`, then add a separate `packages/runtime-validator` package for built-in active request plans, CORS observation normalization, deterministic rules, and security-domain mapping. Trusted application services own owner/admin authorization, immutable job snapshots, cancellation, persistence, audit events, and orchestration through the existing `scan_jobs` and `runtime_observations` tables.
+**Architecture:** Keep `packages/runtime-observer` passive. Extract reviewed low-level DNS/HTTPS/pinning/deadline/body-discard behavior into `packages/runtime-network`. Add `packages/runtime-validator` for built-in active profiles, CORS observations, deterministic rules, and security-domain mapping. Trusted application services own authorization, immutable snapshots, cancellation, persistence, audit, quotas, and orchestration.
 
-**Tech Stack:** TypeScript 5.8, Node.js HTTPS/DNS/TLS APIs, Vitest 3.2, Next.js 15 server actions, React 19, Supabase/PostgreSQL migrations and RLS.
+**Locked Phase 4C-1 contract:**
 
-**Spec:** `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
+- Profile `cors-origin-policy@1`
+- Synthetic origin `https://scopeforge.invalid`
+- Verified `web_application` and `api` assets only
+- Owner/admin only for active enqueue; passive Phase 4B roles unchanged
+- HTTPS and port 443 only
+- Exact immutable canonical target only
+- One GET request exactly
+- Zero redirects followed
+- Zero retries
+- No request body, cookie, Authorization, user headers, browser state, JavaScript, or exploit payload
+- Fresh DNS before connection, reject the whole request if any answer is not public, pin socket to validated public address, preserve original Host/SNI/certificate hostname
+- DNS time included in request deadline
+- Per-request maximum 5 seconds, total maximum 10 seconds
+- Response body destroyed and never persisted
+- Persist only one bounded `cors-policy` observation, maximum 32 KiB/job
+- Evidence summary maximum 4 KiB/finding
+- Query, fragment, Set-Cookie/cookie values, Authorization data, arbitrary headers, and raw exception text never enter active persistence
+- Active findings use `runtime_validated`
+- `runtime-observer` never imports `runtime-validator`
+- `runtime-network` never imports app/UI/database/provider/rule layers
+- `network-safety` remains pure
 
-## Global Constraints
+## Execution tasks
 
-- Phase 4C-1 supports only verified `web_application` and `api` assets.
-- Active enqueue is restricted to workspace `owner` and `admin`; passive Phase 4B role behavior remains unchanged.
-- Built-in profile is exactly `cors-origin-policy@1`.
-- Synthetic origin is exactly `https://scopeforge.invalid` and is never user supplied.
-- Exactly one GET request is allowed; redirects followed are exactly zero; concurrency is one; retries are zero.
-- HTTPS only, port 443 only, exact authorized hostname only, exact canonical path only, no credentials, no cookies, no Authorization header, no request body, no user headers, no JavaScript execution.
-- Per-request timeout is at most 5,000 ms; total active execution is at most 10,000 ms; DNS time is inside the request deadline.
-- Every connection performs fresh DNS resolution, rejects any non-public or invalid resolved address, and pins the socket to a validated public address while preserving original hostname/SNI/certificate verification.
-- Response bodies are destroyed and never buffered or persisted.
-- Active observation persistence is bounded to 32 KiB per job; evidence summary is bounded to 4 KiB per finding.
-- Query strings, fragments, cookie values, Authorization values, raw exception text, and arbitrary response headers must never enter active persistence.
-- Cancellation is checked before DNS, before connection, after response metadata, before rule evaluation, before persistence, and before success transition.
-- Active findings reuse `deterministic-runtime-scanner` and use validation state `runtime_validated`.
-- `runtime-observer` must not import `runtime-validator`; `runtime-network` must not import app/UI/Supabase/provider code; `network-safety` stays pure.
-- No crawler, SQLi/XSS/SSRF probe, file discovery, preflight, fuzzing, credential testing, authenticated testing, destructive test, arbitrary URL, arbitrary method, arbitrary header map, or arbitrary payload API is introduced.
-- Full merge gate remains: `npm ci --ignore-scripts --no-audit --no-fund`, `npm test`, `npm run typecheck`, `npm run build:cli`, compiled CLI `version`, `npm run benchmark:scanner`, `npm run build`.
+### 1. Extract `runtime-network` without passive behavior change
 
-## Tasks
+Create `packages/runtime-network/{contracts,dns,https-transport,index}.ts`. Move the hardened DNS and HTTPS behavior currently owned by `runtime-observer` behind a typed trusted request plan. Add `tests/runtime-network/` first and verify RED because the package is missing. Preserve all current DNS, pinning, timeout, AbortSignal, response-body destruction, async cancellation, redirect, redaction, and passive observation regressions. Then migrate `runtime-observer` imports and remove its duplicated DNS/transport implementation.
 
-The approved execution order is:
+The public request plan is GET-only and runtime-validates HTTPS/443, `Accept: */*`, one of the two ScopeForge runtime user agents, and either no Origin or exactly the fixed synthetic Origin.
 
-1. Extract the reviewed Phase 4B DNS/HTTPS transport into `packages/runtime-network` behind a typed trusted GET-only request plan. Start by adding/moving runtime-network tests and prove RED before production extraction. Preserve fresh all-address DNS validation, public-IP pinning, Host/SNI verification, DNS-inclusive deadlines, abort behavior, response-body destruction, and all passive Phase 4B tests.
-2. Add `packages/runtime-validator` with `cors-origin-policy@1`, fixed origin `https://scopeforge.invalid`, exact one-request/zero-redirect budget, exact-target construction, bounded CORS observation normalization, and tests proving no caller-controlled request configuration.
-3. Add deterministic CORS rules and security-domain mapping: credentialed synthetic origin is high/high, synthetic-origin reflection without credentials is low/high, wildcard and missing `Vary: Origin` are observation-only, source is `scopeforge:runtime-validator`, validation is `runtime_validated`, evidence is bounded and deterministic.
-4. Extend existing runtime persistence with `active_validation`, immutable profile/authorization snapshot fields, `cors-policy` observations, active-only repository adapter, and migration tests proving authenticated users retain select-only access and trusted writes.
-5. Add owner/admin-only active authorization, enqueue/execution reauthorization, database-backed cancellation, one-request validator execution, bounded audit/failure codes, and cancellation-before-persistence regressions. Passive member authorization remains unchanged.
-6. Add dedicated asset server action `runCorsOriginPolicyValidation(assetId)` and a separate active-validation panel. The browser may submit only asset id. No URL/path/method/header/origin/body/credential controls are exposed.
-7. Add architecture and security regressions proving runtime-network/runtime-validator dependency direction, no generic HTTP authority, DNS rebinding protection, deadline correctness, zero redirect following, body destruction, and privacy redaction.
-8. Refresh permanent state/architecture/roadmap/test docs only after implementation is green, run the exact full gate, perform security diff review, require exact-head CI green and no blocking review threads, then squash merge with expected-head protection.
+### 2. Add pure `runtime-validator` CORS contract
 
-## Locked interfaces and persistence names
+Create `packages/runtime-validator/{contracts,budget,cors-profile,observations,validate,index}.ts` and tests. Enforce exact request count 1, redirect count 0, max 5-second request timeout, 10-second total runtime, 32 KiB observations. `buildCorsOriginPolicyRequestPlan(target, timeout)` accepts no caller request configuration. Normalize only status, ACAO, ACAC, Vary, and bounded redirect hostname. Strip target query/fragment from persistence. Never follow 3xx.
 
-- Profile: `cors-origin-policy@1`
-- Synthetic origin: `https://scopeforge.invalid`
-- Job kind: `active_validation`
-- Observation kind: `cors-policy`
-- Active validation state: `runtime_validated`
-- Active request count: exactly `1`
-- Redirects followed: exactly `0`
-- Per-request timeout maximum: `5_000` ms
-- Total runtime maximum: `10_000` ms
-- Observation persistence maximum: `32_768` bytes/job
-- Evidence summary maximum: `4_096` characters/finding
-- User agents: `ScopeForge-RuntimeObserver/0.1` and `ScopeForge-RuntimeValidator/0.1`
+### 3. Add deterministic CORS rules and security-domain mapping
 
-### `runtime-network`
+Create `packages/runtime-validator/rules/` and `domain-mapper.ts` with tests first. Credentialed exact synthetic-origin allowance maps to `runtime/cors/credentialed-untrusted-origin`, high/high. Exact synthetic-origin reflection without credentials maps to `runtime/cors/untrusted-origin-reflection`, low/high. Wildcard ACAO and missing `Vary: Origin` remain observation-only. Source is `deterministic-runtime-scanner` / `scopeforge:runtime-validator`, source version identifies `cors-origin-policy@1`, validation is `runtime_validated`, and identities/evidence are deterministic and bounded.
 
-```ts
-export interface RuntimeResolvedAddress { address: string; family: 4 | 6 }
-export type RuntimeResolver = (hostname: string) => Promise<readonly RuntimeResolvedAddress[]>;
-export interface RuntimeTlsMetadata { protocol: string | null; validFrom: string | null; validTo: string | null; subjectAltName: string | null }
-export interface RuntimeNetworkResponse { status: number; headers: Readonly<Record<string, string | readonly string[] | undefined>>; tls: RuntimeTlsMetadata }
-export type RuntimeRequester = (options: import("node:https").RequestOptions) => Promise<RuntimeNetworkResponse>;
-export interface TrustedRuntimeRequestPlan {
-  readonly method: "GET";
-  readonly url: URL;
-  readonly timeoutMs: number;
-  readonly headers: Readonly<Record<"accept" | "user-agent" | "origin", string | undefined>>;
-}
-export interface RuntimeNetworkDependencies { resolver?: RuntimeResolver; requester?: RuntimeRequester; now?: () => number }
-```
+### 4. Extend existing runtime persistence
 
-The network boundary runtime-validates HTTPS, port 443, GET, `Accept: */*`, an approved ScopeForge user agent, and either no Origin or exactly the fixed synthetic Origin.
+Create migration `supabase/migrations/20260825043000_phase_4c_active_validation.sql`; update `lib/database.types.ts`; add `lib/active-validations/{types,repository}.ts` and tests. Add job kind `active_validation`, immutable active fields `validator_profile_id`, `validator_profile_version`, `active_authorized_at`, and observation kind `cors-policy`. Keep job/workspace/asset foreign keys, transition guards, payload budgets, RLS, and select-only authenticated access. All active repository mutations must be scoped to `job_kind = active_validation`.
 
-### `runtime-validator`
+### 5. Add explicit active authorization/service execution
 
-```ts
-export interface ActiveValidationBudget {
-  maxRequests: 1;
-  maxRedirects: 0;
-  perRequestTimeoutMs: number;
-  totalTimeoutMs: number;
-  maxObservationBytes: number;
-}
-export interface AuthorizedActiveTarget {
-  assetRef: import("@/packages/security-domain").AssetRef;
-  kind: "web_application" | "api";
-  canonicalUrl: string;
-  hostname: string;
-}
-export interface CorsPolicyObservation {
-  kind: "cors-policy";
-  profileId: "cors-origin-policy";
-  profileVersion: "1";
-  targetUrl: string;
-  status: number;
-  allowOriginPresent: boolean;
-  allowOrigin: string | null;
-  allowCredentialsPresent: boolean;
-  credentialsAllowed: boolean;
-  varyIncludesOrigin: boolean;
-  redirected: boolean;
-  redirectHostname: string | null;
-}
-```
+Create `lib/active-validations/{authorization,service}.ts` and tests. Owner/admin only. Reauthorize immediately before network. Snapshot drift, revoked verification, unsupported profile/kind, invalid budget, cancellation, or wrong state must produce zero network traffic. Inject DB-backed async cancellation and recheck after validation before persistence. Cancellation after response must persist zero observations/findings. Use stable bounded active failure codes and audit events without raw infrastructure errors.
 
-Only selected CORS metadata and a bounded redirect hostname may enter the observation. Query, fragment, cookies, Authorization, body, raw arbitrary headers, and exception text never enter persistence.
+### 6. Add dedicated active UI/server action
 
-## Required TDD verification points
+Create `components/assets/ActiveValidationPanel.tsx`, tests, and extend asset server/page code. `runCorsOriginPolicyValidation(assetId: string)` accepts only asset id and binds the fixed profile/budget server-side. UI clearly separates Passive observation and Bounded active validation, displays the fixed behavior, and exposes no editable URL/path/method/header/origin/body/credential inputs.
 
-Every production slice starts with a failing test. Required regressions include:
+### 7. Lock architecture/security boundaries
 
-- runtime-network module missing before extraction, then all moved Phase 4B DNS/transport tests green
-- unsafe synthetic Origin/request-plan rejection
-- exact active budget validation
-- exact canonical target and fixed header plan
-- credentialed and non-credentialed CORS reflection semantics
-- wildcard produces no finding
-- active `runtime_validated` mapping and stable IDs
-- active migration/RLS/trusted writes
-- unauthenticated/member/viewer/cross-workspace/unverified/changed-snapshot/unknown-profile blocked before network
-- owner/admin accepted
-- cancellation after response but before persistence writes zero observations
-- 3xx makes no second request
-- DNS mixed public/private and empty response rejected
-- DNS time counted inside deadline
-- pinned address with original Host/SNI
-- response body not surfaced
-- Set-Cookie/arbitrary headers not persisted
-- query/fragment redaction
-- architecture dependency guards
-- passive Phase 4B regressions remain green
+Add architecture tests for runtime-network/runtime-validator and strengthen runtime-observer guards. Add regressions for mixed public/private DNS, empty DNS, fresh DNS, pinning, original Host/SNI, DNS-inclusive timeout, remaining HTTPS deadline, timeout abort, HTTPS/443 policy, zero redirect following, body destruction, query/fragment redaction, no Set-Cookie/arbitrary header persistence, and no generic active request public API.
 
-## Exact merge gate
+### 8. Refresh permanent docs and finish exact-head gate
+
+Update `docs/PHASES.md`, `docs/ARCHITECTURE.md`, and development state/handoff/test docs with implemented facts only. Record Phase 4B merged. Mark Phase 4C-1 complete only after exact-head tests/CI pass. Keep worker isolation/dedicated egress/backpressure as later Phase 6 work.
+
+Run:
 
 ```bash
 npm ci --ignore-scripts --no-audit --no-fund
@@ -149,6 +80,8 @@ npm run benchmark:scanner
 npm run build
 ```
 
-Before merge, security-review every changed Phase 4C file for authorization bypass, target widening, SSRF/DNS rebinding, arbitrary request authority, redirect propagation, timeout gaps, cancellation races, secret persistence, RLS/trusted-write regression, unbounded evidence, unsafe error disclosure, and passive/active dependency mixing. Any plausible defect receives a failing regression before its fix.
+Then security-review every Phase 4C changed file for authorization bypass, target widening, SSRF/DNS rebinding, arbitrary request authority, redirects, deadline gaps, cancellation races, secret persistence, RLS/trusted-write regression, unbounded evidence, unsafe errors, and passive/active dependency mixing. Any plausible defect gets a failing regression before its fix. Merge only an unchanged exact head with fully green CI, no blocking review threads/submissions, using expected-head squash protection.
 
-Merge only the exact current PR head when its workflow is fully green, no blocking reviews or unresolved threads remain, and the head has not moved. Use squash merge with expected-head protection.
+## Non-goals
+
+No crawling, endpoint discovery, OPTIONS preflight, user-supplied origins, SQLi/XSS/SSRF probes, file discovery, arbitrary methods/headers/bodies, cookie/credential replay, authenticated testing, browser automation, JavaScript, fuzzing, credential attacks, exploit confirmation, DoS, target persistence, cross-host redirects, generalized DAST, worker-fleet scale, dedicated egress infrastructure, automatic remediation, or AI/model calls are part of Phase 4C-1.
