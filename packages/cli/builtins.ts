@@ -1,6 +1,7 @@
 import { ScannerConfigError, type ScannerConfig, type ScannerRuleSelection } from "../scanner-core/config/types";
 import type { Scanner } from "../scanner-core/coordinator/types";
 import { JSTS_RULES, JSTS_RULE_IDS, createJstsScanner } from "../scanner-jsts";
+import { SCA_RULES, SCA_RULE_IDS, createScaScanner } from "../scanner-sca";
 import { SECRET_RULES, SECRET_RULE_IDS, createSecretScanner } from "../scanner-secrets";
 
 export interface BuiltInRuleSummary {
@@ -9,11 +10,11 @@ export interface BuiltInRuleSummary {
   title: string;
 }
 
-export const BUILTIN_RULES: readonly BuiltInRuleSummary[] = [...SECRET_RULES, ...JSTS_RULES]
+export const BUILTIN_RULES: readonly BuiltInRuleSummary[] = [...SECRET_RULES, ...JSTS_RULES, ...SCA_RULES]
   .map((rule) => ({ id: rule.id, version: rule.version, title: rule.title }))
   .sort((left, right) => left.id.localeCompare(right.id));
 
-const builtInRuleIds = new Set([...SECRET_RULE_IDS, ...JSTS_RULE_IDS]);
+const builtInRuleIds = new Set([...SECRET_RULE_IDS, ...JSTS_RULE_IDS, ...SCA_RULE_IDS]);
 
 export function validateBuiltInRules(selection: ScannerRuleSelection): void {
   const unknown = [...selection.include, ...selection.exclude]
@@ -37,6 +38,10 @@ export function createBuiltInScanners(config: ScannerConfig): Scanner[] {
       allowFingerprints: config.secrets.allowFingerprints,
       rules: config.rules
     }),
-    createJstsScanner({ rules: config.rules })
+    createJstsScanner({ rules: config.rules }),
+    createScaScanner({
+      rules: config.rules,
+      osv: { enabled: config.sca.osv.enabled }
+    })
   ];
 }

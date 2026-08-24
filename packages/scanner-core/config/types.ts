@@ -12,6 +12,12 @@ export interface ScannerSecretsConfig {
   allowFingerprints: string[];
 }
 
+export interface ScannerScaConfig {
+  osv: {
+    enabled: boolean;
+  };
+}
+
 export interface ScannerOutputConfig {
   format: ScannerOutputFormat;
   path: string | undefined;
@@ -23,6 +29,7 @@ export interface ScannerConfig {
   scanners: string[] | null;
   rules: ScannerRuleSelection;
   secrets: ScannerSecretsConfig;
+  sca: ScannerScaConfig;
   budgets: InventoryBudgets;
   failOn: Severity | undefined;
   output: ScannerOutputConfig;
