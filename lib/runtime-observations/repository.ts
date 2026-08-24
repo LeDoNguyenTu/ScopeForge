@@ -4,6 +4,11 @@ import type {
   Json,
   ScanJobStatus,
 } from "@/lib/database.types";
+import { prepareFindingIngestionBatch } from "@/lib/security-findings/ingestion";
+import type {
+  EvidenceRecord,
+  SecurityFinding,
+} from "@/packages/security-domain";
 import type { RuntimeObservation } from "@/packages/runtime-observer";
 import type {
   EnqueueRuntimeObservationJobInput,
@@ -185,27 +190,37 @@ export function createRuntimeObservationRepository(admin: SupabaseClient<Databas
     return data;
   }
 
-  async function persistObservations(
+  async function persistResult(
     job: ScanJobRow,
     observations: readonly RuntimeObservation[],
+    findings: readonly SecurityFinding[],
+    evidence: readonly EvidenceRecord[],
     maximumBytes: number,
+    observedAt: Date,
   ): Promise<void> {
-    if (job.status !== "running") {
-      throw new Error("Runtime observations can only be persisted for a running job.");
+    if (job.status !== "running" || job.job_kind !== "passive_runtime") {
+      throw new Error("Passive results can only be persisted for a running passive runtime job.");
     }
-    const rows = normalizeRuntimeObservationPayloads(observations, maximumBytes);
-    if (rows.length === 0) return;
 
-    const { error } = await admin.from("runtime_observations").insert(
-      rows.map((row) => ({
-        workspace_id: job.workspace_id,
-        job_id: job.id,
-        asset_id: job.asset_id,
-        sequence: row.sequence,
-        kind: row.kind,
-        payload: row.payload,
-      })),
-    );
+    const rows = normalizeRuntimeObservationPayloads(observations, maximumBytes);
+    const prepared = prepareFindingIngestionBatch({
+      workspaceId: job.workspace_id,
+      assetId: job.asset_id,
+      scanJobId: job.id,
+      observedAt,
+      findings,
+      evidence,
+    });
+
+    const { error } = await admin.rpc("persist_passive_runtime_result", {
+      target_workspace_id: job.workspace_id,
+      target_asset_id: job.asset_id,
+      target_job_id: job.id,
+      observation_rows: toJson(rows),
+      finding_rows: prepared.findings,
+      evidence_rows: prepared.evidence,
+      observed_at: prepared.observedAt,
+    });
     if (error) throw new Error(error.message);
   }
 
@@ -230,7 +245,7 @@ export function createRuntimeObservationRepository(admin: SupabaseClient<Databas
     markFailed,
     markCancelled,
     requestCancellation,
-    persistObservations,
+    persistResult,
     listObservations,
   });
 }
