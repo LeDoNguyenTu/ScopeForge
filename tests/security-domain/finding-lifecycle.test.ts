@@ -10,8 +10,8 @@ describe("finding lifecycle", () => {
     expect(canTransitionFindingLifecycle("retest_pending", "verified_fixed")).toBe(true);
   });
 
-  it("does not silently reopen terminal review states", () => {
-    expect(canTransitionFindingLifecycle("verified_fixed", "open")).toBe(false);
+  it("allows verified-fixed recurrence without reopening false positives", () => {
+    expect(canTransitionFindingLifecycle("verified_fixed", "open")).toBe(true);
     expect(canTransitionFindingLifecycle("false_positive", "open")).toBe(false);
   });
 
