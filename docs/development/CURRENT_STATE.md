@@ -2,9 +2,9 @@
 
 ## Product direction
 
-ScopeForge is an open-source application-security and cyber-risk awareness platform for developers first, while making security findings understandable to people without a security background.
+ScopeForge is an open-source application-security and cyber-risk awareness platform built around:
 
-Product loop: `Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify`.
+`Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify`
 
 Approved architecture:
 
@@ -32,24 +32,39 @@ Remote active scanning remains disabled through Phase 3.
 
 ## Phase 3 - Code and supply-chain security
 
-The Phase 3 scanner feature set is implemented. PR #21 contains the final release-hardening slice. Phase 3 is declared complete only after the exact final PR #21 head passes the full gate, PR #21 is merged with expected-head protection, and merged `main` CI is green.
+The Phase 3 local scanner feature set is implemented. PR #21 contains the final release-hardening slice. Phase 3 is complete only after the exact final PR head is green, the PR is squash merged with expected-head protection, and the resulting `main` CI validation is green.
 
 Phase 3N SARIF was merged through PR #20 as `f2859f5028965276c9dc69ddf10398740a6f9ec7`.
 
 ### Scanner foundation and safety
 
 - deterministic bounded repository inventory
-- default generated/vendor exclusions and root ignore handling
+- generated/vendor exclusions and root ignore handling
 - file-count, per-file byte, and total-byte ceilings
 - repository symlink non-following
 - identity-checked no-follow content reads
-- normalized findings and scanner errors
-- stable finding fingerprints and deterministic ordering
-- strict root-only `.scopeforge.json` version 1
+- normalized findings and scanner diagnostics
+- stable finding fingerprints
+- shared deterministic code-unit text ordering for output-sensitive sorting
+- strict root `.scopeforge.json` version 1
 - repository configuration may tighten but not raise safe inventory ceilings
 - report-only default policy and explicit inclusive severity gating
-- distinct success, policy, usage/configuration, and scanner-error exit codes
-- no-follow normal output and baseline file handling
+- distinct success, policy, usage/configuration, and scanner-error exits
+- safe no-follow output and baseline file handling
+
+### Modular package boundaries
+
+Phase 3 keeps scanner logic split by responsibility:
+
+- `packages/scanner-core` owns shared safety, inventory, findings, coordination, configuration, policy, baseline, and deterministic-order contracts
+- `packages/scanner-secrets` owns secret matching, redaction, suppression, and secret findings
+- `packages/scanner-jsts` owns JS/TS parsing, structural SAST, and bounded command taint analysis
+- `packages/scanner-sca` owns npm dependency inventory, optional OSV enrichment, vulnerability findings, and CycloneDX generation
+- `packages/scanner-iac` owns Docker, Kubernetes, Terraform, GitHub Actions, and recognized configuration analyzers
+- `packages/scanner-output` owns native JSON and SARIF serialization over normalized results
+- `packages/cli` is the composition and presentation layer, not a detector package
+
+Detector packages do not depend back on the CLI. This dependency direction is documented in `docs/ARCHITECTURE.md` so future workers and packaged front ends can reuse scanner engines without duplicating CLI behavior.
 
 ### Secret scanner
 
@@ -58,40 +73,27 @@ Phase 3N SARIF was merged through PR #20 as `f2859f5028965276c9dc69ddf10398740a6
 - Slack token detection
 - complete private-key block detection
 - contextual high-entropy assignment detection
-- mandatory redaction before normalized finding output
+- mandatory redaction before normalized output
 - stable one-way `sfs1:` secret fingerprints
-- exact safe-fixture annotation support
-- reviewed fingerprint allowlisting
+- safe-fixture annotation and reviewed fingerprint allowlisting
 
 ### JavaScript and TypeScript SAST
 
-Supported syntax families:
+Supported syntax families: JS, JSX, MJS, CJS, TS, TSX, MTS, and CTS.
 
-- JS
-- JSX
-- MJS
-- CJS
-- TS
-- TSX
-- MTS
-- CTS
+The parser treats target files as syntax data only. It does not resolve or execute target modules.
 
-The parser treats repository files as syntax data only. It does not resolve or execute target modules.
+Current structural checks include direct `eval` / `new Function` and statically established Node HTTPS verification disablement.
 
-Current structural rules include:
-
-- direct `eval` / `new Function`
-- explicit Node HTTPS certificate-verification disablement where runtime binding identity is established statically
-
-Current bounded taint coverage is intentionally narrow:
+Bounded taint coverage is intentionally narrow:
 
 - statically established Express route handlers
-- request fields under query, route params, and body
+- request query, route-param, and body fields
 - selected local propagation and string construction
 - statically established Node `child_process.exec` and `execSync`
-- conservative shadowing, mutation, sanitizer, unsupported-control-flow, and step-budget behavior
+- conservative shadowing, mutation, sanitizer, unsupported-control-flow, and step-budget handling
 
-No whole-program or cross-file generalized taint engine exists yet.
+No generalized whole-program or cross-file taint engine exists yet.
 
 ### Software composition analysis
 
@@ -109,12 +111,12 @@ OSV enrichment is disabled by default. When enabled, only normalized npm package
 
 ### CycloneDX SBOM
 
-- CycloneDX 1.7 JSON output
+- CycloneDX 1.7 JSON
 - root application component
 - supported discovered npm dependencies and purls
 - direct dependency relationships where local inventory establishes them
 - tool metadata, timestamp, and serial number
-- independent from OSV/network availability
+- independent from OSV availability
 
 ### Infrastructure and configuration analysis
 
@@ -129,91 +131,58 @@ Implemented local/passive analysis:
 
 The scanner does not execute Dockerfiles, RUN commands, Terraform, providers, modules, provisioners, external data sources, Kubernetes manifests, Helm, Kustomize, kubectl, workflows, target package managers, or cloud APIs.
 
-### Baselines and policy
+### Baselines and output
 
-- deterministic version 1 baseline files
-- strict bounded parser and schema validation
+- deterministic version 1 baselines
+- bounded exact-schema parser
 - no-follow baseline reads and symlink refusal
-- stable fingerprint matching
-- `new` and `existing` finding classification
-- resolved baseline-entry tracking
-- baseline-aware policy defaults to gating new findings only
+- stable fingerprint matching with `new` / `existing` classification
+- new-only policy gating by default when a baseline is active
 - explicit `--baseline-gate all`
-- no raw secret values, source evidence, arbitrary finding metadata, or remediation text in baselines
+- terminal output
+- native ScopeForge JSON schema version 1
+- SARIF 2.1.0 compatible with GitHub Code Scanning
+- fixed SARIF property allowlist and safe repository-relative locations
+- CycloneDX 1.7 JSON SBOM artifact
 
-### Output formats
+## Phase 3O release hardening
 
-- developer terminal output
-- deterministic native ScopeForge JSON schema version 1
-- deterministic SARIF 2.1.0 compatible with GitHub Code Scanning
-- stable ScopeForge fingerprints carried into SARIF partial fingerprints
-- repository-relative `%SRCROOT%` SARIF locations with unsafe paths omitted
-- fixed SARIF property allowlist that excludes arbitrary metadata, source snippets, internal data-flow labels, and raw secret material
+PR #21 adds completion evidence rather than broadening detector scope:
 
-### Phase 3O completion hardening
-
-PR #21 adds:
-
-- mixed-repository end-to-end integration coverage
+- mixed-repository end-to-end coverage
 - hostile-repository no-execution, no-default-network, symlink, budget, malformed-input, and output-leakage coverage
-- committed byte-for-byte native JSON, SARIF, and terminal golden outputs
-- deterministic `scanner-medium-v1` benchmark over exactly 700 synthetic files
-- benchmark CI regression gate with a broad 20-second ceiling
-- GitHub Actions and Code Scanning documentation
-- performance methodology and known-limitations documentation
-- permanent project-state and release-readiness records
+- byte-for-byte native JSON, SARIF, and terminal golden outputs
+- `scanner-medium-v1` benchmark over exactly 700 synthetic files
+- benchmark fixture generation separated from timing/validation logic
+- GitHub Code Scanning, performance, limitations, and release-readiness documentation
+- committed npm lockfile v3 for reproducible installs
+- current `actions/checkout@v7` and `actions/setup-node@v7`
+- read-only CI token permissions, disabled checkout credential persistence, and `npm ci --ignore-scripts`
+- shared `scanner-core` deterministic text comparator reused by findings, secret output, SCA, OSV, SBOM, and rule listing
 
-Diagnostic CI #311 at the implementation/benchmark head passed:
+Latest implementation GREEN evidence is CI #346 on `6ffb249c0ac7463c410cfd1536b105ebca9507d3`:
 
-- 85 test files
-- 329 tests
-- strict TypeScript typecheck
-- CLI compilation
-- compiled `ScopeForge 0.1.0` runtime smoke
-- scanner benchmark
-- Next.js production build
+- 86 test files and 331 tests passed
+- strict TypeScript typecheck passed
+- CLI build and compiled `ScopeForge 0.1.0` smoke passed
+- 700-file benchmark passed with 0 findings and 0 errors
+- benchmark: 876 ms wall, 816 ms scanner duration, 17,399,808 bytes RSS delta
+- Next.js production build passed
 
-CI #311 benchmark evidence:
-
-```text
-SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"wallMs":928,"scanDurationMs":859,"rssDeltaBytes":22900736,"maxWallMs":20000}
-```
-
-The documentation head still requires its own exact-head gate before merge.
+The permanent evidence documentation changes the PR head after that checkpoint, so one exact final documentation-head CI run is still required before merge.
 
 ## Database status for Phase 3O
 
-Phase 3O contains no Supabase schema, migration, policy, RPC, storage, or hosted-ingestion change. Database security/performance advisor checks are therefore not a merge dependency for this local-scanner-only release-hardening diff.
-
-Existing Phase 1 and Phase 2 database authorization boundaries remain unchanged.
+Phase 3O contains no Supabase schema, migration, policy, RPC, storage, or hosted-ingestion change. Database advisor checks are not a merge dependency for this local-scanner-only diff.
 
 ## Safety boundary
 
-Phase 3 is local and passive.
+Phase 3 remains local and passive. It does not perform remote DAST, authenticated crawling, API fuzzing, exploit validation, generalized network scanning, cloud-account posture access, credential attacks, persistence, destructive actions, or hosted remote scanner execution.
 
-Repository content remains hostile input. Phase 3 does not perform:
-
-- remote DAST
-- authenticated crawling
-- API fuzzing
-- exploit validation
-- generalized network scanning
-- cloud-account posture access
-- credential attacks
-- persistence
-- destructive actions
-- hosted remote scanner execution
-
-Those require later authorization, isolation, egress, quota, cancellation, audit, and abuse-prevention boundaries.
-
-## Known limitations
-
-Canonical scanner limitations are maintained in `docs/scanner/LIMITATIONS.md`.
-
-Key current boundaries include unsupported programming-language SAST engines beyond JS/TS, npm-only SCA ecosystem coverage, narrow command-injection taint analysis, conservative infrastructure semantics, no full Terraform evaluation, no cluster/cloud/workflow execution, no arbitrary community executable plugins, and no remote application testing.
+Canonical scanner limitations are in `docs/scanner/LIMITATIONS.md`.
 
 ## Next boundary
 
-After PR #21 passes its exact-head gate, merges, and `main` CI is green, Phase 4 is the next implementation boundary: verified runtime and API security with explicit authorization and stronger execution isolation.
+After PR #21 passes its exact final gate, merges, and `main` CI is green, Phase 4 verified runtime and API security is next.
 
-Do not begin Phase 4 active scanning inside the Phase 3O PR.
+Phase 4 must start with architecture and threat-boundary design. Do not add active remote scanning inside PR #21.
