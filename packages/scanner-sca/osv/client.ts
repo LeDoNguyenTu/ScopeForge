@@ -1,4 +1,5 @@
 import type { ScannerDiagnostic } from "../../scanner-core/coordinator/types";
+import { compareText } from "../../scanner-core/determinism/compare-text";
 import type { NpmDependencyComponent } from "../types";
 import type {
   OsvClientOptions,
@@ -47,9 +48,9 @@ function queryKey(name: string, version: string): string {
 
 function compareComponents(left: NpmDependencyComponent, right: NpmDependencyComponent): number {
   return (
-    left.name.localeCompare(right.name) ||
-    left.version.localeCompare(right.version) ||
-    left.sourceFile.localeCompare(right.sourceFile) ||
+    compareText(left.name, right.name) ||
+    compareText(left.version, right.version) ||
+    compareText(left.sourceFile, right.sourceFile) ||
     left.sourceLine - right.sourceLine
   );
 }
@@ -151,7 +152,7 @@ export async function queryOsvDependencies(
     if (!unique.has(key)) unique.set(key, { key, name: component.name, version: component.version });
   }
   const initialQueries = [...unique.values()].sort(
-    (left, right) => left.name.localeCompare(right.name) || left.version.localeCompare(right.version)
+    (left, right) => compareText(left.name, right.name) || compareText(left.version, right.version)
   );
   if (initialQueries.length === 0) return { matches: [], errors: [] };
 
@@ -230,7 +231,7 @@ export async function queryOsvDependencies(
     }
 
     const recordCache = new Map<string, OsvVulnerabilityRecord>();
-    for (const id of [...allIds].sort()) {
+    for (const id of [...allIds].sort(compareText)) {
       const parsed = await requestJson(
         fetchImpl,
         `${baseUrl}/vulns/${encodeURIComponent(id)}`,
@@ -249,7 +250,7 @@ export async function queryOsvDependencies(
       const ids = idsByQuery.get(queryKey(component.name, component.version));
       if (!ids || ids.size === 0) continue;
       const vulnerabilities = [...ids]
-        .sort()
+        .sort(compareText)
         .map((id) => recordCache.get(id))
         .filter((record): record is OsvVulnerabilityRecord => record !== undefined);
       if (vulnerabilities.length > 0) matches.push({ component, vulnerabilities });
