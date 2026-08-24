@@ -37,4 +37,10 @@ export type {
   RuntimeObserverDependencies,
   RuntimeTransport,
 } from "./observe";
+export { evaluateRuntimeRules } from "./rules/evaluate";
+export type { RuntimeRuleMatch } from "./rules/types";
+export {
+  mapRuntimeRuleMatchToEvidence,
+  mapRuntimeRuleMatchToSecurityFinding,
+} from "./domain-mapper";
 export { validateInitialRuntimeUrl, validateRedirectTarget } from "./target-policy";
