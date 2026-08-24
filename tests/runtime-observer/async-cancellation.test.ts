@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { assetRef } from "@/packages/security-domain";
+import type { RuntimeNetworkResponse } from "@/packages/runtime-network";
 import {
   observeRuntimeTarget,
   type AuthorizedRuntimeTarget,
   type RuntimeObservationBudget,
-  type RuntimeTransportResponse,
 } from "@/packages/runtime-observer";
 
 const target: AuthorizedRuntimeTarget = {
@@ -22,7 +22,7 @@ const budget: RuntimeObservationBudget = {
   maxObservationBytes: 65_536,
 };
 
-function redirectResponse(): RuntimeTransportResponse {
+function redirectResponse(): RuntimeNetworkResponse {
   return {
     status: 302,
     headers: { location: "/next" },
