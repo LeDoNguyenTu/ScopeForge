@@ -1,3 +1,5 @@
+export * from "./advisory/context-policy";
+export * from "./advisory/types";
 export * from "./common/contract";
 export * from "./common/identifiers";
 export * from "./common/security-levels";
@@ -5,6 +7,7 @@ export * from "./evidence/types";
 export * from "./findings/lifecycle";
 export * from "./findings/types";
 export * from "./provenance/types";
+export * from "./relationships/types";
 export * from "./remediation/types";
 export * from "./sources/types";
 export * from "./validation/transitions";
