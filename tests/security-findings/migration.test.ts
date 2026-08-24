@@ -1,0 +1,80 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+const migrationPath = path.resolve(
+  process.cwd(),
+  "supabase/migrations/20260825062000_phase_5a_hosted_finding_foundation.sql",
+);
+
+async function migrationSql(): Promise<string> {
+  return readFile(migrationPath, "utf8");
+}
+
+const expectedTables = [
+  "security_findings",
+  "security_evidence",
+  "security_finding_evidence",
+  "security_finding_occurrences",
+  "security_finding_events",
+] as const;
+
+describe("Phase 5A hosted finding migration", () => {
+  it("creates one canonical workspace-scoped ledger", async () => {
+    const sql = await migrationSql();
+
+    for (const table of expectedTables) {
+      expect(sql).toContain(`create table public.${table}`);
+    }
+
+    expect(sql).not.toMatch(
+      /create table public\.(?:runtime_findings|active_findings|passive_findings)/i,
+    );
+    expect(sql).toContain("primary key (workspace_id, finding_id)");
+    expect(sql).toContain("primary key (workspace_id, evidence_id)");
+    expect(sql).toContain("unique (workspace_id, finding_id, scan_job_id)");
+  });
+
+  it("keeps authenticated browser access select-only", async () => {
+    const sql = await migrationSql();
+
+    for (const table of expectedTables) {
+      expect(sql).toContain(`alter table public.${table} enable row level security`);
+      expect(sql).toContain(`grant select on table public.${table} to authenticated`);
+    }
+
+    expect(sql).not.toMatch(
+      /grant\s+(?:insert|update|delete)\s+on\s+table\s+public\.security_/i,
+    );
+  });
+
+  it("preserves workspace and asset integrity", async () => {
+    const sql = await migrationSql();
+
+    expect(sql).toContain(
+      "foreign key (asset_id, workspace_id) references public.assets(id, workspace_id)",
+    );
+    expect(sql).toContain(
+      "foreign key (last_seen_job_id, workspace_id, asset_id) references public.scan_jobs(id, workspace_id, asset_id)",
+    );
+    expect(sql).toContain(
+      "foreign key (scan_job_id, workspace_id, asset_id) references public.scan_jobs(id, workspace_id, asset_id)",
+    );
+  });
+
+  it("makes evidence and history immutable or append-only", async () => {
+    const sql = await migrationSql();
+
+    expect(sql).toContain("Finding history rows are append-only");
+    expect(sql).toContain("Evidence rows are immutable");
+    expect(sql).toContain("security_finding_events_scan_event_unique");
+  });
+
+  it("bounds evidence, event reasons, and event metadata", async () => {
+    const sql = await migrationSql();
+
+    expect(sql).toContain("char_length(summary) between 1 and 4096");
+    expect(sql).toContain("reason is null or char_length(reason) <= 1000");
+    expect(sql).toContain("pg_column_size(metadata) <= 8192");
+  });
+});
