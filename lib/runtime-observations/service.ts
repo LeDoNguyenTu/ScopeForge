@@ -241,12 +241,27 @@ export async function executeRuntimeObservation(
 
   const observe = dependencies.observe ?? observeRuntimeTarget;
   const now = clock(dependencies);
+  let cancellationJob: ScanJobRow | null = null;
   let observationResult: RuntimeObservationResult;
   try {
     observationResult = await observe(
       authorization.target,
       authorization.budget,
-      { now: () => now().getTime() },
+      {
+        now: () => now().getTime(),
+        isCancelled: async () => {
+          const latestJob = await repository.loadForWorkspace(
+            runningJob.id,
+            runningJob.workspace_id,
+          );
+          if (!latestJob) return false;
+          if (latestJob.cancel_requested_at || latestJob.status === "cancelled") {
+            cancellationJob = latestJob;
+            return true;
+          }
+          return false;
+        },
+      },
     );
   } catch {
     const failureCode = "RUNTIME_EXECUTION_ERROR";
@@ -287,15 +302,18 @@ export async function executeRuntimeObservation(
   }
 
   if (observationResult.status === "cancelled") {
-    const cancelled = await cancelJob(
-      runningJob,
-      runningJob.requested_by,
-      dependencies,
-      {
-        requestCount: observationResult.requestCount,
-        redirectCount: observationResult.redirectCount,
-      },
-    );
+    const jobToCancel = cancellationJob ?? runningJob;
+    const cancelled = jobToCancel.status === "cancelled"
+      ? jobToCancel
+      : await cancelJob(
+        jobToCancel,
+        runningJob.requested_by,
+        dependencies,
+        {
+          requestCount: observationResult.requestCount,
+          redirectCount: observationResult.redirectCount,
+        },
+      );
     return Object.freeze({
       status: "cancelled" as const,
       job: cancelled,
