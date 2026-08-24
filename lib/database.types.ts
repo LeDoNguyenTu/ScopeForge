@@ -154,7 +154,32 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      persist_passive_runtime_result: {
+        Args: {
+          target_workspace_id: string;
+          target_asset_id: string;
+          target_job_id: string;
+          observation_rows: Json;
+          finding_rows: Json;
+          evidence_rows: Json;
+          observed_at: string;
+        };
+        Returns: undefined;
+      };
+      persist_active_validation_result: {
+        Args: {
+          target_workspace_id: string;
+          target_asset_id: string;
+          target_job_id: string;
+          observation_row: Json;
+          finding_rows: Json;
+          evidence_rows: Json;
+          observed_at: string;
+        };
+        Returns: undefined;
+      };
+    };
     Enums: {
       workspace_role: WorkspaceRole;
       asset_kind: AssetKind;
