@@ -4,11 +4,14 @@ import { InventoryReadError, readInventoryEntry } from "../scanner-core/filesyst
 import { compareFindings } from "../scanner-core/findings/severity";
 import type { Finding } from "../scanner-core/findings/types";
 import { scanDockerfile } from "./docker/scan";
+import { scanKubernetesYaml } from "./kubernetes/scan";
 
 export interface CreateIacScannerOptions {
   rules?: ScannerRuleSelection;
   maxDockerInstructions?: number;
   maxDockerInstructionBytes?: number;
+  maxKubernetesDocuments?: number;
+  maxKubernetesAliasCount?: number;
 }
 
 function isDockerfile(path: string): boolean {
@@ -16,12 +19,30 @@ function isDockerfile(path: string): boolean {
   return name === "Dockerfile" || Boolean(name?.startsWith("Dockerfile."));
 }
 
+function isYamlFile(path: string): boolean {
+  const normalized = path.toLowerCase();
+  return normalized.endsWith(".yaml") || normalized.endsWith(".yml");
+}
+
+function looksLikeKubernetesYaml(content: string): boolean {
+  return /^apiVersion\s*:/m.test(content) && /^kind\s*:/m.test(content);
+}
+
 function diagnosticForReadError(file: string, error: InventoryReadError): ScannerDiagnostic {
   return {
     code: `filesystem_${error.code}`,
     file,
-    message: "Dockerfile could not be read safely."
+    message: "Infrastructure file could not be read safely."
   };
+}
+
+function collectFindings(
+  target: Map<string, Finding>,
+  findings: readonly Finding[]
+): void {
+  for (const finding of findings) {
+    if (!target.has(finding.fingerprint)) target.set(finding.fingerprint, finding);
+  }
 }
 
 export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner {
@@ -33,7 +54,10 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
       const errors: ScannerDiagnostic[] = [];
 
       for (const entry of inventory.entries) {
-        if (entry.kind !== "infrastructure" || !isDockerfile(entry.path)) continue;
+        if (entry.kind !== "infrastructure") continue;
+        const dockerfile = isDockerfile(entry.path);
+        const yaml = isYamlFile(entry.path);
+        if (!dockerfile && !yaml) continue;
 
         let content: string;
         try {
@@ -46,25 +70,40 @@ export function createIacScanner(options: CreateIacScannerOptions = {}): Scanner
           throw error;
         }
 
-        const scanned = scanDockerfile({
+        if (dockerfile) {
+          const scanned = scanDockerfile({
+            file: entry.path,
+            content,
+            ...(options.rules ? { rules: options.rules } : {}),
+            parser: {
+              ...(options.maxDockerInstructions !== undefined
+                ? { maxInstructions: options.maxDockerInstructions }
+                : {}),
+              ...(options.maxDockerInstructionBytes !== undefined
+                ? { maxInstructionBytes: options.maxDockerInstructionBytes }
+                : {})
+            }
+          });
+          collectFindings(findingsByFingerprint, scanned.findings);
+          errors.push(...scanned.errors);
+          continue;
+        }
+
+        if (!looksLikeKubernetesYaml(content)) continue;
+        const scanned = scanKubernetesYaml({
           file: entry.path,
           content,
           ...(options.rules ? { rules: options.rules } : {}),
           parser: {
-            ...(options.maxDockerInstructions !== undefined
-              ? { maxInstructions: options.maxDockerInstructions }
+            ...(options.maxKubernetesDocuments !== undefined
+              ? { maxDocuments: options.maxKubernetesDocuments }
               : {}),
-            ...(options.maxDockerInstructionBytes !== undefined
-              ? { maxInstructionBytes: options.maxDockerInstructionBytes }
+            ...(options.maxKubernetesAliasCount !== undefined
+              ? { maxAliasCount: options.maxKubernetesAliasCount }
               : {})
           }
         });
-
-        for (const finding of scanned.findings) {
-          if (!findingsByFingerprint.has(finding.fingerprint)) {
-            findingsByFingerprint.set(finding.fingerprint, finding);
-          }
-        }
+        collectFindings(findingsByFingerprint, scanned.findings);
         errors.push(...scanned.errors);
       }
 

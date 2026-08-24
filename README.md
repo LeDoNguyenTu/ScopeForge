@@ -35,7 +35,7 @@ Shipped foundation:
 - syntax-aware JavaScript/TypeScript structural SAST and bounded command taint analysis
 - bounded JavaScript dependency inventory with optional OSV vulnerability enrichment
 - CycloneDX 1.7 JSON SBOM generation using the maintained CycloneDX JavaScript library
-- bounded Dockerfile IaC scanning with five conservative security rules
+- bounded Dockerfile and Kubernetes IaC scanning with conservative security rules
 
 The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, complete private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
 
@@ -45,9 +45,11 @@ The SCA scanner inventories JavaScript dependencies from `npm-shrinkwrap.json`, 
 
 CycloneDX SBOM generation is fully local and independent of OSV. `scopeforge scan . --sbom scopeforge.cdx.json` emits a CycloneDX 1.7 JSON artifact containing the root application, discovered npm dependencies, Package URLs, direct dependency relationships where the local dependency inventory can establish them, ScopeForge tool metadata, a timestamp, and a serial number. SBOM generation uses the same bounded dependency inventory as SCA and does not execute package scripts or require network access.
 
-The IaC scanner now analyzes Dockerfiles through a bounded logical-instruction parser. The initial Docker rules detect untagged or `latest` base images, an explicitly effective root `USER` in the final stage, remote `ADD` sources, curl/wget output piped directly to a shell, and world-writable `chmod 777` or `0777`. Dynamic base-image references are treated conservatively, missing `USER` is not reported because inherited image metadata is unavailable locally, and Dockerfile contents are never executed or sent to a registry or other network service.
+The IaC scanner analyzes Dockerfiles through a bounded logical-instruction parser. Docker rules detect untagged or `latest` base images, an explicitly effective root `USER` in the final stage, remote `ADD` sources, curl/wget output piped directly to a shell, and world-writable `chmod 777` or `0777`. Dynamic base-image references are treated conservatively, missing `USER` is not reported because inherited image metadata is unavailable locally, and Dockerfile contents are never executed or sent to a registry or other network service.
 
-Kubernetes, Terraform, GitHub Actions/configuration rules, baselines, and SARIF are still Phase 3 work.
+Kubernetes manifests are parsed structurally as bounded multi-document YAML. Initial checks cover privileged containers, explicit privilege escalation, broad Linux capabilities, host network/PID/IPC namespaces, hostPath mounts, explicit UID 0 execution, explicitly writable root filesystems, explicit service-account token automounting, and wildcard RBAC grants where the local manifest provides enough evidence. Missing hardening fields are not automatically treated as vulnerabilities. ScopeForge does not contact a Kubernetes cluster, download schemas, invoke kubectl, or execute Helm or Kustomize while scanning manifests.
+
+Terraform, GitHub Actions/configuration rules, baselines, and SARIF are still Phase 3 work.
 
 Remote DAST, API fuzzing, exploit validation, credential attacks, persistence, and destructive behavior remain outside Phase 3.
 
@@ -150,7 +152,7 @@ ScopeForge CLI
   +--> secret scanner
   +--> JS/TS parser + structural SAST + bounded taint scanner
   +--> dependency inventory + optional fixed-endpoint OSV enrichment
-  +--> bounded Dockerfile IaC scanner
+  +--> bounded Dockerfile + Kubernetes IaC scanner
   +--> local CycloneDX 1.7 SBOM generator
   +--> scanner coordinator
   +--> normalized findings + explicit scanner errors
@@ -176,7 +178,7 @@ Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-commu
 
 ## Security and safety
 
-ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Docker analysis parses bounded logical instructions only and performs no image pulls, registry lookups, or RUN execution. Secret values must not be emitted in terminal or JSON findings, scanner reads remain behind bounded filesystem checks, optional OSV enrichment receives only normalized package identity and exact version, and CycloneDX SBOM generation remains local and network-independent.
+ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Docker analysis parses bounded logical instructions only and performs no image pulls, registry lookups, or RUN execution. Kubernetes analysis parses bounded YAML documents only and performs no cluster access, schema download, kubectl invocation, Helm rendering, or Kustomize build. Secret values must not be emitted in terminal or JSON findings, scanner reads remain behind bounded filesystem checks, optional OSV enrichment receives only normalized package identity and exact version, and CycloneDX SBOM generation remains local and network-independent.
 
 Please report ScopeForge vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
