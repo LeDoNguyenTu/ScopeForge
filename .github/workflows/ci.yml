@@ -23,7 +23,14 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
-      - run: npm ci --no-audit --no-fund
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Preserve generated package lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: scopeforge-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1
       - run: npm test
       - run: npm run typecheck
       - run: npm run build:cli
