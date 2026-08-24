@@ -18,7 +18,7 @@ describe("finding lifecycle server action boundary", () => {
     expect(source).toContain("createSecurityFindingRepository");
     expect(source).toContain("changeFindingLifecycle");
     expect(source).toMatch(
-      /changeFindingLifecycleAction\(\s*findingId:\s*string,\s*action:\s*Phase5ALifecycleAction,\s*note\?:\s*string/s,
+      /changeFindingLifecycleAction\(\s*findingId:\s*string,\s*action:\s*Phase5ALifecycleAction,\s*note\?:\s*string[\s\S]*?\)/,
     );
     expect(source).not.toMatch(/toLifecycle\s*:/i);
     expect(source).not.toMatch(/accepted_risk|false_positive|retest_pending|verified_fixed/);
