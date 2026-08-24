@@ -13,9 +13,18 @@ npm run benchmark:scanner
 
 The benchmark prints one machine-readable line beginning with `SCOPEFORGE_BENCHMARK` and exits non-zero only when the scan fails, the fixture contract changes unexpectedly, output is invalid, or wall-clock time exceeds the broad CI regression ceiling.
 
-## Medium fixture
+## Benchmark module layout
 
-`benchmarks/scanner-medium.mjs` generates the fixture under the operating-system temporary directory and removes it after the run. Fixture generation is not included in the timed interval.
+The benchmark is intentionally split by responsibility:
+
+- `benchmarks/scanner-medium-fixture.mjs` owns deterministic fixture composition and the expected analyzed-file contract
+- `benchmarks/scanner-medium.mjs` owns timing, CLI invocation, result validation, measurement serialization, and temporary-directory cleanup
+
+Keeping fixture construction separate from measurement logic makes it possible to add future fixture shapes without duplicating timing and validation behavior.
+
+Fixture generation happens under the operating-system temporary directory and is removed after the run. Fixture generation is not included in the timed interval.
+
+## Medium fixture
 
 The `scanner-medium-v1` fixture contains exactly 700 analyzed files:
 
@@ -48,9 +57,9 @@ The RSS value is a before/after delta, not a peak-memory measurement. It is floo
 
 The benchmark does not include dependency installation, TypeScript CLI compilation, fixture generation, process startup, fixture cleanup, OSV network enrichment, CycloneDX generation, SARIF file writing, hosted ingestion, or remote application testing.
 
-## Latest observed CI measurement
+## Recorded diagnostic CI measurement
 
-Diagnostic Phase 3O CI run #311 executed on GitHub-hosted Ubuntu 24.04 with Node.js 22.23.2. The hosted runner was in Azure `westus`; hardware is shared GitHub Actions infrastructure rather than dedicated benchmark hardware.
+Phase 3O diagnostic CI run #311 executed on GitHub-hosted Ubuntu 24.04 with Node.js 22.23.2. The hosted runner was in Azure `westus`; hardware is shared GitHub Actions infrastructure rather than dedicated benchmark hardware.
 
 Observed line:
 
@@ -65,6 +74,8 @@ For that run:
 - process RSS delta: 22,900,736 bytes, about 21.8 MiB
 - findings: 0
 - scanner errors: 0
+
+This measurement was captured before the benchmark code was split into separate fixture and runner modules. The split does not change the timed scan contract because fixture generation remains outside the measurement interval. The exact final PR head must rerun the same benchmark successfully before merge.
 
 These numbers are one CI observation. They should not be extrapolated to arbitrary repositories, hardware, language mixes, or network-enabled scans.
 
