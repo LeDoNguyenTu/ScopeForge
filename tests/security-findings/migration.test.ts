@@ -19,6 +19,19 @@ const expectedTables = [
   "security_finding_events",
 ] as const;
 
+const trustedFunctions = [
+  "persist_passive_runtime_result",
+  "persist_active_validation_result",
+  "change_security_finding_lifecycle",
+] as const;
+
+function functionSection(sql: string, functionName: string): string {
+  const start = sql.indexOf(`create or replace function public.${functionName}(`);
+  expect(start, functionName).toBeGreaterThanOrEqual(0);
+  const nextPublic = sql.indexOf("create or replace function public.", start + 1);
+  return sql.slice(start, nextPublic === -1 ? undefined : nextPublic);
+}
+
 describe("Phase 5A hosted finding migration", () => {
   it("creates one canonical workspace-scoped ledger", async () => {
     const sql = await migrationSql();
@@ -102,5 +115,25 @@ describe("Phase 5A hosted finding migration", () => {
     expect(sql).toMatch(
       /grant execute on function public\.change_security_finding_lifecycle[\s\S]*to service_role/i,
     );
+  });
+
+  it("keeps every public mutation RPC security-definer, search-path pinned, and service-role only", async () => {
+    const sql = await migrationSql();
+
+    for (const functionName of trustedFunctions) {
+      const section = functionSection(sql, functionName);
+      expect(section, functionName).toContain("security definer");
+      expect(section, functionName).toContain("set search_path = ''");
+      expect(section, functionName).toContain(`revoke all on function public.${functionName}`);
+      expect(section, functionName).toContain("from public, anon, authenticated");
+      expect(section, functionName).toContain(`grant execute on function public.${functionName}`);
+      expect(section, functionName).toContain("to service_role");
+      expect(section, functionName).not.toMatch(/grant execute[\s\S]*to authenticated/i);
+    }
+  });
+
+  it("does not introduce raw response or credential storage columns", async () => {
+    const sql = await migrationSql();
+    expect(sql).not.toMatch(/\b(response_body|raw_headers|cookie_value|authorization_header|credential_value)\b/i);
   });
 });
