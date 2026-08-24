@@ -1,15 +1,19 @@
 import { IAC_RULES as BASE_IAC_RULES } from "./rules/builtin";
+import { GITHUB_ACTIONS_RULES } from "./rules/github-actions";
 import { TERRAFORM_RULES } from "./rules/terraform";
 
 export { createIacScanner } from "./scanner";
 export { parseDockerfile } from "./docker/parse";
 export { scanDockerfile } from "./docker/scan";
+export { parseGitHubActionsYaml } from "./github-actions/parse";
+export { scanGitHubActionsYaml } from "./github-actions/scan";
 export { parseKubernetesYaml } from "./kubernetes/parse";
 export { scanKubernetesYaml } from "./kubernetes/scan";
 export { parseTerraformHcl } from "./terraform/parse";
 export { scanTerraformHcl } from "./terraform/scan";
+export { GITHUB_ACTIONS_RULES, GITHUB_ACTIONS_RULE_IDS } from "./rules/github-actions";
 export { TERRAFORM_RULES, TERRAFORM_RULE_IDS } from "./rules/terraform";
-export const IAC_RULES = [...BASE_IAC_RULES, ...TERRAFORM_RULES] as const;
+export const IAC_RULES = [...BASE_IAC_RULES, ...TERRAFORM_RULES, ...GITHUB_ACTIONS_RULES] as const;
 export const IAC_RULE_IDS = IAC_RULES.map((rule) => rule.id);
 export type { CreateIacScannerOptions } from "./scanner";
 export type {
@@ -20,6 +24,16 @@ export type {
   ParseDockerfileInput,
   ScanDockerfileInput
 } from "./docker/types";
+export type {
+  GitHubActionsLocation,
+  GitHubActionsParseResult,
+  GitHubActionsParserOptions,
+  GitHubActionsPathSegment,
+  GitHubActionsScanResult,
+  ParsedGitHubActionsWorkflow,
+  ParseGitHubActionsYamlInput,
+  ScanGitHubActionsYamlInput
+} from "./github-actions/types";
 export type {
   KubernetesLocation,
   KubernetesParseResult,
