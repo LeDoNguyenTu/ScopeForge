@@ -1,7 +1,7 @@
 import { createFindingFingerprint } from "../../scanner-core/findings/fingerprint";
 import { compareFindings } from "../../scanner-core/findings/severity";
 import type { Finding } from "../../scanner-core/findings/types";
-import { IAC_RULES } from "../rules/builtin";
+import { TERRAFORM_RULES } from "../rules/terraform";
 import type { IacRuleDefinition } from "../rules/types";
 import { parseTerraformHcl } from "./parse";
 import type {
@@ -11,7 +11,7 @@ import type {
   TerraformScanResult
 } from "./types";
 
-const rulesById = new Map(IAC_RULES.map((rule) => [rule.id, rule]));
+const rulesById = new Map(TERRAFORM_RULES.map((rule) => [rule.id, rule]));
 const ADMIN_PORTS = [22, 3389] as const;
 const PUBLIC_IPV4 = "0.0.0.0/0";
 const PUBLIC_IPV6 = "::/0";
