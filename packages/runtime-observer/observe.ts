@@ -3,7 +3,11 @@ import type {
   RuntimeObservationBudget,
 } from "./contracts";
 import { validateRuntimeObservationBudget } from "./budget";
-import { requestPinnedHttps, type RuntimeTransportResponse } from "./https-transport";
+import {
+  PASSIVE_RUNTIME_USER_AGENT,
+  requestPinnedHttps,
+  type RuntimeNetworkResponse,
+} from "@/packages/runtime-network";
 import {
   buildPassiveResponseObservations,
   redactRuntimeObservationUrl,
@@ -15,7 +19,7 @@ import { validateInitialRuntimeUrl, validateRedirectTarget } from "./target-poli
 export type RuntimeTransport = (input: {
   url: URL;
   timeoutMs: number;
-}) => Promise<RuntimeTransportResponse>;
+}) => Promise<RuntimeNetworkResponse>;
 
 export type RuntimeObservationFailureCode =
   | "REQUEST_TIMEOUT"
@@ -37,7 +41,15 @@ export interface RuntimeObserverDependencies {
   now?: () => number;
 }
 
-const defaultTransport: RuntimeTransport = (input) => requestPinnedHttps(input);
+const defaultTransport: RuntimeTransport = (input) => requestPinnedHttps({
+  method: "GET",
+  url: input.url,
+  timeoutMs: input.timeoutMs,
+  headers: {
+    accept: "*/*",
+    "user-agent": PASSIVE_RUNTIME_USER_AGENT,
+  },
+});
 
 function result(input: RuntimeObservationResult): RuntimeObservationResult {
   return Object.freeze({
@@ -123,7 +135,7 @@ export async function observeRuntimeTarget(
     );
     const totalBudgetControlsRequestTimeout = requestTimeoutMs < budget.perRequestTimeoutMs;
 
-    let response: RuntimeTransportResponse;
+    let response: RuntimeNetworkResponse;
     try {
       response = await transport({
         url: current,
