@@ -1,4 +1,4 @@
-import type { Severity } from "../findings/types";
+import type { BaselineGate, Severity } from "../findings/types";
 import type { InventoryBudgets } from "../inventory/types";
 
 export type ScannerOutputFormat = "terminal" | "json";
@@ -31,6 +31,8 @@ export interface ScannerConfig {
   secrets: ScannerSecretsConfig;
   sca: ScannerScaConfig;
   budgets: InventoryBudgets;
+  baseline: string | undefined;
+  baselineGate: BaselineGate;
   failOn: Severity | undefined;
   output: ScannerOutputConfig;
 }
