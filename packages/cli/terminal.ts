@@ -2,7 +2,14 @@ import type { ScanResult, Severity } from "../scanner-core/findings/types";
 
 const severityOrder: Severity[] = ["critical", "high", "medium", "low", "info"];
 
-export function formatTerminalResult(result: ScanResult): string {
+export interface FormatTerminalResultOptions {
+  baselineActive?: boolean;
+}
+
+export function formatTerminalResult(
+  result: ScanResult,
+  options: FormatTerminalResultOptions = {}
+): string {
   const lines = [
     "ScopeForge scan",
     "",
@@ -29,10 +36,21 @@ export function formatTerminalResult(result: ScanResult): string {
     .map((item) => `${item.count} ${item.severity}`);
 
   lines.push(`${result.findings.length} findings${counts.length ? `: ${counts.join(", ")}` : ""}`);
+
+  if (options.baselineActive) {
+    const newCount = result.findings.filter((finding) => finding.baselineState === "new").length;
+    const existingCount = result.findings.filter((finding) => finding.baselineState === "existing").length;
+    lines.push(`Baseline: ${newCount} new, ${existingCount} existing`);
+  }
+
   lines.push(
     result.policy.mode === "report-only"
       ? "Policy: report-only"
-      : `Policy: ${result.policy.passed ? "passed" : "failed"} (fail-on ${result.policy.failOn})`
+      : `Policy: ${result.policy.passed ? "passed" : "failed"} (fail-on ${result.policy.failOn}${
+          options.baselineActive && result.policy.baselineGate
+            ? `, baseline ${result.policy.baselineGate}`
+            : ""
+        })`
   );
 
   if (result.errors.length > 0) {

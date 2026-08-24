@@ -32,6 +32,8 @@ describe("loadScannerConfig", () => {
       secrets: { allowFingerprints: [] },
       sca: { osv: { enabled: false } },
       budgets: defaultInventoryBudgets,
+      baseline: undefined,
+      baselineGate: "new",
       failOn: undefined,
       output: { format: "terminal", path: undefined }
     });
@@ -63,6 +65,8 @@ describe("loadScannerConfig", () => {
     expect(config.secrets).toEqual({ allowFingerprints: [fingerprintA, fingerprintB] });
     expect(config.sca).toEqual({ osv: { enabled: true } });
     expect(config.budgets).toEqual({ maxFiles: 100, maxFileBytes: 1024, maxTotalBytes: 4096 });
+    expect(config.baseline).toBeUndefined();
+    expect(config.baselineGate).toBe("new");
     expect(config.failOn).toBe("high");
     expect(config.output).toEqual({ format: "json", path: "reports/results.json" });
   });

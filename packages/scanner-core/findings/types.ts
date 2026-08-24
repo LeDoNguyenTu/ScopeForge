@@ -9,6 +9,7 @@ export type Validation =
   | "informational";
 export type Provenance = "observed" | "enriched" | "inferred";
 export type BaselineState = "new" | "existing" | "none";
+export type BaselineGate = "new" | "all";
 
 export interface FindingLocation {
   file: string;
@@ -71,6 +72,7 @@ export interface ScanPolicyResult {
   mode: "report-only" | "enforce";
   passed: boolean;
   failOn?: Severity;
+  baselineGate?: BaselineGate;
 }
 
 export interface ScanMetadata {
