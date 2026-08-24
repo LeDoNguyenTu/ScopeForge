@@ -30,6 +30,14 @@ describe("Phase 4C active validation migration", () => {
     expect(sql).toContain("pg_column_size(budget) <= 2048");
   });
 
+  it("atomically rejects observation persistence after cancellation or outside running state", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+
+    expect(sql).toContain("job_status <> 'running'");
+    expect(sql).toContain("job_cancel_requested_at is not null");
+    expect(sql).toContain("Runtime observations require a running uncancelled job");
+  });
+
   it("preserves authenticated select-only access for runtime observations", async () => {
     const sql = await readFile(migrationPath, "utf8");
 
