@@ -134,7 +134,7 @@ CI guards:
 
 ## Supporting Phase 4C-1 verification
 
-CI #546 passed on implementation/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530` before these final documentation commits:
+CI #546 passed on implementation/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530` before the permanent documentation tail:
 
 - reproducible dependency install
 - 122 test files and 538 tests
@@ -145,7 +145,7 @@ CI #546 passed on implementation/security-hardening head `cc57248fd525e1a05312bb
 
 CI #546 includes the final regression for cancellation/persistence linearization in addition to active authorization, request authority, DNS/pinning/deadlines, profile-versioned finding provenance, trusted persistence, UI/action boundaries, and dependency guards.
 
-This is supporting implementation evidence only. These permanent documentation commits move PR #27 beyond `cc57248f...`, so the exact final PR head must pass the complete repository gate before merge.
+The implementation is frozen. The current documentation tail changes no runtime behavior. The exact final PR #27 head must still pass the complete repository gate before merge; only that exact final head counts as the merge gate.
 
 ## Next boundary
 
