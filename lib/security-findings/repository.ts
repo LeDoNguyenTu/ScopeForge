@@ -9,6 +9,8 @@ type SecurityEvidenceRow = Database["public"]["Tables"]["security_evidence"]["Ro
 type SecurityFindingOccurrenceRow = Database["public"]["Tables"]["security_finding_occurrences"]["Row"];
 type SecurityFindingEventRow = Database["public"]["Tables"]["security_finding_events"]["Row"];
 
+const FINDING_READ_LIMIT = 100;
+
 export interface SecurityFindingDetail {
   finding: SecurityFindingRow;
   evidence: SecurityEvidenceRow[];
@@ -57,7 +59,8 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
       .from("security_findings")
       .select("*")
       .eq("workspace_id", workspaceId)
-      .order("last_seen_at", { ascending: false });
+      .order("last_seen_at", { ascending: false })
+      .limit(100);
 
     if (error) throw new Error("Unable to load workspace security findings.");
     return data ?? [];
@@ -80,7 +83,8 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
       .from("security_finding_evidence")
       .select("evidence_id")
       .eq("workspace_id", workspaceId)
-      .eq("finding_id", findingId);
+      .eq("finding_id", findingId)
+      .limit(100);
     if (linksError) throw new Error("Unable to load finding evidence links.");
 
     const evidenceIds = (evidenceLinks ?? []).map((link) => link.evidence_id);
@@ -91,7 +95,8 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
         .select("*")
         .eq("workspace_id", workspaceId)
         .in("evidence_id", evidenceIds)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .limit(100);
       if (evidenceError) throw new Error("Unable to load finding evidence.");
       evidence = evidenceRows ?? [];
     }
@@ -101,7 +106,8 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
       .select("*")
       .eq("workspace_id", workspaceId)
       .eq("finding_id", findingId)
-      .order("observed_at", { ascending: false });
+      .order("observed_at", { ascending: false })
+      .limit(100);
     if (occurrencesError) throw new Error("Unable to load finding occurrences.");
 
     const { data: events, error: eventsError } = await client
@@ -109,7 +115,8 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
       .select("*")
       .eq("workspace_id", workspaceId)
       .eq("finding_id", findingId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (eventsError) throw new Error("Unable to load finding lifecycle history.");
 
     return {
