@@ -29,7 +29,7 @@ export interface RuntimeObservationResult {
 
 export interface RuntimeObserverDependencies {
   transport?: RuntimeTransport;
-  isCancelled?: () => boolean;
+  isCancelled?: () => boolean | Promise<boolean>;
   now?: () => number;
 }
 
@@ -101,7 +101,7 @@ export async function observeRuntimeTarget(
   let current = validateInitialRuntimeUrl(target);
 
   while (true) {
-    if (isCancelled()) {
+    if (await isCancelled()) {
       return result({ status: "cancelled", observations, requestCount, redirectCount });
     }
     const elapsedBeforeRequest = Math.max(0, now() - startedAt);
@@ -146,7 +146,7 @@ export async function observeRuntimeTarget(
       return failed(observations, requestCount, redirectCount, "OBSERVATION_BUDGET");
     }
 
-    if (isCancelled()) {
+    if (await isCancelled()) {
       return result({ status: "cancelled", observations, requestCount, redirectCount });
     }
     if (now() - startedAt >= budget.totalTimeoutMs) {
@@ -202,7 +202,7 @@ export async function observeRuntimeTarget(
       return result({ status: "succeeded", observations, requestCount, redirectCount });
     }
 
-    if (isCancelled()) {
+    if (await isCancelled()) {
       return result({ status: "cancelled", observations, requestCount, redirectCount });
     }
     if (now() - startedAt >= budget.totalTimeoutMs) {
