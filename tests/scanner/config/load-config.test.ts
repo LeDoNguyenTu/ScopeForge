@@ -30,6 +30,7 @@ describe("loadScannerConfig", () => {
       scanners: null,
       rules: { include: [], exclude: [] },
       secrets: { allowFingerprints: [] },
+      sca: { osv: { enabled: false } },
       budgets: defaultInventoryBudgets,
       failOn: undefined,
       output: { format: "terminal", path: undefined }
@@ -46,6 +47,7 @@ describe("loadScannerConfig", () => {
         scanners: ["secrets", "jsts"],
         rules: { include: ["jsts/eval"], exclude: ["jsts/info"] },
         secrets: { allowFingerprints: [fingerprintB, fingerprintA, fingerprintB] },
+        sca: { osv: { enabled: true } },
         budgets: { maxFiles: 100, maxFileBytes: 1024, maxTotalBytes: 4096 },
         failOn: "high",
         output: { format: "json", path: "reports/results.json" }
@@ -59,6 +61,7 @@ describe("loadScannerConfig", () => {
     expect(config.scanners).toEqual(["jsts", "secrets"]);
     expect(config.rules).toEqual({ include: ["jsts/eval"], exclude: ["jsts/info"] });
     expect(config.secrets).toEqual({ allowFingerprints: [fingerprintA, fingerprintB] });
+    expect(config.sca).toEqual({ osv: { enabled: true } });
     expect(config.budgets).toEqual({ maxFiles: 100, maxFileBytes: 1024, maxTotalBytes: 4096 });
     expect(config.failOn).toBe("high");
     expect(config.output).toEqual({ format: "json", path: "reports/results.json" });
@@ -83,6 +86,22 @@ describe("loadScannerConfig", () => {
       join(root, ".scopeforge.json"),
       JSON.stringify({ version: 1, secrets: { allowFingerprints: [fingerprintA], surprise: true } })
     );
+    await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
+  });
+
+  it("keeps OSV enrichment disabled by default and validates explicit opt-in strictly", async () => {
+    const root = await tempDir("scopeforge-config-sca-");
+
+    await writeFile(join(root, ".scopeforge.json"), JSON.stringify({ version: 1, sca: { osv: { enabled: true } } }));
+    await expect(loadScannerConfig(root)).resolves.toMatchObject({ sca: { osv: { enabled: true } } });
+
+    await writeFile(join(root, ".scopeforge.json"), JSON.stringify({ version: 1, sca: { osv: { enabled: "yes" } } }));
+    await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
+
+    await writeFile(join(root, ".scopeforge.json"), JSON.stringify({ version: 1, sca: { osv: { enabled: true, endpoint: "https://evil.test" } } }));
+    await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
+
+    await writeFile(join(root, ".scopeforge.json"), JSON.stringify({ version: 1, sca: { surprise: true } }));
     await expect(loadScannerConfig(root)).rejects.toMatchObject({ code: "invalid_config" });
   });
 
