@@ -59,6 +59,21 @@ describe("passive response observations", () => {
     expect(JSON.stringify(observations)).not.toContain("secret-token");
   });
 
+  it("does not persist URL query strings or fragments", () => {
+    const observations = buildPassiveResponseObservations({
+      url: new URL("https://example.com/app?token=super-secret&next=%2Fadmin#client-state"),
+      response: response(),
+    });
+
+    expect(observations).toContainEqual({
+      kind: "http-status",
+      url: "https://example.com/app",
+      status: 200,
+    });
+    expect(JSON.stringify(observations)).not.toContain("super-secret");
+    expect(JSON.stringify(observations)).not.toContain("client-state");
+  });
+
   it("emits explicit absence observations for deterministic security headers", () => {
     const observations = buildPassiveResponseObservations({
       url: new URL("https://example.com"),
