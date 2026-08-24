@@ -9,8 +9,6 @@ type SecurityEvidenceRow = Database["public"]["Tables"]["security_evidence"]["Ro
 type SecurityFindingOccurrenceRow = Database["public"]["Tables"]["security_finding_occurrences"]["Row"];
 type SecurityFindingEventRow = Database["public"]["Tables"]["security_finding_events"]["Row"];
 
-const FINDING_READ_LIMIT = 100;
-
 export interface SecurityFindingDetail {
   finding: SecurityFindingRow;
   evidence: SecurityEvidenceRow[];
