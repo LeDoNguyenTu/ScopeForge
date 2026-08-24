@@ -1,5 +1,5 @@
 alter table public.scan_jobs
-  drop constraint if exists scan_jobs_check;
+  drop constraint if exists scan_jobs_status_check;
 
 alter table public.scan_jobs
   alter column status drop default;
