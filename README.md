@@ -32,13 +32,16 @@ Shipped foundation:
 - distinct success, policy, usage/configuration, and scanner-error exit codes
 - local CLI with terminal and JSON output
 - built-in secret scanning
-- syntax-aware JavaScript/TypeScript structural SAST
+- syntax-aware JavaScript/TypeScript structural SAST and bounded command taint analysis
+- bounded JavaScript dependency inventory with optional OSV vulnerability enrichment
 
 The secret scanner currently detects high-confidence GitHub tokens, Stripe live secret keys, Slack tokens, complete private-key blocks, and contextual high-entropy secret assignments. Raw detected values are redacted before findings reach terminal or JSON output. Safe-fixture annotations and stable fingerprint allowlisting are supported.
 
-The JavaScript/TypeScript scanner parses JavaScript, TypeScript, JSX, TSX, MJS, CJS, MTS, and CTS as hostile data using the TypeScript parser without executing repository code or resolving imports. The first structural rules detect direct `eval`/`new Function` use and explicit TLS certificate-verification disablement. The `https.Agent` form is reported only when the receiver is statically bound to Node's `https` or `node:https` module. Framework-sensitive cookie checks were deliberately deferred because response-like variable names alone are not strong enough evidence for a high-confidence finding. Malformed or over-budget files are surfaced as scanner errors while valid files continue to produce findings.
+The JavaScript/TypeScript scanner parses JavaScript, TypeScript, JSX, TSX, MJS, CJS, MTS, and CTS as hostile data using the TypeScript parser without executing repository code or resolving imports. Structural rules detect direct `eval`/`new Function` use, explicit TLS certificate-verification disablement, and bounded Express request-input flows to `child_process.exec` and `execSync`. Framework-sensitive checks are only reported when the relevant bindings can be established statically. Malformed or over-budget files are surfaced as scanner errors while valid files continue to produce findings.
 
-Limited taint analysis, dependency/OSV analysis, CycloneDX SBOM, IaC rules, baselines, and SARIF are still Phase 3 work.
+The SCA scanner inventories JavaScript dependencies from `npm-shrinkwrap.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, and `package.json` fallback. Resolved lockfile versions are preferred over manifest ranges. OSV enrichment is disabled by default and must be explicitly enabled. When enabled, ScopeForge sends only normalized npm package identity and exact version to the fixed OSV API. Repository source text, arbitrary files, and detected secrets are not sent to OSV. OSV lookup failures are returned as scanner errors and never represented as a clean vulnerability result.
+
+CycloneDX SBOM, IaC rules, baselines, and SARIF are still Phase 3 work.
 
 Remote DAST, API fuzzing, exploit validation, credential attacks, persistence, and destructive behavior remain outside Phase 3.
 
@@ -63,15 +66,22 @@ Example scanner configuration:
 ```json
 {
   "version": 1,
-  "scanners": ["secrets", "jsts"],
+  "scanners": ["secrets", "jsts", "sca"],
   "rules": {
     "exclude": ["secrets/high-entropy-assignment"]
   },
   "secrets": {
     "allowFingerprints": []
+  },
+  "sca": {
+    "osv": {
+      "enabled": false
+    }
   }
 }
 ```
+
+Set `sca.osv.enabled` to `true` only when you want online vulnerability enrichment. The setting enables ScopeForge's fixed OSV integration only. Repository configuration cannot provide an alternate OSV endpoint, custom outbound URL, or request headers.
 
 Use `scopeforge:allow-secret` only for an intentional fixture on the same line or on a standalone immediately preceding comment line. Prefer fingerprint allowlisting for reviewed long-lived exceptions.
 
@@ -128,7 +138,8 @@ ScopeForge CLI
   +--> bounded inventory
   +--> safe content-read boundary
   +--> secret scanner
-  +--> JS/TS parser + structural SAST scanner
+  +--> JS/TS parser + structural SAST + bounded taint scanner
+  +--> dependency inventory + optional fixed-endpoint OSV enrichment
   +--> scanner coordinator
   +--> normalized findings + explicit scanner errors
   +--> terminal / JSON outputs
@@ -153,7 +164,7 @@ Long-term architecture is documented in `docs/superpowers/specs/2026-08-24-commu
 
 ## Security and safety
 
-ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Secret values must not be emitted in terminal or JSON findings, and scanner reads remain behind bounded filesystem checks.
+ScopeForge treats scanned repositories as hostile input. Local scanning does not execute repository code, lifecycle scripts, imported modules, Dockerfiles, Terraform, Kubernetes manifests, or workflows. JS/TS analysis builds syntax trees only, with bounded traversal and no target module resolution. Secret values must not be emitted in terminal or JSON findings, scanner reads remain behind bounded filesystem checks, and optional OSV enrichment receives only normalized package identity and exact version.
 
 Please report ScopeForge vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
