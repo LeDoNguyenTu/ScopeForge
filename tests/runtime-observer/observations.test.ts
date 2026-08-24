@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildPassiveResponseObservations,
-  type RuntimeTransportResponse,
-} from "@/packages/runtime-observer";
+import type { RuntimeNetworkResponse } from "@/packages/runtime-network";
+import { buildPassiveResponseObservations } from "@/packages/runtime-observer";
 
-function response(overrides: Partial<RuntimeTransportResponse> = {}): RuntimeTransportResponse {
+function response(overrides: Partial<RuntimeNetworkResponse> = {}): RuntimeNetworkResponse {
   return {
     status: 200,
     headers: {

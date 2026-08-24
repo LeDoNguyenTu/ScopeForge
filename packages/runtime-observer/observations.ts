@@ -1,4 +1,4 @@
-import type { RuntimeTransportResponse } from "./https-transport";
+import type { RuntimeNetworkResponse } from "@/packages/runtime-network";
 import {
   getHeaderValues,
   normalizeSelectedHeaderObservations,
@@ -69,7 +69,7 @@ function hostnameMatchesSan(hostname: string, san: string): boolean {
 
 export function buildPassiveResponseObservations(input: {
   url: URL;
-  response: RuntimeTransportResponse;
+  response: RuntimeNetworkResponse;
 }): readonly RuntimeObservation[] {
   const observations: RuntimeObservation[] = [
     Object.freeze({

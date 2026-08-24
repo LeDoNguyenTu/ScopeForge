@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildPinnedHttpsRequestOptions,
   requestPinnedHttps,
+  PASSIVE_RUNTIME_USER_AGENT,
+  SCOPEFORGE_SYNTHETIC_ORIGIN,
+  type RuntimeNetworkResponse,
   type RuntimeRequester,
-  type RuntimeTransportResponse,
-} from "@/packages/runtime-observer";
+  type TrustedRuntimeRequestPlan,
+} from "@/packages/runtime-network";
 
-const response: RuntimeTransportResponse = {
+const response: RuntimeNetworkResponse = {
   status: 302,
   headers: { location: "/next" },
   tls: {
@@ -17,13 +20,25 @@ const response: RuntimeTransportResponse = {
   },
 };
 
-describe("pinned HTTPS transport", () => {
+function passivePlan(url = "https://example.com/app?view=1", timeoutMs = 3_000): TrustedRuntimeRequestPlan {
+  return {
+    method: "GET",
+    url: new URL(url),
+    timeoutMs,
+    headers: {
+      accept: "*/*",
+      "user-agent": PASSIVE_RUNTIME_USER_AGENT,
+      origin: undefined,
+    },
+  };
+}
+
+describe("trusted runtime HTTPS transport", () => {
   it("builds a GET-only request pinned to the validated address while preserving SNI", async () => {
     const options = buildPinnedHttpsRequestOptions({
-      url: new URL("https://example.com/app?view=1"),
+      plan: passivePlan(),
       address: "1.1.1.1",
       family: 4,
-      timeoutMs: 3_000,
     });
 
     expect(options.method).toBe("GET");
@@ -54,20 +69,54 @@ describe("pinned HTTPS transport", () => {
     });
   });
 
+  it("rejects request plans outside the trusted Origin contract", () => {
+    const unsafe = {
+      ...passivePlan("https://example.com/app", 1_000),
+      headers: {
+        accept: "*/*",
+        "user-agent": PASSIVE_RUNTIME_USER_AGENT,
+        origin: "https://evil.example",
+      },
+    } as unknown as TrustedRuntimeRequestPlan;
+
+    expect(() => buildPinnedHttpsRequestOptions({
+      plan: unsafe,
+      address: "1.1.1.1",
+      family: 4,
+    })).toThrow(/origin/i);
+  });
+
+  it("allows only the fixed ScopeForge synthetic active Origin", () => {
+    const active = {
+      ...passivePlan("https://example.com/app", 1_000),
+      headers: {
+        accept: "*/*",
+        "user-agent": "ScopeForge-RuntimeValidator/0.1",
+        origin: SCOPEFORGE_SYNTHETIC_ORIGIN,
+      },
+    } as TrustedRuntimeRequestPlan;
+
+    const options = buildPinnedHttpsRequestOptions({
+      plan: active,
+      address: "1.1.1.1",
+      family: 4,
+    });
+
+    expect(options.headers).toEqual({
+      accept: "*/*",
+      "user-agent": "ScopeForge-RuntimeValidator/0.1",
+      origin: "https://scopeforge.invalid",
+    });
+  });
+
   it("freshly resolves and pins each request before calling the requester", async () => {
     const resolver = {
       resolve: vi.fn(async () => ["8.8.8.8", "1.1.1.1"]),
     };
     const requester = vi.fn(async (_options: Parameters<RuntimeRequester>[0]) => response);
 
-    await requestPinnedHttps(
-      { url: new URL("https://example.com/app"), timeoutMs: 2_000 },
-      { resolver, requester },
-    );
-    await requestPinnedHttps(
-      { url: new URL("https://example.com/next"), timeoutMs: 2_000 },
-      { resolver, requester },
-    );
+    await requestPinnedHttps(passivePlan("https://example.com/app", 2_000), { resolver, requester });
+    await requestPinnedHttps(passivePlan("https://example.com/next", 2_000), { resolver, requester });
 
     expect(resolver.resolve).toHaveBeenCalledTimes(2);
     expect(requester).toHaveBeenCalledTimes(2);
@@ -80,10 +129,7 @@ describe("pinned HTTPS transport", () => {
     const requester = vi.fn(async (_options: Parameters<RuntimeRequester>[0]) => response);
 
     await expect(
-      requestPinnedHttps(
-        { url: new URL("https://example.com/app"), timeoutMs: 1_000 },
-        { resolver, requester },
-      ),
+      requestPinnedHttps(passivePlan("https://example.com/app", 1_000), { resolver, requester }),
     ).resolves.toEqual(response);
 
     expect(requester).toHaveBeenCalledTimes(1);
@@ -100,7 +146,7 @@ describe("pinned HTTPS transport", () => {
       let failure: unknown;
 
       void requestPinnedHttps(
-        { url: new URL("https://example.com/app"), timeoutMs: 1_000 },
+        passivePlan("https://example.com/app", 1_000),
         { resolver, requester },
       ).catch((error: unknown) => {
         failure = error;
@@ -124,7 +170,7 @@ describe("pinned HTTPS transport", () => {
     const times = [0, 400];
 
     await requestPinnedHttps(
-      { url: new URL("https://example.com/app"), timeoutMs: 1_000 },
+      passivePlan("https://example.com/app", 1_000),
       { resolver, requester, now: () => times.shift() ?? 400 },
     );
 

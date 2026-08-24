@@ -4,7 +4,7 @@ export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export type AssetKind = "web_application" | "api" | "repository";
 export type AssetVerificationStatus = "unverified" | "pending" | "verified" | "failed";
 export type ScanJobStatus = "queued" | "running" | "succeeded" | "failed" | "blocked" | "cancelled";
-export type ScanJobKind = "phase2_blocked" | "passive_runtime";
+export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation";
 export type AuditActorType = "user" | "system";
 
 export type Database = {
@@ -55,6 +55,9 @@ export type Database = {
           authorization_canonical_target: string | null;
           authorization_asset_kind: AssetKind | null;
           authorization_verified_at: string | null;
+          validation_profile_id: string | null;
+          validation_profile_version: number | null;
+          authorization_granted_at: string | null;
           budget: Json;
           cancel_requested_at: string | null;
           started_at: string | null;
@@ -76,6 +79,9 @@ export type Database = {
           authorization_canonical_target?: string | null;
           authorization_asset_kind?: AssetKind | null;
           authorization_verified_at?: string | null;
+          validation_profile_id?: string | null;
+          validation_profile_version?: number | null;
+          authorization_granted_at?: string | null;
           budget?: Json;
           cancel_requested_at?: string | null;
           started_at?: string | null;
@@ -97,6 +103,9 @@ export type Database = {
           authorization_canonical_target?: string | null;
           authorization_asset_kind?: AssetKind | null;
           authorization_verified_at?: string | null;
+          validation_profile_id?: string | null;
+          validation_profile_version?: number | null;
+          authorization_granted_at?: string | null;
           budget?: Json;
           cancel_requested_at?: string | null;
           started_at?: string | null;

@@ -1,121 +1,145 @@
 # ScopeForge Test Status
 
-## Phase 4B supporting GREEN gate
+## Phase 4C-1 supporting GREEN gate
 
-CI #459 passed on PR #25 security-hardening implementation head `3fa117745a002ba6f3c0b01107593b2ff9913254`.
+CI #546 passed on PR #27 implementation/security-hardening head `cc57248fd525e1a05312bb221ce35844c18a2530`.
 
 | Check | Result | Evidence |
 |---|---|---|
 | Reproducible dependency install | Passing | `npm ci --ignore-scripts --no-audit --no-fund` |
-| Vitest | Passing | 112 test files, 484 tests |
+| Vitest | Passing | 122 test files, 538 tests |
 | TypeScript strict typecheck | Passing | `npm run typecheck` |
 | CLI TypeScript build | Passing | `npm run build:cli` |
 | Compiled CLI runtime smoke | Passing | `ScopeForge 0.1.0` |
 | Medium scanner benchmark | Passing | 700 files, 0 findings, 0 errors |
 | Next.js production build | Passing | `npm run build` |
 
-CI #459 is supporting implementation evidence. Permanent documentation changes move the branch beyond that commit, so PR #25 still requires a fresh complete run on its exact final head before merge.
+CI #546 is supporting implementation evidence. Permanent documentation commits move the branch beyond that commit, so PR #27 requires a fresh complete run on its exact final head before merge.
 
-## Phase 4B TDD and security-regression evidence
+## Phase 4C-1 TDD and security-regression evidence
 
-The implementation used RED/GREEN checkpoints while preserving existing regression coverage.
+The implementation used explicit RED/GREEN checkpoints while preserving all earlier Phase 2, Phase 3, Phase 4A, and Phase 4B regression coverage.
 
-### Shared network-safety extraction
+### Shared runtime-network extraction
 
-- Phase 2 public-IP and resolution-result safety behavior was extracted into `packages/network-safety` with Phase 2 regression coverage retained.
-- Runtime code reuses the pure policy instead of copying SSRF rules.
-- Dependency guards keep `packages/network-safety` free of DNS, HTTP, TLS, database, and framework I/O.
+Coverage verifies:
 
-### Runtime target, budget, DNS, and transport contracts
+- fresh DNS resolution per connection
+- rejection of empty, invalid, private/reserved, and mixed public/private resolution sets
+- socket pinning to a validated public address
+- original authorized hostname retained for Host/SNI/certificate validation
+- HTTPS port 443 and GET-only transport
+- DNS included inside the absolute request deadline
+- HTTPS timeout reduced by DNS elapsed time
+- outer deadline abort of active HTTPS
+- no automatic redirects
+- response-body destruction
+- unsafe or caller-controlled Origin values rejected by the shared contract
 
-Coverage includes:
+Passive `runtime-observer` regressions remain green after the extraction.
 
-- verified web/API target normalization
-- HTTPS port 443 and GET-only policy
-- same-host redirect restrictions
-- request-count, redirect-count, observation-size, request-timeout, and total-time budgets
-- public DNS classification before every outbound connection
-- DNS-pinned HTTPS transport
-- DNS resolution included inside each request deadline
-- HTTPS timeout reduced by time already spent resolving DNS
-- remaining-total-budget enforcement when a request begins near the global deadline
-- timeout and network failure classification through stable codes
+### Active request authority
 
-### Cancellation hardening
+Coverage verifies `cors-origin-policy@1` cannot become a generic HTTP client:
 
-Regression coverage verifies:
+- exact verified canonical target only
+- exact fixed `Origin: https://scopeforge.invalid`
+- exactly one GET
+- zero redirects followed
+- zero retries
+- no request body
+- no cookies or Authorization
+- no arbitrary browser/user headers
+- no caller-selectable method, target, profile, Origin, redirect policy, or budget
+- total active runtime deadline and cancellation boundaries
+
+### Explicit authorization and reauthorization
+
+Coverage verifies:
+
+- verification alone is insufficient for active execution
+- owner/admin role required
+- separate explicit consent required at enqueue
+- immutable workspace/asset/target/kind/verified-at/profile/version/authorization-time/budget snapshot
+- changed target, revoked verification, profile drift, cancellation, or snapshot drift blocks execution before network traffic
+- dedicated server action exposes no raw HTTP configuration surface
+
+### CORS observation, finding, and privacy boundary
+
+Coverage verifies:
+
+- bounded CORS-only normalized observation
+- target query/fragment/credentials removed from persisted URLs
+- no response-body persistence
+- no Set-Cookie value or arbitrary response-header persistence
+- exact synthetic-origin plus credential allowance produces a conservative high/high finding
+- exact synthetic-origin reflection without credentials produces a conservative low/high finding
+- wildcard and missing Vary remain observation-only
+- deterministic security-domain mapping uses `runtime_validated`
+- finding/evidence identity and source/rule provenance include `cors-origin-policy@1`
+- bounded evidence summaries
+
+### Cancellation and persistence hardening
+
+Coverage verifies:
 
 - cancellation before initial networking
-- asynchronous cancellation checks after a request and before another network operation
-- a workspace-bound database cancellation callback injected by the trusted service
-- cancellation remains a distinct terminal state
-- observations/findings are not persisted after the observer reports cancellation
+- asynchronous DB-backed cancellation between active execution boundaries
+- cancellation after response but before persistence writes no active observation/finding
+- runtime observation insert requires an exact running, uncancelled parent job
+- the observation guard locks the parent workspace/job/asset row before state validation
+- if cancellation wins first, persistence is rejected
+- if active evidence commits first, a later cancellation request is rejected
+- committed active evidence therefore cannot coexist with a `cancelled` terminal job state
+- success still requires a running, uncancelled job
 
-### Passive observation and redaction
-
-Coverage verifies:
-
-- bounded HTTP status and redirect observations
-- selected response-header state
-- cookie security attributes without cookie values
-- TLS metadata
-- no response-body persistence
-- URL query strings and fragments removed from persisted HTTP-status and redirect-source observations
-- deterministic redaction and observation-size enforcement
-
-### Runtime finding mapping
-
-Coverage verifies deterministic mapping of passive runtime rule matches into the Phase 4A `security-domain`, including stable identity, observed provenance, typed evidence, validation, severity/confidence, taxonomy, and remediation.
-
-### Persistence and authorization
+### Persistence and trusted-write boundary
 
 Coverage verifies:
 
-- passive runtime job migration and RLS/write boundaries
-- allowed job-state transitions
-- bounded normalized observation persistence
-- workspace/operator checks
-- verified web/API requirement
-- immutable enqueue authorization snapshot
-- execution-time reauthorization before networking
-- changed authorization blocks execution
-- stable failure codes
-- bounded audits without raw exception text
+- `active_validation` reuses `scan_jobs` rather than creating a parallel job table
+- `cors-policy` reuses `runtime_observations`
+- immutable active profile/version/authorization fields
+- exact bounded active budget constraint
+- legal runtime state transitions
+- composite workspace/job/asset identity
+- workspace-scoped reads
+- authenticated select-only runtime observations
+- trusted server adapters perform writes
 
 ### Application service and UI
 
-The original PR #25 blocker was a service contract suite whose production module was missing. `lib/runtime-observations/service.ts` now implements the trusted orchestration layer.
+Coverage verifies:
 
-The asset workflow covers:
-
-- unverified/repository restrictions
-- verified web/API execution
-- queued/running cancellation controls
-- bounded success summaries
-- safe blocked/failed reasons
-- no UI-side networking or duplicated authorization logic
+- active validation is separate from passive observation
+- explicit-consent UI
+- fixed profile/request explanation
+- dedicated active run and cancel actions
+- bounded active job/evidence rendering
+- normalized Origin displayed as a distinct evidence value
+- no UI-side networking or duplicated active authorization logic
 
 ## Architecture dependency guards
 
 CI enforces:
 
-- `security-domain` remains independent of scanners, CLI, Next.js, React, Supabase, application/component layers, and named model providers
-- `runtime-observer` remains independent of Next.js, React, Supabase, application/component layers, and named model providers
-- `network-safety` remains free of DNS, HTTP, TLS, database, and framework dependencies
+- `security-domain` remains independent of scanner, CLI, web, database, and provider layers
+- `network-safety` remains free of DNS/HTTP/TLS/database/framework behavior
+- `runtime-network` remains a low-level implementation layer and does not depend on observer/validator/application/domain layers
+- `app`, `components`, and application `lib` code do not import generic `runtime-network` authority directly
+- `runtime-observer` remains passive and does not import active validation authority
+- `runtime-validator` remains independent of passive observer, Next.js, React, Supabase, application/component layers, and providers
+- `runtime-validator` does not re-export shared generic transport authority
 
-## Phase 3 regression continuity
+## Regression continuity
 
 Existing Phase 3 integration, hostile-repository, secret non-leakage, parser safety, no-execution, SCA/OSV, SBOM, IaC, baseline, JSON/SARIF/golden-output, policy, filesystem, and benchmark coverage remain part of the full repository gate.
 
-No Phase 3 output schema, fingerprint, baseline, policy, CLI, scanner-rule, SARIF, SBOM, or benchmark semantic is intentionally changed by Phase 4B.
+Existing Phase 4B target, redirect, budget, cancellation, redaction, observation, finding, persistence, authorization, service, UI, and architecture tests remain part of the full gate. No passive authority is intentionally widened by Phase 4C-1.
 
-## Database boundary
+## Phase 4C-1 exact merge rule
 
-Phase 4B adds a migration for passive runtime jobs and normalized observations. Tests cover schema constraints, guarded status transitions, immutable authorization snapshots, row-level workspace reads, bounded observation payloads, and revocation of direct authenticated writes. Runtime writes are performed through the trusted server adapter.
-
-## Phase 4B merge rule
-
-The exact final PR #25 head must pass:
+The exact final PR #27 head must pass:
 
 ```bash
 npm ci --ignore-scripts --no-audit --no-fund
@@ -129,19 +153,24 @@ npm run build
 
 Merge is blocked by any of the following:
 
-- unverified or repository assets reaching runtime network execution
-- authorization not being rechecked immediately before execution
-- redirects widening beyond same-host HTTPS port 443 policy
-- a connection occurring without fresh public-IP classification and pinning
-- DNS work escaping the request deadline
-- response-body, cookie-value, or URL query-secret persistence
-- raw network/database exception text reaching audits or browser-facing errors
-- cancellation being ignored between network operations or before persistence
-- runtime-observer dependency reversal into UI/database/provider code
-- network-safety gaining DNS/HTTP/TLS/database/framework behavior
-- unexpected Phase 2 or Phase 3 regression
-- unresolved blocking review thread
+- a non-owner/admin actor authorizing active validation
+- verification being treated as sufficient active consent
+- execution proceeding after target/verification/profile/budget/snapshot drift
+- caller-controlled URL, path, method, Origin, header map, body, credential, redirect policy, profile, or budget reaching the active network layer
+- anything other than the fixed one-request unauthenticated HTTPS/443 GET authority
+- a connection occurring without fresh complete public-IP classification and pinning
+- DNS or HTTPS work escaping the request/total deadlines
+- response-body, cookie-value, Authorization, arbitrary-header, query, fragment, or raw infrastructure exception persistence
+- active observation persistence after cancellation has linearized
+- a late cancellation producing a cancelled job after active evidence has committed
+- browser direct write authority to runtime jobs/observations
+- runtime-network being imported directly by application/UI code
+- passive observer gaining active validator authority
+- runtime-validator gaining passive/UI/database/provider dependencies or generic transport re-export authority
+- unexpected earlier-phase regression
+- unresolved blocking review thread or blocking submitted review
+- exact final head not being fully green and mergeable
 
 ## Completion rule
 
-A green supporting run is not enough. Phase 4B is complete only after the exact final PR #25 head passes the full gate, the complete security-sensitive diff is reviewed, the PR is squash merged with head protection, and merged content is verified. The resulting `main` CI should also be verified when exposed by the available GitHub tooling.
+A supporting green run is not enough. Phase 4C-1 is complete only after the exact final PR #27 head passes the full gate, the complete security-sensitive diff is reviewed, the PR is squash merged with expected-head protection, merged content is verified, and post-merge `main` CI is inspected when exposed by GitHub tooling.

@@ -7,23 +7,6 @@ export type {
   RedirectDecision,
   RuntimeObservationBudget,
 } from "./contracts";
-export {
-  defaultRuntimeResolver,
-  resolvePinnedRuntimeAddress,
-} from "./dns";
-export type { RuntimeResolver } from "./dns";
-export {
-  buildPinnedHttpsRequestOptions,
-  defaultRuntimeRequester,
-  requestPinnedHttps,
-} from "./https-transport";
-export type {
-  PinnedHttpsRequestInput,
-  RuntimeRequester,
-  RuntimeTlsMetadata,
-  RuntimeTransportDependencies,
-  RuntimeTransportResponse,
-} from "./https-transport";
 export { buildPassiveResponseObservations } from "./observations";
 export type { RuntimeObservation } from "./observations";
 export {

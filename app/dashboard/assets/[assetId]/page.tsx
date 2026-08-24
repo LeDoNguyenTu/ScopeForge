@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Activity, ArrowLeft, CircleCheck, Clock3, FileClock, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
+import ActiveValidationPanel, {
+  type ActiveValidationPanelObservation,
+} from "@/components/assets/ActiveValidationPanel";
 import RuntimeObservationPanel, {
   type RuntimeObservationPanelObservation,
 } from "@/components/assets/RuntimeObservationPanel";
@@ -14,7 +17,7 @@ export const dynamic = "force-dynamic";
 function observationSummary(payload: Json): RuntimeObservationPanelObservation | null {
   if (!payload || Array.isArray(payload) || typeof payload !== "object") return null;
   const kind = typeof payload.kind === "string" ? payload.kind : null;
-  if (!kind) return null;
+  if (!kind || kind === "cors-policy") return null;
 
   return {
     kind,
@@ -28,6 +31,23 @@ function observationSummary(payload: Json): RuntimeObservationPanelObservation |
   };
 }
 
+function activeObservationSummary(payload: Json): ActiveValidationPanelObservation | null {
+  if (!payload || Array.isArray(payload) || typeof payload !== "object") return null;
+  if (payload.kind !== "cors-policy") return null;
+  if (typeof payload.url !== "string" || typeof payload.status !== "number") return null;
+  if (payload.allowedOrigin !== null && typeof payload.allowedOrigin !== "string") return null;
+  if (typeof payload.credentialsAllowed !== "boolean" || typeof payload.variesOnOrigin !== "boolean") return null;
+
+  return {
+    kind: "cors-policy",
+    url: payload.url,
+    status: payload.status,
+    allowedOrigin: payload.allowedOrigin,
+    credentialsAllowed: payload.credentialsAllowed,
+    variesOnOrigin: payload.variesOnOrigin,
+  };
+}
+
 export default async function AssetDetailPage({ params }: { params: Promise<{ assetId: string }> }) {
   const { assetId } = await params;
   const { supabase, workspace, role, displayName } = await getDashboardContext();
@@ -36,6 +56,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
     { data: asset, error },
     { data: events },
     { data: latestJob, error: latestJobError },
+    { data: latestActiveJob, error: latestActiveJobError },
   ] = await Promise.all([
     supabase
       .from("assets")
@@ -59,10 +80,20 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("scan_jobs")
+      .select("id,status,blocked_reason,failure_code,request_count,finding_count,cancel_requested_at,created_at")
+      .eq("workspace_id", workspace.id)
+      .eq("asset_id", assetId)
+      .eq("job_kind", "active_validation")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (error) throw new Error(error.message);
   if (latestJobError) throw new Error(latestJobError.message);
+  if (latestActiveJobError) throw new Error(latestActiveJobError.message);
   if (!asset) notFound();
 
   let observations: RuntimeObservationPanelObservation[] = [];
@@ -73,11 +104,29 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       .eq("workspace_id", workspace.id)
       .eq("asset_id", asset.id)
       .eq("job_id", latestJob.id)
+      .neq("kind", "cors-policy")
       .order("sequence", { ascending: true });
     if (observationError) throw new Error(observationError.message);
     observations = (observationRows ?? [])
       .map((row) => observationSummary(row.payload))
       .filter((item): item is RuntimeObservationPanelObservation => item !== null);
+  }
+
+  let activeObservation: ActiveValidationPanelObservation | null = null;
+  if (latestActiveJob?.status === "succeeded") {
+    const { data: activeObservationRow, error: activeObservationError } = await supabase
+      .from("runtime_observations")
+      .select("payload")
+      .eq("workspace_id", workspace.id)
+      .eq("asset_id", asset.id)
+      .eq("job_id", latestActiveJob.id)
+      .eq("kind", "cors-policy")
+      .limit(1)
+      .maybeSingle();
+    if (activeObservationError) throw new Error(activeObservationError.message);
+    activeObservation = activeObservationRow
+      ? activeObservationSummary(activeObservationRow.payload)
+      : null;
   }
 
   const isVerified = asset.verification_status === "verified";
@@ -90,6 +139,15 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
     redirectCount: latestJob.redirect_count,
     findingCount: latestJob.finding_count,
     cancelRequestedAt: latestJob.cancel_requested_at,
+  } : null;
+  const activeJobSummary = latestActiveJob ? {
+    id: latestActiveJob.id,
+    status: latestActiveJob.status,
+    blockedReason: latestActiveJob.blocked_reason,
+    failureCode: latestActiveJob.failure_code,
+    requestCount: latestActiveJob.request_count,
+    findingCount: latestActiveJob.finding_count,
+    cancelRequestedAt: latestActiveJob.cancel_requested_at,
   } : null;
 
   return (
@@ -111,8 +169,8 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
           </dl>
         </article>
         <article className="panel">
-          <div className="panelTitle"><div><span>Security testing</span><h2>Passive execution boundary</h2></div><Activity size={18} /></div>
-          <div className="guardrail"><ShieldCheck size={17} /><p><strong>Passive observation only.</strong> Verified web and API assets may run bounded HTTPS and TLS checks. Crawling, fuzzing, authentication replay, exploit payloads, and destructive behavior remain disabled.</p></div>
+          <div className="panelTitle"><div><span>Security testing</span><h2>Separated execution boundaries</h2></div><Activity size={18} /></div>
+          <div className="guardrail"><ShieldCheck size={17} /><p><strong>Passive and active authority remain separate.</strong> Passive observation collects bounded HTTPS/TLS metadata. The active CORS profile requires explicit owner/admin authorization for one fixed-origin GET. Crawling, fuzzing, authentication replay, exploit payloads, and destructive behavior remain disabled.</p></div>
         </article>
       </section>
 
@@ -127,6 +185,17 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
           verificationStatus={asset.verification_status}
           latestJob={jobSummary}
           observations={observations}
+        />
+      </section>
+
+      <section className="panel verificationSection">
+        <ActiveValidationPanel
+          assetId={asset.id}
+          assetKind={asset.kind}
+          verificationStatus={asset.verification_status}
+          role={role}
+          latestJob={activeJobSummary}
+          observation={activeObservation}
         />
       </section>
 
