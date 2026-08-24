@@ -109,6 +109,37 @@ function recordRuntimeDeclaration(node: ts.Node, counts: Map<string, number>): v
   }
 }
 
+function staticMemberKey(expression: ts.Expression): string | null {
+  if (ts.isPropertyAccessExpression(expression) && ts.isIdentifier(expression.expression)) {
+    return `${expression.expression.text}.${expression.name.text}`;
+  }
+
+  if (ts.isElementAccessExpression(expression) && ts.isIdentifier(expression.expression)) {
+    const argument = expression.argumentExpression;
+    if (argument && (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument))) {
+      return `${expression.expression.text}.${argument.text}`;
+    }
+  }
+
+  return null;
+}
+
+function recordMutation(
+  node: ts.Node,
+  mutatedBindings: Set<string>,
+  mutatedMembers: Set<string>
+): void {
+  if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) return;
+
+  if (ts.isIdentifier(node.left)) {
+    mutatedBindings.add(node.left.text);
+    return;
+  }
+
+  const memberKey = staticMemberKey(node.left);
+  if (memberKey) mutatedMembers.add(memberKey);
+}
+
 function isTopLevelConstDeclaration(node: ts.VariableDeclaration): boolean {
   const declarationList = node.parent;
   if (!ts.isVariableDeclarationList(declarationList)) return false;
@@ -252,6 +283,8 @@ function failClosed(): TaintBindingResult {
 
 export function collectTaintBindings(sourceFile: ts.SourceFile, budget: TaintBudget): TaintBindingResult {
   const declaredBindings = new Map<string, number>();
+  const mutatedBindings = new Set<string>();
+  const mutatedMembers = new Set<string>();
   const expressFactoryCandidates: ExpressFactoryCandidate[] = [];
   const commandSinkCandidates: CommandSinkCandidate[] = [];
   const expressInstanceCandidates: ExpressInstanceCandidate[] = [];
@@ -263,6 +296,7 @@ export function collectTaintBindings(sourceFile: ts.SourceFile, budget: TaintBud
     const node = stack.pop() as ts.Node;
 
     recordRuntimeDeclaration(node, declaredBindings);
+    recordMutation(node, mutatedBindings, mutatedMembers);
     if (ts.isImportDeclaration(node)) {
       collectImportCandidates(node, expressFactoryCandidates, commandSinkCandidates);
     } else if (ts.isVariableDeclaration(node)) {
@@ -289,6 +323,7 @@ export function collectTaintBindings(sourceFile: ts.SourceFile, budget: TaintBud
   for (const candidate of expressFactoryCandidates) {
     if (!chargeTaintBudget(budget)) return failClosed();
     if (!uniqueRuntimeBinding(declaredBindings, candidate.localName)) continue;
+    if (mutatedBindings.has(candidate.localName)) continue;
     if (candidate.source === "require" && !requireIsUnshadowed) continue;
     trustedFactories.set(candidate.localName, candidate.kind);
   }
@@ -297,9 +332,16 @@ export function collectTaintBindings(sourceFile: ts.SourceFile, budget: TaintBud
   for (const candidate of expressInstanceCandidates) {
     if (!chargeTaintBudget(budget)) return failClosed();
     if (!uniqueRuntimeBinding(declaredBindings, candidate.localName)) continue;
+    if (mutatedBindings.has(candidate.localName)) continue;
 
     const factoryKind = trustedFactories.get(candidate.factoryName);
     if (!factoryKind) continue;
+    if (
+      candidate.factoryKind === "router-property" &&
+      mutatedMembers.has(`${candidate.factoryName}.Router`)
+    ) {
+      continue;
+    }
 
     const trusted =
       candidate.factoryKind === "call"
@@ -312,7 +354,15 @@ export function collectTaintBindings(sourceFile: ts.SourceFile, budget: TaintBud
   for (const candidate of commandSinkCandidates) {
     if (!chargeTaintBudget(budget)) return failClosed();
     if (!uniqueRuntimeBinding(declaredBindings, candidate.binding.localName)) continue;
+    if (mutatedBindings.has(candidate.binding.localName)) continue;
     if (candidate.source === "require" && !requireIsUnshadowed) continue;
+    if (
+      candidate.binding.kind === "namespace" &&
+      (mutatedMembers.has(`${candidate.binding.localName}.exec`) ||
+        mutatedMembers.has(`${candidate.binding.localName}.execSync`))
+    ) {
+      continue;
+    }
     commandSinks.push(candidate.binding);
   }
 
@@ -320,6 +370,8 @@ export function collectTaintBindings(sourceFile: ts.SourceFile, budget: TaintBud
   for (const route of routeCandidates) {
     if (!chargeTaintBudget(budget)) return failClosed();
     if (!trustedInstances.has(route.receiverName)) continue;
+    if (mutatedBindings.has(route.receiverName)) continue;
+    if (mutatedMembers.has(`${route.receiverName}.${route.method}`)) continue;
 
     for (const callback of route.callbacks) {
       if (!chargeTaintBudget(budget)) return failClosed();
