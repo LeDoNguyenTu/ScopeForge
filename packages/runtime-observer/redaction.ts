@@ -29,7 +29,7 @@ function findHeader(headers: HeaderRecord, wanted: string): HeaderValue {
 }
 
 function normalizeHeaderValue(value: Exclude<HeaderValue, undefined>): string {
-  const joined = Array.isArray(value) ? value.join(", ") : value;
+  const joined = typeof value === "string" ? value : value.join(", ");
   return boundString(joined, MAX_HEADER_VALUE_LENGTH);
 }
 
@@ -100,5 +100,5 @@ export function normalizeSelectedHeaderObservations(
 export function getHeaderValues(headers: HeaderRecord, name: string): readonly string[] {
   const value = findHeader(headers, name.toLowerCase());
   if (value === undefined) return Object.freeze([]);
-  return Object.freeze(Array.isArray(value) ? [...value] : [value]);
+  return Object.freeze(typeof value === "string" ? [value] : [...value]);
 }
