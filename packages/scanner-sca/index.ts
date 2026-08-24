@@ -12,5 +12,7 @@ export { createVulnerabilityFinding } from "./findings/create-vulnerability-find
 export { collectNpmDependencies } from "./inventory";
 export { createScaScanner } from "./scanner";
 export { queryOsvDependencies } from "./osv/client";
+export { generateCycloneDxSbom } from "./sbom/generate";
 export type { OsvClientOptions, OsvLookupResult, OsvVulnerabilityRecord } from "./osv/types";
+export type { CycloneDxSbomResult, GenerateCycloneDxSbomOptions } from "./sbom/types";
 export type { NpmDependencyComponent, DependencyInventoryResult } from "./types";

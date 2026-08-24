@@ -5,10 +5,11 @@ import { loadScannerConfig } from "../scanner-core/config/load-config";
 import { ScannerConfigError, type ScannerOutputFormat } from "../scanner-core/config/types";
 import { runScan } from "../scanner-core/coordinator/run-scan";
 import type { Scanner } from "../scanner-core/coordinator/types";
-import type { Severity } from "../scanner-core/findings/types";
+import type { ScanError, Severity } from "../scanner-core/findings/types";
 import { buildRepositoryInventory } from "../scanner-core/inventory/build-inventory";
 import { evaluatePolicy, resolveScanExitCode } from "../scanner-core/policy/evaluate-policy";
 import { SCAN_EXIT, type ScanExitCode } from "../scanner-core/policy/exit-codes";
+import { generateCycloneDxSbom } from "../scanner-sca/sbom/generate";
 import { serializeScanResult } from "../scanner-output/json/serialize";
 import { createBuiltInScanners, formatBuiltInRuleList, validateBuiltInRules } from "./builtins";
 import { UnsafeOutputError, writeScanOutput } from "./safe-output";
@@ -31,6 +32,7 @@ interface ScanArguments {
   path: string;
   format?: ScannerOutputFormat;
   output?: string;
+  sbom?: string;
   failOn?: Severity;
 }
 
@@ -48,7 +50,7 @@ function defaultIo(): CliIo {
 function usage(): string {
   return [
     "Usage:",
-    "  scopeforge scan [path] [--format terminal|json] [--output file] [--fail-on severity]",
+    "  scopeforge scan [path] [--format terminal|json] [--output file] [--sbom file] [--fail-on severity]",
     "  scopeforge rules list",
     "  scopeforge version",
     ""
@@ -65,6 +67,7 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
   let path: string | undefined;
   let format: ScannerOutputFormat | undefined;
   let output: string | undefined;
+  let sbom: string | undefined;
   let failOn: Severity | undefined;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -80,6 +83,11 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
     }
     if (token === "--output") {
       output = requireValue(argv, index, token);
+      index += 1;
+      continue;
+    }
+    if (token === "--sbom") {
+      sbom = requireValue(argv, index, token);
       index += 1;
       continue;
     }
@@ -105,6 +113,7 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
     path: resolve(cwd, path ?? "."),
     format,
     output,
+    sbom,
     failOn
   };
 }
@@ -136,6 +145,10 @@ function selectScanners(scanners: Scanner[], configured: string[] | null): Scann
   return configured.map((name) => available.get(name) as Scanner);
 }
 
+function errorIdentity(error: ScanError): string {
+  return `${error.scanner}\u0000${error.code ?? ""}\u0000${error.file ?? ""}\u0000${error.message}`;
+}
+
 export async function runCli(argv: string[], options: RunCliOptions = {}): Promise<ScanExitCode> {
   const io = options.io ?? defaultIo();
   const cwd = resolve(options.cwd ?? process.cwd());
@@ -163,6 +176,10 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     const outputFromRepositoryConfig = args.output === undefined && config.output.path !== undefined;
     const failOn = args.failOn ?? config.failOn;
 
+    if (args.sbom && output && resolve(args.path, args.sbom) === resolve(args.path, output)) {
+      throw new CliUsageError("SBOM output must use a different path from the normal scan output.");
+    }
+
     let scanners: Scanner[];
     if (options.scanners === undefined) {
       validateBuiltInRules(config.rules);
@@ -177,6 +194,21 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
       inventory,
       scanners: selectScanners(scanners, config.scanners)
     });
+
+    const sbomErrorIds = new Set<string>();
+    if (args.sbom) {
+      const sbomResult = await generateCycloneDxSbom(inventory, { toolVersion: SCOPEFORGE_VERSION });
+      for (const diagnostic of sbomResult.errors) {
+        const error: ScanError = { scanner: "sca", ...diagnostic };
+        const identity = errorIdentity(error);
+        sbomErrorIds.add(identity);
+        if (!result.errors.some((existing) => errorIdentity(existing) === identity)) result.errors.push(error);
+      }
+      if (sbomResult.sbom !== undefined) {
+        await writeScanOutput(args.path, args.sbom, sbomResult.sbom);
+      }
+    }
+
     result.policy = evaluatePolicy(result.findings, failOn);
 
     const rendered =
@@ -194,7 +226,11 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
 
     if (result.errors.length > 0) {
       for (const error of result.errors) {
-        io.stderr(`Scanner error [${error.scanner}]: ${error.message}\n`);
+        if (sbomErrorIds.has(errorIdentity(error))) {
+          io.stderr(`SBOM error: ${error.message}\n`);
+        } else {
+          io.stderr(`Scanner error [${error.scanner}]: ${error.message}\n`);
+        }
       }
     }
 
