@@ -1,7 +1,7 @@
 import { lstat, readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
-import type { Severity } from "../findings/types";
+import type { BaselineGate, Severity } from "../findings/types";
 import { defaultInventoryBudgets, type InventoryBudgets } from "../inventory/types";
 import {
   ScannerConfigError,
@@ -30,6 +30,8 @@ function defaults(): ScannerConfig {
     secrets: { allowFingerprints: [] },
     sca: { osv: { enabled: false } },
     budgets: { ...defaultInventoryBudgets },
+    baseline: undefined,
+    baselineGate: "new",
     failOn: undefined,
     output: { format: "terminal", path: undefined }
   };
@@ -143,10 +145,10 @@ function parseBudgets(value: unknown): InventoryBudgets {
   return budgets;
 }
 
-function configuredOutputPath(value: unknown): string | undefined {
+function configuredRootPath(value: unknown, label: string): string | undefined {
   if (value === undefined) return undefined;
   if (typeof value !== "string" || value.trim() === "") {
-    throw new ScannerConfigError("invalid_config", "output.path must be a non-empty string.");
+    throw new ScannerConfigError("invalid_config", `${label} must be a non-empty string.`);
   }
 
   const path = value.trim();
@@ -158,7 +160,7 @@ function configuredOutputPath(value: unknown): string | undefined {
   ) {
     throw new ScannerConfigError(
       "invalid_config",
-      "output.path from repository configuration must be a canonical relative path inside the scan root."
+      `${label} from repository configuration must be a canonical relative path inside the scan root.`
     );
   }
 
@@ -177,7 +179,7 @@ function parseOutput(value: unknown): ScannerOutputConfig {
 
   return {
     format,
-    path: configuredOutputPath(object.path)
+    path: configuredRootPath(object.path, "output.path")
   };
 }
 
@@ -185,7 +187,18 @@ function parseConfig(value: unknown, sourcePath: string): ScannerConfig {
   const object = requireObject(value, "ScopeForge configuration");
   rejectUnknownKeys(
     object,
-    ["version", "scanners", "rules", "secrets", "sca", "budgets", "failOn", "output"],
+    [
+      "version",
+      "scanners",
+      "rules",
+      "secrets",
+      "sca",
+      "budgets",
+      "baseline",
+      "baselineGate",
+      "failOn",
+      "output"
+    ],
     "ScopeForge configuration"
   );
 
@@ -194,6 +207,10 @@ function parseConfig(value: unknown, sourcePath: string): ScannerConfig {
   }
 
   const scanners = object.scanners === undefined ? null : stringList(object.scanners, "scanners");
+  const baselineGate = object.baselineGate ?? "new";
+  if (baselineGate !== "new" && baselineGate !== "all") {
+    throw new ScannerConfigError("invalid_config", "baselineGate must be new or all.");
+  }
   const failOn = object.failOn;
   if (failOn !== undefined && (typeof failOn !== "string" || !SEVERITIES.has(failOn as Severity))) {
     throw new ScannerConfigError("invalid_config", "failOn must be one of critical, high, medium, low, or info.");
@@ -207,6 +224,8 @@ function parseConfig(value: unknown, sourcePath: string): ScannerConfig {
     secrets: parseSecrets(object.secrets),
     sca: parseSca(object.sca),
     budgets: parseBudgets(object.budgets),
+    baseline: configuredRootPath(object.baseline, "baseline"),
+    baselineGate: baselineGate as BaselineGate,
     failOn: failOn as Severity | undefined,
     output: parseOutput(object.output)
   };
