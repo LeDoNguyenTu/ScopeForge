@@ -54,4 +54,19 @@ describe("active validation repository", () => {
     expect(source.match(/\.eq\("job_kind", "active_validation"\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
     expect(source).toContain('kind: "cors-policy"');
   });
+
+  it("requires the final success transition to observe no cancellation request atomically", async () => {
+    const source = await readFile(
+      path.resolve(process.cwd(), "lib/active-validation/repository.ts"),
+      "utf8",
+    );
+
+    const markSucceeded = source.slice(
+      source.indexOf("function markSucceeded"),
+      source.indexOf("function markFailed"),
+    );
+    expect(markSucceeded).toContain('.eq("job_kind", "active_validation")');
+    expect(markSucceeded).toContain('.eq("status", "running")');
+    expect(markSucceeded).toContain('.is("cancel_requested_at", null)');
+  });
 });
