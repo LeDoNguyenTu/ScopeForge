@@ -5,6 +5,16 @@ import type {
 } from "@/lib/database.types";
 
 type SecurityFindingRow = Database["public"]["Tables"]["security_findings"]["Row"];
+type SecurityEvidenceRow = Database["public"]["Tables"]["security_evidence"]["Row"];
+type SecurityFindingOccurrenceRow = Database["public"]["Tables"]["security_finding_occurrences"]["Row"];
+type SecurityFindingEventRow = Database["public"]["Tables"]["security_finding_events"]["Row"];
+
+export interface SecurityFindingDetail {
+  finding: SecurityFindingRow;
+  evidence: SecurityEvidenceRow[];
+  occurrences: SecurityFindingOccurrenceRow[];
+  events: SecurityFindingEventRow[];
+}
 
 export interface ChangeFindingLifecycleRepositoryInput {
   workspaceId: string;
@@ -40,6 +50,76 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
     return data;
   }
 
+  async function listWorkspaceFindings(
+    workspaceId: string,
+  ): Promise<SecurityFindingRow[]> {
+    const { data, error } = await client
+      .from("security_findings")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("last_seen_at", { ascending: false });
+
+    if (error) throw new Error("Unable to load workspace security findings.");
+    return data ?? [];
+  }
+
+  async function loadWorkspaceFindingDetail(
+    workspaceId: string,
+    findingId: string,
+  ): Promise<SecurityFindingDetail | null> {
+    const { data: finding, error: findingError } = await client
+      .from("security_findings")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("finding_id", findingId)
+      .maybeSingle();
+    if (findingError) throw new Error("Unable to load the security finding.");
+    if (!finding) return null;
+
+    const { data: evidenceLinks, error: linksError } = await client
+      .from("security_finding_evidence")
+      .select("evidence_id")
+      .eq("workspace_id", workspaceId)
+      .eq("finding_id", findingId);
+    if (linksError) throw new Error("Unable to load finding evidence links.");
+
+    const evidenceIds = (evidenceLinks ?? []).map((link) => link.evidence_id);
+    let evidence: SecurityEvidenceRow[] = [];
+    if (evidenceIds.length > 0) {
+      const { data: evidenceRows, error: evidenceError } = await client
+        .from("security_evidence")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .in("evidence_id", evidenceIds)
+        .order("created_at", { ascending: true });
+      if (evidenceError) throw new Error("Unable to load finding evidence.");
+      evidence = evidenceRows ?? [];
+    }
+
+    const { data: occurrences, error: occurrencesError } = await client
+      .from("security_finding_occurrences")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("finding_id", findingId)
+      .order("observed_at", { ascending: false });
+    if (occurrencesError) throw new Error("Unable to load finding occurrences.");
+
+    const { data: events, error: eventsError } = await client
+      .from("security_finding_events")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("finding_id", findingId)
+      .order("created_at", { ascending: false });
+    if (eventsError) throw new Error("Unable to load finding lifecycle history.");
+
+    return {
+      finding,
+      evidence,
+      occurrences: occurrences ?? [],
+      events: events ?? [],
+    };
+  }
+
   async function changeLifecycle(
     input: ChangeFindingLifecycleRepositoryInput,
   ): Promise<SecurityFindingRow> {
@@ -59,7 +139,12 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
     return data;
   }
 
-  return Object.freeze({ loadFinding, changeLifecycle });
+  return Object.freeze({
+    loadFinding,
+    listWorkspaceFindings,
+    loadWorkspaceFindingDetail,
+    changeLifecycle,
+  });
 }
 
 export type SecurityFindingRepository = ReturnType<typeof createSecurityFindingRepository>;
