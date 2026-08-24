@@ -163,6 +163,21 @@ describe("observeRuntimeTarget", () => {
     expect(result.failureCode).toBe("REQUEST_TIMEOUT");
   });
 
+  it("limits each request timeout to the remaining total runtime budget", async () => {
+    const transport = vi.fn(async () => response(200));
+    const times = [0, 14_000, 14_000];
+
+    await observeRuntimeTarget(target(), budget(), {
+      transport,
+      now: () => times.shift() ?? 14_000,
+    });
+
+    expect(transport).toHaveBeenCalledWith({
+      url: expect.any(URL),
+      timeoutMs: 1_000,
+    });
+  });
+
   it("fails on total timeout before starting another request", async () => {
     const transport = vi.fn(async () => response(200));
     const times = [0, 15_001];
