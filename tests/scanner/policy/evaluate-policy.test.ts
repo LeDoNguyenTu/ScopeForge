@@ -35,14 +35,25 @@ describe("evaluatePolicy", () => {
     expect(evaluatePolicy([finding("critical")])).toEqual({ mode: "report-only", passed: true });
   });
 
-  it("uses an inclusive severity threshold and ignores existing baseline findings", () => {
+  it("uses an inclusive severity threshold and gates new findings by default", () => {
     expect(evaluatePolicy([finding("high")], "high")).toEqual({
       mode: "enforce",
       passed: false,
-      failOn: "high"
+      failOn: "high",
+      baselineGate: "new"
     });
     expect(evaluatePolicy([finding("medium")], "high").passed).toBe(true);
     expect(evaluatePolicy([finding("critical", "existing")], "high").passed).toBe(true);
+  });
+
+  it("can explicitly gate all findings including existing baseline findings", () => {
+    expect(evaluatePolicy([finding("critical", "existing")], "high", { baselineGate: "all" })).toEqual({
+      mode: "enforce",
+      passed: false,
+      failOn: "high",
+      baselineGate: "all"
+    });
+    expect(evaluatePolicy([finding("medium", "existing")], "high", { baselineGate: "all" }).passed).toBe(true);
   });
 
   it("keeps scanner execution failures distinct from policy failures", () => {
