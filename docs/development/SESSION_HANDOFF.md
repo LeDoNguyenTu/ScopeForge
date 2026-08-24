@@ -8,7 +8,7 @@ Active branch: `feat/phase-3o-release-hardening`
 
 Active PR: #21 `Complete Phase 3 release hardening`
 
-PR #21 should remain draft while documentation or implementation changes are still being pushed. Mark it ready only for the exact-head final gate.
+PR #21 remains draft while permanent evidence documentation changes the head. Mark it ready only when the head is final and must not change again before merge.
 
 ## Completed before Phase 3O
 
@@ -31,169 +31,96 @@ PR #21 should remain draft while documentation or implementation changes are sti
 - Phase 3M generic configuration security merged through PR #19 as `474bd82a1cad014e796a7faf83369c09f0d3dfc5`.
 - Phase 3N SARIF output merged through PR #20 as `f2859f5028965276c9dc69ddf10398740a6f9ec7`.
 
-## Phase 3 shipped scanner contract
+## Phase 3O completed work
 
-### Safety and orchestration
+PR #21 contains the final Phase 3 completion hardening:
 
-- bounded deterministic repository inventory
-- safe no-follow content reads with containment and identity revalidation
-- repository symlink non-following
-- normalized findings and explicit scanner errors
-- stable fingerprints and deterministic ordering
-- strict root `.scopeforge.json` version 1
-- repository budgets may tighten but not raise safe defaults
-- report-only default policy
-- explicit `--fail-on`
-- distinct exit codes 0, 1, 2, and 3
-- safe normal output and baseline file handling
-
-### Built-in scanner families
-
-`secrets`
-
-- GitHub tokens
-- Stripe live secret keys
-- Slack tokens
-- complete private-key blocks
-- contextual high-entropy assignments
-- mandatory redaction and one-way secret fingerprints
-
-`jsts`
-
-- syntax-aware JS/TS parsing without target module resolution or execution
-- direct dynamic-code execution constructs
-- explicit TLS verification disablement with strong Node binding evidence
-- bounded Express request-field to `child_process.exec` / `execSync` command taint analysis
-
-`sca`
-
-- npm dependency inventory from package-lock, npm-shrinkwrap, pnpm-lock, yarn.lock, and package.json fallback
-- resolved versions preferred
-- npm purls
-- optional fixed-endpoint OSV enrichment, disabled by default
-- OSV lookup failure reported as scanner error
-
-`iac`
-
-- Dockerfiles
-- Kubernetes YAML
-- selected Terraform AWS patterns
-- GitHub Actions workflows
-- `.npmrc`
-- `vercel.json`
-
-### Artifacts and policy
-
-- CycloneDX 1.7 JSON SBOM independent of OSV/network availability
-- version 1 baseline files with new/existing classification
-- default baseline gate on new findings
-- explicit all-findings baseline gate
-- terminal output
-- deterministic native ScopeForge JSON
-- deterministic SARIF 2.1.0 for GitHub Code Scanning
-
-## Phase 3O work completed on PR #21
-
-- mixed-repository end-to-end integration test across all scanner families, baseline behavior, SARIF, and CycloneDX
-- hostile-repository completion test covering no target execution, no default network access, symlink skipping, tightened file budgets, malformed supported input, and sentinel non-leakage
-- byte-for-byte native JSON golden output
-- byte-for-byte SARIF golden output
-- byte-for-byte terminal golden output
-- deterministic 700-file medium benchmark harness
-- CI benchmark gate with a 20-second catastrophic-regression ceiling
+- mixed-repository end-to-end coverage across all built-in scanner families
+- hostile-repository no-execution, no-default-network, symlink, budget, malformed-input, and sentinel non-leakage coverage
+- byte-for-byte native JSON, SARIF, and terminal golden fixtures
+- deterministic 700-file `scanner-medium-v1` benchmark with a broad 20-second regression ceiling
+- benchmark fixture generation separated from measurement/validation logic
 - GitHub Actions and Code Scanning documentation
-- performance methodology and measured evidence
-- scanner limitations documentation
-- permanent state refresh and release-readiness record
+- performance methodology and canonical limitations documentation
+- shared `scanner-core` locale-independent text ordering
+- detector/output dependency-direction review keeping the CLI as the composition layer
+- committed npm lockfile v3
+- CI upgraded to current checkout/setup-node v7 actions
+- read-only CI token permissions and disabled checkout credential persistence
+- deterministic `npm ci --ignore-scripts --no-audit --no-fund`
+- whole-Phase-3 trust-boundary release review
 
-## Diagnostic verification evidence
+No Phase 3O detector semantic expansion, database migration, hosted ingestion, or active remote scanning was introduced.
 
-CI #311 ran on PR head `4d7dbc43a41e15a26d6dd634e29eb1a96a299ea0` before the final documentation updates.
+## Latest implementation GREEN evidence
 
-It passed:
+CI #346 passed on head `6ffb249c0ac7463c410cfd1536b105ebca9507d3` after the final code, maintainability, lockfile, and CI hardening:
 
-- 85 test files
-- 329 tests
+- reproducible dependency install passed
+- 86 test files
+- 331 tests
 - strict TypeScript typecheck
-- `npm run build:cli`
-- compiled CLI runtime smoke printing `ScopeForge 0.1.0`
-- `npm run benchmark:scanner`
-- `npm run build`
+- CLI build
+- compiled `ScopeForge 0.1.0` runtime smoke
+- scanner benchmark
+- Next.js production build
 
-Benchmark line from CI #311:
+Benchmark evidence:
 
 ```text
-SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"wallMs":928,"scanDurationMs":859,"rssDeltaBytes":22900736,"maxWallMs":20000}
+SCOPEFORGE_BENCHMARK {"fixture":"scanner-medium-v1","filesAnalyzed":700,"findings":0,"errors":0,"scanDurationMs":816,"wallMs":876,"rssDeltaBytes":17399808,"maxWallMs":20000}
 ```
 
-Because documentation commits changed the PR head after CI #311, that run is supporting evidence only. It is not the final merge gate.
+CI #346 is supporting implementation evidence. Documentation commits after it changed the head, so it is not the final immutable merge gate.
 
-## Trust boundary
+## Phase 3 trust boundary
 
-Repository contents are hostile input.
+Repository content remains hostile input. Phase 3 must preserve:
 
-The Phase 3 local scanner must continue to preserve all of these properties:
-
-- no target repository code execution
-- no target lifecycle-script execution
+- no target repository code or lifecycle-script execution
 - no target dependency installation
-- no import/module execution during JS/TS analysis
-- no Dockerfile or RUN execution
-- no Terraform CLI, provider, module, provisioner, external data-source, state, or cloud API execution
-- no Kubernetes cluster access, kubectl, Helm, Kustomize, or schema-download execution
-- no GitHub Actions workflow or action execution
+- no target module/import execution during JS/TS analysis
+- no Dockerfile/RUN execution
+- no Terraform CLI/provider/module/provisioner/cloud execution
+- no Kubernetes cluster, kubectl, Helm, or Kustomize execution
+- no GitHub Actions workflow/action execution
 - no default scanner network access
 - OSV network access only when explicitly enabled
-- only normalized npm package identity and exact version sent to OSV
-- no detected secret value sent to OSV or emitted in findings/artifacts
-- bounded inventory and parser/analysis budgets
-- repository symlink non-following
-- safe no-follow output and baseline writes
-- scanner errors distinct from clean results and policy failures
+- only normalized npm package identity/version sent to OSV
+- no raw detected secret values in normalized findings or output artifacts
+- bounded inventory, parser, taint, response, and analysis budgets
+- repository symlink non-following and identity-checked bounded reads
+- safe output and baseline writes
+- scanner errors distinct from policy failures and clean results
+- deterministic locale-independent ordering
 - SARIF fixed property allowlist and unsafe-path omission
 
-## Phase 3O database status
-
-No Phase 3O file changes Supabase schema, migrations, RLS, RPCs, storage, or hosted ingestion. Database advisor checks are not a merge dependency for this local-scanner-only PR.
-
-## Known limitations
-
-Read `docs/scanner/LIMITATIONS.md` before widening claims.
-
-Important boundaries:
-
-- JS/TS is the only syntax-aware application SAST language family
-- taint analysis is intentionally narrow and not whole-program
-- SCA is npm ecosystem only
-- infrastructure rules are conservative local syntax checks, not deployed-state analysis
-- no arbitrary executable community plugins
-- no remote DAST, crawling, API fuzzing, exploit validation, credential attacks, persistence, destructive behavior, or worker fleet in Phase 3
-- ScopeForge is source-installed and has no standalone package/reusable Action release yet
+The full review decision is in `docs/scanner/RELEASE_READINESS.md`; canonical coverage limits are in `docs/scanner/LIMITATIONS.md`.
 
 ## Exact remaining actions
 
-1. Finish any remaining permanent documentation and release-readiness edits on PR #21.
-2. Review every PR #21 changed file.
-3. Perform the whole-Phase-3 trust-boundary/security review.
-4. Confirm there are no unresolved blocking review threads.
-5. Mark PR #21 ready for review.
-6. Require a fresh CI run on that exact immutable head.
-7. Confirm tests, typecheck, CLI build/runtime, benchmark, and production build all pass.
-8. Update PR metadata only, without changing the head, with final evidence.
-9. Squash merge PR #21 using `expected_head_sha`.
-10. Verify the resulting `main` CI run succeeds.
-11. Only after step 10, declare Phase 3 complete.
-12. Begin Phase 4 with architecture/design work, not active scanner implementation.
+1. Finish the permanent evidence-only documentation commits.
+2. Review the complete final PR #21 changed-file set.
+3. Confirm no unresolved blocking review thread exists.
+4. Mark PR #21 ready for review.
+5. Require a new CI run on that exact immutable head.
+6. Confirm `npm ci --ignore-scripts`, all tests, typecheck, CLI build/runtime, benchmark, and production build pass.
+7. Update PR metadata only if needed, without changing the verified head.
+8. Squash merge using `expected_head_sha`.
+9. Verify the resulting `main` push CI is green.
+10. Only then declare Phase 3 complete.
+11. Clean historical merged branches while preserving `main` and any branch associated with open work.
+12. Begin Phase 4 with architecture/threat-boundary design, not active scanner implementation.
 
 ## Resume protocol
 
 Read in this order:
 
-1. this file
+1. `docs/development/SESSION_HANDOFF.md`
 2. `docs/development/CURRENT_STATE.md`
-3. `docs/scanner/RELEASE_READINESS.md`
-4. `docs/scanner/LIMITATIONS.md`
-5. `docs/superpowers/specs/2026-08-24-phase-3-code-supply-chain-design.md`
-6. PR #21 status and exact-head CI
+3. `docs/development/TEST_STATUS.md`
+4. `docs/scanner/RELEASE_READINESS.md`
+5. `docs/scanner/LIMITATIONS.md`
+6. PR #21 exact head and CI status
 
-Do not infer Phase 3 completion from an older green run. The exact final PR head and merged `main` must both be green.
+Do not infer Phase 3 completion from CI #346 or any other older green run. The exact final PR head and merged `main` must both be green.
