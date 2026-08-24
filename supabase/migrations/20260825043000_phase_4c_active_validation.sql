@@ -80,6 +80,11 @@ begin
     elsif old.status in ('succeeded'::public.scan_job_status, 'failed'::public.scan_job_status, 'blocked'::public.scan_job_status, 'cancelled'::public.scan_job_status) then
       raise exception 'Runtime job terminal states are immutable';
     end if;
+
+    if new.status = 'succeeded'::public.scan_job_status
+       and (old.cancel_requested_at is not null or new.cancel_requested_at is not null) then
+      raise exception 'A cancelled runtime job cannot succeed';
+    end if;
   end if;
 
   return new;
@@ -101,9 +106,11 @@ set search_path = ''
 as $$
 declare
   job_kind_text text;
+  job_status text;
+  job_cancel_requested_at timestamptz;
 begin
-  select job_kind::text
-    into job_kind_text
+  select job_kind::text, status::text, cancel_requested_at
+    into job_kind_text, job_status, job_cancel_requested_at
     from public.scan_jobs
    where id = new.job_id
      and workspace_id = new.workspace_id
@@ -111,6 +118,10 @@ begin
 
   if job_kind_text is null then
     raise exception 'Runtime observation job is not available';
+  end if;
+
+  if job_status <> 'running' or job_cancel_requested_at is not null then
+    raise exception 'Runtime observations require a running uncancelled job';
   end if;
 
   if new.kind = 'cors-policy' and job_kind_text <> 'active_validation' then
