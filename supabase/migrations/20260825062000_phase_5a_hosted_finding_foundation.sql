@@ -832,3 +832,104 @@ revoke all on function public.persist_active_validation_result(uuid, uuid, uuid,
   from public, anon, authenticated;
 grant execute on function public.persist_active_validation_result(uuid, uuid, uuid, jsonb, jsonb, jsonb, timestamptz)
   to service_role;
+
+create or replace function public.change_security_finding_lifecycle(
+  target_workspace_id uuid,
+  target_finding_id text,
+  expected_lifecycle text,
+  next_lifecycle text,
+  target_actor_id uuid,
+  event_reason text
+)
+returns public.security_findings
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_finding public.security_findings%rowtype;
+begin
+  if target_actor_id is null
+     or not exists (
+       select 1
+         from public.workspace_members
+        where workspace_id = target_workspace_id
+          and user_id = target_actor_id
+          and role::text in ('owner', 'admin', 'member')
+     ) then
+    raise exception 'FINDING_LIFECYCLE_ACTOR_FORBIDDEN';
+  end if;
+
+  if event_reason is not null and char_length(event_reason) > 1000 then
+    raise exception 'FINDING_LIFECYCLE_REASON_INVALID';
+  end if;
+
+  select *
+    into current_finding
+    from public.security_findings
+   where workspace_id = target_workspace_id
+     and finding_id = target_finding_id
+   for update;
+
+  if current_finding.finding_id is null then
+    raise exception 'FINDING_NOT_AVAILABLE';
+  end if;
+
+  if current_finding.lifecycle_state is distinct from expected_lifecycle then
+    raise exception 'FINDING_LIFECYCLE_CONFLICT';
+  end if;
+
+  if not (
+       (expected_lifecycle = 'open' and next_lifecycle in ('acknowledged', 'in_progress'))
+    or (expected_lifecycle = 'acknowledged' and next_lifecycle = 'in_progress')
+    or (expected_lifecycle = 'in_progress' and next_lifecycle = 'resolved')
+    or (expected_lifecycle = 'resolved' and next_lifecycle = 'in_progress')
+  ) then
+    raise exception 'FINDING_LIFECYCLE_TRANSITION_NOT_ALLOWED';
+  end if;
+
+  if ((expected_lifecycle = 'in_progress' and next_lifecycle = 'resolved')
+      or (expected_lifecycle = 'resolved' and next_lifecycle = 'in_progress'))
+     and (event_reason is null or char_length(btrim(event_reason)) = 0) then
+    raise exception 'FINDING_LIFECYCLE_REASON_REQUIRED';
+  end if;
+
+  update public.security_findings
+     set lifecycle_state = next_lifecycle,
+         updated_at = now()
+   where workspace_id = target_workspace_id
+     and finding_id = target_finding_id
+  returning * into current_finding;
+
+  insert into public.security_finding_events (
+    workspace_id,
+    finding_id,
+    scan_job_id,
+    actor_type,
+    actor_id,
+    event_type,
+    from_lifecycle,
+    to_lifecycle,
+    reason,
+    metadata
+  ) values (
+    target_workspace_id,
+    target_finding_id,
+    null,
+    'user',
+    target_actor_id,
+    'finding.lifecycle_changed',
+    expected_lifecycle,
+    next_lifecycle,
+    nullif(btrim(event_reason), ''),
+    '{}'::jsonb
+  );
+
+  return current_finding;
+end;
+$$;
+
+revoke all on function public.change_security_finding_lifecycle(uuid, text, text, text, uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.change_security_finding_lifecycle(uuid, text, text, text, uuid, text)
+  to service_role;
