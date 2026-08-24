@@ -104,23 +104,36 @@ export async function observeRuntimeTarget(
     if (isCancelled()) {
       return result({ status: "cancelled", observations, requestCount, redirectCount });
     }
-    if (now() - startedAt >= budget.totalTimeoutMs) {
+    const elapsedBeforeRequest = Math.max(0, now() - startedAt);
+    if (elapsedBeforeRequest >= budget.totalTimeoutMs) {
       return failed(observations, requestCount, redirectCount, "TOTAL_TIMEOUT");
     }
     if (requestCount >= budget.maxRequests) {
       return result({ status: "succeeded", observations, requestCount, redirectCount });
     }
 
+    const remainingTotalTimeoutMs = budget.totalTimeoutMs - elapsedBeforeRequest;
+    const requestTimeoutMs = Math.min(
+      budget.perRequestTimeoutMs,
+      remainingTotalTimeoutMs,
+    );
+    const totalBudgetControlsRequestTimeout = requestTimeoutMs < budget.perRequestTimeoutMs;
+
     let response: RuntimeTransportResponse;
     try {
       response = await transport({
         url: current,
-        timeoutMs: budget.perRequestTimeoutMs,
+        timeoutMs: requestTimeoutMs,
       });
       requestCount += 1;
     } catch (error) {
       if (error instanceof Error && error.name === "TimeoutError") {
-        return failed(observations, requestCount, redirectCount, "REQUEST_TIMEOUT");
+        return failed(
+          observations,
+          requestCount,
+          redirectCount,
+          totalBudgetControlsRequestTimeout ? "TOTAL_TIMEOUT" : "REQUEST_TIMEOUT",
+        );
       }
       return failed(observations, requestCount, redirectCount, "NETWORK_ERROR");
     }
