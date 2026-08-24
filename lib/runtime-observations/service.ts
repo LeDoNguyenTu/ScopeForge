@@ -63,6 +63,18 @@ export interface RequestRuntimeObservationCancellationInput {
   jobId: string;
 }
 
+export interface RuntimeObservationExecutionResult {
+  status: "blocked" | "cancelled" | "failed" | "succeeded";
+  job: ScanJobRow | null;
+  failureCode?: string;
+  reason?: string;
+  requestCount?: number;
+  redirectCount?: number;
+  observations?: RuntimeObservationResult["observations"];
+  findings: readonly ReturnType<typeof mapRuntimeRuleMatchToSecurityFinding>[];
+  evidence: readonly ReturnType<typeof mapRuntimeRuleMatchToEvidence>[];
+}
+
 function clock(dependencies: RuntimeObservationServiceDependencies): () => Date {
   return dependencies.now ?? (() => new Date());
 }
@@ -148,7 +160,7 @@ export async function enqueueRuntimeObservation(
 export async function executeRuntimeObservation(
   jobId: string,
   dependencies: RuntimeObservationServiceDependencies,
-) {
+): Promise<RuntimeObservationExecutionResult> {
   const repository = dependencies.repository;
   const queuedJob = await repository.load(jobId);
   if (!queuedJob) {
@@ -383,10 +395,11 @@ export async function requestRuntimeObservationCancellation(
   input: RequestRuntimeObservationCancellationInput,
   dependencies: RuntimeObservationServiceDependencies,
 ) {
-  assertRuntimeObservationOperator({
+  const operator = {
     actorId: input.actorId,
     role: input.role,
-  });
+  };
+  assertRuntimeObservationOperator(operator);
 
   const repository = dependencies.repository;
   const job = await repository.loadForWorkspace(input.jobId, input.workspaceId);
@@ -403,7 +416,7 @@ export async function requestRuntimeObservationCancellation(
 
   await writeAudit(dependencies, {
     workspaceId: requested.workspace_id,
-    actorId: input.actorId,
+    actorId: operator.actorId,
     eventType: "runtime_observation.cancel_requested",
     jobId: requested.id,
     assetId: requested.asset_id,
@@ -413,7 +426,7 @@ export async function requestRuntimeObservationCancellation(
   if (requested.status === "queued") {
     const cancelled = await cancelJob(
       requested,
-      input.actorId,
+      operator.actorId,
       dependencies,
       { reasonCode: "RUNTIME_CANCELLATION_REQUESTED" },
     );
