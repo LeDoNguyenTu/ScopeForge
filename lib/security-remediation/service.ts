@@ -36,6 +36,20 @@ export interface SecurityRemediationServiceDependencies {
   repository: SecurityRemediationRepositoryContract;
 }
 
+type FindingWorkServiceDependencies = {
+  repository: Pick<
+    SecurityRemediationRepositoryContract,
+    "loadFinding" | "changeFindingWork"
+  >;
+};
+
+type FindingRetestRequestServiceDependencies = {
+  repository: Pick<
+    SecurityRemediationRepositoryContract,
+    "loadFinding" | "requestFindingRetest"
+  >;
+};
+
 function normalizeRemediationNote(note: string | null): string | null {
   const normalized = note?.trim() ?? "";
   if (normalized.length > 2000) {
@@ -46,7 +60,7 @@ function normalizeRemediationNote(note: string | null): string | null {
 
 export async function updateFindingWork(
   input: UpdateFindingWorkInput,
-  dependencies: SecurityRemediationServiceDependencies,
+  dependencies: FindingWorkServiceDependencies,
 ): Promise<SecurityFindingWorkRow> {
   if (input.role === "viewer") {
     throw new SecurityRemediationWorkflowError("SECURITY_REMEDIATION_FORBIDDEN");
@@ -77,7 +91,7 @@ export async function updateFindingWork(
 
 export async function requestFindingRetest(
   input: RequestFindingRetestInput,
-  dependencies: SecurityRemediationServiceDependencies,
+  dependencies: FindingRetestRequestServiceDependencies,
 ): Promise<SecurityFindingRetestRow> {
   if (input.role === "viewer") {
     throw new SecurityRemediationWorkflowError("SECURITY_RETEST_FORBIDDEN");
