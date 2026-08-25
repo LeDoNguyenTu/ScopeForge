@@ -87,8 +87,10 @@ function parseResult(value: unknown, outcome: WorkerTerminalOutcome): Foundation
 }
 
 function parseFailureCode(value: unknown, outcome: WorkerTerminalOutcome): string | null {
-  if (outcome === "succeeded") {
-    if (value !== null) throw new Error("Successful worker attempts cannot include a failure code.");
+  if (outcome === "succeeded" || outcome === "cancelled") {
+    if (value !== null) {
+      throw new Error(`${outcome === "succeeded" ? "Successful" : "Cancelled"} worker attempts cannot include a caller-selected failure code.`);
+    }
     return null;
   }
   if (typeof value !== "string" || value.length < 1 || value.length > 64) {
