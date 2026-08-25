@@ -2,16 +2,37 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+const enumMigrationPath = path.resolve(
+  process.cwd(),
+  "supabase/migrations/20260825042900_phase_4c_active_validation_enum.sql",
+);
 const migrationPath = path.resolve(
   process.cwd(),
   "supabase/migrations/20260825043000_phase_4c_active_validation.sql",
 );
 
 describe("Phase 4C active validation migration", () => {
+  it("commits the active validation enum value before the schema migration uses it", async () => {
+    const [enumSql, sql] = await Promise.all([
+      readFile(enumMigrationPath, "utf8"),
+      readFile(migrationPath, "utf8"),
+    ]);
+
+    expect(enumSql).toContain("alter type public.scan_job_kind");
+    expect(enumSql).toContain("add value if not exists 'active_validation'");
+    expect(sql).not.toContain("add value if not exists 'active_validation'");
+  });
+
+  it("uses an immutable direct enum comparison in the active partial index", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+
+    expect(sql).toContain("where job_kind = 'active_validation'::public.scan_job_kind");
+    expect(sql).not.toContain("where job_kind::text = 'active_validation'");
+  });
+
   it("adds active validation without creating a parallel job or observation system", async () => {
     const sql = await readFile(migrationPath, "utf8");
 
-    expect(sql).toContain("add value if not exists 'active_validation'");
     expect(sql).toContain("validation_profile_id");
     expect(sql).toContain("validation_profile_version");
     expect(sql).toContain("authorization_granted_at");
