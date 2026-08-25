@@ -134,6 +134,7 @@ describe("hosted Phase 3 export", () => {
 
   it("does not expose secret span length in hosted locations", () => {
     const secret = finding({
+      fingerprint: `sfs1:${"d".repeat(64)}`,
       scanner: "secrets",
       ruleId: "secrets/github-token",
       ruleVersion: "1.0.0",
@@ -160,6 +161,46 @@ describe("hosted Phase 3 export", () => {
     expect(parsed.findings[0].location).toEqual({ path: "src/config.ts", line: 4 });
     expect(JSON.stringify(parsed)).not.toContain("secretLength");
     expect(JSON.stringify(parsed)).not.toContain("REDACTED");
+  });
+
+  it("rekeys local secret fingerprints using only safe hosted rule and location identity", () => {
+    const baseSecret = finding({
+      fingerprint: `sfs1:${"1".repeat(64)}`,
+      scanner: "secrets",
+      ruleId: "secrets/github-token",
+      ruleVersion: "1.0.0",
+      category: "secrets",
+      location: {
+        file: "src/config.ts",
+        startLine: 4,
+        startColumn: 20,
+        endLine: 4,
+        endColumn: 60,
+      },
+      evidence: {
+        summary: "Detected by secrets/github-token.",
+        redactedSnippet: "assignment:token: ghp_…REDACTED",
+      },
+      metadata: { provider: "github", secretLength: 40 },
+    });
+    const rotatedSecret = {
+      ...baseSecret,
+      fingerprint: `sfs1:${"2".repeat(64)}`,
+    };
+
+    const first = JSON.parse(serializeHostedScanResult(result([baseSecret]), {
+      toolVersion: "0.1.0",
+      repositoryUrl: "https://github.com/example/repo",
+    }));
+    const second = JSON.parse(serializeHostedScanResult(result([rotatedSecret]), {
+      toolVersion: "0.1.0",
+      repositoryUrl: "https://github.com/example/repo",
+    }));
+
+    expect(first.findings[0].fingerprint).toMatch(/^sfs1:[a-f0-9]{64}$/);
+    expect(first.findings[0].fingerprint).not.toBe(baseSecret.fingerprint);
+    expect(second.findings[0].fingerprint).not.toBe(rotatedSecret.fingerprint);
+    expect(second.findings[0].fingerprint).toBe(first.findings[0].fingerprint);
   });
 
   it("rejects imports larger than the 500-finding hosted boundary", () => {
