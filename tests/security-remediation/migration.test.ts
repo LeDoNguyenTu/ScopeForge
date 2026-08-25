@@ -128,4 +128,36 @@ describe("Phase 5B remediation and retest migration", () => {
     expect(sql).toMatch(/revoke all on function public\.request_security_finding_retest[\s\S]*from public, anon, authenticated/i);
     expect(sql).toMatch(/grant execute on function public\.request_security_finding_retest[\s\S]*to service_role/i);
   });
+
+  it("attaches one exact runtime job and derives final outcomes from locked database state", async () => {
+    const sql = await migrationSql();
+
+    expect(sql).toContain("create or replace function public.mark_security_finding_retest_running");
+    expect(sql).toContain("create or replace function public.finalize_security_finding_retest");
+    expect(sql).toMatch(/mark_security_finding_retest_running[\s\S]*security definer[\s\S]*set search_path = ''/i);
+    expect(sql).toMatch(/finalize_security_finding_retest[\s\S]*security definer[\s\S]*set search_path = ''/i);
+    expect(sql).toMatch(/from public\.security_finding_retests[\s\S]*for update/i);
+    expect(sql).toMatch(/from public\.scan_jobs[\s\S]*for update/i);
+    expect(sql).toContain("SECURITY_RETEST_JOB_INVALID");
+    expect(sql).toContain("SECURITY_RETEST_FINALIZATION_INVALID");
+    expect(sql).toContain("status = 'running'");
+    expect(sql).toContain("scan_job_id = target_scan_job_id");
+    expect(sql).toContain("'finding.retest_started'");
+    expect(sql).toContain("from public.security_finding_occurrences");
+    for (const result of [
+      "still_present",
+      "verified_fixed",
+      "inconclusive",
+      "failed",
+      "cancelled",
+    ]) {
+      expect(sql).toContain(`'${result}'`);
+    }
+    expect(sql).toContain("lifecycle_state = 'verified_fixed'");
+    expect(sql).toContain("'finding.retest_completed'");
+    expect(sql).toMatch(/revoke all on function public\.mark_security_finding_retest_running[\s\S]*from public, anon, authenticated/i);
+    expect(sql).toMatch(/grant execute on function public\.mark_security_finding_retest_running[\s\S]*to service_role/i);
+    expect(sql).toMatch(/revoke all on function public\.finalize_security_finding_retest[\s\S]*from public, anon, authenticated/i);
+    expect(sql).toMatch(/grant execute on function public\.finalize_security_finding_retest[\s\S]*to service_role/i);
+  });
 });
