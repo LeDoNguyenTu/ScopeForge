@@ -5,11 +5,15 @@ import AppShell from "@/components/AppShell";
 import ActiveValidationPanel, {
   type ActiveValidationPanelObservation,
 } from "@/components/assets/ActiveValidationPanel";
+import RepositoryImportPanel, {
+  type RepositoryImportHistoryItem,
+} from "@/components/assets/RepositoryImportPanel";
 import RuntimeObservationPanel, {
   type RuntimeObservationPanelObservation,
 } from "@/components/assets/RuntimeObservationPanel";
 import VerificationPanel from "@/components/assets/VerificationPanel";
 import type { Json } from "@/lib/database.types";
+import { createPhase3ImportRepository } from "@/lib/phase3-import/repository";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
@@ -129,6 +133,24 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       : null;
   }
 
+  let repositoryImportHistory: RepositoryImportHistoryItem[] = [];
+  if (asset.kind === "repository") {
+    const importRepository = createPhase3ImportRepository(supabase);
+    const importRows = await importRepository.listRecentImports(workspace.id, asset.id, 20);
+    repositoryImportHistory = importRows.map((row) => ({
+      id: row.id,
+      scanJobId: row.scan_job_id,
+      runRef: row.run_ref,
+      toolVersion: row.tool_version,
+      scanStartedAt: row.scan_started_at,
+      scanDurationMs: row.scan_duration_ms,
+      scannerErrorCount: row.scanner_error_count,
+      filesAnalyzed: row.files_analyzed,
+      findingCount: row.finding_count,
+      createdAt: row.created_at,
+    }));
+  }
+
   const isVerified = asset.verification_status === "verified";
   const jobSummary = latestJob ? {
     id: latestJob.id,
@@ -177,6 +199,16 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       <section className="panel verificationSection">
         <VerificationPanel assetId={asset.id} status={asset.verification_status} kind={asset.kind} />
       </section>
+
+      {asset.kind === "repository" && (
+        <section className="panel verificationSection">
+          <RepositoryImportPanel
+            assetId={asset.id}
+            repositoryUrl={asset.canonical_target}
+            history={repositoryImportHistory}
+          />
+        </section>
+      )}
 
       <section className="panel verificationSection">
         <RuntimeObservationPanel
