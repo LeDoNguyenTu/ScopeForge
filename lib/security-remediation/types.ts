@@ -1,7 +1,14 @@
 import type {
+  Database,
+  SecurityFindingRetestRow,
   SecurityFindingRow,
+  SecurityFindingWorkRow,
   WorkspaceRole,
 } from "@/lib/database.types";
+
+type SecurityEvidenceRow = Database["public"]["Tables"]["security_evidence"]["Row"];
+type SecurityFindingOccurrenceRow = Database["public"]["Tables"]["security_finding_occurrences"]["Row"];
+type SecurityFindingEventRow = Database["public"]["Tables"]["security_finding_events"]["Row"];
 
 export type RetestExecutionKind = "passive_runtime" | "active_validation";
 
@@ -73,4 +80,41 @@ export interface RequestFindingRetestInput {
 
 export interface SecurityStoryInput {
   finding: SecurityFindingRow;
+  evidence: readonly SecurityEvidenceRow[];
+  occurrences: readonly SecurityFindingOccurrenceRow[];
+  events: readonly SecurityFindingEventRow[];
+  work: SecurityFindingWorkRow | null;
+  retests: readonly SecurityFindingRetestRow[];
+}
+
+export interface SecurityStoryEvidenceItem {
+  evidenceId: string;
+  kind: string;
+  summary: string;
+  classification: string;
+  provenanceLabel: string;
+}
+
+export interface SecurityStoryRemediation {
+  guidance: string;
+  assigneeUserId: string | null;
+  note: string | null;
+  provenanceLabel: string;
+}
+
+export interface SecurityStoryVerification {
+  status: SecurityFindingRetestRow["status"] | "not_run";
+  verified: boolean;
+  latestRetestId: string | null;
+  resultCode: string | null;
+  provenanceLabel: string;
+  summary: string;
+}
+
+export interface SecurityStoryV1 {
+  summary: string;
+  evidence: readonly SecurityStoryEvidenceItem[];
+  impact: string;
+  remediation: SecurityStoryRemediation;
+  verification: SecurityStoryVerification;
 }
