@@ -216,6 +216,10 @@ export type Database = {
         Args: { target_workspace_id: string; target_finding_id: string; expected_lifecycle: FindingLifecycleState; next_lifecycle: FindingLifecycleState; target_actor_id: string; event_reason: string | null };
         Returns: SecurityFindingRow;
       };
+      change_security_finding_work: {
+        Args: { target_workspace_id: string; target_finding_id: string; target_actor_id: string; target_assignee_user_id: string | null; target_remediation_note: string | null };
+        Returns: SecurityFindingWorkRow;
+      };
     };
     Enums: {
       workspace_role: WorkspaceRole;
