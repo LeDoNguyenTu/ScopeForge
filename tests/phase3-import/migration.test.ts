@@ -112,6 +112,7 @@ describe("Phase 5C hosted Phase 3 import migration", () => {
     expect(sql).toContain("when 'false_positive' then existing_finding.lifecycle_state");
     expect(sql).toContain("finding.reobserved");
     expect(sql).toContain("finding.reopened");
-    expect(sql).not.toMatch(/not\s+exists[\s\S]*verified_fixed/i);
+    expect(sql).not.toMatch(/set\s+lifecycle_state\s*=\s*'verified_fixed'/i);
+    expect(sql).not.toMatch(/update\s+public\.security_findings[\s\S]*where\s+not\s+exists[\s\S]*verified_fixed/i);
   });
 });
