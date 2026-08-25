@@ -30,6 +30,16 @@ export interface SecurityRemediationRepositoryContract {
     validationProfileVersion: 1 | null;
     explicitConsent: boolean;
   }): Promise<SecurityFindingRetestRow>;
+  markRetestRunning(input: {
+    workspaceId: string;
+    retestId: string;
+    scanJobId: string;
+    actorId: string;
+  }): Promise<SecurityFindingRetestRow>;
+  finalizeRetest(input: {
+    workspaceId: string;
+    retestId: string;
+  }): Promise<SecurityFindingRetestRow>;
 }
 
 export interface SecurityRemediationServiceDependencies {
@@ -48,6 +58,14 @@ type FindingRetestRequestServiceDependencies = {
     SecurityRemediationRepositoryContract,
     "loadFinding" | "requestFindingRetest"
   >;
+};
+
+type FindingRetestRunningServiceDependencies = {
+  repository: Pick<SecurityRemediationRepositoryContract, "markRetestRunning">;
+};
+
+type FindingRetestFinalizationServiceDependencies = {
+  repository: Pick<SecurityRemediationRepositoryContract, "finalizeRetest">;
 };
 
 function normalizeRemediationNote(note: string | null): string | null {
@@ -131,4 +149,26 @@ export async function requestFindingRetest(
     validationProfileVersion: source.validationProfileVersion,
     explicitConsent: source.executionKind === "active_validation",
   });
+}
+
+export async function markRetestRunning(
+  input: {
+    workspaceId: string;
+    retestId: string;
+    scanJobId: string;
+    actorId: string;
+  },
+  dependencies: FindingRetestRunningServiceDependencies,
+): Promise<SecurityFindingRetestRow> {
+  return dependencies.repository.markRetestRunning(input);
+}
+
+export async function finalizeRetest(
+  input: {
+    workspaceId: string;
+    retestId: string;
+  },
+  dependencies: FindingRetestFinalizationServiceDependencies,
+): Promise<SecurityFindingRetestRow> {
+  return dependencies.repository.finalizeRetest(input);
 }
