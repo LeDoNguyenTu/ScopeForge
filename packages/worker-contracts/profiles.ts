@@ -25,4 +25,7 @@ export function workerExecutionProfile(
     case "foundation_no_egress_v1":
       return FOUNDATION_NO_EGRESS_V1;
   }
+
+  const unreachable: never = executionClass;
+  throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
 }
