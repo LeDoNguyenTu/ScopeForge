@@ -7,7 +7,8 @@ Phase 5B Remediation, Retest, and Security Story is implemented and merged throu
 - last merged application commit: `eb35c2b23468addd817951486c60ac7d68710c9a`
 - Phase 5B exact reviewed PR head: `5c7b8c34432f8bb51731fe069178411a8005d023`
 - exact-head CI: #685
-- current documentation follow-up branch: `docs/phase-5b-completion-handoff`
+- Phase 5B permanent documentation follow-up: merged through PR #34 as `fcd535c8ad0c9909d77d6500fbf0845907bad783`
+- no Phase 5B code branch is intentionally active after PR #34
 
 Phase 5B application code is merged, but the production Supabase migration history still ends at Phase 5A. The two Phase 5B migrations must be deployed and verified before the hosted workflow is considered production-ready.
 
@@ -35,6 +36,7 @@ Phase 5B:
 - Phase 4C-1 bounded CORS validation merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
 - Phase 5A hosted finding foundation delivered through PR #30.
 - Phase 5B remediation, deterministic retest, and Security Story merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a`.
+- Phase 5B permanent handoff/current-state/test/architecture documentation merged through PR #34 as `fcd535c8ad0c9909d77d6500fbf0845907bad783`.
 
 ## Phase 5B completed boundary
 
@@ -132,6 +134,8 @@ CI #685 passed on exact PR head `5c7b8c34432f8bb51731fe069178411a8005d023`:
 
 PR #33 was then merged with expected-head protection as `eb35c2b23468addd817951486c60ac7d68710c9a`.
 
+The documentation-only PR #34 passed the same repository CI as run #687 on exact head `2788d0479c1b823bde9e5c01d9e00c790d28b1c3` and was merged with expected-head protection as `fcd535c8ad0c9909d77d6500fbf0845907bad783`.
+
 ## Production Supabase state
 
 Project: ScopeForge
@@ -160,8 +164,7 @@ The first Phase 5B migration intentionally creates covering indexes for those fo
 4. Verify RLS and SELECT-only browser authority.
 5. Verify Phase 5B mutation RPCs are not executable by `public`, `anon`, or `authenticated` and remain executable only by the trusted service role.
 6. Re-run Supabase security and performance advisors.
-7. Finish the `docs/phase-5b-completion-handoff` PR with the verified production state and merge it after exact-head CI.
-8. Start Phase 5C Hosted Phase 3 finding import with a design/spec and threat/security review before implementation.
+7. Start Phase 5C Hosted Phase 3 finding import with a design/spec and threat/security review before implementation.
 
 ## Phase 5C design boundary
 
@@ -200,6 +203,6 @@ Read in this order:
 5. `docs/ARCHITECTURE.md`
 6. `docs/PHASES.md`
 7. Phase 5B design/plan if remediation or retest details are needed
-8. Confirm PR #33 merge is present on `main`
+8. Confirm PR #33 and PR #34 merges are present on `main`
 9. Confirm production migration state before debugging hosted Phase 5B behavior
 10. If Phase 5B production is reconciled, start Phase 5C with design/threat review before implementation
