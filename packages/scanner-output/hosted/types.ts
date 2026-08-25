@@ -1,4 +1,6 @@
-import type { Confidence, Severity, Validation } from "../../scanner-core/findings/types";
+import type { Confidence, Severity } from "../../scanner-core/findings/types";
+
+export type HostedPhase3Validation = "static_confirmed" | "unvalidated";
 
 export interface HostedPhase3FindingLocationV1 {
   path: string;
@@ -16,7 +18,7 @@ export interface HostedPhase3FindingV1 {
   description: string;
   severity: Severity;
   confidence: Confidence;
-  validation: Validation;
+  validation: HostedPhase3Validation;
   location: HostedPhase3FindingLocationV1;
   evidence: {
     summary: string;
