@@ -17,7 +17,7 @@ The product keeps authorization, deterministic evidence, explanation, and remedi
 - **Phase 4B Verified passive runtime observations** - verified targets, reauthorization, DNS/IP safety, pinned HTTPS, bounded passive observations, cancellation, deterministic runtime findings, and trusted persistence. Merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
 - **Phase 4C-1 Bounded CORS origin-policy validation** - separate owner/admin-authorized active profile `cors-origin-policy@1`, one fixed synthetic-Origin unauthenticated GET to the exact verified HTTPS target, no redirect following/body/credentials/caller request configuration, bounded evidence and cancellation-safe persistence. Merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
 - **Phase 5A Hosted finding foundation** - one workspace-scoped canonical hosted finding ledger, immutable evidence, append-only recurrence/history, atomic runtime ingestion, bounded read models, and narrow audited lifecycle workflow. Delivered through PR #30.
-- **Phase 5B Remediation, deterministic retest, and Security Story** - merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a`.
+- **Phase 5B Remediation, deterministic retest, and Security Story** - merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a`, with permanent documentation merged through PR #34 and final handoff correction through PR #35.
 
 ## Phase 5B delivered boundary
 
@@ -58,12 +58,7 @@ It does not call a model provider, execute runtime networking, or mutate validat
 
 ### Finding detail UI
 
-The finding detail route now includes:
-
-- remediation assignment and note controls
-- retest controls and bounded retest history
-- explicit active-retest consent where applicable
-- deterministic Security Story summary, evidence, impact, remediation, and verification sections
+The finding detail route includes remediation assignment/notes, retest controls/history, explicit active-retest consent where applicable, and deterministic Security Story sections.
 
 The server-action surface does not accept arbitrary URL, method, headers, body, budget, source/profile, scan job ID, desired retest result, or generic lifecycle target.
 
@@ -78,23 +73,44 @@ PR #33 exact head `5c7b8c34432f8bb51731fe069178411a8005d023` passed CI #685 befo
 - scanner benchmark
 - Next.js production build
 
-The changed security-sensitive paths were reviewed before merge and no merge-blocking finding remained. PR #33 was merged with expected-head protection as `eb35c2b23468addd817951486c60ac7d68710c9a`.
+The changed security-sensitive paths were reviewed before merge and no merge-blocking finding remained.
 
 ## Production database state
 
-The hosted ScopeForge Supabase project is currently healthy but its migration history still ends at Phase 5A. The two merged Phase 5B migrations have not yet been applied to production:
+Phase 5B is now deployed and verified in the hosted ScopeForge Supabase project.
 
-- `20260825090000_phase_5b_remediation_retest_security_story.sql`
-- `20260825091000_phase_5b_retest_recovery_hardening.sql`
+Production migration history includes:
 
-Until those migrations are deployed and verified, Phase 5B application code is merged but the hosted Phase 5B workflow must be treated as not production-ready.
+- `20260825170915 phase_5b_remediation_retest_security_story`
+- `20260825170933 phase_5b_retest_recovery_hardening`
 
-The pre-deployment Supabase security advisor is clean. Four INFO-level unindexed Phase 5A foreign-key notices are expected to be resolved by the first Phase 5B migration, which adds the covering indexes.
+The Supabase migration API records deployment-time versions, so these production versions intentionally differ from the repository filenames while retaining the same reviewed migration contents.
+
+Post-deployment verification confirmed:
+
+- `security_finding_work` exists with RLS enabled
+- `security_finding_retests` exists with RLS enabled
+- authenticated receives SELECT on both tables but no INSERT/UPDATE/DELETE
+- anon receives no table access
+- all five public Phase 5B mutation RPCs are `SECURITY DEFINER`
+- all five public mutation RPCs pin an empty search path
+- `public`, `anon`, and `authenticated` cannot execute the mutation RPCs
+- `service_role` can execute the mutation RPCs
+- immutable execution/source snapshot constraints are present
+- immutable-snapshot and unverified-retest recovery triggers are present
+- the four Phase 5A foreign-key covering indexes are present
+- both Phase 5B workflow tables pass read-only smoke queries
+- Supabase security advisor is clean
+- the prior missing-FK-index performance notices are gone; remaining advisor notices are INFO-level unused indexes expected on a new/low-traffic database
+
+Phase 5B is therefore production-reconciled.
 
 ## Next boundary
 
-The next product design boundary is **Phase 5C Hosted Phase 3 finding import**. ScopeForge already has strong local/CI code and supply-chain scanning, but those findings are not yet admitted into the hosted canonical ledger. The next design should define a narrow trusted adapter with canonical identity, repository/asset binding, privacy and secret-redaction policy, bounded evidence, scan-run provenance, idempotency, and service-role-only mutation authority.
+The next product design boundary is **Phase 5C Hosted Phase 3 finding import**. ScopeForge already has strong local/CI code and supply-chain scanning, but those findings are not yet admitted into the hosted canonical ledger.
 
-Do not reuse the runtime-only ingestion contract for code findings. Do not add new network authority as part of this adapter.
+The next design should define a narrow trusted adapter with canonical identity, repository/asset binding, privacy and secret-redaction policy, bounded evidence, scan-run provenance, idempotency, recurrence semantics, and service-role-only mutation authority.
+
+Do not reuse the runtime-only ingestion contract for code findings. Do not add new network authority or hosted arbitrary repository execution as part of this adapter.
 
 After the hosted import boundary, Phase 6 remains queue-backed isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet operations, and abuse controls.
