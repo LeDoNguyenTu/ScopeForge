@@ -19,12 +19,12 @@ async function collectSourceFiles(directory: string): Promise<string[]> {
 }
 
 describe("Phase 5C hosted Phase 3 import architecture", () => {
-  it("does not give trusted import modules runtime-network, filesystem-scan, process, or socket authority", async () => {
+  it("does not give trusted import modules runtime-network, filesystem-scan, process, VM, worker, or socket authority", async () => {
     const files = await collectSourceFiles(importDir);
     for (const file of files) {
       const source = await readFile(file, "utf8");
       expect(source, path.relative(root, file)).not.toMatch(
-        /packages\/runtime-|lib\/runtime-|scanner-core\/(?:filesystem|inventory|coordinator)|node:(?:child_process|fs|net|dgram|tls)|\b(?:spawn|execFile|execSync)\s*\(/,
+        /packages\/runtime-|lib\/runtime-|scanner-core\/(?:filesystem|inventory|coordinator)|node:(?:child_process|fs|net|dgram|tls|http|https|vm|worker_threads)|\b(?:spawn|execFile|execSync|fetch)\s*\(/,
       );
     }
   });
@@ -35,6 +35,15 @@ describe("Phase 5C hosted Phase 3 import architecture", () => {
     const joined = sources.join("\n");
 
     expect(joined).not.toMatch(/git\s+clone|git\s+checkout|npm\s+(?:install|ci)|pnpm\s+install|yarn\s+install|repository checkout/i);
+  });
+
+  it("keeps model providers and advisory inference outside authoritative Phase 3 import", async () => {
+    const files = await collectSourceFiles(importDir);
+    const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
+    const joined = sources.join("\n");
+
+    expect(joined).not.toMatch(/from\s+["'](?:ai|openai|@ai-sdk\/|@anthropic-ai\/|@google\/generative-ai)/);
+    expect(joined).not.toMatch(/advisory-inference|model-provider/i);
   });
 
   it("allows the upload route to accept only the selected asset id as request-side authority", async () => {
