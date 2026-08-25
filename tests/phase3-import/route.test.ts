@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostedPhase3EnvelopeV1 } from "@/packages/scanner-output/hosted/types";
 import { Phase3ImportWorkflowError } from "@/lib/phase3-import/service";
+import { PHASE3_IMPORT_MAX_BODY_BYTES } from "@/lib/phase3-import/transport";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -23,7 +24,7 @@ vi.mock("@/lib/phase3-import/service", async (importOriginal) => {
   };
 });
 
-import { PHASE3_IMPORT_MAX_BODY_BYTES, POST } from "@/app/api/phase3-import/route";
+import { POST } from "@/app/api/phase3-import/route";
 
 function payloadWithoutRunRef(): Omit<HostedPhase3EnvelopeV1, "runRef"> {
   return {
