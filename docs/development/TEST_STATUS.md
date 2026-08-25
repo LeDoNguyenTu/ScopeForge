@@ -1,93 +1,145 @@
 # ScopeForge Test Status
 
-## Current Phase 5B baseline
+## Phase 5C verification state
 
-Phase 5B exact PR head `5c7b8c34432f8bb51731fe069178411a8005d023` passed CI #685 before PR #33 was merged with expected-head protection as `eb35c2b23468addd817951486c60ac7d68710c9a`.
+Phase 5C Hosted Phase 3 finding import is implemented on PR #37. GitHub Actions monthly allowance was exhausted during the PR, and the user explicitly requested no further GitHub Actions use for the remainder of the month. Subsequent commits use `[skip ci]`.
 
-| Check | Result | Evidence |
-|---|---|---|
-| Reproducible dependency install | Passing | `npm ci --ignore-scripts --no-audit --no-fund` |
-| Vitest | Passing | 148 test files / 654 tests |
-| TypeScript strict typecheck | Passing | `npm run typecheck` |
-| CLI TypeScript build | Passing | `npm run build:cli` |
-| Compiled CLI runtime smoke | Passing | `node .scopeforge-build/packages/cli/index.js version` -> `ScopeForge 0.1.0` |
-| Scanner benchmark | Passing | 700 files, 0 errors, 1111 ms wall time against 20000 ms limit |
-| Next.js production build | Passing | `npm run build` |
+The final PR head must therefore **not** be described as exact-head CI green.
 
-The PR security-sensitive diff was reviewed before merge. No merge-blocking security issue remained at the exact reviewed head.
+## Pre-quota executable checkpoints
 
-## Phase 5B TDD and regression coverage
+Before the Actions allowance was exhausted, Phase 5C was developed through explicit RED/GREEN checkpoints.
 
-### Remediation work
+- Task 3 database migration boundary passed CI #714 with 154 test files / 689 tests, strict typecheck, CLI build/version smoke, scanner benchmark, and Next.js production build.
+- Task 4 trusted service/repository boundary passed CI #718 completely.
+- CI #720 on the initial Task 5 route passed all 156 test files / 701 tests, strict typecheck, CLI build/version smoke, and scanner benchmark. The final Next.js build then correctly rejected an unsupported extra export from `app/api/phase3-import/route.ts`.
+- That route-export issue was fixed by moving `PHASE3_IMPORT_MAX_BODY_BYTES` to `lib/phase3-import/transport.ts` so the route module exports only valid App Router fields.
+- Later Actions jobs failed before checkout because the monthly allowance was exhausted, not because repository commands ran and failed.
 
-Coverage verifies viewer rejection, member self-assignment only, owner/admin assignment to current workspace members, invalid-assignee rejection, the 2000-character note bound, safe errors, append-only assignment/note events, independent database role checks, and service-role-only mutation authority.
+After the quota boundary, additional review-driven hardening was committed with `[skip ci]` and verified through direct code review plus live platform contracts rather than GitHub Actions.
 
-### Retest request and execution
+## Phase 5C regression coverage in the repository
 
-Coverage verifies only resolved supported findings may enter retest, the source registry is closed to passive runtime and `cors-origin-policy@1`, active consent/owner-admin authority are required, snapshots are immutable, only one retest may be active, and `resolved -> retest_pending` is atomic with history.
+### Hosted export and privacy
 
-Execution coverage proves the existing passive/active runtime services and fixed budgets are reused, job attachment is exact and one-way, enqueue failure can safely abort an unstarted retest, and callers never choose a desired terminal result.
+Coverage specifies:
 
-### Authoritative finalization
+- deterministic versioned hosted envelope
+- canonical public GitHub repository URL
+- repository-relative paths only
+- no local absolute root
+- no arbitrary scanner metadata
+- no source snippets or data-flow details
+- no scanner diagnostic text
+- no SBOM body/artifact upload
+- maximum 500 findings
+- secret locations omit precise columns
+- local secret-derived fingerprints are re-keyed before hosted export
+- hosted secret fingerprint identity uses safe rule/version/path/line data only
+- secret evidence summaries are regenerated from reviewed rule metadata rather than copied from scanner output
 
-Coverage verifies exact job/workspace/asset/requester/profile binding. Successful recurrence becomes `still_present`; only a successful exact-source/profile job with no target occurrence and canonical lifecycle still pending can become `verified_fixed`. Failed, blocked, cancelled, snapshot-mismatched, or stale retests cannot verify a fix, and non-verified terminal outcomes recover a still-pending finding to `in_progress`.
+### Validation and source registry
 
-### Deterministic Security Story v1
+Coverage specifies strict JSON keys, canonical timestamps/URLs/paths, bounded strings/counts, closed scanner descriptors, closed scanner/rule/version lookup, source/evidence provenance mapping, server-side canonicalization, and runRef recomputation.
 
-Coverage verifies evidence provenance, bounded evidence presentation, no raw-response fields, remediation state integration, and verified-fixed wording only when canonical lifecycle and latest authoritative retest agree. Story construction remains pure and provider/framework/runtime independent.
+### Database authority and idempotency
 
-### Architecture and authority guards
+Coverage specifies:
 
-CI enforces that remediation cannot import generic runtime-network authority, runtime packages cannot import remediation, Security Story is infrastructure/provider independent, browser roles remain read-only, Phase 5B mutation RPCs remain service-role-only, and no generic request/credential/raw-response storage fields enter the workflow schema.
+- separate enum migration for `phase3_import`
+- terminal succeeded repository import jobs only
+- immutable `security_phase3_import_runs`
+- RLS-protected SELECT-only browser access
+- `SECURITY DEFINER` persistence RPC with empty search path
+- execute privilege only for `service_role`
+- independent actor membership/role validation
+- exact workspace/repository binding
+- 500 finding / 500 evidence bounds
+- static/dependency evidence only
+- exact retry idempotency and conflict rejection
+- recurrence reopening rules
+- no absence-based `verified_fixed`
+- Phase 5C foreign-key covering indexes
+- manual database type contract includes the new enum/table/RPC
+
+### Service and route boundary
+
+Coverage specifies viewer rejection, cross-workspace/repository mismatch rejection, server-derived authoritative rows, safe secret locations, idempotent replay, safe conflict mapping, authentication, JSON-only transport, 3.5 MB declared and streamed request limits, rejection of forged lifecycle/source fields, and no trusted persistence for unauthenticated/malformed requests.
+
+### Repository UX and finding scaling
+
+Coverage specifies repository-only import UI, exact CLI command, privacy disclosure, bounded import history, canonical findings navigation, no repository runtime/active execution, 100-row finding pagination with one-row lookahead, and deterministic `last_seen_at` plus `finding_id` ordering.
+
+### Architecture guards
+
+Repository tests forbid trusted Phase 5C modules from acquiring:
+
+- runtime package authority
+- scanner filesystem/inventory/coordinator execution
+- Node child-process/filesystem/socket/network/HTTP/TLS/VM/worker authority
+- direct fetch
+- repository clone/checkout
+- package-manager installation
+- model-provider imports
+- advisory inference authority
+
+The browser upload is pinned to the same-origin Phase 3 import endpoint and the route accepts only `assetId` as request-side authority.
 
 ## Production database verification
 
-Phase 5B production deployment completed successfully.
+Production migration history contains:
 
-Production migration history now contains:
+- `20260825210845 phase_5c_phase3_import_enum`
+- `20260825211003 phase_5c_phase3_import`
+- `20260825211239 phase_5c_phase3_import_fk_indexes`
 
-- `20260825170915 phase_5b_remediation_retest_security_story`
-- `20260825170933 phase_5b_retest_recovery_hardening`
+Direct SQL verification confirmed:
 
-Post-deployment SQL verification confirmed:
-
-- both Phase 5B workflow tables exist
-- RLS is enabled on both
-- authenticated has SELECT but no INSERT, UPDATE, or DELETE
+- `phase3_import` is present in `scan_job_kind`
+- `security_phase3_import_runs` exists with RLS enabled
+- authenticated has SELECT only
+- authenticated has no INSERT/UPDATE/DELETE
 - anon has no table access
-- all five mutation RPCs are `SECURITY DEFINER`
-- all five mutation RPCs have `search_path = ''`
-- `public`, `anon`, and `authenticated` have no EXECUTE privilege
-- `service_role` has EXECUTE privilege
-- source/execution/timestamp constraints are present
-- immutable-snapshot and unverified-retest recovery triggers are present
-- all four intended Phase 5A foreign-key covering indexes are present
-- smoke reads succeed on both new tables
+- import run count is currently zero
+- `persist_phase3_import_result` is `SECURITY DEFINER`
+- function config pins an empty search path
+- `service_role` has EXECUTE
+- public/anon/authenticated have no EXECUTE
+- `scan_jobs_phase3_import_snapshot_check` exists and is validated
+- immutable update/delete triggers are enabled
+- unique runRef and scan-job constraints are present
+- composite repository asset and scan-job foreign keys are present
+- all three Phase 5C FK covering indexes are present
+- RLS policy is SELECT-only for authenticated workspace members
 
-Post-deployment Supabase advisor state:
+Supabase advisor state after hardening:
 
 - security advisor: clean
-- performance advisor: no missing-foreign-key-index notices
-- remaining notices are INFO-level unused indexes, expected while the database and Phase 5B tables have little or no traffic
+- performance advisor: no unindexed-foreign-key notices for Phase 5C
+- remaining performance notices are INFO-level unused indexes expected on a new/low-traffic database
 
-The generic unused-index advisory reference is: https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index
+Advisor reference for unused indexes: https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index
 
-## Benchmark evidence
+Live Supabase TypeScript generation independently confirmed the production schema contains:
 
-CI #685 scanner benchmark:
+- `scan_job_kind` value `phase3_import`
+- `security_phase3_import_runs` with the expected columns
+- `persist_phase3_import_result` with the expected Phase 5C arguments and JSON return
 
-```text
-fixture: scanner-medium-v1
-filesAnalyzed: 700
-findings: 0
-errors: 0
-scanDurationMs: 1023
-wallMs: 1111
-rssDeltaBytes: 31862784
-maxWallMs: 20000
-```
+## Current no-Actions merge gate
 
-## Required merge gate for future code PRs
+While the monthly Actions allowance is exhausted, use this evidence instead of pretending CI ran:
+
+1. Review every changed security-sensitive file and trust boundary.
+2. Confirm no blocking PR review threads.
+3. Confirm production migration history and direct SQL invariants.
+4. Confirm Supabase security advisor is clean and Phase 5C has no missing-FK-index notices.
+5. Confirm live-generated schema types match the application Phase 5C contract.
+6. Use local TypeScript/compiler/static checks where the current environment can materialize the relevant files.
+7. Merge only the exact reviewed PR head with expected-head protection.
+8. Record the no-Actions verification limitation and merge SHA in the post-merge handoff.
+
+When GitHub Actions allowance is available again, the normal full repository gate remains:
 
 ```text
 npm ci --ignore-scripts --no-audit --no-fund
@@ -98,5 +150,3 @@ node .scopeforge-build/packages/cli/index.js version
 npm run benchmark:scanner
 npm run build
 ```
-
-Merge only when every command is green on the exact PR head and GitHub reports no blocking review state.

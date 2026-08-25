@@ -4,7 +4,7 @@ export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export type AssetKind = "web_application" | "api" | "repository";
 export type AssetVerificationStatus = "unverified" | "pending" | "verified" | "failed";
 export type ScanJobStatus = "queued" | "running" | "succeeded" | "failed" | "blocked" | "cancelled";
-export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation";
+export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation" | "phase3_import";
 export type AuditActorType = "user" | "system";
 export type SecuritySeverity = "critical" | "high" | "medium" | "low" | "info";
 export type SecurityConfidence = "high" | "medium" | "low";
@@ -71,6 +71,29 @@ export type SecurityFindingRetestRow = {
   requested_at: string;
   started_at: string | null;
   completed_at: string | null;
+};
+
+export type SecurityPhase3ImportRunRow = {
+  id: string;
+  workspace_id: string;
+  asset_id: string;
+  scan_job_id: string;
+  run_ref: string;
+  repository_canonical_url: string;
+  schema_version: number;
+  tool_version: string;
+  scan_started_at: string;
+  scan_duration_ms: number;
+  scanner_descriptors: Json;
+  scanner_error_count: number;
+  files_analyzed: number;
+  files_skipped: number;
+  total_bytes: number;
+  finding_count: number;
+  evidence_count: number;
+  payload_digest: string;
+  created_by: string;
+  created_at: string;
 };
 
 export type Database = {
@@ -189,6 +212,16 @@ export type Database = {
           { foreignKeyName: "security_finding_retests_job_workspace_asset_fkey"; columns: ["scan_job_id", "workspace_id", "asset_id"]; isOneToOne: false; referencedRelation: "scan_jobs"; referencedColumns: ["id", "workspace_id", "asset_id"] }
         ];
       };
+      security_phase3_import_runs: {
+        Row: SecurityPhase3ImportRunRow;
+        Insert: { id?: string; workspace_id: string; asset_id: string; scan_job_id: string; run_ref: string; repository_canonical_url: string; schema_version?: number; tool_version: string; scan_started_at: string; scan_duration_ms: number; scanner_descriptors: Json; scanner_error_count: number; files_analyzed: number; files_skipped: number; total_bytes: number; finding_count: number; evidence_count: number; payload_digest: string; created_by: string; created_at?: string };
+        Update: { id?: string; workspace_id?: string; asset_id?: string; scan_job_id?: string; run_ref?: string; repository_canonical_url?: string; schema_version?: number; tool_version?: string; scan_started_at?: string; scan_duration_ms?: number; scanner_descriptors?: Json; scanner_error_count?: number; files_analyzed?: number; files_skipped?: number; total_bytes?: number; finding_count?: number; evidence_count?: number; payload_digest?: string; created_by?: string; created_at?: string };
+        Relationships: [
+          { foreignKeyName: "security_phase3_import_runs_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] },
+          { foreignKeyName: "security_phase3_import_runs_asset_workspace_fkey"; columns: ["asset_id", "workspace_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id", "workspace_id"] },
+          { foreignKeyName: "security_phase3_import_runs_job_workspace_asset_fkey"; columns: ["scan_job_id", "workspace_id", "asset_id"]; isOneToOne: true; referencedRelation: "scan_jobs"; referencedColumns: ["id", "workspace_id", "asset_id"] }
+        ];
+      };
       audit_events: {
         Row: { id: string; workspace_id: string; actor_type: AuditActorType; actor_id: string | null; event_type: string; target_type: string | null; target_id: string | null; metadata: Json; created_at: string };
         Insert: { id?: string; workspace_id: string; actor_type?: AuditActorType; actor_id?: string | null; event_type: string; target_type?: string | null; target_id?: string | null; metadata?: Json; created_at?: string };
@@ -212,6 +245,10 @@ export type Database = {
         Args: { target_workspace_id: string; target_asset_id: string; target_job_id: string; observation_row: Json; finding_rows: Json; evidence_rows: Json; observed_at: string };
         Returns: undefined;
       };
+      persist_phase3_import_result: {
+        Args: { target_workspace_id: string; target_asset_id: string; target_actor_id: string; target_repository_canonical_url: string; target_run_ref: string; target_tool_version: string; target_scan_started_at: string; target_scan_duration_ms: number; target_scanner_descriptors: Json; target_scanner_error_count: number; target_files_analyzed: number; target_files_skipped: number; target_total_bytes: number; finding_rows: Json; evidence_rows: Json };
+        Returns: Json;
+      };
       change_security_finding_lifecycle: {
         Args: { target_workspace_id: string; target_finding_id: string; expected_lifecycle: FindingLifecycleState; next_lifecycle: FindingLifecycleState; target_actor_id: string; event_reason: string | null };
         Returns: SecurityFindingRow;
@@ -230,6 +267,10 @@ export type Database = {
       };
       finalize_security_finding_retest: {
         Args: { target_workspace_id: string; target_retest_id: string };
+        Returns: SecurityFindingRetestRow;
+      };
+      abort_security_finding_retest_before_start: {
+        Args: { target_workspace_id: string; target_retest_id: string; target_actor_id: string };
         Returns: SecurityFindingRetestRow;
       };
     };

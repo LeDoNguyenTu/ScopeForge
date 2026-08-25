@@ -1,117 +1,102 @@
 # ScopeForge Next Steps
 
-## Phase 5B completion boundary
+## Phase 5C completion boundary
 
-Phase 5B Remediation, Retest, and Security Story is merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a` and is now production-reconciled.
+Phase 5C Hosted Phase 3 finding import is implemented on PR #37 and its additive production database schema is reconciled.
 
-It extends the Phase 5A canonical hosted ledger without replacing it:
+Delivered capabilities:
 
-- workspace-scoped remediation assignment and bounded notes
-- immutable retest source/profile snapshots
-- atomic `resolved -> retest_pending` requests
-- passive retests through the existing runtime observer
-- active retests only through the existing `cors-origin-policy@1` validator
-- owner/admin plus explicit consent for active retests
-- exact job/workspace/asset/source/profile binding
-- authoritative terminal outcome derived from database state
-- fresh-evidence-only `verified_fixed`
-- failed-start recovery and non-verified recovery to `in_progress`
-- bounded retest history
-- deterministic Security Story v1
-- narrow server actions and finding-detail UI
-- executable architecture and database authority guards
+- versioned privacy-reduced `hosted-json` local/CI export
+- canonical public GitHub repository binding
+- closed scanner/rule/version registry
+- strict canonical envelope and path validation
+- 3.5 MB streamed request cap
+- maximum 500 findings / 500 evidence rows
+- repository-bound terminal `phase3_import` scan provenance
+- immutable RLS-protected import-run history
+- service-role-only atomic persistence RPC
+- idempotent exact retry and fail-closed conflict handling
+- canonical finding/evidence/occurrence/event reuse
+- no absence-based static `verified_fixed`
+- repository-only import UX with bounded history
+- stable 100-row finding pagination
+- dependency guards against hosted repository execution, runtime networking, shell/process/VM/worker authority, package-manager execution, and model-provider authority
+- additional secret privacy hardening that removes local secret-derived fingerprints and regenerates secret evidence summaries from reviewed rule metadata
 
-Exact PR head `5c7b8c34432f8bb51731fe069178411a8005d023` passed CI #685 with 148 test files / 654 tests, strict typecheck, CLI build/version smoke, scanner benchmark, and production build before expected-head merge.
+Production Supabase contains:
 
-Production Supabase now contains both Phase 5B migrations. Post-deployment verification confirms RLS, SELECT-only browser access, service-role-only mutation RPCs, empty pinned search paths, snapshot/recovery constraints and triggers, the intended foreign-key covering indexes, smoke-readable tables, and a clean security advisor. The prior missing-FK-index notices are resolved.
+- `20260825210845 phase_5c_phase3_import_enum`
+- `20260825211003 phase_5c_phase3_import`
+- `20260825211239 phase_5c_phase3_import_fk_indexes`
 
-## Next design boundary - Phase 5C Hosted Phase 3 finding import
+Security advisor is clean and all Phase 5C foreign keys have covering indexes.
 
-ScopeForge already has a capable local/CI Phase 3 scanner, but hosted ingestion currently accepts deterministic runtime findings only. The next product step is a reviewed adapter that brings existing code and supply-chain findings into the same canonical hosted ledger without creating a second finding model or granting hosted repository execution authority.
+## Verification constraint
 
-The design must answer these questions explicitly:
+GitHub Actions monthly allowance was exhausted during PR #37. The user explicitly requested no further GitHub Actions use for the remainder of the month. Do not trigger or rerun Actions.
 
-- What trusted caller/import boundary may submit normalized Phase 3 scan results?
-- How is a repository represented and bound to a workspace without pretending it is a runtime web/API target?
-- How do Phase 3 stable fingerprints and scanner source versions map to canonical hosted finding identity?
-- What is the hosted scan-run identity and how are retries made idempotent?
-- Which evidence kinds are permitted from secrets, SAST, taint, SCA, SBOM, Docker, Kubernetes, Terraform, GitHub Actions, and configuration scanners?
-- Which source paths, snippets, dependency metadata, and artifact references may be stored, and at what classification?
-- How are detected secrets and secret-adjacent context redacted before crossing the hosted boundary?
-- How are payload sizes, finding counts, text fields, evidence summaries, and history reads bounded?
-- Which fields are immutable, which canonical fields can refresh on recurrence, and which lifecycle states reopen on fresh deterministic evidence?
-- Which mutation RPCs are service-role-only and which reads are available through RLS?
-- How do local/CI scan provenance and hosted audit history remain attributable?
-- How does the adapter avoid importing scanner execution, filesystem authority, package-manager execution, or generic runtime-network authority into the hosted control plane?
+Final Phase 5C verification must therefore remain explicit about its evidence:
 
-### Phase 5C invariants
+- earlier pre-quota Phase 5C executable checkpoints
+- targeted static/security diff review
+- live Supabase migration/RLS/privilege/constraint/index verification
+- clean Supabase security advisor
+- no Phase 5C missing-FK-index advisor notices
+- live-generated Supabase type contract comparison
+- local compiler/static checks available in the current execution environment
+- no blocking PR review threads
 
-- `security_findings` remains the only canonical finding state.
-- Do not route Phase 3 findings through runtime-only ingestion RPCs by convenience.
-- Hosted import is a trusted normalized-data ingestion boundary, not hosted arbitrary repository execution.
-- The server must never persist secret values or unbounded source content.
-- Browser roles remain read-only for canonical finding/evidence/import state.
-- Import mutation RPCs independently validate workspace/repository/run/finding/evidence binding.
-- Retry is idempotent and conflicting identity reuse is rejected.
-- Evidence remains immutable and recurrence appends occurrence/history.
-- Advisory/model output cannot independently alter validation or lifecycle state.
-- No new remote active-testing authority is introduced.
+Do not claim exact-head GitHub CI green for PR #37.
 
-## Recommended Phase 5C architecture direction
+## Next major boundary - Phase 6 isolated workers and scanner scale
 
-Prefer a dedicated hosted import boundary rather than extending the runtime persistence RPCs.
+Phase 6 is where hosted execution belongs. Phase 5C deliberately imports already-produced local/CI results and does not clone or execute repositories in the control plane.
 
-Conceptually:
+Phase 6 should add queue-backed isolated workers while preserving all existing security invariants.
 
-```text
-local/CI ScopeForge scanner
-        |
-        v
-normalized Phase 3 export
-        |
-        v
-trusted hosted import service
-        |
-        +--> strict privacy/redaction validation
-        +--> repository + scan-run binding
-        +--> Phase 3 adapter into canonical security-domain types
-        |
-        v
-service-role-only atomic import RPC
-        |
-        +--> canonical security_findings
-        +--> immutable security_evidence
-        +--> append-only occurrences/events
-        +--> Phase 5C repository/run metadata
-```
+### Required Phase 6 architecture
 
-The import service should accept only a closed, versioned ScopeForge export contract produced by existing normalized scanner output. It should not accept arbitrary filesystem paths, repository URLs to clone, commands to run, package-manager options, or caller-controlled execution configuration.
+- durable job queue and explicit job lifecycle
+- worker leases with expiry/recovery
+- bounded concurrency and backpressure per workspace/fleet
+- CPU, memory, wall-clock, file-count, byte-count, and request budgets
+- cancellation that wins before persistence when required
+- isolated filesystem/workspace per job
+- no package lifecycle-script execution by default
+- private artifact storage with bounded retention and classification
+- dedicated egress policy rather than control-plane networking
+- DNS/IP policy reuse for any authorized remote target work
+- structured logs/metrics without secret or source leakage
+- abuse controls, quotas, rate limits, and operational kill switches
+- deterministic provenance tying worker results to workspace, asset, job, scanner/profile versions, and immutable authorization snapshots
 
-Repository identity and scan-run provenance should be first-class hosted metadata, while the finding itself remains in `security_findings`. Phase 3 evidence should use category-specific bounded summaries rather than uploading arbitrary source fragments.
+### Phase 6 must not widen these boundaries
 
-## Phase 6 after hosted import
+- repository assets do not become runtime web/API targets
+- browser callers cannot submit shell commands, clone flags, package-manager options, arbitrary headers/body, target URLs, or resource limits
+- existing passive runtime authority remains separate from active validation authority
+- new active validation profiles require their own explicit security design and authorization review
+- model/advisory output cannot promote deterministic validation or lifecycle state
+- worker isolation is not permission for unrestricted outbound networking
 
-Production scanner scale remains a separate architecture boundary. Queue-backed isolated workers, worker leases, dedicated egress policy, concurrency/backpressure, CPU/memory/time budgets, cancellation, private artifacts, fleet operations, and abuse controls must reuse the target, authorization, budget, evidence, finding, and audit contracts already established.
+## Recommended implementation order
 
-Moving runtime execution to workers must not widen target policy or active request authority.
+1. Define the worker/job threat model and immutable execution contract.
+2. Define queue, lease, cancellation, retry, and idempotency semantics.
+3. Build an isolated local worker adapter with no network authority first.
+4. Move existing Phase 3 scanner execution behind that boundary without package execution.
+5. Add private artifact handling and retention.
+6. Add concurrency/backpressure/quotas and operational controls.
+7. Only then design dedicated egress for authorized runtime/active work.
+8. Add fleet observability and recovery procedures.
 
-## Active-testing boundary remains narrow
+## Later roadmap
 
-Additional active profiles require their own explicit design/security review. Still out of scope without a new approved active design:
+After Phase 6:
 
-- broad crawling or endpoint discovery
-- OPTIONS/preflight probing
-- user-supplied origins
-- arbitrary methods/headers/bodies
-- authenticated/cookie/credential replay
-- SQLi/XSS/SSRF exploit probes
-- fuzzing or credential attacks
-- denial-of-service behavior
-- generalized exploit confirmation
-
-## Future AI work
-
-Do not add a provider merely to demonstrate model connectivity. If a later workflow benefits from assistance, place the provider behind the existing provider-neutral advisory seam, apply context/privacy policy before the provider boundary, validate output into inferred domain types, and keep the core product functional with no provider configured.
+- Phase 7 Community Security Packs
+- Phase 8 validation, benchmarks, vulnerable labs, and public methodology
+- Phase 9 production hardening and public release
 
 ## Resume protocol
 
@@ -121,7 +106,7 @@ Before a new implementation session:
 2. Read `docs/development/CURRENT_STATE.md`.
 3. Read `docs/development/TEST_STATUS.md`.
 4. Read `docs/ARCHITECTURE.md` and `docs/PHASES.md`.
-5. Confirm PR #33 and the Phase 5B documentation follow-ups are present on `main`.
-6. Treat Phase 5B production reconciliation as complete unless current Supabase verification proves otherwise.
-7. Start Phase 5C with a design/spec and threat/security review before implementation.
-8. Preserve the canonical ledger, immutable evidence, narrow mutation authority, and existing scanner/runtime/network boundaries.
+5. Confirm PR #37 merge/reconciliation status.
+6. Confirm the three Phase 5C production migrations remain present.
+7. Preserve the canonical ledger, secret/privacy boundary, service-role-only mutation authority, and repository/runtime separation.
+8. Start Phase 6 with a design/threat model before implementation.

@@ -23,6 +23,13 @@ export interface SecurityFindingWorkflowDetail {
   retests: SecurityFindingRetestRow[];
 }
 
+export interface SecurityFindingPage {
+  findings: SecurityFindingRow[];
+  page: number;
+  pageSize: number;
+  hasNextPage: boolean;
+}
+
 export interface ChangeFindingLifecycleRepositoryInput {
   workspaceId: string;
   findingId: string;
@@ -39,6 +46,11 @@ function isSecurityFindingRow(value: unknown): value is SecurityFindingRow {
     && typeof row.finding_id === "string"
     && typeof row.asset_id === "string"
     && typeof row.lifecycle_state === "string";
+}
+
+function boundedPositiveInteger(value: number, fallback: number, maximum: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(maximum, Math.max(1, Math.trunc(value)));
 }
 
 export function createSecurityFindingRepository(client: SupabaseClient<Database>) {
@@ -59,16 +71,28 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
 
   async function listWorkspaceFindings(
     workspaceId: string,
-  ): Promise<SecurityFindingRow[]> {
+    requestedPage = 1,
+    requestedPageSize = 100,
+  ): Promise<SecurityFindingPage> {
+    const page = boundedPositiveInteger(requestedPage, 1, 10000);
+    const pageSize = boundedPositiveInteger(requestedPageSize, 100, 100);
+    const offset = (page - 1) * pageSize;
     const { data, error } = await client
       .from("security_findings")
       .select("*")
       .eq("workspace_id", workspaceId)
       .order("last_seen_at", { ascending: false })
-      .limit(100);
+      .order("finding_id", { ascending: true })
+      .range(offset, offset + pageSize);
 
     if (error) throw new Error("Unable to load workspace security findings.");
-    return data ?? [];
+    const rows = data ?? [];
+    return {
+      findings: rows.slice(0, pageSize),
+      page,
+      pageSize,
+      hasNextPage: rows.length > pageSize,
+    };
   }
 
   async function loadWorkspaceFindingDetail(

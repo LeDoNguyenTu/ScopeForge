@@ -2,16 +2,16 @@
 
 ## Current phase
 
-Phase 5B Remediation, Retest, and Security Story is complete in code, documentation, and production database reconciliation.
+Phase 5C Hosted Phase 3 finding import is implemented on PR #37 and the additive production database schema is reconciled. The PR has not yet been merged at the time of this handoff update.
 
-- Phase 5B application merge: PR #33 -> `eb35c2b23468addd817951486c60ac7d68710c9a`
-- exact reviewed PR #33 head: `5c7b8c34432f8bb51731fe069178411a8005d023`
-- exact-head CI: #685
-- permanent Phase 5B documentation: PR #34 -> `fcd535c8ad0c9909d77d6500fbf0845907bad783`
-- final post-merge handoff correction: PR #35 -> `9d47eb98f3f9346217905f9df308869d096a5313`
-- current reconciliation-doc branch: `docs/phase-5b-production-reconciled`
+Current branch:
 
-The next product design boundary is **Phase 5C Hosted Phase 3 finding import**.
+- `feat/phase-5c-hosted-phase3-import`
+- PR #37: `Build Phase 5C hosted Phase 3 finding import`
+
+GitHub Actions monthly allowance was exhausted during this PR. The user explicitly directed that ScopeForge continue without triggering, rerunning, or depending on GitHub Actions for the remainder of the month. All subsequent commits use `[skip ci]`.
+
+Do not run GitHub Actions. Do not claim the final PR head is exact-head CI green.
 
 ## Completed platform work
 
@@ -22,96 +22,144 @@ The next product design boundary is **Phase 5C Hosted Phase 3 finding import**.
 - Phase 4B passive runtime observations merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
 - Phase 4C-1 bounded CORS validation merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
 - Phase 5A hosted finding foundation delivered through PR #30.
-- Phase 5B remediation, deterministic retest, and Security Story merged through PR #33 and is now deployed to production Supabase.
+- Phase 5B remediation, deterministic retest, and Security Story merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a` and production-reconciled.
+- Phase 5C hosted Phase 3 import implementation is complete on PR #37, with production schema deployed and verified.
 
-## Phase 5B production state
+## Phase 5C implementation boundary
 
-The hosted ScopeForge Supabase project is healthy and now includes both reviewed Phase 5B migrations:
+### Local/CI export
 
-- `20260825170915 phase_5b_remediation_retest_security_story`
-- `20260825170933 phase_5b_retest_recovery_hardening`
+`scopeforge scan . --format hosted-json --repository <public-github-repo> --output scopeforge-hosted.json`
 
-The deployment-time versions differ from repository filenames because the Supabase migration API records its own application timestamp. The SQL contents deployed were reconstructed from the reviewed repository migration files in exact bounded chunks.
+The versioned export includes bounded normalized scanner facts only. It excludes local roots, source code, snippets, data-flow traces, arbitrary metadata, scanner diagnostics, credentials, raw secret values, and SBOM bodies/artifacts.
 
-Post-deployment checks confirmed:
+Secret-specific hardening:
 
-- `security_finding_work` exists and has RLS enabled
-- `security_finding_retests` exists and has RLS enabled
-- authenticated has SELECT only on both workflow tables
-- authenticated has no INSERT/UPDATE/DELETE on either workflow table
-- anon has no table access
-- all five public Phase 5B mutation RPCs are `SECURITY DEFINER`
-- all five public mutation RPCs use `search_path = ''`
-- `public`, `anon`, and `authenticated` cannot execute those RPCs
-- `service_role` can execute those RPCs
-- execution/source/timestamp retest constraints are present
-- immutable-snapshot and unverified-retest recovery triggers are present
-- the four Phase 5A foreign-key covering indexes are present
-- read-only smoke queries succeed on both new workflow tables
-- security advisor is clean
-- the prior missing-foreign-key-index notices are gone
-- remaining performance notices are INFO-level unused indexes expected on a low-traffic/new database
+- no exact columns
+- no local secret-derived fingerprint crosses the hosted boundary
+- hosted secret fingerprints use reviewed rule/version + repository-relative path + line
+- hosted secret evidence summaries are regenerated from reviewed rule metadata
 
-Phase 5B is production-ready at the database boundary.
+### Trusted import
 
-## Phase 5B implementation boundary
+The Phase 5C server boundary:
 
-### Remediation work
+- accepts one selected repository `assetId`
+- derives actor/workspace/role from authenticated server context
+- requires `application/json`
+- enforces 3.5 MB from both declared length and streamed bytes
+- validates a closed scanner/rule/version registry
+- canonicalizes/recomputes the payload before accepting runRef
+- rejects path traversal, absolute paths, unsupported/extra fields, malformed repository identity, and oversized payloads
+- derives canonical finding/evidence/source/provenance rows server-side
+- never accepts arbitrary lifecycle, URL, request headers/body, budget, command, checkout, package-manager, or runtime-network authority
 
-`security_finding_work` stores assignment and bounded remediation notes beside the canonical `security_findings` record. Owner/admin may assign workspace members, members may self-assign, viewers are read-only, and trusted mutation paths independently enforce membership and role.
+### Production persistence
 
-### Deterministic retest
+Production Supabase project: `tdgpibrepzcvdivztkta`
 
-`security_finding_retests` stores immutable retest snapshots. Only the existing passive runtime observer and `cors-origin-policy@1` active validator can be reused. Active retests require owner/admin plus explicit consent. No generic request authority was added.
+Live Phase 5C migrations:
 
-A supported resolved finding can transition to `retest_pending`. Exact job/workspace/asset/requester/source/profile binding is required before execution is attached. Finalization derives its result from authoritative database state.
+- `20260825210845 phase_5c_phase3_import_enum`
+- `20260825211003 phase_5c_phase3_import`
+- `20260825211239 phase_5c_phase3_import_fk_indexes`
 
-`verified_fixed` requires a fresh successful exact-source/profile retest with no target occurrence for the exact job and canonical lifecycle still pending. Failed, blocked, cancelled, stale, mismatched, or still-present retests cannot verify a fix. Non-verified terminal retests recover a still-pending finding to `in_progress`.
+The database now has:
 
-### Security Story v1
+- `phase3_import` scan job kind
+- immutable `security_phase3_import_runs`
+- RLS member SELECT-only policy
+- service-role-only `persist_phase3_import_result`
+- terminal repository-import scan-job constraint
+- exact retry advisory locking/idempotency
+- conflict rejection
+- canonical finding/evidence/occurrence/event reuse
+- three covering indexes for Phase 5C foreign keys
 
-Security Story v1 is a deterministic bounded read model over canonical finding/evidence/history, remediation work, and retest state. It has no model-provider, network, or mutation authority.
+Post-deployment verification:
 
-## Verification state
+- authenticated SELECT true, mutations false
+- anon SELECT false
+- RPC is `SECURITY DEFINER`
+- RPC `search_path` is empty
+- service_role EXECUTE true
+- public/anon/authenticated EXECUTE false
+- immutable triggers enabled
+- intended constraints/indexes present
+- import table smoke read succeeds and currently has zero rows
+- security advisor clean
+- no Phase 5C missing-FK-index notices
+- remaining performance notices are INFO-level unused indexes
+- live-generated Supabase TypeScript types confirm the new enum/table/RPC shape
 
-CI #685 passed on exact PR #33 head `5c7b8c34432f8bb51731fe069178411a8005d023`:
+## Phase 5C UI/read model
 
-- reproducible dependency install
-- 148 test files / 654 tests
-- strict TypeScript typecheck
-- CLI build and compiled version smoke
-- scanner benchmark
-- Next.js production build
+Repository asset detail has:
 
-The Phase 5B security-sensitive diff was reviewed before merge and no merge-blocking issue remained.
+- exact hosted-json CLI command
+- privacy disclosure
+- bounded JSON upload
+- latest 20 import runs
+- canonical findings navigation
+
+Repository assets remain unsupported by passive runtime and active validation.
+
+Canonical findings are paginated at 100 rows with one-row lookahead and deterministic `last_seen_at DESC, finding_id ASC` ordering.
+
+## Security review findings already fixed
+
+During targeted review, these issues were found and corrected:
+
+1. **Secret-derived hosted correlation token** - local secret `sfs1` identity included a hash derived from the secret. Hosted export now re-keys secret fingerprints from safe rule/location identity only.
+2. **Secret summary trust** - hosted export previously trusted scanner evidence summaries. Secret summaries are now regenerated from reviewed rule metadata.
+3. **Finding pagination tie ordering** - one import gives many findings the same `last_seen_at`; pagination now adds stable `finding_id` ordering.
+4. **Phase 5C database type drift** - manual types now include `phase3_import`, import-run table, persistence RPC, and the existing retest recovery RPC.
+5. **Missing Phase 5C FK indexes** - Supabase performance advisor identified three missing covering indexes; a third Phase 5C migration was added and deployed. The notices are resolved.
+6. **Architecture guard breadth** - trusted import guards now also forbid HTTP/fetch, VM/worker authority, and model-provider/advisory-inference dependencies.
+
+## Verification evidence
+
+Pre-quota executable checkpoints include full-green Task 3 and Task 4 runs. CI #720 passed 156 test files / 701 tests, strict typecheck, CLI build/version smoke, and scanner benchmark before detecting an invalid Next.js route export during production build. That exact framework issue was corrected afterward.
+
+Later Actions jobs did not execute repository steps because the monthly Actions allowance was exhausted.
+
+Final verification for PR #37 therefore uses:
+
+- targeted security-sensitive code review
+- live Supabase schema/privilege/constraint/index checks
+- Supabase security/performance advisors
+- live-generated TypeScript schema comparison
+- local compiler/static checks where relevant files can be materialized
+- no blocking PR review threads
+- expected-head protected merge only
 
 ## Exact next task
 
-Design **Phase 5C Hosted Phase 3 finding import** before implementation.
+Finish the no-Actions PR #37 gate:
 
-The design should create a narrow trusted normalized-data adapter from existing local/CI Phase 3 output into the canonical hosted ledger. It must not create a second finding model or grant the hosted control plane arbitrary repository execution.
+1. verify exact current head and PR remains mergeable
+2. complete local compiler/static review of final critical TypeScript changes
+3. update PR body with the no-Actions verification record
+4. merge exact reviewed head with expected-head protection if no blocker remains
+5. create a small post-merge documentation reconciliation recording the merge SHA if needed
+6. then begin Phase 6 design/threat modeling
 
-The design must define:
+## Next major product boundary
 
-- repository/workspace binding
-- trusted import caller and scan-run identity
-- canonical hosted identity from Phase 3 fingerprints and source versions
-- idempotent retry and conflicting-identity behavior
-- permitted evidence kinds/classifications by scanner category
-- strict path/source privacy policy
-- secret redaction with no secret-value persistence
-- bounded finding/evidence payloads and histories
-- service-role-only mutation RPCs and RLS-protected reads
-- append-only occurrence/event provenance
-- lifecycle recurrence behavior over the canonical finding
+**Phase 6 isolated workers and scanner scale**:
 
-Do not route Phase 3 output through runtime-only ingestion RPCs. Do not introduce repository cloning, package execution, arbitrary filesystem execution, generic runtime networking, or active testing as part of the import adapter.
+- durable queues
+- worker leases and recovery
+- isolated execution workspaces
+- CPU/memory/time/file/byte budgets
+- concurrency and backpressure
+- cancellation semantics
+- private artifacts and retention
+- dedicated egress policy
+- fleet observability
+- quotas and abuse controls
 
-## Boundaries that remain unchanged
-
-Additional active validators require their own explicit design/security review. General crawling, arbitrary HTTP authority, authenticated testing, exploit probing, fuzzing, credential attacks, denial-of-service behavior, and generalized DAST remain out of scope.
-
-Phase 6 remains queue-backed isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet operations, and abuse controls. It must reuse existing target, authorization, budget, cancellation, finding, evidence, retest, and audit contracts without widening them.
+Phase 6 must reuse existing repository, authorization, scanner, network, evidence, finding, and audit contracts without widening browser or runtime authority.
 
 ## Resume protocol
 
@@ -123,6 +171,6 @@ Read in this order:
 4. `docs/development/NEXT_STEPS.md`
 5. `docs/ARCHITECTURE.md`
 6. `docs/PHASES.md`
-7. Phase 5B design/plan if remediation or retest details are needed
-8. Confirm Phase 5B production migrations remain present if investigating production drift
-9. Start Phase 5C with design/threat review before implementation
+7. Phase 5C design and implementation plan if import details are needed
+8. Confirm the three Phase 5C production migrations remain present if investigating drift
+9. Do not trigger GitHub Actions until the user explicitly changes the current instruction or the quota period is over
