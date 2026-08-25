@@ -92,4 +92,22 @@ describe("Phase 5B remediation and retest migration", () => {
     expect(sql).toContain("on public.security_finding_occurrences(asset_id, workspace_id)");
     expect(sql).toContain("on public.security_finding_events(actor_id)");
   });
+
+  it("implements remediation work changes as a service-role-only trusted transaction", async () => {
+    const sql = await migrationSql();
+
+    expect(sql).toContain("create or replace function public.change_security_finding_work");
+    expect(sql).toMatch(/change_security_finding_work[\s\S]*security definer[\s\S]*set search_path = ''/i);
+    expect(sql).toContain("SECURITY_REMEDIATION_FORBIDDEN");
+    expect(sql).toContain("SECURITY_REMEDIATION_ASSIGNEE_INVALID");
+    expect(sql).toContain("SECURITY_REMEDIATION_NOTE_INVALID");
+    expect(sql).toContain("SECURITY_REMEDIATION_FINDING_NOT_AVAILABLE");
+    expect(sql).toMatch(/from public\.workspace_members[\s\S]*role::text/i);
+    expect(sql).toMatch(/from public\.security_findings[\s\S]*for update/i);
+    expect(sql).toMatch(/from public\.security_finding_work[\s\S]*for update/i);
+    expect(sql).toContain("finding.assignment_changed");
+    expect(sql).toContain("finding.remediation_note_updated");
+    expect(sql).toMatch(/revoke all on function public\.change_security_finding_work[\s\S]*from public, anon, authenticated/i);
+    expect(sql).toMatch(/grant execute on function public\.change_security_finding_work[\s\S]*to service_role/i);
+  });
 });
