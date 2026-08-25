@@ -1,22 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { writeAuditEvent } from "@/lib/audit/write-audit-event";
 import type { Database, ScanJobStatus } from "@/lib/database.types";
 import { ActiveValidationAuthorizationError } from "@/lib/active-validation/authorization";
-import { createActiveValidationRepository } from "@/lib/active-validation/repository";
+import { createActiveValidationServerDependencies } from "@/lib/active-validation/server-dependencies";
 import {
   enqueueActiveValidation,
   executeActiveValidation,
   requestActiveValidationCancellation,
-  type ActiveValidationAuditEvent,
-  type ActiveValidationServiceDependencies,
 } from "@/lib/active-validation/service";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getDashboardContext } from "@/lib/workspaces/current";
 import { ACTIVE_VALIDATION_MAX_BUDGET } from "@/packages/runtime-validator";
 
-type AssetRow = Database["public"]["Tables"]["assets"]["Row"];
 type ScanJobRow = Database["public"]["Tables"]["scan_jobs"]["Row"];
 
 export type ActiveValidationActionResult<T> =
@@ -58,46 +53,13 @@ function failure(error: unknown): ActiveValidationActionResult<never> {
   };
 }
 
-function createDependencies(): ActiveValidationServiceDependencies {
-  const admin = createAdminClient();
-  const repository = createActiveValidationRepository(admin);
-
-  async function loadAsset(assetId: string, workspaceId: string): Promise<AssetRow | null> {
-    const { data, error } = await admin
-      .from("assets")
-      .select("*")
-      .eq("id", assetId)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-    if (error) throw new Error("Unable to load the active validation asset.");
-    return data;
-  }
-
-  async function audit(event: ActiveValidationAuditEvent): Promise<void> {
-    await writeAuditEvent({
-      supabase: admin,
-      workspaceId: event.workspaceId,
-      eventType: event.eventType,
-      actorId: event.actorId,
-      targetType: "asset",
-      targetId: event.assetId,
-      metadata: {
-        jobId: event.jobId,
-        details: event.metadata,
-      },
-    });
-  }
-
-  return Object.freeze({ repository, loadAsset, audit });
-}
-
 export async function runCorsOriginPolicyValidation(
   assetId: string,
   explicitConsent: boolean,
 ): Promise<ActiveValidationActionResult<{ job: ActiveValidationJobActionSummary }>> {
   try {
     const { user, workspace, role } = await getDashboardContext();
-    const dependencies = createDependencies();
+    const dependencies = createActiveValidationServerDependencies();
     const queued = await enqueueActiveValidation(
       {
         actorId: user.id,
@@ -124,7 +86,7 @@ export async function cancelActiveValidation(
 ): Promise<ActiveValidationActionResult<{ job: ActiveValidationJobActionSummary; status: string }>> {
   try {
     const { user, workspace, role } = await getDashboardContext();
-    const dependencies = createDependencies();
+    const dependencies = createActiveValidationServerDependencies();
     const result = await requestActiveValidationCancellation(
       {
         actorId: user.id,

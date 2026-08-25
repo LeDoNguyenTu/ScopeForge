@@ -1,22 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { writeAuditEvent } from "@/lib/audit/write-audit-event";
 import type { Database, ScanJobStatus } from "@/lib/database.types";
 import { RuntimeAuthorizationError } from "@/lib/runtime-observations/authorization";
-import { createRuntimeObservationRepository } from "@/lib/runtime-observations/repository";
+import { createRuntimeObservationServerDependencies } from "@/lib/runtime-observations/server-dependencies";
 import {
   enqueueRuntimeObservation,
   executeRuntimeObservation,
   requestRuntimeObservationCancellation,
-  type RuntimeObservationAuditEvent,
-  type RuntimeObservationServiceDependencies,
 } from "@/lib/runtime-observations/service";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getDashboardContext } from "@/lib/workspaces/current";
 import { RUNTIME_OBSERVATION_MAX_BUDGET } from "@/packages/runtime-observer";
 
-type AssetRow = Database["public"]["Tables"]["assets"]["Row"];
 type ScanJobRow = Database["public"]["Tables"]["scan_jobs"]["Row"];
 
 export type RuntimeObservationActionResult<T> =
@@ -60,45 +55,12 @@ function failure(error: unknown): RuntimeObservationActionResult<never> {
   };
 }
 
-function createDependencies(): RuntimeObservationServiceDependencies {
-  const admin = createAdminClient();
-  const repository = createRuntimeObservationRepository(admin);
-
-  async function loadAsset(assetId: string, workspaceId: string): Promise<AssetRow | null> {
-    const { data, error } = await admin
-      .from("assets")
-      .select("*")
-      .eq("id", assetId)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-    if (error) throw new Error("Unable to load the runtime observation asset.");
-    return data;
-  }
-
-  async function audit(event: RuntimeObservationAuditEvent): Promise<void> {
-    await writeAuditEvent({
-      supabase: admin,
-      workspaceId: event.workspaceId,
-      eventType: event.eventType,
-      actorId: event.actorId,
-      targetType: "asset",
-      targetId: event.assetId,
-      metadata: {
-        jobId: event.jobId,
-        details: event.metadata,
-      },
-    });
-  }
-
-  return Object.freeze({ repository, loadAsset, audit });
-}
-
 export async function runPassiveRuntimeObservation(
   assetId: string,
 ): Promise<RuntimeObservationActionResult<{ job: RuntimeObservationJobActionSummary }>> {
   try {
     const { user, workspace, role } = await getDashboardContext();
-    const dependencies = createDependencies();
+    const dependencies = createRuntimeObservationServerDependencies();
     const queued = await enqueueRuntimeObservation(
       {
         actorId: user.id,
@@ -124,7 +86,7 @@ export async function cancelPassiveRuntimeObservation(
 ): Promise<RuntimeObservationActionResult<{ job: RuntimeObservationJobActionSummary; status: string }>> {
   try {
     const { user, workspace, role } = await getDashboardContext();
-    const dependencies = createDependencies();
+    const dependencies = createRuntimeObservationServerDependencies();
     const result = await requestRuntimeObservationCancellation(
       {
         actorId: user.id,
