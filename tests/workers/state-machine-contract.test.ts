@@ -6,23 +6,35 @@ const enumMigrationPath = path.resolve(
   process.cwd(),
   "supabase/migrations/20260826105900_phase_6a_worker_probe_enum.sql",
 );
-const migrationPath = path.resolve(
+const schemaMigrationPath = path.resolve(
   process.cwd(),
   "supabase/migrations/20260826110000_phase_6a_worker_foundation.sql",
 );
+const controlMigrationPath = path.resolve(
+  process.cwd(),
+  "supabase/migrations/20260826110100_phase_6a_worker_control.sql",
+);
+
+async function workerSql(): Promise<string> {
+  const [schemaSql, controlSql] = await Promise.all([
+    readFile(schemaMigrationPath, "utf8"),
+    readFile(controlMigrationPath, "utf8"),
+  ]);
+  return `${schemaSql}\n${controlSql}`;
+}
 
 describe("Phase 6A worker lease state machine", () => {
   it("commits the internal worker job kind before using it", async () => {
     const [enumSql, sql] = await Promise.all([
       readFile(enumMigrationPath, "utf8"),
-      readFile(migrationPath, "utf8"),
+      workerSql(),
     ]);
     expect(enumSql).toContain("add value if not exists 'worker_foundation_probe'");
     expect(sql).not.toContain("add value if not exists 'worker_foundation_probe'");
   });
 
   it("exposes only narrow service-role worker mutation RPCs", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await workerSql();
     for (const fn of [
       "register_worker_node",
       "disable_worker_node",
@@ -41,7 +53,7 @@ describe("Phase 6A worker lease state machine", () => {
   });
 
   it("claims atomically with deterministic ordering and a 90 second lease", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await workerSql();
     expect(sql).toContain("for update skip locked");
     expect(sql).toContain("priority desc, available_at asc, created_at asc, id asc");
     expect(sql).toContain("interval '90 seconds'");
@@ -51,7 +63,7 @@ describe("Phase 6A worker lease state machine", () => {
   });
 
   it("keeps retries bounded at 15 seconds, 60 seconds, then dead letter", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await workerSql();
     expect(sql).toContain("interval '15 seconds'");
     expect(sql).toContain("interval '60 seconds'");
     expect(sql).toContain("WORKER_ATTEMPTS_EXHAUSTED");
@@ -59,7 +71,7 @@ describe("Phase 6A worker lease state machine", () => {
   });
 
   it("requires exact current lease identity and lets cancellation win", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await workerSql();
     expect(sql).toContain("WORKER_LEASE_INVALID");
     expect(sql).toContain("lease_expires_at <= now()");
     expect(sql).toContain("cancel_requested_at is not null");
@@ -68,14 +80,14 @@ describe("Phase 6A worker lease state machine", () => {
   });
 
   it("makes identical terminal replay idempotent and conflicting replay fail closed", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await workerSql();
     expect(sql).toContain("terminal_payload_digest");
     expect(sql).toContain("WORKER_TERMINAL_CONFLICT");
     expect(sql).toContain("replayed");
   });
 
   it("keeps the foundation probe internal and non-networked", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await workerSql();
     expect(sql).toContain("'worker_foundation_probe'::public.scan_job_kind");
     expect(sql).toContain("'foundation_no_egress_v1'");
     expect(sql).toContain("request_count");
