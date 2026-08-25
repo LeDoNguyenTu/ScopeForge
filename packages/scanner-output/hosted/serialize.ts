@@ -14,6 +14,10 @@ export interface SerializeHostedScanResultOptions {
   repositoryUrl: string;
 }
 
+function sha256(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
 function canonicalRepositoryUrl(value: string): string {
   let url: URL;
   try {
@@ -86,9 +90,27 @@ function locationFor(finding: Finding): HostedPhase3FindingLocationV1 {
   return location;
 }
 
+function fingerprintFor(
+  finding: Finding,
+  location: HostedPhase3FindingLocationV1,
+): string {
+  if (finding.scanner !== "secrets") return finding.fingerprint;
+
+  const identity = [
+    "scopeforge-hosted-secret-fingerprint-v1",
+    finding.ruleId.trim().toLowerCase(),
+    finding.ruleVersion.trim(),
+    location.path,
+    String(location.line),
+  ].join("\n");
+
+  return `sfs1:${sha256(identity)}`;
+}
+
 function mapFinding(finding: Finding): HostedPhase3FindingV1 {
+  const location = locationFor(finding);
   return {
-    fingerprint: finding.fingerprint,
+    fingerprint: fingerprintFor(finding, location),
     scanner: finding.scanner,
     ruleId: finding.ruleId,
     ruleVersion: finding.ruleVersion,
@@ -97,7 +119,7 @@ function mapFinding(finding: Finding): HostedPhase3FindingV1 {
     severity: finding.severity,
     confidence: finding.confidence,
     validation: normalizeHostedValidation(finding.validation),
-    location: locationFor(finding),
+    location,
     evidence: {
       summary: finding.evidence.summary,
     },
@@ -130,8 +152,7 @@ function compareHostedFindings(left: HostedPhase3FindingV1, right: HostedPhase3F
 }
 
 function runRefFor(payload: Omit<HostedPhase3EnvelopeV1, "runRef">): string {
-  const digest = createHash("sha256").update(JSON.stringify(payload), "utf8").digest("hex");
-  return `sfh1:${digest}`;
+  return `sfh1:${sha256(JSON.stringify(payload))}`;
 }
 
 export function serializeHostedScanResult(
