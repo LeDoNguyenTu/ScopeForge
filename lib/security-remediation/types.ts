@@ -32,7 +32,8 @@ export type SecurityRemediationErrorCode =
   | "SECURITY_RETEST_ACTIVE_CONFLICT"
   | "SECURITY_RETEST_NOT_AVAILABLE"
   | "SECURITY_RETEST_JOB_INVALID"
-  | "SECURITY_RETEST_FINALIZATION_INVALID";
+  | "SECURITY_RETEST_FINALIZATION_INVALID"
+  | "SECURITY_RETEST_EXECUTION_FAILED";
 
 const SAFE_REASONS: Readonly<Record<SecurityRemediationErrorCode, string>> = Object.freeze({
   SECURITY_REMEDIATION_FORBIDDEN: "Your workspace role cannot change this remediation workflow.",
@@ -47,6 +48,7 @@ const SAFE_REASONS: Readonly<Record<SecurityRemediationErrorCode, string>> = Obj
   SECURITY_RETEST_NOT_AVAILABLE: "The finding retest is not available in this workspace.",
   SECURITY_RETEST_JOB_INVALID: "The runtime job cannot be attached to this retest.",
   SECURITY_RETEST_FINALIZATION_INVALID: "The finding retest cannot be finalized from its current state.",
+  SECURITY_RETEST_EXECUTION_FAILED: "The finding retest could not be started safely.",
 });
 
 export class SecurityRemediationWorkflowError extends Error {
