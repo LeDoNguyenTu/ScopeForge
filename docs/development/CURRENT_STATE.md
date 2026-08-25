@@ -6,149 +6,102 @@ ScopeForge is an open-source application-security and cyber-risk awareness platf
 
 `Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify`
 
-Primary Phase 4 references:
-
-- `docs/superpowers/specs/2026-08-24-phase-4a-security-domain-contracts-design.md`
-- `docs/superpowers/specs/2026-08-25-phase-4b-passive-runtime-observations-design.md`
-- `docs/superpowers/plans/2026-08-25-phase-4b-passive-runtime-observations.md`
-- `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
-- `docs/superpowers/plans/2026-08-25-phase-4c-bounded-active-validation.md`
+The product keeps authorization, deterministic evidence, explanation, and remediation as separate concerns. Security state must remain attributable to deterministic/runtime evidence or explicit human workflow rather than model inference alone.
 
 ## Completed foundations
 
-### Phase 1 - Foundation
+- **Phase 1 Foundation** - Next.js/React shell, Supabase auth/workspaces, RLS, security headers, CI.
+- **Phase 2 Asset control and authorization** - workspace-scoped assets, canonical targets, proof of control, SSRF-safe verification, roles, quotas, audit events, and asset UX.
+- **Phase 3 Code and supply-chain security** - local/passive scanner with hostile-repository safety, secrets, JavaScript/TypeScript SAST and bounded command taint, npm SCA/SBOM, IaC/configuration analysis, baselines, JSON/SARIF, golden outputs, and benchmarks. Merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
+- **Phase 4A Security domain contracts** - canonical framework-independent finding/evidence/provenance/validation/lifecycle/remediation/relationship contracts. Merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
+- **Phase 4B Verified passive runtime observations** - verified targets, reauthorization, DNS/IP safety, pinned HTTPS, bounded passive observations, cancellation, deterministic runtime findings, and trusted persistence. Merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
+- **Phase 4C-1 Bounded CORS origin-policy validation** - separate owner/admin-authorized active profile `cors-origin-policy@1`, one fixed synthetic-Origin unauthenticated GET to the exact verified HTTPS target, no redirect following/body/credentials/caller request configuration, bounded evidence and cancellation-safe persistence. Merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
 
-- Next.js and React application shell
-- Supabase authentication and workspace tenancy
-- Row Level Security and server session handling
-- security headers and CI baseline
+## Phase 5A - Hosted finding foundation
 
-### Phase 2 - Asset control and authorization
+Phase 5A delivery is implemented in PR #30 and ships with this documentation.
 
-- workspace-scoped web, API, and public-GitHub assets
-- canonical target normalization
-- proof-of-control challenges
-- public HTTPS verification with DNS, IP, and SSRF boundaries
-- trusted server writes, roles, quotas, audit events, and asset UI
+### Canonical hosted ledger
 
-### Phase 3 - Code and supply-chain security
+One workspace-scoped hosted model is used for both passive and active runtime findings:
 
-Phase 3 is complete and merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
+- `security_findings` - current canonical state
+- `security_evidence` - immutable normalized evidence
+- `security_finding_evidence` - append-only finding/evidence links
+- `security_finding_occurrences` - append-only trusted recurrence per scan job
+- `security_finding_events` - append-only system/operator history
 
-The local scanner remains a separate passive execution path with bounded hostile-repository inventory, normalized findings, redacted secret detection, JavaScript/TypeScript structural SAST and bounded command taint analysis, npm SCA and CycloneDX SBOM, infrastructure/configuration analysis, baselines, JSON/SARIF output, hostile-input coverage, and benchmark evidence.
+Authenticated users receive RLS-protected SELECT only. Browser roles have no direct mutation authority over these tables or the trusted result/lifecycle RPCs.
 
-### Phase 4A - Security domain contracts
+### Atomic runtime ingestion
 
-Phase 4A is complete and merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
+Passive and active runtime repositories now persist the runtime observation and hosted finding/evidence batch through separate service-role-only atomic PostgreSQL RPCs. The RPCs lock the exact job/workspace/asset parent and require a running, uncancelled job of the expected kind before any result is accepted.
 
-`packages/security-domain` owns framework-independent product finding, evidence, provenance, validation, lifecycle, remediation, relationship, and provider-neutral advisory contracts. `packages/security-domain-adapters/phase3` maps normalized Phase 3 findings into that domain without copying scanner metadata or creating a reverse dependency.
+Hosted ingestion accepts only deterministic runtime findings with scanner-derived provenance, `runtime_observed` or `runtime_validated` validation, observed public HTTP/TLS evidence, exact asset binding, bounded payloads, and internally available evidence references.
 
-## Phase 4B - Verified passive runtime observations
+Retries are idempotent. Conflicting reuse of an observation, finding, or evidence ID is rejected.
 
-Phase 4B is complete and merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
+### Durable identity and recurrence
 
-`packages/network-safety` remains pure public-IP/DNS policy. `packages/runtime-observer` remains passive-only and owns verified web/API target policy, same-host redirect decisions, bounded passive observations, deterministic passive findings, and request/redirect/observation/time budgets. `lib/runtime-observations` owns trusted enqueue authorization, immutable target/verification snapshots, execution-time reauthorization, DB-backed asynchronous cancellation, job state, persistence, stable failure codes, and bounded audit events.
+Canonical finding identity stays stable across reobservation. Passive identity now includes source version before any hosted rows exist. Immutable evidence identity additionally fingerprints bounded evidence kind, classification, and summary content so changed evidence creates a new immutable record rather than conflicting with prior evidence.
 
-No response body or cookie value is persisted. Persisted runtime URLs remove query strings, fragments, and credentials. Broad crawling, fuzzing, authentication replay, exploit payloads, credential attacks, persistence, and destructive behavior remain outside Phase 4B.
+Trusted reobservation appends a new occurrence and event. Current canonical state is refreshed only for observations at least as recent as `last_seen_at`.
 
-## Phase 4C-1 - Bounded CORS origin-policy validation
+Recurrence policy in this slice:
 
-Phase 4C-1 is complete and merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`. The approved design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`.
+- `resolved` -> `in_progress`
+- `retest_pending` -> `in_progress`
+- `verified_fixed` -> `open`
+- `accepted_risk` remains accepted
+- `false_positive` remains false-positive
 
-### Shared low-level runtime network
+### Limited operator lifecycle
 
-`packages/runtime-network` contains the framework-independent DNS/HTTPS mechanics shared by passive and active runtime policy layers:
+Phase 5A exposes only:
 
-- fresh DNS resolution before every connection
-- complete public-address-set validation through `network-safety`
-- deterministic socket pinning to a validated public IP
-- original hostname retained for Host, SNI, and certificate verification
-- HTTPS port 443 and GET-only transport contract
-- DNS plus HTTPS inside one absolute request deadline
-- abort of active HTTPS at the outer deadline
-- automatic redirects disabled
-- response bodies destroyed instead of captured
-- no application, UI, database, finding, observer, validator, or provider behavior
+- open -> acknowledged
+- open -> in progress
+- acknowledged -> in progress
+- in progress -> resolved
+- resolved -> in progress
 
-Application/component code is architecture-guarded from importing this generic transport directly.
+Owner/admin/member may perform these actions; viewer is read-only. Resolve and reopen require a note up to 1000 characters. PostgreSQL independently checks actor workspace membership/role, expected current state, allowed transition, and note requirements while locking the finding and appending the lifecycle event in the same transaction.
 
-### Active validator authority
+Risk acceptance, false-positive decisions, retest-pending/verified-fixed operator workflow, Security Stories, and model-driven lifecycle changes remain outside Phase 5A.
 
-`packages/runtime-validator` is separate from the passive observer. Its only active authority is:
+### Findings UI and read model
 
-- verified `web_application` or `api` asset
-- separate explicit owner/admin authorization; verification alone is insufficient
-- immutable canonical target, asset kind, exact `verified_at`, profile/version, consent timestamp, actor, and budget snapshot
-- execution-time reauthorization immediately before DNS/network
-- exact verified HTTPS hostname, port 443
-- exactly one unauthenticated GET
-- fixed `Origin: https://scopeforge.invalid`
-- fixed safe request headers only
-- zero redirect following and zero retries
-- zero request body, cookie, Authorization, browser state, or caller-provided request configuration
-- 5-second DNS-inclusive request deadline and 10-second total bound
-- one bounded normalized `cors-policy` observation
-- no response-body persistence
+The dashboard now exposes hosted finding counts and a dedicated Findings route. Workspace members can review canonical identity, asset, severity, confidence, validation, taxonomy, remediation, immutable evidence, occurrence history, and lifecycle history from the same ledger.
 
-A caller cannot choose URL, path, method, Origin, headers, body, credentials, redirect policy, profile, or budget.
+Read paths are bounded:
 
-### Findings and evidence
+- findings list: 100 rows
+- evidence links/evidence: 100 rows
+- occurrences: 100 rows
+- events: 100 rows
+- dashboard active-finding total: count-only query rather than full-ledger materialization
 
-CORS evaluation is deterministic and conservative:
+### Security boundaries preserved
 
-- exact synthetic-origin allowance plus credentialed CORS maps to a high/high `runtime_validated` finding
-- exact synthetic-origin reflection without credential allowance maps to a low/high `runtime_validated` finding
-- wildcard and missing `Vary: Origin` remain observation-only in this slice
+Phase 5A introduces no new network/scanning authority. `lib/security-findings` cannot import runtime-network or scanner execution packages. Runtime packages cannot depend back on hosted finding persistence. Passive and active repositories remain on their dedicated atomic result RPCs.
 
-Findings reuse `packages/security-domain`; no parallel finding model exists. Active finding/evidence identity and provenance are profile-versioned with `cors-origin-policy@1`, and evidence summaries remain bounded.
+No raw response body, cookie value, arbitrary response-header collection, credential, query/fragment secret, or unbounded exception text is added to hosted evidence.
 
-### Trusted job, persistence, and cancellation boundary
+## Verification baseline
 
-`lib/active-validation` owns owner/admin authorization, immutable active job snapshots, execution reauthorization, repository access, stable bounded failures/audits, and DB-backed cancellation.
-
-Active validation reuses `scan_jobs` and `runtime_observations`. Authenticated browser clients remain select-only for runtime state; trusted server adapters perform writes.
-
-Persistence and cancellation are serialized in the database:
-
-- `cors-policy` inserts require the exact parent job to be `running`, active, and uncancelled
-- the observation guard locks the matching workspace/job/asset parent row before checking state
-- if cancellation acquires the row first, observation persistence is rejected
-- if the active observation commits first, a later cancellation request is rejected so committed active evidence cannot coexist with a `cancelled` terminal state
-- success still requires the job to remain running and uncancelled
-
-### Asset workflow
-
-Verified web/API asset pages keep passive observation and bounded active validation visually and operationally separate. The active panel explains the fixed request contract and requires an explicit consent checkbox. The dedicated server action accepts asset identity plus consent only and binds the profile/budget server-side. Active cancellation is scoped to the active job.
-
-## Executable architecture boundaries
-
-CI guards:
-
-- `packages/security-domain` from scanner/UI/database/provider dependency reversal
-- `packages/network-safety` from DNS/HTTP/TLS/database/framework behavior
-- `packages/runtime-network` from application/domain/observer/validator dependency reversal
-- application/component/lib code from importing generic `runtime-network` authority directly
-- `packages/runtime-observer` from active-validator, UI, database, Supabase, and provider dependencies
-- `packages/runtime-validator` from passive-observer, UI, database, Supabase, and provider dependencies
-- `runtime-validator` from re-exporting generic transport authority
-
-## Phase 4C-1 verification
-
-Exact final PR head `11c49e8723654f4279c9d09eed014e0b878281f6` passed CI #555 immediately before merge with:
+The last implementation/security-guard checkpoint before the documentation tail, head `3d71ac3b408828608e9173d77db3c739a86f4710`, passed CI #618 with:
 
 - reproducible dependency install
-- 122 test files and 538 tests
+- 131 test files / 579 tests
 - strict TypeScript typecheck
-- CLI build and compiled `ScopeForge 0.1.0` smoke
-- 700-file scanner benchmark with 0 findings and 0 errors
+- CLI build and compiled version smoke
+- scanner benchmark
 - Next.js production build
 
-The final branch tail after the security-reviewed code checkpoint contained documentation files only. The exact head remained mergeable with no review threads or submitted blocking reviews, then PR #27 was squash-merged using expected-head protection.
-
-The available commit-workflow query did not expose a post-merge run for squash commit `fb3aa27...`; no post-merge CI result is inferred.
+The exact final PR head must pass the same complete gate before merge.
 
 ## Next boundary
 
-The next major roadmap boundary is Phase 5 - Findings, Security Stories, and remediation. It should build hosted finding workflow, evidence/inference separation, relationships, explanation, remediation, and retesting on the existing `security-domain` rather than introducing a second finding model.
+The next Phase 5 design boundary is **5B Security Stories, remediation, and retest workflow**. It should add explanation and workflow on top of the canonical ledger without creating a second finding model or allowing inferred/model output to independently change validated security state.
 
-Additional active validators are not implicitly authorized by Phase 4C-1. Queue-backed isolated workers, dedicated egress infrastructure, concurrency/backpressure, private artifacts, fleet operations, and production abuse controls remain Phase 6 work.
+Additional active validators remain separate design/security boundaries. Queue-backed isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet operations, and abuse controls remain Phase 6.
