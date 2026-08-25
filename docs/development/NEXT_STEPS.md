@@ -2,7 +2,7 @@
 
 ## Phase 5B completion boundary
 
-Phase 5B Remediation, Retest, and Security Story is merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a`.
+Phase 5B Remediation, Retest, and Security Story is merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a` and is now production-reconciled.
 
 It extends the Phase 5A canonical hosted ledger without replacing it:
 
@@ -23,35 +23,16 @@ It extends the Phase 5A canonical hosted ledger without replacing it:
 
 Exact PR head `5c7b8c34432f8bb51731fe069178411a8005d023` passed CI #685 with 148 test files / 654 tests, strict typecheck, CLI build/version smoke, scanner benchmark, and production build before expected-head merge.
 
-## Immediate operational task - deploy Phase 5B database migrations
-
-Production Supabase migration history currently ends at Phase 5A. Before treating the hosted Phase 5B workflow as production-ready, deploy the two already-reviewed migrations in repository order:
-
-1. `20260825090000_phase_5b_remediation_retest_security_story.sql`
-2. `20260825091000_phase_5b_retest_recovery_hardening.sql`
-
-Then verify:
-
-- both migrations appear in production migration history
-- `security_finding_work` and `security_finding_retests` exist
-- RLS is enabled on both workflow tables
-- authenticated users retain SELECT-only access
-- all Phase 5B mutation RPCs remain inaccessible to `public`, `anon`, and `authenticated`
-- service role retains mutation RPC execution
-- Supabase security advisor remains clean
-- the four Phase 5A missing-FK-index INFO notices disappear
-- a read-only smoke query can resolve the new tables/functions
-
-Do not paper over production drift by changing application behavior or weakening tests.
+Production Supabase now contains both Phase 5B migrations. Post-deployment verification confirms RLS, SELECT-only browser access, service-role-only mutation RPCs, empty pinned search paths, snapshot/recovery constraints and triggers, the intended foreign-key covering indexes, smoke-readable tables, and a clean security advisor. The prior missing-FK-index notices are resolved.
 
 ## Next design boundary - Phase 5C Hosted Phase 3 finding import
 
-ScopeForge already has a capable local/CI Phase 3 scanner, but hosted ingestion currently accepts deterministic runtime findings only. The next useful product step is a reviewed adapter that brings existing code and supply-chain findings into the same canonical hosted ledger without creating a second finding model.
+ScopeForge already has a capable local/CI Phase 3 scanner, but hosted ingestion currently accepts deterministic runtime findings only. The next product step is a reviewed adapter that brings existing code and supply-chain findings into the same canonical hosted ledger without creating a second finding model or granting hosted repository execution authority.
 
 The design must answer these questions explicitly:
 
-- What trusted caller/import boundary may submit Phase 3 scan results?
-- How is a repository represented and bound to a workspace/asset without pretending it is a runtime target?
+- What trusted caller/import boundary may submit normalized Phase 3 scan results?
+- How is a repository represented and bound to a workspace without pretending it is a runtime web/API target?
 - How do Phase 3 stable fingerprints and scanner source versions map to canonical hosted finding identity?
 - What is the hosted scan-run identity and how are retries made idempotent?
 - Which evidence kinds are permitted from secrets, SAST, taint, SCA, SBOM, Docker, Kubernetes, Terraform, GitHub Actions, and configuration scanners?
@@ -67,7 +48,7 @@ The design must answer these questions explicitly:
 
 - `security_findings` remains the only canonical finding state.
 - Do not route Phase 3 findings through runtime-only ingestion RPCs by convenience.
-- Hosted import is a trusted data-ingestion boundary, not hosted arbitrary repository execution.
+- Hosted import is a trusted normalized-data ingestion boundary, not hosted arbitrary repository execution.
 - The server must never persist secret values or unbounded source content.
 - Browser roles remain read-only for canonical finding/evidence/import state.
 - Import mutation RPCs independently validate workspace/repository/run/finding/evidence binding.
@@ -75,6 +56,38 @@ The design must answer these questions explicitly:
 - Evidence remains immutable and recurrence appends occurrence/history.
 - Advisory/model output cannot independently alter validation or lifecycle state.
 - No new remote active-testing authority is introduced.
+
+## Recommended Phase 5C architecture direction
+
+Prefer a dedicated hosted import boundary rather than extending the runtime persistence RPCs.
+
+Conceptually:
+
+```text
+local/CI ScopeForge scanner
+        |
+        v
+normalized Phase 3 export
+        |
+        v
+trusted hosted import service
+        |
+        +--> strict privacy/redaction validation
+        +--> repository + scan-run binding
+        +--> Phase 3 adapter into canonical security-domain types
+        |
+        v
+service-role-only atomic import RPC
+        |
+        +--> canonical security_findings
+        +--> immutable security_evidence
+        +--> append-only occurrences/events
+        +--> Phase 5C repository/run metadata
+```
+
+The import service should accept only a closed, versioned ScopeForge export contract produced by existing normalized scanner output. It should not accept arbitrary filesystem paths, repository URLs to clone, commands to run, package-manager options, or caller-controlled execution configuration.
+
+Repository identity and scan-run provenance should be first-class hosted metadata, while the finding itself remains in `security_findings`. Phase 3 evidence should use category-specific bounded summaries rather than uploading arbitrary source fragments.
 
 ## Phase 6 after hosted import
 
@@ -108,8 +121,7 @@ Before a new implementation session:
 2. Read `docs/development/CURRENT_STATE.md`.
 3. Read `docs/development/TEST_STATUS.md`.
 4. Read `docs/ARCHITECTURE.md` and `docs/PHASES.md`.
-5. Confirm PR #33 / merge `eb35c2b23468addd817951486c60ac7d68710c9a` is present on `main`.
-6. Confirm whether both Phase 5B migrations are present in production before debugging hosted Phase 5B behavior.
-7. Complete production migration verification if still pending.
-8. Start Phase 5C with a design/spec and threat/security review before implementation.
-9. Preserve the canonical ledger, immutable evidence, narrow mutation authority, and existing runtime/network boundaries.
+5. Confirm PR #33 and the Phase 5B documentation follow-ups are present on `main`.
+6. Treat Phase 5B production reconciliation as complete unless current Supabase verification proves otherwise.
+7. Start Phase 5C with a design/spec and threat/security review before implementation.
+8. Preserve the canonical ledger, immutable evidence, narrow mutation authority, and existing scanner/runtime/network boundaries.
