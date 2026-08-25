@@ -132,7 +132,7 @@ describe("hosted Phase 3 export", () => {
     expect(serialized).not.toContain("src/private.ts");
   });
 
-  it("does not expose secret span length in hosted locations", () => {
+  it("does not expose secret span length or scanner-provided secret summary text", () => {
     const secret = finding({
       fingerprint: `sfs1:${"d".repeat(64)}`,
       scanner: "secrets",
@@ -147,7 +147,7 @@ describe("hosted Phase 3 export", () => {
         endColumn: 60,
       },
       evidence: {
-        summary: "Detected by secrets/github-token.",
+        summary: "Regression leak: ghp_RAW_SECRET_MUST_NOT_CROSS",
         redactedSnippet: "assignment:token: ghp_…REDACTED",
       },
       metadata: { provider: "github", secretLength: 40 },
@@ -159,8 +159,10 @@ describe("hosted Phase 3 export", () => {
     }));
 
     expect(parsed.findings[0].location).toEqual({ path: "src/config.ts", line: 4 });
+    expect(parsed.findings[0].evidence).toEqual({ summary: "Detected by secrets/github-token." });
     expect(JSON.stringify(parsed)).not.toContain("secretLength");
     expect(JSON.stringify(parsed)).not.toContain("REDACTED");
+    expect(JSON.stringify(parsed)).not.toContain("RAW_SECRET_MUST_NOT_CROSS");
   });
 
   it("rekeys local secret fingerprints using only safe hosted rule and location identity", () => {
