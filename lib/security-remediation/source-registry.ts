@@ -2,6 +2,7 @@ import type { SecurityFindingRow } from "@/lib/database.types";
 import type { RetestSourceDescriptor } from "./types";
 
 const PASSIVE_SOURCE_ID = "scopeforge:runtime-observer";
+const PASSIVE_SOURCE_VERSION = "0.1";
 const ACTIVE_SOURCE_ID = "scopeforge:runtime-validator";
 const ACTIVE_SOURCE_VERSION = "cors-origin-policy@1";
 
@@ -12,11 +13,14 @@ export function resolveRetestSource(
     return null;
   }
 
-  if (finding.source_id === PASSIVE_SOURCE_ID) {
+  if (
+    finding.source_id === PASSIVE_SOURCE_ID
+    && finding.source_version === PASSIVE_SOURCE_VERSION
+  ) {
     return {
       executionKind: "passive_runtime",
       sourceId: PASSIVE_SOURCE_ID,
-      sourceVersion: finding.source_version,
+      sourceVersion: PASSIVE_SOURCE_VERSION,
       validationProfileId: null,
       validationProfileVersion: null,
     };
