@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
-import type { Finding, ScanResult } from "../../scanner-core/findings/types";
+import type { Finding, ScanResult, Validation } from "../../scanner-core/findings/types";
 import type {
   HostedPhase3EnvelopeV1,
   HostedPhase3FindingLocationV1,
   HostedPhase3FindingV1,
+  HostedPhase3Validation,
 } from "./types";
 
 const MAX_HOSTED_FINDINGS = 500;
@@ -60,6 +61,17 @@ function hostedPath(value: string): string {
   return normalized;
 }
 
+function normalizeHostedValidation(validation: Validation): HostedPhase3Validation {
+  switch (validation) {
+    case "static_confirmed":
+    case "dependency_confirmed":
+      return "static_confirmed";
+    case "heuristic":
+    case "informational":
+      return "unvalidated";
+  }
+}
+
 function locationFor(finding: Finding): HostedPhase3FindingLocationV1 {
   const location: HostedPhase3FindingLocationV1 = {
     path: hostedPath(finding.location.file),
@@ -84,7 +96,7 @@ function mapFinding(finding: Finding): HostedPhase3FindingV1 {
     description: finding.description,
     severity: finding.severity,
     confidence: finding.confidence,
-    validation: finding.validation,
+    validation: normalizeHostedValidation(finding.validation),
     location: locationFor(finding),
     evidence: {
       summary: finding.evidence.summary,
