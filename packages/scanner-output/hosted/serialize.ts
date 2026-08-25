@@ -107,6 +107,13 @@ function fingerprintFor(
   return `sfs1:${sha256(identity)}`;
 }
 
+function evidenceSummaryFor(finding: Finding): string {
+  if (finding.scanner === "secrets") {
+    return `Detected by ${finding.ruleId}.`;
+  }
+  return finding.evidence.summary;
+}
+
 function mapFinding(finding: Finding): HostedPhase3FindingV1 {
   const location = locationFor(finding);
   return {
@@ -121,7 +128,7 @@ function mapFinding(finding: Finding): HostedPhase3FindingV1 {
     validation: normalizeHostedValidation(finding.validation),
     location,
     evidence: {
-      summary: finding.evidence.summary,
+      summary: evidenceSummaryFor(finding),
     },
     taxonomy: {
       cwe: [...finding.cwe].sort(),
