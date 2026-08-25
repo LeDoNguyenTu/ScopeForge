@@ -4,12 +4,12 @@ alter table public.security_finding_retests
     (
       execution_kind = 'passive_runtime'
       and source_id = 'scopeforge:runtime-observer'
-      and source_version = '0.1'
+      and source_version is not distinct from '0.1'
     )
     or (
       execution_kind = 'active_validation'
       and source_id = 'scopeforge:runtime-validator'
-      and source_version = 'cors-origin-policy@1'
+      and source_version is not distinct from 'cors-origin-policy@1'
     )
   );
 
