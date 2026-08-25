@@ -165,9 +165,16 @@ begin
     raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
   end if;
 
-  if jsonb_typeof(target_scanner_descriptors) is distinct from 'array'
-     or jsonb_array_length(target_scanner_descriptors) not between 1 and 32
-     or pg_column_size(target_scanner_descriptors) > 8192 then
+  if jsonb_typeof(target_scanner_descriptors) is distinct from 'array' then
+    raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
+  end if;
+  if jsonb_array_length(target_scanner_descriptors) not between 1 and 32
+     or pg_column_size(target_scanner_descriptors) > 8192
+     or exists (
+       select 1
+         from jsonb_array_elements(target_scanner_descriptors) as descriptor(value)
+        where jsonb_typeof(descriptor.value) is distinct from 'string'
+     ) then
     raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
   end if;
 
@@ -194,8 +201,10 @@ begin
   end loop;
 
   if jsonb_typeof(finding_rows) is distinct from 'array'
-     or jsonb_typeof(evidence_rows) is distinct from 'array'
-     or jsonb_array_length(finding_rows) > 500
+     or jsonb_typeof(evidence_rows) is distinct from 'array' then
+    raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
+  end if;
+  if jsonb_array_length(finding_rows) > 500
      or jsonb_array_length(evidence_rows) > 500
      or pg_column_size(finding_rows) + pg_column_size(evidence_rows) > 3670016 then
     raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
@@ -227,8 +236,10 @@ begin
 
   for evidence_row in select value from jsonb_array_elements(evidence_rows)
   loop
-    if jsonb_typeof(evidence_row) is distinct from 'object'
-       or jsonb_object_length(evidence_row) <> 6
+    if jsonb_typeof(evidence_row) is distinct from 'object' then
+      raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
+    end if;
+    if (select count(*) from jsonb_object_keys(evidence_row)) <> 6
        or not (evidence_row ? 'evidence_id')
        or not (evidence_row ? 'kind')
        or not (evidence_row ? 'provenance_kind')
@@ -243,15 +254,17 @@ begin
        or jsonb_typeof(evidence_row->'summary') is distinct from 'string'
        or char_length(evidence_row->>'summary') not between 1 and 4096
        or evidence_row->>'classification' <> 'internal'
-       or evidence_row->'artifact_ref' is distinct from 'null'::jsonb then
+       or jsonb_typeof(evidence_row->'artifact_ref') is distinct from 'null' then
       raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
     end if;
   end loop;
 
   for finding_row in select value from jsonb_array_elements(finding_rows)
   loop
-    if jsonb_typeof(finding_row) is distinct from 'object'
-       or jsonb_object_length(finding_row) <> 16
+    if jsonb_typeof(finding_row) is distinct from 'object' then
+      raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
+    end if;
+    if (select count(*) from jsonb_object_keys(finding_row)) <> 16
        or not (finding_row ? 'finding_id')
        or not (finding_row ? 'source_kind')
        or not (finding_row ? 'source_id')
@@ -286,11 +299,13 @@ begin
        or finding_row->>'confidence' not in ('high', 'medium', 'low')
        or finding_row->>'validation_state' not in ('static_confirmed', 'unvalidated')
        or finding_row->>'provenance_kind' <> 'scanner-derived'
-       or (jsonb_typeof(finding_row->'location') not in ('object', 'null'))
+       or jsonb_typeof(finding_row->'location') not in ('object', 'null')
        or jsonb_typeof(finding_row->'taxonomy') is distinct from 'object'
-       or (jsonb_typeof(finding_row->'remediation') not in ('object', 'null'))
-       or jsonb_typeof(finding_row->'evidence_refs') is distinct from 'array'
-       or jsonb_array_length(finding_row->'evidence_refs') not between 1 and 8 then
+       or jsonb_typeof(finding_row->'remediation') not in ('object', 'null')
+       or jsonb_typeof(finding_row->'evidence_refs') is distinct from 'array' then
+      raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
+    end if;
+    if jsonb_array_length(finding_row->'evidence_refs') not between 1 and 8 then
       raise exception 'PHASE3_IMPORT_PAYLOAD_INVALID';
     end if;
 
@@ -308,7 +323,8 @@ begin
   end loop;
 
   payload_digest_value := md5(finding_rows::text || E'\n' || evidence_rows::text);
-  import_observed_at := target_scan_started_at + (target_scan_duration_ms * interval '1 millisecond');
+  import_observed_at := target_scan_started_at
+    + (target_scan_duration_ms::double precision * interval '1 millisecond');
 
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(
