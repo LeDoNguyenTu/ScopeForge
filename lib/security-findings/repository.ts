@@ -82,6 +82,7 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
       .select("*")
       .eq("workspace_id", workspaceId)
       .order("last_seen_at", { ascending: false })
+      .order("finding_id", { ascending: true })
       .range(offset, offset + pageSize);
 
     if (error) throw new Error("Unable to load workspace security findings.");
