@@ -1,6 +1,6 @@
 # ScopeForge Architecture
 
-ScopeForge separates control-plane authorization from scanner/runtime execution so the public application cannot become an unrestricted scanning proxy. Safety boundaries are expressed in package dependency direction, database authority, target policy, and executable regression tests.
+ScopeForge separates control-plane authorization from scanner/runtime execution so the public application cannot become an unrestricted scanning proxy. Safety boundaries are expressed in package dependency direction, database authority, target policy, privacy contracts, and executable regression tests.
 
 ## Control plane
 
@@ -12,9 +12,9 @@ Vercel / Next.js control plane
   |
   +--> Supabase Auth
   +--> authenticated SELECTs protected by RLS
-  +--> narrow trusted server actions
+  +--> narrow trusted server actions / API routes
   |      |
-  |      +--> service-role runtime/finding/workflow RPCs
+  |      +--> service-role finding/workflow/import RPCs
   |
   +--> future scan queue
            |
@@ -23,13 +23,28 @@ Vercel / Next.js control plane
            +--> dedicated egress controls
 ```
 
-Every authenticated user belongs to one or more workspaces through `workspace_members`. Exposed hosted security tables are member-readable through RLS. Browser roles do not receive INSERT, UPDATE, DELETE, or direct mutation-RPC authority for the security ledger or remediation/retest workflow.
+Authenticated users belong to workspaces through `workspace_members`. Exposed hosted security tables are member-readable through RLS. Browser roles do not receive INSERT, UPDATE, DELETE, or direct mutation-RPC authority for the canonical security ledger, remediation/retest workflow, or Phase 5C import provenance.
 
 ## Phase 3 local scanner
 
-The Phase 3 scanner is a separate local execution path. Repository content is hostile data. Phase 3 performs bounded inventory and safe reads and does not execute target modules, package lifecycle scripts, Dockerfiles, Terraform, Kubernetes, GitHub Actions, package managers, or cloud tooling. Detector packages flow into normalized scanner results and JSON/SARIF output through the CLI composition root.
+The Phase 3 scanner is a separate local execution path. Repository content is hostile data. Phase 3 performs bounded inventory and safe reads and does not execute target modules, package lifecycle scripts, Dockerfiles, Terraform, Kubernetes, GitHub Actions, package managers, or cloud tooling.
 
-Hosted import of Phase 3 findings is not implemented yet. Any future import adapter must ingest normalized scanner data rather than moving arbitrary repository execution into the control plane.
+Detector packages flow into normalized scanner results and CLI outputs. Phase 5C adds a dedicated privacy-reduced output:
+
+```text
+local/CI repository
+      |
+      v
+bounded Phase 3 scanner
+      |
+      v
+hosted-json privacy reducer
+      |
+      v
+versioned normalized envelope
+```
+
+The hosted control plane still does not clone, fetch, checkout, build, install, or execute repository content. Hosted execution remains a future Phase 6 worker boundary.
 
 ## Product security domain
 
@@ -74,194 +89,175 @@ runtime-observer                               runtime-validator
 
 `packages/runtime-validator` contains only the approved `cors-origin-policy@1` active profile: verified web/API targets, separate owner/admin consent, exact verified HTTPS/443 target, exactly one unauthenticated GET, fixed `Origin: https://scopeforge.invalid`, zero redirect following/retries/request body/credentials/caller headers, bounded time/observation budgets, no response-body capture, and deterministic `runtime_validated` findings.
 
-Runtime persistence and cancellation serialize through the matching `scan_jobs` row so active evidence cannot commit after cancellation wins, and a late cancellation cannot relabel a job after runtime result persistence has committed.
+Repository assets are not valid targets for either runtime authority.
 
-## Phase 5A hosted finding ledger
+## Canonical hosted finding ledger
 
-Phase 5A adds one canonical hosted persistence model. It does not create passive/active-specific finding tables.
+Phase 5A established one hosted persistence model shared by trusted deterministic sources.
 
 ```text
 passive runtime result ----+
                            |
-active validation result --+--> trusted atomic result RPC
-                                  |
-                                  +--> runtime_observations
-                                  +--> security_evidence
+active validation result --+--> dedicated trusted atomic RPCs
+                           |      |
+hosted Phase 3 import -----+      +--> security_evidence
                                   +--> security_findings
                                   +--> security_finding_evidence
                                   +--> security_finding_occurrences
                                   +--> security_finding_events
 ```
 
-### Canonical state and immutable history
-
 - `security_findings` stores current canonical state keyed by `(workspace_id, finding_id)`.
 - `security_evidence` stores immutable normalized evidence keyed by `(workspace_id, evidence_id)`.
 - `security_finding_evidence` links canonical findings to evidence and is append-only.
 - `security_finding_occurrences` records trusted reobservation per scan job and is append-only.
-- `security_finding_events` records creation, reobservation, reopening, operator lifecycle changes, remediation workflow, and retest events and is append-only.
+- `security_finding_events` records creation, recurrence, reopening, operator lifecycle changes, remediation workflow, and retest events and is append-only.
 
-Finding identity is semantic and stable across recurrence. Evidence identity additionally fingerprints bounded normalized evidence content so legitimate evidence changes create a new immutable evidence record instead of conflicting with an older one.
+Finding identity is semantic and stable across recurrence. Evidence identity additionally fingerprints bounded normalized evidence content so changed evidence creates a new immutable record instead of overwriting an older fact.
 
-Only deterministic runtime sources are admitted by the current hosted ingestion boundary. Hosted ingestion requires scanner-derived findings, `runtime_observed` or `runtime_validated` validation, observed HTTP/TLS evidence, `public` classification, exact asset binding, bounded text/JSON, and evidence references that exist inside the trusted batch.
-
-### Atomic result persistence
-
-Passive and active runtime repositories do not directly insert ledger rows. They call separate service-role-only `SECURITY DEFINER` RPCs with pinned empty search paths:
-
-- `persist_passive_runtime_result`
-- `persist_active_validation_result`
-
-Each RPC locks the exact `(job, workspace, asset)` parent, requires the correct running and uncancelled job kind, validates normalized observation shape, persists the observation idempotently, and invokes the private finding-ingestion transaction. Conflicting reuse of an observation, finding, or evidence identity is rejected rather than overwritten.
+Runtime persistence remains on its separate passive/active RPCs. Phase 5C does not widen or reuse those runtime-only contracts.
 
 ## Phase 5B remediation and deterministic retest
 
-Phase 5B adds workflow state beside the canonical finding rather than creating another finding model.
+`security_finding_work` stores assignment and bounded remediation notes beside the canonical finding. `security_finding_retests` stores immutable retest execution/source/profile snapshots.
+
+Retest sources remain closed to the existing passive runtime observer and `cors-origin-policy@1` active validator. Active retests require owner/admin plus explicit consent. Callers cannot choose target URLs, methods, headers, bodies, budgets, source/profile snapshots, scan jobs, or desired terminal results.
+
+`verified_fixed` requires fresh authoritative retest evidence. Failed, blocked, cancelled, stale, mismatched, or still-present results cannot verify a fix.
+
+Security Story v1 is a pure bounded projection over canonical finding/evidence/history, remediation work, and retest state. It has no model-provider, network, or mutation authority.
+
+## Phase 5C hosted Phase 3 import
+
+Phase 5C is a normalized-data ingestion boundary, not hosted scanner execution.
 
 ```text
-security_findings
-      |
-      +--> security_finding_work
-      |
-      +--> security_finding_retests
-      |
-      +--> security_finding_events
+local/CI ScopeForge scanner
+        |
+        v
+hosted-json privacy reducer
+        |
+        v
+POST /api/phase3-import?assetId=<repository-asset>
+        |
+        +--> authenticated server context
+        +--> 3.5 MB streaming cap
+        +--> strict envelope validation
+        +--> closed scanner/rule/version registry
+        +--> exact repository binding
+        |
+        v
+trusted Phase 3 import service
+        |
+        +--> server-derived finding/evidence identities
+        +--> deterministic-passive-scanner provenance
+        +--> static-analysis/dependency evidence only
+        |
+        v
+service-role-only persist_phase3_import_result
+        |
+        +--> terminal phase3_import scan job
+        +--> immutable security_phase3_import_runs
+        +--> canonical finding ledger
 ```
 
-### Remediation work
+### Hosted export privacy contract
 
-`security_finding_work` stores the current assignee and bounded remediation note for a workspace finding. The trusted mutation path is `change_security_finding_work`.
+The export intentionally omits:
 
-The RPC:
+- local absolute root
+- arbitrary scanner metadata
+- source code
+- snippets, including redacted snippets
+- data-flow traces
+- raw scanner diagnostics/errors
+- credentials
+- raw secrets
+- full SBOM bodies/artifacts
 
-- is `SECURITY DEFINER` with `search_path = ''`
+Secret findings receive stronger handling:
+
+- exact columns are removed to avoid leaking secret length
+- local secret `sfs1` fingerprints are not uploaded because their local identity contains secret-derived hash material
+- a hosted-safe `sfs1` is derived only from reviewed rule ID/version, repository-relative path, and line
+- secret evidence summaries are regenerated as reviewed rule metadata rather than copied from scanner output
+
+The hosted file therefore contains no raw secret and no direct secret-derived digest.
+
+### Validation and request authority
+
+`lib/phase3-import/validation.ts` accepts exact versioned JSON shapes only. It canonicalizes repository/path/text/count fields, verifies a closed scanner/rule/version registry, sorts safe collections/findings, reconstructs the canonical payload, and recomputes runRef before acceptance.
+
+The route accepts only `assetId` as request-side authority. Actor/workspace/role come from authenticated server context. The body must be `application/json` and is bounded to 3.5 MB both by declared length and while streaming.
+
+The route cannot accept lifecycle, source kind, arbitrary repository URL to fetch, request method/headers/body, runtime target, scan budget, shell command, checkout options, package-manager configuration, or model-provider input.
+
+### Persistence authority
+
+`security_phase3_import_runs` records immutable safe scan provenance. Authenticated workspace members receive SELECT only through RLS.
+
+`persist_phase3_import_result`:
+
+- is `SECURITY DEFINER`
+- pins `search_path = ''`
 - is executable only by `service_role`
-- re-checks actor workspace membership and role
-- locks the canonical finding/work row
-- restricts member assignment to self
-- validates owner/admin assignees are current workspace members
-- bounds notes to 2000 characters
-- updates workflow state and appends assignment/note events in one transaction
+- independently re-checks actor membership and owner/admin/member role
+- locks and validates the exact repository asset/workspace binding
+- permits only the closed Phase 3 scanner descriptors
+- permits only deterministic passive scanner provenance
+- permits only `static-analysis` or `dependency` evidence classified `internal` with no artifact reference
+- caps findings and evidence at 500 each
+- serializes retry identity with an advisory transaction lock
+- returns an existing run only for an exact idempotent replay
+- rejects conflicting run/finding/evidence identity reuse
+- appends canonical occurrences/events
+- reopens recurrence according to existing lifecycle policy
+- never treats absence in a later static scan as a verified fix
 
-Authenticated browser roles receive RLS-protected SELECT only.
+The `phase3_import` scan-job constraint requires a terminal succeeded repository snapshot with zero runtime requests/redirects, empty runtime budget, no verification/active profile authority, and no runtime cancellation state.
 
-### Closed retest source registry
+### Import read model
 
-Retesting does not accept a caller-selected URL, method, headers, body, budget, source, profile, scan job, or desired result.
+Repository asset detail shows a bounded 20-run import history. Canonical finding lists use 100-row pagination with one-row lookahead and stable `last_seen_at DESC, finding_id ASC` ordering.
 
-The application registry permits only:
-
-```text
-scopeforge:runtime-observer / 0.1
-  -> passive_runtime
-  -> existing runtime-observer service
-
-scopeforge:runtime-validator / cors-origin-policy@1
-  -> active_validation
-  -> existing runtime-validator service
-```
-
-The database independently validates the same source/profile snapshot. Retest snapshot fields are immutable after request creation.
-
-### Retest request and execution
-
-`request_security_finding_retest` locks the canonical finding, requires `resolved`, verifies the supported deterministic source, prevents another active retest, records the immutable execution snapshot, transitions the finding to `retest_pending`, and appends `finding.retest_requested` in one transaction.
-
-Active CORS retests still require owner/admin plus explicit consent. That consent is recorded in the immutable retest snapshot and the existing active-validation service performs its own authorization checks again before networking.
-
-Application execution reuses the existing server dependency factories:
-
-```text
-requestFindingRetest
-  -> enqueue existing passive or active runtime job
-  -> mark_security_finding_retest_running
-  -> execute existing runtime service
-  -> finalize_security_finding_retest
-```
-
-`mark_security_finding_retest_running` validates the exact workspace, asset, requester, queued job kind, source/profile, and active authorization state before attaching a job to the retest.
-
-If enqueue fails before a job is attached, `abort_security_finding_retest_before_start` can safely terminalize the still-requested retest. It cannot abort a running retest owned by the runtime path.
-
-### Authoritative finalization and verified-fix semantics
-
-`finalize_security_finding_retest` accepts only workspace and retest identity. It derives the terminal result from locked database state.
-
-A successful job with a target finding occurrence for that exact scan job becomes `still_present`.
-
-A successful job may become `verified_fixed` only when all of these remain true:
-
-- job/workspace/asset binding matches the retest
-- job kind and requester match the immutable snapshot
-- source/version/profile snapshot matches the supported executor
-- active authorization exists when required
-- the exact target finding has no occurrence for that exact successful job
-- canonical lifecycle is still `retest_pending`
-
-Only then does the transaction update the canonical finding to `verified_fixed`.
-
-Failed, blocked, cancelled, snapshot-mismatched, stale, or otherwise non-verifying retests cannot mark a finding fixed. A database trigger recovers a still-`retest_pending` finding to `in_progress` when a retest terminates as `still_present`, `inconclusive`, `failed`, or `cancelled`.
-
-### Security Story v1
-
-`lib/security-remediation/story.ts` is a pure bounded projection over canonical finding/evidence/history, remediation work, and retest state. It has no Supabase, Next.js, React, runtime execution, or provider dependency.
-
-Security Story v1 can explain what is observed, what remediation work exists, and what verification state is authoritative. It cannot execute a model, run a scan, mutate a finding, or claim `verified_fixed` unless canonical lifecycle and latest authoritative retest state agree.
+Three covering indexes support the Phase 5C foreign keys in addition to the history indexes.
 
 ## Lifecycle authority
 
-Human workflow remains intentionally narrow. Phase 5A exposes:
+Human workflow remains intentionally narrow. Browser-exposed lifecycle actions are limited to the existing approved transitions.
 
-- open -> acknowledged
-- open -> in progress
-- acknowledged -> in progress
-- in progress -> resolved
-- resolved -> in progress
+Trusted deterministic recurrence can reopen canonical state according to domain policy: resolved/retest-pending return to in-progress and verified-fixed returns to open. Accepted-risk and false-positive remain unchanged by automated recurrence.
 
-Phase 5B adds deterministic retest-driven transitions:
-
-- resolved -> retest_pending through trusted retest request
-- retest_pending -> verified_fixed only through authoritative fresh retest evidence
-- retest_pending -> in_progress on non-verified terminal retest recovery
-
-Risk acceptance and false-positive decisions are still not exposed as browser workflow actions.
-
-Trusted recurrence can reopen canonical state according to domain policy: resolved/retest-pending return to in-progress and verified-fixed returns to open. Accepted-risk and false-positive remain unchanged by automated recurrence in the current slice.
-
-## Read model and UI
-
-Authenticated members use RLS-protected SELECT-only list/detail views. Finding/evidence/occurrence/event reads remain bounded, and Phase 5B retest history is limited to 50 rows newest-first.
-
-The finding detail route adds remediation controls, deterministic retest controls/history, and Security Story v1. React renders normalized values as text. No raw runtime bodies, cookie values, arbitrary headers, credentials, caller request configuration, or unbounded exception text enter the hosted evidence/workflow UI.
+Phase 5C does not infer `verified_fixed` from a finding being absent in a later local scan.
 
 ## Evidence and secret boundary
 
-Runtime persistence stores normalized observations rather than raw responses. Response bodies and cookie values are never persisted. Runtime URLs remove query strings, fragments, and credentials. Active CORS persistence keeps only bounded URL/status/origin/credential-allowance/Vary state. Hosted evidence accepts only already-bounded mapper output and currently stores no runtime artifact references.
+Runtime persistence stores normalized observations rather than raw responses. Response bodies and cookie values are never persisted. Runtime URLs remove query strings, fragments, and credentials.
 
-A future Phase 5C Phase 3 import adapter must define its own evidence/privacy contract. In particular, secret values and unbounded source content must never be uploaded merely because the local scanner detected them.
+Phase 5C stores only privacy-reduced local/CI facts. No arbitrary source fragments or full local artifacts cross the hosted boundary. Evidence is immutable and provenance-attributed.
 
 ## Executable dependency boundaries
 
-CI guards these directions:
+Repository regression guards enforce these directions:
 
 - `security-domain` remains framework/infrastructure/provider independent.
 - `network-safety` remains pure and I/O-free.
 - `runtime-network` remains below observer/validator/application/domain layers.
-- application/component code cannot import generic `runtime-network` authority.
-- `runtime-observer` cannot depend on active validation, hosted persistence/remediation, UI, database, or providers.
-- `runtime-validator` cannot depend on passive observer, hosted persistence/remediation, UI, database, or providers and cannot re-export generic transport authority.
-- hosted `lib/security-findings` cannot acquire runtime-network or scanner execution authority.
-- `lib/security-remediation` cannot acquire generic runtime-network authority.
-- Security Story construction remains infrastructure/provider independent.
-- passive and active persistence remain on their dedicated atomic result RPCs rather than direct ledger writes.
-- hosted workflow mutation RPCs remain service-role-only while browser roles stay SELECT-only.
+- application/component code cannot import generic runtime-network authority.
+- passive and active runtime packages remain separated.
+- hosted finding/remediation code cannot acquire generic scanner or network execution authority.
+- Phase 5C trusted import modules cannot import runtime packages or scanner filesystem/inventory/coordinator execution.
+- Phase 5C import modules cannot acquire Node child-process, filesystem, socket/network, HTTP/TLS, VM, or worker-thread authority.
+- Phase 5C import modules cannot directly fetch repositories, clone/checkout code, run package-manager installation, or import model-provider/advisory-inference authority.
+- the browser uploader is same-origin and pinned to the Phase 3 import endpoint.
+- hosted workflow/import mutation RPCs remain service-role-only while browser roles stay SELECT-only.
 
 These are security controls, not formatting rules.
 
 ## Future isolation and non-goals
 
-Phase 5C should design a narrow trusted hosted adapter for existing Phase 3 normalized local/CI findings. This is a data-ingestion boundary, not authorization for arbitrary hosted repository execution.
+Phase 6 is responsible for queue-backed isolated workers, leases, dedicated egress, concurrency/backpressure, CPU/memory/time budgets, cancellation, private artifacts, fleet isolation, observability, and abuse controls.
 
-Phase 6 remains responsible for queue-backed isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet isolation, and abuse controls. Existing target, authorization, budget, cancellation, network, finding, evidence, retest, and audit contracts must move behind that boundary without being widened.
+Moving repository scanning or runtime execution to workers must not widen the target, authorization, request, evidence, lifecycle, or privacy contracts established in Phases 2-5.
 
 The current architecture does not authorize generalized crawling, endpoint discovery, user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, or automatic remediation.
