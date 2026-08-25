@@ -10,6 +10,7 @@ const migrationPath = path.resolve(
   process.cwd(),
   "supabase/migrations/20260826100100_phase_5c_phase3_import.sql",
 );
+const databaseTypesPath = path.resolve(process.cwd(), "lib/database.types.ts");
 
 describe("Phase 5C hosted Phase 3 import migration", () => {
   it("commits the import job enum before the schema migration uses it", async () => {
@@ -21,6 +22,15 @@ describe("Phase 5C hosted Phase 3 import migration", () => {
     expect(enumSql).toContain("alter type public.scan_job_kind");
     expect(enumSql).toContain("add value if not exists 'phase3_import'");
     expect(sql).not.toContain("add value if not exists 'phase3_import'");
+  });
+
+  it("keeps the manual database contract aligned with the Phase 5C enum, table and RPC", async () => {
+    const types = await readFile(databaseTypesPath, "utf8");
+
+    expect(types).toContain('export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation" | "phase3_import";');
+    expect(types).toContain("export type SecurityPhase3ImportRunRow = {");
+    expect(types).toContain("security_phase3_import_runs: {");
+    expect(types).toContain("persist_phase3_import_result: {");
   });
 
   it("adds one immutable repository-bound import-run table with bounded provenance", async () => {
