@@ -1,8 +1,10 @@
 import type {
+  SecurityFindingRetestRow,
   SecurityFindingRow,
   SecurityFindingWorkRow,
 } from "@/lib/database.types";
-import type { UpdateFindingWorkInput } from "./types";
+import { resolveRetestSource } from "./source-registry";
+import type { RequestFindingRetestInput, UpdateFindingWorkInput } from "./types";
 import { SecurityRemediationWorkflowError } from "./types";
 
 export { SecurityRemediationWorkflowError } from "./types";
@@ -16,6 +18,18 @@ export interface SecurityRemediationRepositoryContract {
     assigneeUserId: string | null;
     remediationNote: string | null;
   }): Promise<SecurityFindingWorkRow>;
+  requestFindingRetest(input: {
+    workspaceId: string;
+    findingId: string;
+    actorId: string;
+    executionKind: "passive_runtime" | "active_validation";
+    sourceId: string;
+    sourceVersion: string | null;
+    ruleRef: string;
+    validationProfileId: "cors-origin-policy" | null;
+    validationProfileVersion: 1 | null;
+    explicitConsent: boolean;
+  }): Promise<SecurityFindingRetestRow>;
 }
 
 export interface SecurityRemediationServiceDependencies {
@@ -58,5 +72,49 @@ export async function updateFindingWork(
     actorId: input.actorId,
     assigneeUserId: input.assigneeUserId,
     remediationNote,
+  });
+}
+
+export async function requestFindingRetest(
+  input: RequestFindingRetestInput,
+  dependencies: SecurityRemediationServiceDependencies,
+): Promise<SecurityFindingRetestRow> {
+  if (input.role === "viewer") {
+    throw new SecurityRemediationWorkflowError("SECURITY_RETEST_FORBIDDEN");
+  }
+
+  const finding = await dependencies.repository.loadFinding(input.workspaceId, input.findingId);
+  if (!finding) {
+    throw new SecurityRemediationWorkflowError("SECURITY_REMEDIATION_FINDING_NOT_AVAILABLE");
+  }
+  if (finding.lifecycle_state !== "resolved") {
+    throw new SecurityRemediationWorkflowError("SECURITY_RETEST_STATE_INVALID");
+  }
+
+  const source = resolveRetestSource(finding);
+  if (!source) {
+    throw new SecurityRemediationWorkflowError("SECURITY_RETEST_UNSUPPORTED_SOURCE");
+  }
+
+  if (source.executionKind === "active_validation") {
+    if (input.role !== "owner" && input.role !== "admin") {
+      throw new SecurityRemediationWorkflowError("SECURITY_RETEST_FORBIDDEN");
+    }
+    if (!input.explicitConsent) {
+      throw new SecurityRemediationWorkflowError("SECURITY_RETEST_CONSENT_REQUIRED");
+    }
+  }
+
+  return dependencies.repository.requestFindingRetest({
+    workspaceId: input.workspaceId,
+    findingId: input.findingId,
+    actorId: input.actorId,
+    executionKind: source.executionKind,
+    sourceId: source.sourceId,
+    sourceVersion: source.sourceVersion,
+    ruleRef: finding.rule_ref,
+    validationProfileId: source.validationProfileId,
+    validationProfileVersion: source.validationProfileVersion,
+    explicitConsent: source.executionKind === "active_validation",
   });
 }
