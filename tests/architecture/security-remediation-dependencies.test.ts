@@ -86,8 +86,8 @@ describe("Phase 5B security-remediation architecture", () => {
   it("enforces the exact closed runtime source registry at the database row boundary", async () => {
     const sql = await readFile(hardeningMigrationPath, "utf8");
     expect(sql).toContain("security_finding_retests_source_snapshot_check");
-    expect(sql).toMatch(/execution_kind = 'passive_runtime'[\s\S]*source_id = 'scopeforge:runtime-observer'[\s\S]*source_version = '0\.1'/i);
-    expect(sql).toMatch(/execution_kind = 'active_validation'[\s\S]*source_id = 'scopeforge:runtime-validator'[\s\S]*source_version = 'cors-origin-policy@1'/i);
+    expect(sql).toMatch(/execution_kind = 'passive_runtime'[\s\S]*source_id = 'scopeforge:runtime-observer'[\s\S]*source_version is not distinct from '0\.1'/i);
+    expect(sql).toMatch(/execution_kind = 'active_validation'[\s\S]*source_id = 'scopeforge:runtime-validator'[\s\S]*source_version is not distinct from 'cors-origin-policy@1'/i);
   });
 
   it("stores no raw HTTP request or response authority in Phase 5B workflow tables", async () => {
