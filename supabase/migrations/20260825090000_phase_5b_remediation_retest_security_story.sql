@@ -341,3 +341,187 @@ revoke all on function public.change_security_finding_work(uuid, text, uuid, uui
   from public, anon, authenticated;
 grant execute on function public.change_security_finding_work(uuid, text, uuid, uuid, text)
   to service_role;
+
+create or replace function public.request_security_finding_retest(
+  target_workspace_id uuid,
+  target_finding_id text,
+  target_actor_id uuid,
+  target_execution_kind text,
+  target_source_id text,
+  target_source_version text,
+  target_rule_ref text,
+  target_validation_profile_id text,
+  target_validation_profile_version integer,
+  target_explicit_consent boolean
+)
+returns public.security_finding_retests
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_role text;
+  current_finding public.security_findings%rowtype;
+  existing_retest_id uuid;
+  requested_retest public.security_finding_retests%rowtype;
+  trusted_execution_kind text;
+  trusted_validation_profile_id text;
+  trusted_validation_profile_version integer;
+  trusted_consent_granted_at timestamptz;
+begin
+  select role::text
+    into actor_role
+    from public.workspace_members
+   where workspace_id = target_workspace_id
+     and user_id = target_actor_id
+     and role::text in ('owner', 'admin', 'member', 'viewer');
+
+  if actor_role is null or actor_role = 'viewer' then
+    raise exception 'SECURITY_RETEST_FORBIDDEN';
+  end if;
+
+  select *
+    into current_finding
+    from public.security_findings
+   where workspace_id = target_workspace_id
+     and finding_id = target_finding_id
+   for update;
+
+  if current_finding.finding_id is null then
+    raise exception 'SECURITY_RETEST_NOT_AVAILABLE';
+  end if;
+
+  select id
+    into existing_retest_id
+    from public.security_finding_retests
+   where workspace_id = target_workspace_id
+     and finding_id = target_finding_id
+     and status in ('requested', 'running')
+   order by requested_at desc
+   limit 1
+   for update;
+
+  if existing_retest_id is not null then
+    raise exception 'SECURITY_RETEST_ACTIVE_CONFLICT';
+  end if;
+
+  if current_finding.lifecycle_state::text <> 'resolved' then
+    raise exception 'SECURITY_RETEST_STATE_INVALID';
+  end if;
+
+  if current_finding.source_kind::text <> 'deterministic-runtime-scanner' then
+    raise exception 'SECURITY_RETEST_UNSUPPORTED_SOURCE';
+  end if;
+
+  if current_finding.source_id = 'scopeforge:runtime-observer' then
+    trusted_execution_kind := 'passive_runtime';
+    trusted_validation_profile_id := null;
+    trusted_validation_profile_version := null;
+    trusted_consent_granted_at := null;
+
+    if target_execution_kind <> trusted_execution_kind
+       or target_source_id <> current_finding.source_id
+       or target_source_version is distinct from current_finding.source_version
+       or target_rule_ref <> current_finding.rule_ref
+       or target_validation_profile_id is not null
+       or target_validation_profile_version is not null then
+      raise exception 'SECURITY_RETEST_UNSUPPORTED_SOURCE';
+    end if;
+  elsif current_finding.source_id = 'scopeforge:runtime-validator'
+        and current_finding.source_version = 'cors-origin-policy@1' then
+    trusted_execution_kind := 'active_validation';
+    trusted_validation_profile_id := 'cors-origin-policy';
+    trusted_validation_profile_version := 1;
+
+    if actor_role not in ('owner', 'admin') then
+      raise exception 'SECURITY_RETEST_FORBIDDEN';
+    end if;
+
+    if not coalesce(target_explicit_consent, false) then
+      raise exception 'SECURITY_RETEST_CONSENT_REQUIRED';
+    end if;
+
+    if target_execution_kind <> trusted_execution_kind
+       or target_source_id <> current_finding.source_id
+       or target_source_version is distinct from current_finding.source_version
+       or target_rule_ref <> current_finding.rule_ref
+       or target_validation_profile_id is distinct from trusted_validation_profile_id
+       or target_validation_profile_version is distinct from trusted_validation_profile_version then
+      raise exception 'SECURITY_RETEST_UNSUPPORTED_SOURCE';
+    end if;
+
+    trusted_consent_granted_at := now();
+  else
+    raise exception 'SECURITY_RETEST_UNSUPPORTED_SOURCE';
+  end if;
+
+  insert into public.security_finding_retests (
+    workspace_id,
+    finding_id,
+    asset_id,
+    requested_by,
+    execution_kind,
+    source_id,
+    source_version,
+    rule_ref,
+    validation_profile_id,
+    validation_profile_version,
+    active_consent_granted_at,
+    status
+  ) values (
+    target_workspace_id,
+    target_finding_id,
+    current_finding.asset_id,
+    target_actor_id,
+    trusted_execution_kind,
+    current_finding.source_id,
+    current_finding.source_version,
+    current_finding.rule_ref,
+    trusted_validation_profile_id,
+    trusted_validation_profile_version,
+    trusted_consent_granted_at,
+    'requested'
+  )
+  returning * into requested_retest;
+
+  update public.security_findings
+     set lifecycle_state = 'retest_pending',
+         updated_at = now()
+   where workspace_id = target_workspace_id
+     and finding_id = target_finding_id;
+
+  insert into public.security_finding_events (
+    workspace_id,
+    finding_id,
+    scan_job_id,
+    actor_type,
+    actor_id,
+    event_type,
+    from_lifecycle,
+    to_lifecycle,
+    reason,
+    metadata
+  ) values (
+    target_workspace_id,
+    target_finding_id,
+    null,
+    'user',
+    target_actor_id,
+    'finding.retest_requested',
+    'resolved',
+    'retest_pending',
+    null,
+    jsonb_build_object(
+      'retest_id', requested_retest.id,
+      'execution_kind', trusted_execution_kind
+    )
+  );
+
+  return requested_retest;
+end;
+$$;
+
+revoke all on function public.request_security_finding_retest(uuid, text, uuid, text, text, text, text, text, integer, boolean)
+  from public, anon, authenticated;
+grant execute on function public.request_security_finding_retest(uuid, text, uuid, text, text, text, text, text, integer, boolean)
+  to service_role;
