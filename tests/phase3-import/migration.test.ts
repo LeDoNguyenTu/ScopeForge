@@ -10,6 +10,10 @@ const migrationPath = path.resolve(
   process.cwd(),
   "supabase/migrations/20260826100100_phase_5c_phase3_import.sql",
 );
+const indexMigrationPath = path.resolve(
+  process.cwd(),
+  "supabase/migrations/20260826100200_phase_5c_phase3_import_fk_indexes.sql",
+);
 const databaseTypesPath = path.resolve(process.cwd(), "lib/database.types.ts");
 
 describe("Phase 5C hosted Phase 3 import migration", () => {
@@ -44,6 +48,17 @@ describe("Phase 5C hosted Phase 3 import migration", () => {
     expect(sql).toContain("reject_security_phase3_import_run_mutation");
     expect(sql).toContain("before update on public.security_phase3_import_runs");
     expect(sql).toContain("before delete on public.security_phase3_import_runs");
+  });
+
+  it("covers every Phase 5C foreign key with a dedicated index", async () => {
+    const sql = await readFile(indexMigrationPath, "utf8");
+
+    expect(sql).toContain("security_phase3_import_runs_asset_workspace_fk_idx");
+    expect(sql).toContain("on public.security_phase3_import_runs(asset_id, workspace_id)");
+    expect(sql).toContain("security_phase3_import_runs_created_by_fk_idx");
+    expect(sql).toContain("on public.security_phase3_import_runs(created_by)");
+    expect(sql).toContain("security_phase3_import_runs_job_workspace_asset_fk_idx");
+    expect(sql).toContain("on public.security_phase3_import_runs(scan_job_id, workspace_id, asset_id)");
   });
 
   it("keeps browser access RLS-protected and SELECT-only", async () => {
