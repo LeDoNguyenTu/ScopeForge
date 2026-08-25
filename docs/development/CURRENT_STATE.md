@@ -18,7 +18,7 @@ Authorization, deterministic evidence, explanation, remediation, and execution a
 - **Phase 4C-1 Bounded CORS origin-policy validation** - separate owner/admin-authorized active profile `cors-origin-policy@1` with one fixed-origin GET and no generic request authority. Merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
 - **Phase 5A Hosted finding foundation** - one workspace-scoped canonical hosted finding ledger, immutable evidence, append-only recurrence/history, atomic runtime ingestion, bounded read models, and narrow lifecycle workflow. Delivered through PR #30.
 - **Phase 5B Remediation, deterministic retest, and Security Story** - merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a` and production-reconciled.
-- **Phase 5C Hosted Phase 3 finding import** - implementation complete on PR #37 and production database schema reconciled. Final PR merge is pending the no-GitHub-Actions verification/documentation gate described below.
+- **Phase 5C Hosted Phase 3 finding import** - merged through PR #37 as `2867e603df3e2430a78aaca8ba9cb6d09f6bdccb` and production database schema reconciled.
 
 ## Phase 5C delivered boundary
 
@@ -67,7 +67,7 @@ The persistence RPC independently re-checks actor membership/role and exact repo
 
 ### Repository and findings UX
 
-Repository asset detail pages now expose the hosted import command, privacy disclosure, JSON upload, and a bounded 20-row import history. Runtime and active-validation controls remain unavailable for repository assets.
+Repository asset detail pages expose the hosted import command, privacy disclosure, JSON upload, and a bounded 20-row import history. Runtime and active-validation controls remain unavailable for repository assets.
 
 The canonical findings list is paginated at 100 rows with one-row lookahead and deterministic `last_seen_at` plus `finding_id` ordering so large imports with identical observation timestamps cannot skip or duplicate records between pages.
 
@@ -107,10 +107,10 @@ The repository exhausted its GitHub Actions allowance during PR #37. The user ex
 
 Earlier Phase 5C checkpoints were executed before the quota blocker, including full-green Task 3 and Task 4 checkpoints. CI #720 later passed all 156 test files / 701 tests, strict typecheck, CLI build/version smoke, and scanner benchmark, then exposed a Next.js route-export issue during production build. That specific issue was corrected by moving the transport constant outside the route module. Later exact-head Actions runs did not execute repository steps because the monthly runner allowance was exhausted.
 
-Do not describe the final PR #37 head as exact-head CI green. Final acceptance instead relies on targeted code/security review, the existing pre-quota executable checkpoints, live Supabase contract verification/advisors, live type generation, and additional local compiler/static checks where available.
+The merged PR #37 head was not exact-head CI green and should not be described that way. Final acceptance used targeted code/security review, the existing pre-quota executable checkpoints, live Supabase contract verification/advisors, live type generation, local TypeScript syntax checks on the final critical modules, zero blocking review threads, and expected-head protected merge.
 
 ## Next boundary
 
-After PR #37 is merged and its final merge SHA is reconciled into the handoff docs, the next major product boundary is **Phase 6 isolated workers and scanner scale**: queue-backed workers, leases, dedicated egress, concurrency/backpressure, CPU/memory/time budgets, cancellation, private artifacts, fleet operations, and abuse controls.
+The next major product boundary is **Phase 6 isolated workers and scanner scale**: queue-backed workers, leases, dedicated egress, concurrency/backpressure, CPU/memory/time budgets, cancellation, private artifacts, fleet operations, and abuse controls.
 
 Phase 6 must reuse the existing scanner, target, authorization, evidence, finding, and audit contracts without widening browser or runtime authority.
