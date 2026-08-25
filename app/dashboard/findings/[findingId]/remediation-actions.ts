@@ -7,7 +7,9 @@ import type {
   SecurityFindingWorkRow,
 } from "@/lib/database.types";
 import { createRuntimeObservationServerDependencies } from "@/lib/runtime-observations/server-dependencies";
+import { executeFindingRetestWithRecovery } from "@/lib/security-remediation/execution";
 import { createSecurityRemediationRepository } from "@/lib/security-remediation/repository";
+import { createSecurityRetestRecoveryRepository } from "@/lib/security-remediation/recovery-repository";
 import {
   executeFindingRetest,
   requestFindingRetest,
@@ -69,7 +71,9 @@ export async function runFindingRetestAction(
 ): Promise<SecurityRemediationActionResult<SecurityFindingRetestRow>> {
   try {
     const { user, workspace, role } = await getDashboardContext();
-    const repository = createSecurityRemediationRepository(createAdminClient());
+    const admin = createAdminClient();
+    const repository = createSecurityRemediationRepository(admin);
+    const recoveryRepository = createSecurityRetestRecoveryRepository(admin);
     const retest = await requestFindingRetest({
       actorId: user.id,
       workspaceId: workspace.id,
@@ -78,15 +82,18 @@ export async function runFindingRetestAction(
       explicitConsent,
     }, { repository });
 
-    const completed = await executeFindingRetest({
+    const completed = await executeFindingRetestWithRecovery({
       actorId: user.id,
       workspaceId: workspace.id,
       role,
       retest,
     }, {
-      repository,
-      runtimeDependencies: createRuntimeObservationServerDependencies(),
-      activeDependencies: createActiveValidationServerDependencies(),
+      execute: (executionInput) => executeFindingRetest(executionInput, {
+        repository,
+        runtimeDependencies: createRuntimeObservationServerDependencies(),
+        activeDependencies: createActiveValidationServerDependencies(),
+      }),
+      abortRetestBeforeStart: recoveryRepository.abortRetestBeforeStart,
     });
 
     revalidateFinding(findingId);
