@@ -1,6 +1,3 @@
-alter type public.scan_job_kind
-  add value if not exists 'active_validation';
-
 alter table public.scan_jobs
   add column validation_profile_id text,
   add column validation_profile_version integer,
@@ -155,7 +152,7 @@ for each row execute function private.guard_runtime_observation_insert();
 
 create index scan_jobs_active_status_created_idx
   on public.scan_jobs(status, created_at)
-  where job_kind::text = 'active_validation';
+  where job_kind = 'active_validation'::public.scan_job_kind;
 
 revoke all on table public.runtime_observations from anon, authenticated;
 grant select on table public.runtime_observations to authenticated;
