@@ -14,6 +14,8 @@ export type SecurityFindingSourceKind = "deterministic-passive-scanner" | "deter
 export type SecurityEvidenceKind = "repository-location" | "static-analysis" | "dependency" | "http-observation" | "tls-observation" | "user-confirmed" | "artifact-reference";
 export type ContentClassification = "public" | "internal" | "sensitive" | "secret";
 export type FindingLifecycleState = "open" | "acknowledged" | "in_progress" | "resolved" | "retest_pending" | "verified_fixed" | "accepted_risk" | "false_positive";
+export type SecurityFindingRetestExecutionKind = "passive_runtime" | "active_validation";
+export type SecurityFindingRetestStatus = "requested" | "running" | "still_present" | "verified_fixed" | "inconclusive" | "failed" | "cancelled";
 
 export type SecurityFindingRow = {
   workspace_id: string;
@@ -38,6 +40,37 @@ export type SecurityFindingRow = {
   last_seen_job_id: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type SecurityFindingWorkRow = {
+  workspace_id: string;
+  finding_id: string;
+  assignee_user_id: string | null;
+  remediation_note: string | null;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SecurityFindingRetestRow = {
+  id: string;
+  workspace_id: string;
+  finding_id: string;
+  asset_id: string;
+  requested_by: string;
+  execution_kind: SecurityFindingRetestExecutionKind;
+  source_id: string;
+  source_version: string | null;
+  rule_ref: string;
+  validation_profile_id: string | null;
+  validation_profile_version: number | null;
+  active_consent_granted_at: string | null;
+  status: SecurityFindingRetestStatus;
+  scan_job_id: string | null;
+  result_code: string | null;
+  requested_at: string;
+  started_at: string | null;
+  completed_at: string | null;
 };
 
 export type Database = {
@@ -136,6 +169,24 @@ export type Database = {
         Relationships: [
           { foreignKeyName: "security_finding_events_finding_fkey"; columns: ["workspace_id", "finding_id"]; isOneToOne: false; referencedRelation: "security_findings"; referencedColumns: ["workspace_id", "finding_id"] },
           { foreignKeyName: "security_finding_events_scan_job_id_fkey"; columns: ["scan_job_id"]; isOneToOne: false; referencedRelation: "scan_jobs"; referencedColumns: ["id"] }
+        ];
+      };
+      security_finding_work: {
+        Row: SecurityFindingWorkRow;
+        Insert: { workspace_id: string; finding_id: string; assignee_user_id?: string | null; remediation_note?: string | null; updated_by: string; created_at?: string; updated_at?: string };
+        Update: { workspace_id?: string; finding_id?: string; assignee_user_id?: string | null; remediation_note?: string | null; updated_by?: string; created_at?: string; updated_at?: string };
+        Relationships: [
+          { foreignKeyName: "security_finding_work_finding_fkey"; columns: ["workspace_id", "finding_id"]; isOneToOne: true; referencedRelation: "security_findings"; referencedColumns: ["workspace_id", "finding_id"] }
+        ];
+      };
+      security_finding_retests: {
+        Row: SecurityFindingRetestRow;
+        Insert: { id?: string; workspace_id: string; finding_id: string; asset_id: string; requested_by: string; execution_kind: SecurityFindingRetestExecutionKind; source_id: string; source_version?: string | null; rule_ref: string; validation_profile_id?: string | null; validation_profile_version?: number | null; active_consent_granted_at?: string | null; status?: SecurityFindingRetestStatus; scan_job_id?: string | null; result_code?: string | null; requested_at?: string; started_at?: string | null; completed_at?: string | null };
+        Update: { id?: string; workspace_id?: string; finding_id?: string; asset_id?: string; requested_by?: string; execution_kind?: SecurityFindingRetestExecutionKind; source_id?: string; source_version?: string | null; rule_ref?: string; validation_profile_id?: string | null; validation_profile_version?: number | null; active_consent_granted_at?: string | null; status?: SecurityFindingRetestStatus; scan_job_id?: string | null; result_code?: string | null; requested_at?: string; started_at?: string | null; completed_at?: string | null };
+        Relationships: [
+          { foreignKeyName: "security_finding_retests_finding_fkey"; columns: ["workspace_id", "finding_id"]; isOneToOne: false; referencedRelation: "security_findings"; referencedColumns: ["workspace_id", "finding_id"] },
+          { foreignKeyName: "security_finding_retests_asset_workspace_fkey"; columns: ["asset_id", "workspace_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id", "workspace_id"] },
+          { foreignKeyName: "security_finding_retests_job_workspace_asset_fkey"; columns: ["scan_job_id", "workspace_id", "asset_id"]; isOneToOne: false; referencedRelation: "scan_jobs"; referencedColumns: ["id", "workspace_id", "asset_id"] }
         ];
       };
       audit_events: {
