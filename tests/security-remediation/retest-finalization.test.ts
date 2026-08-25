@@ -43,7 +43,12 @@ const verifiedRetest: SecurityFindingRetestRow = {
 describe("retest finalization service boundary", () => {
   it("attaches only the server-selected job identifier", async () => {
     const repository = {
-      markRetestRunning: vi.fn(async () => runningRetest),
+      markRetestRunning: vi.fn(async (_input: {
+        workspaceId: string;
+        retestId: string;
+        scanJobId: string;
+        actorId: string;
+      }) => runningRetest),
     };
 
     const result = await markRetestRunning({
@@ -64,7 +69,10 @@ describe("retest finalization service boundary", () => {
 
   it("asks the database to derive final status without caller-selected outcome", async () => {
     const repository = {
-      finalizeRetest: vi.fn(async () => verifiedRetest),
+      finalizeRetest: vi.fn(async (_input: {
+        workspaceId: string;
+        retestId: string;
+      }) => verifiedRetest),
     };
 
     const result = await finalizeRetest({
