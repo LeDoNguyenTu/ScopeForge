@@ -9,7 +9,7 @@ function finding(overrides: Partial<SecurityFindingRow>): SecurityFindingRow {
     asset_id: "asset-1",
     source_kind: "deterministic-runtime-scanner",
     source_id: "scopeforge:runtime-observer",
-    source_version: "0.1.0",
+    source_version: "0.1",
     rule_ref: "runtime:test",
     title: "Test finding",
     description: "Test description",
@@ -31,14 +31,25 @@ function finding(overrides: Partial<SecurityFindingRow>): SecurityFindingRow {
 }
 
 describe("resolveRetestSource", () => {
-  it("maps the deterministic passive runtime observer to passive_runtime", () => {
+  it("maps only the emitted passive runtime observer version to passive_runtime", () => {
     expect(resolveRetestSource(finding({ source_id: "scopeforge:runtime-observer" }))).toEqual({
       executionKind: "passive_runtime",
       sourceId: "scopeforge:runtime-observer",
-      sourceVersion: "0.1.0",
+      sourceVersion: "0.1",
       validationProfileId: null,
       validationProfileVersion: null,
     });
+  });
+
+  it("rejects unsupported passive runtime observer versions", () => {
+    expect(
+      resolveRetestSource(
+        finding({
+          source_id: "scopeforge:runtime-observer",
+          source_version: "0.1.0",
+        }),
+      ),
+    ).toBeNull();
   });
 
   it("maps only cors-origin-policy@1 validator findings to active_validation", () => {
