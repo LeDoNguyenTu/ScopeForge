@@ -89,4 +89,24 @@ describe("deterministic active CORS findings", () => {
     });
     expect(firstFinding.evidenceRefs).toEqual([firstEvidence.id]);
   });
+
+  it("keeps the active finding stable while immutable evidence identity follows content", () => {
+    const match = evaluateCorsPolicyRules({ observation: observation() })[0];
+    expect(match).toBeDefined();
+    if (!match) return;
+
+    const changedEvidence = {
+      ...match,
+      evidenceSummary: `${match.evidenceSummary} Reobserved content changed.`,
+    };
+    const firstFinding = mapActiveRuntimeRuleMatchToSecurityFinding({ assetRef, match });
+    const secondFinding = mapActiveRuntimeRuleMatchToSecurityFinding({ assetRef, match: changedEvidence });
+    const firstEvidence = mapActiveRuntimeRuleMatchToEvidence({ assetRef, match });
+    const secondEvidence = mapActiveRuntimeRuleMatchToEvidence({ assetRef, match: changedEvidence });
+
+    expect(firstFinding.id).toBe(secondFinding.id);
+    expect(firstEvidence.id).not.toBe(secondEvidence.id);
+    expect(firstFinding.evidenceRefs).toEqual([firstEvidence.id]);
+    expect(secondFinding.evidenceRefs).toEqual([secondEvidence.id]);
+  });
 });

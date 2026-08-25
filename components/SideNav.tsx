@@ -8,7 +8,7 @@ const items = [
   { href: "/dashboard", label: "Overview", Icon: Gauge, match: "exact" as const },
   { href: "/dashboard/assets", label: "Assets", Icon: Boxes, match: "prefix" as const },
   { href: "/dashboard#phase-roadmap", label: "Scans", Icon: ScanSearch, match: "none" as const },
-  { href: "/dashboard#phase-roadmap", label: "Findings", Icon: Bug, match: "none" as const },
+  { href: "/dashboard/findings", label: "Findings", Icon: Bug, match: "prefix" as const },
   { href: "/dashboard#phase-roadmap", label: "Reports", Icon: FileText, match: "none" as const }
 ];
 

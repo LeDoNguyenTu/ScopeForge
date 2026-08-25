@@ -345,9 +345,10 @@ export async function executeRuntimeObservation(
     });
   }
 
+  const observedAt = now();
   const matches = evaluateRuntimeRules({
     observations: observationResult.observations,
-    now: now(),
+    now: observedAt,
   });
   const evidence = Object.freeze(matches.map((match) =>
     mapRuntimeRuleMatchToEvidence({ assetRef: authorization.target.assetRef, match })));
@@ -355,10 +356,13 @@ export async function executeRuntimeObservation(
     mapRuntimeRuleMatchToSecurityFinding({ assetRef: authorization.target.assetRef, match })));
 
   try {
-    await repository.persistObservations(
+    await repository.persistResult(
       runningJob,
       observationResult.observations,
+      findings,
+      evidence,
       authorization.budget.maxObservationBytes,
+      observedAt,
     );
   } catch {
     const failureCode = "RUNTIME_EXECUTION_ERROR";

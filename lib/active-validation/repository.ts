@@ -4,6 +4,11 @@ import type {
   Json,
   ScanJobStatus,
 } from "@/lib/database.types";
+import { prepareFindingIngestionBatch } from "@/lib/security-findings/ingestion";
+import type {
+  EvidenceRecord,
+  SecurityFinding,
+} from "@/packages/security-domain";
 import type { CorsPolicyObservation } from "@/packages/runtime-validator";
 import type {
   ActiveValidationJobCompletionCounts,
@@ -202,22 +207,36 @@ export function createActiveValidationRepository(admin: SupabaseClient<Database>
     return data;
   }
 
-  async function persistObservation(
+  async function persistResult(
     job: ScanJobRow,
     observation: CorsPolicyObservation,
+    findings: readonly SecurityFinding[],
+    evidence: readonly EvidenceRecord[],
     maximumBytes: number,
+    observedAt: Date,
   ): Promise<void> {
     if (job.status !== "running" || job.job_kind !== "active_validation") {
-      throw new Error("Active observations can only be persisted for a running active validation job.");
+      throw new Error("Active results can only be persisted for a running active validation job.");
     }
+
     const row = normalizeCorsPolicyObservationPayload(observation, maximumBytes);
-    const { error } = await admin.from("runtime_observations").insert({
-      workspace_id: job.workspace_id,
-      job_id: job.id,
-      asset_id: job.asset_id,
-      sequence: row.sequence,
-      kind: "cors-policy",
-      payload: row.payload,
+    const prepared = prepareFindingIngestionBatch({
+      workspaceId: job.workspace_id,
+      assetId: job.asset_id,
+      scanJobId: job.id,
+      observedAt,
+      findings,
+      evidence,
+    });
+
+    const { error } = await admin.rpc("persist_active_validation_result", {
+      target_workspace_id: job.workspace_id,
+      target_asset_id: job.asset_id,
+      target_job_id: job.id,
+      observation_row: toJson(row),
+      finding_rows: prepared.findings,
+      evidence_rows: prepared.evidence,
+      observed_at: prepared.observedAt,
     });
     if (error) throw new Error(error.message);
   }
@@ -244,7 +263,7 @@ export function createActiveValidationRepository(admin: SupabaseClient<Database>
     markFailed,
     markCancelled,
     requestCancellation,
-    persistObservation,
+    persistResult,
     listObservations,
   });
 }

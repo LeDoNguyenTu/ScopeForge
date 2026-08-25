@@ -1,6 +1,6 @@
 # ScopeForge Architecture
 
-ScopeForge separates control-plane authorization from scanner execution so the public application cannot become an unrestricted scanning proxy. Safety boundaries are expressed both in package dependency direction and in executable runtime policy.
+ScopeForge separates control-plane authorization from scanner/runtime execution so the public application cannot become an unrestricted scanning proxy. Safety boundaries are expressed in package dependency direction, database authority, target policy, and executable regression tests.
 
 ## Control plane
 
@@ -11,53 +11,27 @@ Browser
 Vercel / Next.js control plane
   |
   +--> Supabase Auth
-  +--> Supabase PostgreSQL
-  |
-  +--> trusted server actions
+  +--> authenticated SELECTs protected by RLS
+  +--> narrow trusted server actions
+  |      |
+  |      +--> service-role runtime/finding RPCs
   |
   +--> future scan queue
            |
            +--> isolated workers
-           +--> private artifact storage
+           +--> private artifacts
            +--> dedicated egress controls
 ```
 
-Every authenticated user belongs to one or more workspaces through `workspace_members`. Exposed tables use Row Level Security and workspace membership helpers. Security-sensitive runtime writes use trusted server adapters; browser roles receive read access only where required.
-
-`scopeforge.dev` should use Cloudflare as authoritative DNS while Vercel application records remain DNS-only. Supabase Auth rate limits provide the authentication baseline, while public scanner workflows require separate product quotas and abuse controls.
+Every authenticated user belongs to one or more workspaces through `workspace_members`. Exposed hosted security tables are member-readable through RLS. Browser roles do not receive INSERT, UPDATE, DELETE, or direct mutation-RPC authority for the security ledger.
 
 ## Phase 3 local scanner
 
-The Phase 3 scanner is a separate local execution path and does not require the hosted control plane.
-
-```text
-Target repository
-  |
-  v
-scanner-core
-  +--> bounded inventory and safe reads
-  +--> normalized findings
-  +--> coordination, policy, baseline
-  |
-  +--> scanner-secrets
-  +--> scanner-jsts
-  +--> scanner-sca
-  +--> scanner-iac
-  |
-  v
-scanner-output -> JSON / SARIF
-  |
-  v
-CLI composition root
-```
-
-Repository content is hostile data. Phase 3 does not execute target modules, lifecycle scripts, Dockerfiles, Terraform, Kubernetes, GitHub Actions, package managers, or cloud tooling. OSV enrichment is opt-in and sends only normalized npm package identity/version data.
-
-Dependency direction remains one-way: detector packages may depend on `scanner-core`, output adapters consume normalized results, and the CLI orchestrates rather than owning detector logic.
+The Phase 3 scanner is a separate local execution path. Repository content is hostile data. Phase 3 performs bounded inventory and safe reads and does not execute target modules, package lifecycle scripts, Dockerfiles, Terraform, Kubernetes, GitHub Actions, package managers, or cloud tooling. Detector packages flow into normalized scanner results and JSON/SARIF output through the CLI composition root.
 
 ## Product security domain
 
-`packages/security-domain` is the framework-independent product domain for findings, evidence, provenance, validation, lifecycle, remediation, relationships, and provider-neutral advisory contracts.
+`packages/security-domain` is the framework-independent domain for findings, evidence, provenance, validation, lifecycle, remediation, relationships, and provider-neutral advisory contracts.
 
 ```text
 scanner packages -> security-domain-adapters/phase3 -> security-domain
@@ -66,11 +40,9 @@ scanner packages -> security-domain-adapters/phase3 -> security-domain
                                              runtime mappings
 ```
 
-The domain must not import scanners, CLI, Next.js, React, Supabase, database adapters, workers, or model-provider SDKs. Advisory/model systems are downstream consumers of normalized domain records and cannot independently promote security validation state.
+The domain does not import Next.js, React, Supabase, database adapters, workers, scanners, CLI composition, or model-provider SDKs. Advisory/model output is downstream and cannot independently promote validation or lifecycle state.
 
 ## Runtime security architecture
-
-Phase 4 runtime work is intentionally split into four layers:
 
 ```text
 trusted application services
@@ -92,82 +64,95 @@ runtime-observer                               runtime-validator
                        pure IP/DNS policy
 ```
 
-`packages/network-safety` is pure policy. It validates public IP addresses and complete DNS resolution sets, but performs no DNS lookup, HTTP/TLS I/O, database work, framework work, or application behavior.
+`packages/network-safety` is pure policy with no DNS, HTTP/TLS, database, framework, or application I/O.
 
-`packages/runtime-network` is the shared low-level network implementation. It performs fresh DNS resolution, rejects unsafe or mixed resolution sets, pins HTTPS connections to a validated IP while retaining the authorized hostname for Host/SNI/certificate verification, destroys response bodies, and includes DNS plus HTTPS inside one absolute request deadline. It does not know about findings, UI, database state, passive redirects, or active validation profiles.
+`packages/runtime-network` owns fresh DNS resolution, complete public-address-set validation, deterministic socket pinning, Host/SNI/certificate preservation, body destruction, and DNS-inclusive request deadlines. It does not own findings, UI, database state, passive redirect policy, or active profiles.
 
-### Phase 4B passive runtime observer
+`packages/runtime-observer` remains passive-only. It owns verified web/API target policy, same-host redirect decisions, bounded/redacted status/header/cookie-attribute/TLS observations, passive budgets, and deterministic `runtime_observed` findings.
 
-`packages/runtime-observer` remains passive-only. It owns:
+`packages/runtime-validator` contains only the approved `cors-origin-policy@1` active profile: verified web/API targets, separate owner/admin consent, exact verified HTTPS/443 target, exactly one unauthenticated GET, fixed `Origin: https://scopeforge.invalid`, zero redirect following/retries/request body/credentials/caller headers, bounded time/observation budgets, no response-body capture, and deterministic `runtime_validated` findings.
 
-- verified web/API target and same-host redirect policy
-- HTTPS port 443 and GET-only passive behavior
-- request-count, redirect-count, observation-size, request-timeout, and total-time budgets
-- same-host redirect decisions with fresh network validation on every connection
-- bounded/redacted HTTP status, selected-header, cookie-attribute, redirect, and TLS observations
-- deterministic passive runtime rules and security-domain mapping
+Runtime persistence and cancellation serialize through the matching `scan_jobs` row so active evidence cannot commit after cancellation wins, and a late cancellation cannot relabel a job after runtime result persistence has committed.
 
-It delegates DNS/TLS/IP-pinning/deadline mechanics to `runtime-network`. It does not expose arbitrary headers, methods, bodies, credentials, crawling, fuzzing, exploit payloads, or active-validation authority.
+## Phase 5A hosted finding ledger
 
-`lib/runtime-observations` owns trusted enqueue authorization, immutable target/verification snapshots, execution-time reauthorization, job transitions, database-backed asynchronous cancellation, persistence ordering, stable failure codes, and bounded audit events.
+Phase 5A adds one canonical hosted persistence model. It does not create passive/active-specific finding tables.
 
-Phase 4B merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
+```text
+passive runtime result ----+
+                           |
+active validation result --+--> trusted atomic result RPC
+                                  |
+                                  +--> runtime_observations
+                                  +--> security_evidence
+                                  +--> security_findings
+                                  +--> security_finding_evidence
+                                  +--> security_finding_occurrences
+                                  +--> security_finding_events
+```
 
-### Phase 4C-1 bounded active validator
+### Canonical state and immutable history
 
-The Phase 4C design merged through PR #26 as `3f0e46c61944976a4ddfd6ef039487498a19f839`. Phase 4C-1 implementation merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0` and contains only `cors-origin-policy@1` active authority.
+- `security_findings` stores current canonical state keyed by `(workspace_id, finding_id)`.
+- `security_evidence` stores immutable normalized evidence keyed by `(workspace_id, evidence_id)`.
+- `security_finding_evidence` links canonical findings to evidence and is append-only.
+- `security_finding_occurrences` records trusted reobservation per scan job and is append-only.
+- `security_finding_events` records creation, reobservation, reopening, and operator lifecycle changes and is append-only.
 
-`packages/runtime-validator` owns the built-in active profile and deterministic CORS policy interpretation. It may depend on `runtime-network` and `security-domain`, but it must not depend on `runtime-observer`, Next.js, React, Supabase, application/component code, or model-provider SDKs.
+Finding identity is semantic and stable across recurrence. Evidence identity additionally fingerprints bounded normalized evidence content so legitimate evidence changes create a new immutable evidence record instead of conflicting with an older one.
 
-The fixed Phase 4C-1 authority is:
+Only deterministic runtime sources are admitted in Phase 5A. Hosted ingestion requires scanner-derived findings, `runtime_observed` or `runtime_validated` validation, observed HTTP/TLS evidence, `public` classification, exact asset binding, bounded text/JSON, and evidence references that exist inside the trusted batch.
 
-- verified `web_application` or `api` asset only
-- separate explicit owner/admin authorization; verification alone is insufficient
-- immutable canonical target, asset kind, verification timestamp, profile/version, consent timestamp, and budget snapshot
-- execution-time reauthorization before DNS/network
-- exact verified HTTPS hostname on port 443
-- exactly one unauthenticated GET
-- fixed `Origin: https://scopeforge.invalid`
-- fixed safe request headers only
-- zero redirect following and zero retries
-- zero request body
-- zero cookies, Authorization, credential replay, or caller-provided headers
-- DNS-inclusive 5-second request deadline and 10-second total bound
-- no response-body capture or persistence
-- one bounded normalized `cors-policy` observation
-- deterministic `runtime_validated` security-domain findings
+### Atomic result persistence
 
-The validator is deliberately not a generic HTTP API. Callers cannot choose URL, path, method, Origin, headers, body, credentials, redirect policy, profile, or budget.
+Passive and active runtime repositories do not directly insert ledger rows. They call separate service-role-only `SECURITY DEFINER` RPCs with pinned empty search paths:
 
-`lib/active-validation` owns the trusted application boundary: owner/admin authorization, immutable snapshot persistence, execution reauthorization, stable audit/failure semantics, DB-backed cancellation, and active-only repository mutations. Active observations reuse `scan_jobs` and `runtime_observations`; no parallel finding/job schema is introduced.
+- `persist_passive_runtime_result`
+- `persist_active_validation_result`
 
-The database makes active persistence and cancellation a serialized state transition. A `cors-policy` insert must lock and match the exact workspace/job/asset parent row, and that parent must still be a running, uncancelled `active_validation` job. If a cancellation update acquires the parent row first, the observation insert is rejected. If observation persistence acquires it first, the observation commits before the competing cancellation can proceed; once that active observation exists, a later cancellation request is rejected. The final active success transition still requires the job to remain running and uncancelled. This prevents committed active evidence from coexisting with a `cancelled` terminal state while preserving cancellation before the persistence linearization point.
+Each RPC locks the exact `(job, workspace, asset)` parent, requires the correct running and uncancelled job kind, validates normalized observation shape, persists the observation idempotently, and invokes the private finding-ingestion transaction. Conflicting reuse of an observation, finding, or evidence identity is rejected rather than overwritten.
 
-The asset UI keeps passive and active controls separate. The active panel shows the fixed request contract and requires an explicit consent checkbox before calling the dedicated server action. Browser input is limited to asset identity plus consent; cancellation is scoped to job identity.
+### Lifecycle authority
 
-### Evidence and secret boundary
+Phase 5A exposes only these human workflow transitions:
 
-Runtime persistence stores normalized observations, not raw responses. Response bodies and cookie values are never persisted. Persisted runtime URLs remove query strings, fragments, and credentials. Active CORS persistence keeps only URL, status, Access-Control-Allow-Origin, credential allowance, and Vary-on-Origin state. Raw Set-Cookie values, arbitrary response headers, exception text, and upstream bodies do not cross the persistence boundary.
+- open -> acknowledged
+- open -> in progress
+- acknowledged -> in progress
+- in progress -> resolved
+- resolved -> in progress
+
+Resolve and reopen require a bounded operator reason. Owner, admin, and member roles may use the workflow; viewer remains read-only. The server action passes only finding ID, action, and optional note. PostgreSQL independently checks actor workspace membership/role, locks the finding, checks the expected state, performs the current-state update, and appends the lifecycle event in the same transaction.
+
+Risk acceptance, false-positive decisions, retest-pending, verified-fixed operator workflow, Security Stories, model execution, and hosted Phase 3 import are not authorized by 5A.
+
+Trusted reobservation can reopen canonical state according to domain policy: resolved/retest-pending return to in-progress and verified-fixed returns to open. Accepted-risk and false-positive remain unchanged by automated recurrence in this slice.
+
+### Read model and UI
+
+Authenticated members use RLS-protected SELECT-only list/detail views. Phase 5A caps list, evidence, occurrence, and event reads at 100 rows per query. The dashboard uses a database count query for active findings instead of materializing the ledger. React renders normalized values as text; no raw runtime bodies, cookies, arbitrary headers, credentials, or unbounded exception text enter the hosted evidence UI.
+
+## Evidence and secret boundary
+
+Runtime persistence stores normalized observations rather than raw responses. Response bodies and cookie values are never persisted. Runtime URLs remove query strings, fragments, and credentials. Active CORS persistence keeps only bounded URL/status/origin/credential-allowance/Vary state. Phase 5A hosted evidence accepts only the already-bounded runtime mapper output and stores no runtime artifact references.
 
 ## Executable dependency boundaries
 
-CI guards the following directions:
+CI guards these directions:
 
-- `security-domain` remains independent of scanner/infrastructure/provider layers
-- `network-safety` remains pure and free of DNS/HTTP/TLS/database/framework dependencies
-- `runtime-network` stays below observers/validators and outside application/domain layers
-- application, component, and trusted application code cannot import generic `runtime-network` authority directly
-- `runtime-observer` stays independent of web/database/provider layers and imports no active validator authority
-- `runtime-validator` stays independent of passive/web/database/provider layers and does not re-export shared generic transport authority
+- `security-domain` remains framework/infrastructure/provider independent.
+- `network-safety` remains pure and I/O-free.
+- `runtime-network` remains below observer/validator/application/domain layers.
+- application/component code cannot import generic `runtime-network` authority.
+- `runtime-observer` cannot depend on active validation, hosted persistence, UI, database, or providers.
+- `runtime-validator` cannot depend on passive observer, hosted persistence, UI, database, or providers and cannot re-export generic transport authority.
+- hosted `lib/security-findings` cannot acquire runtime-network or scanner execution authority.
+- passive and active persistence remain on their dedicated atomic result RPCs rather than direct ledger writes.
 
-These tests are security controls, not style checks: they prevent later refactors from silently turning a narrow validator into a generic scanning proxy.
+These are security controls, not formatting rules.
 
-## Current orchestration and future isolation
+## Future isolation and non-goals
 
-Phase 4B and Phase 4C-1 execute through trusted server-side control-plane services. This is deliberately bounded but is not the final worker-scale topology.
+Phase 6 remains responsible for queue-backed isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet isolation, and abuse controls. Existing target, authorization, budget, cancellation, network, finding, evidence, and audit contracts must move behind that boundary without being widened.
 
-Phase 6 remains responsible for queue-backed isolated workers, dedicated egress infrastructure, concurrency/backpressure, private artifacts, operational scanner isolation, and abuse controls. Moving runtime execution behind that boundary must reuse the existing target, authorization, budget, cancellation, network, evidence, and audit contracts rather than widening them.
-
-## Active-testing non-goals
-
-The current architecture does not authorize broad crawling, generalized endpoint discovery, OPTIONS/preflight probing, user-supplied origins, SQL injection, XSS, SSRF payloads, file discovery, arbitrary methods/headers/bodies, authenticated testing, cookie replay, browser automation, JavaScript execution, fuzzing, credential attacks, exploit confirmation, denial-of-service behavior, persistence, cross-host redirects, generalized DAST, or automatic remediation.
+The current architecture does not authorize generalized crawling, endpoint discovery, user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, or automatic remediation.

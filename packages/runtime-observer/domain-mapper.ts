@@ -19,12 +19,30 @@ function stableRuntimeDigest(assetRef: AssetRef, match: RuntimeRuleMatch): strin
     .update("\u0000", "utf8")
     .update(match.ruleId, "utf8")
     .update("\u0000", "utf8")
+    .update(RUNTIME_SOURCE_VERSION, "utf8")
+    .update("\u0000", "utf8")
     .update(match.observationKey, "utf8")
     .digest("hex");
 }
 
+function boundedEvidenceSummary(match: RuntimeRuleMatch): string {
+  return match.evidenceSummary.slice(0, MAX_EVIDENCE_SUMMARY_LENGTH);
+}
+
+function runtimeEvidenceDigest(assetRef: AssetRef, match: RuntimeRuleMatch): string {
+  return createHash("sha256")
+    .update(stableRuntimeDigest(assetRef, match), "utf8")
+    .update("\u0000", "utf8")
+    .update(match.evidenceKind, "utf8")
+    .update("\u0000", "utf8")
+    .update(match.classification, "utf8")
+    .update("\u0000", "utf8")
+    .update(boundedEvidenceSummary(match), "utf8")
+    .digest("hex");
+}
+
 function runtimeEvidenceId(assetRef: AssetRef, match: RuntimeRuleMatch) {
-  return evidenceId(`runtime-evidence:${stableRuntimeDigest(assetRef, match)}`);
+  return evidenceId(`runtime-evidence:${runtimeEvidenceDigest(assetRef, match)}`);
 }
 
 export function mapRuntimeRuleMatchToEvidence(input: {
@@ -35,7 +53,7 @@ export function mapRuntimeRuleMatchToEvidence(input: {
     id: runtimeEvidenceId(input.assetRef, input.match),
     kind: input.match.evidenceKind,
     provenance: { kind: "observed" },
-    summary: input.match.evidenceSummary.slice(0, MAX_EVIDENCE_SUMMARY_LENGTH),
+    summary: boundedEvidenceSummary(input.match),
     classification: input.match.classification,
   };
 }
