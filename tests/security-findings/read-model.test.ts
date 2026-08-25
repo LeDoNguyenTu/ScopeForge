@@ -8,7 +8,7 @@ const detailPagePath = path.resolve(process.cwd(), "app/dashboard/findings/[find
 const dashboardPagePath = path.resolve(process.cwd(), "app/dashboard/page.tsx");
 
 describe("hosted findings read model", () => {
-  it("lists findings inside one workspace ordered by newest observation", async () => {
+  it("lists findings inside one workspace with deterministic newest-first ordering", async () => {
     const source = await readFile(repositoryPath, "utf8");
     const listStart = source.indexOf("async function listWorkspaceFindings");
     const detailStart = source.indexOf("async function loadWorkspaceFindingDetail");
@@ -19,6 +19,7 @@ describe("hosted findings read model", () => {
     expect(listSource).toContain('.from("security_findings")');
     expect(listSource).toContain('.eq("workspace_id", workspaceId)');
     expect(listSource).toContain('.order("last_seen_at", { ascending: false })');
+    expect(listSource).toContain('.order("finding_id", { ascending: true })');
   });
 
   it("workspace-scopes the finding, links, evidence, occurrence, and event detail queries", async () => {
