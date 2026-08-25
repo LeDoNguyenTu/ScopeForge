@@ -20,94 +20,57 @@ The PR security-sensitive diff was reviewed before merge. No merge-blocking secu
 
 ### Remediation work
 
-Coverage verifies:
+Coverage verifies viewer rejection, member self-assignment only, owner/admin assignment to current workspace members, invalid-assignee rejection, the 2000-character note bound, safe errors, append-only assignment/note events, independent database role checks, and service-role-only mutation authority.
 
-- viewer rejection
-- member self-assignment only
-- owner/admin assignment to current workspace members
-- invalid assignee rejection
-- 2000-character remediation-note bound
-- safe error mapping
-- assignment and remediation-note events
-- independent database membership and role checks
-- service-role-only mutation RPC execution
+### Retest request and execution
 
-### Retest request
+Coverage verifies only resolved supported findings may enter retest, the source registry is closed to passive runtime and `cors-origin-policy@1`, active consent/owner-admin authority are required, snapshots are immutable, only one retest may be active, and `resolved -> retest_pending` is atomic with history.
 
-Coverage verifies:
+Execution coverage proves the existing passive/active runtime services and fixed budgets are reused, job attachment is exact and one-way, enqueue failure can safely abort an unstarted retest, and callers never choose a desired terminal result.
 
-- only resolved findings may enter retest
-- unsupported source rejection
-- closed source registry for passive runtime and active CORS only
-- active explicit-consent requirement
-- active owner/admin requirement
-- passive member acceptance
-- immutable source/profile snapshot
-- one active retest per finding
-- atomic lifecycle/event state for `resolved -> retest_pending`
+### Authoritative finalization
 
-### Retest execution and recovery
-
-Coverage verifies:
-
-- passive retests reuse only the passive runtime service
-- active retests reuse only the bounded active-validation service
-- existing fixed runtime budgets are used
-- mark-running occurs after enqueue and before execution
-- finalization occurs after execution
-- enqueue failure can abort an unstarted retest safely
-- source snapshot constraints reject drift
-- non-verified terminal outcomes recover a still-pending finding to `in_progress`
-
-### Authoritative retest finalization
-
-Coverage verifies:
-
-- exact job/workspace/asset binding
-- exact requester and job-kind binding
-- active profile and authorization binding
-- one-way running attachment
-- successful exact-job recurrence -> `still_present`
-- successful exact-source/profile job with no target occurrence and lifecycle still pending -> `verified_fixed`
-- failed job -> `failed`
-- blocked job -> `inconclusive`
-- cancelled job -> `cancelled`
-- snapshot mismatch cannot verify a fix
-- concurrent recurrence/lifecycle drift prevents stale verified-fixed finalization
-- callers cannot submit a desired terminal result
+Coverage verifies exact job/workspace/asset/requester/profile binding. Successful recurrence becomes `still_present`; only a successful exact-source/profile job with no target occurrence and canonical lifecycle still pending can become `verified_fixed`. Failed, blocked, cancelled, snapshot-mismatched, or stale retests cannot verify a fix, and non-verified terminal outcomes recover a still-pending finding to `in_progress`.
 
 ### Deterministic Security Story v1
 
-Coverage verifies:
-
-- evidence provenance labels
-- bounded evidence presentation
-- no raw-response fields
-- current remediation assignment/note integration
-- verified-fixed wording only when canonical lifecycle and latest authoritative retest agree
-- story construction remains pure and provider/framework/runtime independent
-
-### Read model and UI
-
-Coverage verifies:
-
-- workspace-scoped workflow reads
-- retest history ordered and bounded to 50
-- narrow server-action inputs
-- no URL, method, header, body, source/profile, budget, scan-job, desired-result, or generic-lifecycle-target parameters
-- remediation, retest, and Security Story component behavior
+Coverage verifies evidence provenance, bounded evidence presentation, no raw-response fields, remediation state integration, and verified-fixed wording only when canonical lifecycle and latest authoritative retest agree. Story construction remains pure and provider/framework/runtime independent.
 
 ### Architecture and authority guards
 
-CI enforces:
+CI enforces that remediation cannot import generic runtime-network authority, runtime packages cannot import remediation, Security Story is infrastructure/provider independent, browser roles remain read-only, Phase 5B mutation RPCs remain service-role-only, and no generic request/credential/raw-response storage fields enter the workflow schema.
 
-- remediation code cannot import generic `packages/runtime-network`
-- runtime packages cannot import remediation workflow
-- `story.ts` has no Supabase, Next.js, React, model-provider, or runtime execution dependency
-- authenticated browser roles retain SELECT-only access to Phase 5B workflow tables
-- Phase 5B mutation RPCs are `SECURITY DEFINER`, pin `search_path = ''`, are revoked from `public`, `anon`, and `authenticated`, and are granted only to `service_role`
-- Phase 5B schema does not add raw response bodies, cookie values, authorization/credential storage, arbitrary request headers, caller URLs/methods/bodies, or other generic request authority
-- all earlier Phase 1 through Phase 5A security and regression tests remain in the full suite
+## Production database verification
+
+Phase 5B production deployment completed successfully.
+
+Production migration history now contains:
+
+- `20260825170915 phase_5b_remediation_retest_security_story`
+- `20260825170933 phase_5b_retest_recovery_hardening`
+
+Post-deployment SQL verification confirmed:
+
+- both Phase 5B workflow tables exist
+- RLS is enabled on both
+- authenticated has SELECT but no INSERT, UPDATE, or DELETE
+- anon has no table access
+- all five mutation RPCs are `SECURITY DEFINER`
+- all five mutation RPCs have `search_path = ''`
+- `public`, `anon`, and `authenticated` have no EXECUTE privilege
+- `service_role` has EXECUTE privilege
+- source/execution/timestamp constraints are present
+- immutable-snapshot and unverified-retest recovery triggers are present
+- all four intended Phase 5A foreign-key covering indexes are present
+- smoke reads succeed on both new tables
+
+Post-deployment Supabase advisor state:
+
+- security advisor: clean
+- performance advisor: no missing-foreign-key-index notices
+- remaining notices are INFO-level unused indexes, expected while the database and Phase 5B tables have little or no traffic
+
+The generic unused-index advisory reference is: https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index
 
 ## Benchmark evidence
 
@@ -123,18 +86,6 @@ wallMs: 1111
 rssDeltaBytes: 31862784
 maxWallMs: 20000
 ```
-
-## Production database verification status
-
-Application and repository verification is green, but the production Supabase migration history still ends at Phase 5A. The two Phase 5B migrations must be deployed and verified before hosted Phase 5B is considered production-ready.
-
-Pre-deployment advisor state:
-
-- security advisor: clean
-- performance advisor: four INFO-level missing Phase 5A foreign-key covering indexes plus existing unused-index informational notices
-- the first Phase 5B migration intentionally adds covering indexes for those four foreign keys
-
-After production migration, rerun both advisors and verify RPC privileges and workflow-table RLS.
 
 ## Required merge gate for future code PRs
 
