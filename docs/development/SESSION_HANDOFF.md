@@ -2,141 +2,164 @@
 
 ## Current phase
 
-Phase 4C-1 is complete. The next roadmap boundary is Phase 5 - Findings, Security Stories, and remediation.
+Phase 5A Hosted Finding Foundation is implemented in PR #30 and this documentation is part of that delivery. The next design boundary is Phase 5B - Security Stories, remediation, and retest workflow.
 
-Merged Phase 4C implementation: PR #27 `Build Phase 4C-1 bounded CORS validation`
+Approved Phase 5A design:
 
-Squash merge commit: `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`
+- `docs/superpowers/specs/2026-08-25-phase-5a-hosted-finding-foundation-design.md`
 
-Approved Phase 4C design: `docs/superpowers/specs/2026-08-25-phase-4c-bounded-active-validation-design.md`
+Approved Phase 5A implementation plan:
 
-Approved Phase 4C implementation plan: `docs/superpowers/plans/2026-08-25-phase-4c-bounded-active-validation.md`
+- `docs/superpowers/plans/2026-08-25-phase-5a-hosted-finding-foundation.md`
 
 ## Completed platform work
 
-- Phase 1 foundation is complete.
-- Phase 2 asset control and authorization is complete.
-- Phase 3 code and supply-chain security is complete and merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
-- Phase 4A security-domain contracts are complete and merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
-- Phase 4B passive runtime observations are complete and merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
-- Phase 4C-1 bounded CORS origin-policy validation is complete and merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
+- Phase 1 foundation complete.
+- Phase 2 asset control and authorization complete.
+- Phase 3 code and supply-chain security merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
+- Phase 4A security-domain contracts merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
+- Phase 4B passive runtime observations merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
+- Phase 4C-1 bounded CORS validation merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
+- Phase 5A hosted finding foundation delivered by PR #30.
 
-## Phase 4C-1 completed boundary
+## Phase 5A completed boundary
 
-### Runtime network extraction
+### Hosted ledger
 
-`packages/runtime-network` owns shared low-level runtime networking:
+Phase 5A introduces one canonical workspace-scoped ledger:
 
-- fresh DNS resolution before every connection
-- complete public-IP set validation through `packages/network-safety`
-- deterministic socket pinning
-- original hostname retained for Host/SNI/certificate verification
-- HTTPS/443 GET-only transport contract
-- DNS and HTTPS inside one absolute request deadline
-- abort of active HTTPS on the outer deadline
-- no automatic redirects
-- response-body destruction
+- `security_findings` - current finding state
+- `security_evidence` - immutable normalized evidence
+- `security_finding_evidence` - append-only links
+- `security_finding_occurrences` - append-only recurrence per trusted scan job
+- `security_finding_events` - append-only system/operator history
 
-`packages/runtime-observer` remains passive-only and delegates only low-level mechanics to this package.
+Authenticated clients receive RLS-protected SELECT access only. Direct browser INSERT/UPDATE/DELETE and direct execution of trusted mutation RPCs are not granted.
 
-### Active validator
+### Atomic passive/active ingestion
 
-`packages/runtime-validator` implements only `cors-origin-policy@1`:
+`lib/runtime-observations` and `lib/active-validation` persist their normalized runtime observation plus hosted finding/evidence batch through separate service-role-only PostgreSQL RPCs:
 
-- verified web/API targets only
-- exact canonical HTTPS target, port 443
-- fixed synthetic `Origin: https://scopeforge.invalid`
-- exactly one unauthenticated GET
-- zero redirect following and zero retries
-- zero request body
-- no cookie, Authorization, browser state, user headers, or caller request configuration
-- DNS-inclusive 5-second request limit and 10-second total bound
-- bounded `cors-policy` observation only
-- no response-body persistence
-- deterministic conservative `runtime_validated` findings
+- `persist_passive_runtime_result`
+- `persist_active_validation_result`
 
-The validator cannot be used as a generic HTTP API. Profile/version and budget are bound server-side.
+Each RPC is `SECURITY DEFINER` with an empty pinned search path. It locks the exact job/workspace/asset row, requires the expected running and uncancelled job kind, validates the normalized observation, and performs finding/evidence ingestion in the same transaction.
 
-### Authorization and trusted service
+The hosted ingestion boundary accepts only:
 
-`lib/active-validation` owns:
+- `deterministic-runtime-scanner`
+- scanner-derived finding provenance
+- `runtime_observed` or `runtime_validated`
+- observed HTTP/TLS evidence
+- `public` evidence classification
+- exact asset binding
+- bounded text and JSON
+- evidence refs present in the trusted batch
 
-- owner/admin-only active authorization
-- separate explicit consent beyond verification
-- immutable target/kind/verified-at/profile/version/authorization-time/actor/budget snapshot
-- execution-time reauthorization immediately before DNS/network
-- DB-backed async cancellation
-- stable bounded failure and audit metadata
-- active-only repository operations
+No hosted Phase 3 import is enabled.
 
-Changed authorization, target, verification, profile, budget, state, or cancellation blocks execution before network traffic.
+### Identity and immutable evidence
 
-### Persistence and cancellation linearization
+Finding IDs stay semantic and stable across recurrence. Passive finding identity includes `RUNTIME_SOURCE_VERSION`; active finding identity remains scoped to `cors-origin-policy@1`.
 
-Phase 4C-1 reuses `scan_jobs` and `runtime_observations`; there is no parallel active job/finding system.
+Evidence IDs are content-specific: the stable finding digest is extended with bounded evidence kind, classification, and summary content. This prevents immutable evidence-ID conflicts when a stable finding is observed again with changed evidence content.
 
-The database defines the persistence/cancellation ordering:
+### Recurrence
 
-- `cors-policy` observations require an exact running, uncancelled `active_validation` parent
-- the observation insert trigger locks that workspace/job/asset parent row
-- cancellation that acquires the row first prevents observation persistence
-- observation persistence that acquires the row first commits before a competing cancellation can proceed
-- once an active `cors-policy` observation exists, a later active cancellation request is rejected
-- final success still requires the job to be running and uncancelled
+One occurrence is recorded per `(workspace, finding, scan job)`. Retry of the same committed batch is idempotent. New evidence links are appended without mutating prior evidence.
 
-Authenticated browser access to runtime observations remains select-only. Trusted server adapters perform mutations.
+Only observations at least as recent as current `last_seen_at` refresh canonical descriptive/validation fields.
 
-### Findings and evidence
+Trusted recurrence policy:
 
-Active CORS rules reuse the Phase 4A security domain:
+- `resolved` -> `in_progress`
+- `retest_pending` -> `in_progress`
+- `verified_fixed` -> `open`
+- `accepted_risk` unchanged
+- `false_positive` unchanged
 
-- credentialed exact synthetic-origin allowance -> high severity / high confidence
-- exact synthetic-origin reflection without credentials -> low severity / high confidence
-- wildcard and missing Vary -> observation only
+### Human lifecycle workflow
 
-Finding/evidence identities and source/rule provenance include `cors-origin-policy@1`. Evidence summaries are bounded and descriptions do not claim proven victim credential/data exfiltration.
+Phase 5A exposes only:
 
-### Asset workflow and architecture guards
+- open -> acknowledged
+- open -> in progress
+- acknowledged -> in progress
+- in progress -> resolved
+- resolved -> in progress
 
-`ActiveValidationPanel` is separate from the passive panel. It shows the fixed request/profile contract, requires explicit consent, exposes dedicated active run/cancel actions, and displays bounded normalized CORS evidence.
+Owner/admin/member can perform these actions; viewer is read-only. Resolve and reopen require a note no longer than 1000 characters.
 
-Executable guards ensure application/UI code cannot import generic `runtime-network` directly, `runtime-observer` cannot import active-validator authority, `runtime-validator` cannot depend on passive/UI/database/provider layers or re-export generic transport authority, `runtime-network` remains low-level, and `network-safety` remains pure.
+The server action accepts only finding ID, narrow action enum, and optional note. PostgreSQL independently rechecks actor membership/role, locks the canonical finding, checks expected state and transition, updates the current row, and appends the lifecycle event atomically.
 
-## Final Phase 4C verification
+Risk acceptance, false-positive workflow, retest-pending/verified-fixed operator actions, Security Stories, and model-driven lifecycle changes remain out of scope.
 
-Exact final PR head `11c49e8723654f4279c9d09eed014e0b878281f6` passed CI #555 with:
+### Read model and UI
 
-- 122 test files
-- 538 tests
-- strict TypeScript typecheck
-- CLI TypeScript build
-- compiled `ScopeForge 0.1.0` smoke
-- 700-file benchmark with 0 findings and 0 errors
-- Next.js production build
+- dedicated `/dashboard/findings` list
+- dedicated finding detail view
+- canonical asset/rule/source/severity/confidence/validation display
+- normalized evidence display
+- occurrence history
+- lifecycle history
+- limited lifecycle controls
+- dashboard open-finding count
+- Findings navigation entry
 
-The final tail after security-reviewed code head `cc57248fd525e1a05312bb221ce35844c18a2530` was documentation-only. The exact head remained mergeable, had no review threads or submitted blocking reviews, and was squash-merged using expected-head protection.
+Read queries are workspace-scoped and bounded to 100 rows for lists/evidence/history. The dashboard uses a count-only query for active findings.
 
-The available commit-workflow query did not expose a post-merge CI run for `fb3aa27...`; no result is inferred.
+### Architecture/security guards
 
-## Next boundary - Phase 5
+Executable tests prevent:
 
-Phase 5 is architectural work and should be designed before implementation. It should extend the existing `packages/security-domain` into hosted product workflows without duplicating the finding model.
+- hosted finding services from importing generic runtime-network or scanner execution authority
+- runtime observer/validator packages from depending back on hosted finding persistence
+- passive/active repositories from bypassing their dedicated result RPCs
+- authenticated browser mutation grants on hosted ledger tables
+- mutation RPC execution by public/anon/authenticated roles
+- raw response/body/cookie/credential-style columns from being added to the hosted ledger
 
-The first Phase 5 design should determine the narrow initial slice across:
+## Security review findings already fixed
 
-- persistent hosted finding lifecycle
-- evidence versus inference storage and display
-- finding-to-asset/observation/remediation relationships
-- Security Story explanations with provenance and uncertainty
-- remediation state and ownership
-- retest/verification transitions
-- developer versus security views over the same canonical state
+Two issues were found and fixed before final merge preparation:
 
-The design should preserve this rule: deterministic scanner/runtime evidence or explicit human workflow can change validated security state; advisory/model output alone cannot.
+1. Immutable evidence reused the stable finding digest and could conflict when evidence content changed. Fixed with content-specific evidence identity while preserving stable finding identity.
+2. Findings/detail reads and dashboard aggregation were initially unbounded. Fixed with explicit 100-row caps and a count-only dashboard query.
 
-Additional active validators remain a separate design boundary. Broad crawling, endpoint discovery, arbitrary request authority, authenticated testing, exploit probes, fuzzing, credential attacks, DoS, and generalized DAST remain out of scope.
+Both were introduced as RED regressions first and then fixed without weakening tests.
 
-Worker-scale execution, dedicated egress, queues, concurrency/backpressure, artifacts, fleet isolation, and abuse controls remain Phase 6 work.
+## Verification state
+
+Last implementation/security-guard checkpoint before docs:
+
+- head: `3d71ac3b408828608e9173d77db3c739a86f4710`
+- CI: #618
+- 131 test files / 579 tests
+- strict typecheck passed
+- CLI build/version passed
+- benchmark passed
+- Next.js production build passed
+
+A full exact-head gate is still mandatory after the documentation tail and immediately before merge.
+
+## Next boundary - Phase 5B
+
+Design before implementation. Phase 5B should define:
+
+- remediation ownership/work tracking without duplicating findings
+- accepted-risk and false-positive authorization/audit policy
+- retest request and execution binding
+- evidence required for `retest_pending` and `verified_fixed`
+- Security Story explanation model/view with provenance and uncertainty
+- evidence versus inference presentation
+- developer versus security views over one canonical state
+- model/advisory boundaries that cannot independently alter validated security state
+
+Hosted Phase 3 import remains a separate reviewed design task.
+
+Additional active validators also remain separate design/security boundaries. General crawling, arbitrary HTTP authority, authenticated testing, exploit probing, fuzzing, credential attacks, DoS, and generalized DAST remain out of scope.
+
+Worker-scale queues, isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet operations, and abuse controls remain Phase 6.
 
 ## Resume protocol
 
@@ -147,5 +170,6 @@ Read in this order:
 3. `docs/development/TEST_STATUS.md`
 4. `docs/ARCHITECTURE.md`
 5. `docs/PHASES.md`
-6. Phase 4C design/plan only when runtime boundary context is needed
-7. Begin Phase 5 design from existing `security-domain` contracts and merged evidence sources
+6. Phase 5A design/plan when hosted finding details are needed
+7. Confirm PR #30 is on `main`
+8. Start Phase 5B with design/threat/security review before implementation
