@@ -4,6 +4,7 @@ import {
   importHostedPhase3Result,
   Phase3ImportWorkflowError,
 } from "@/lib/phase3-import/service";
+import { PHASE3_IMPORT_MAX_BODY_BYTES } from "@/lib/phase3-import/transport";
 import {
   Phase3ImportValidationError,
   validateHostedPhase3Envelope,
@@ -13,7 +14,6 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const PHASE3_IMPORT_MAX_BODY_BYTES = 3_500_000;
 
 interface Phase3ImportRequestContext {
   actorId: string;
