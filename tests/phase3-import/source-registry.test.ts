@@ -6,12 +6,12 @@ import {
 } from "@/lib/phase3-import/source-registry";
 
 describe("Phase 3 hosted source registry", () => {
-  it("maps known built-in static rules to a closed trusted source descriptor", () => {
+  it("maps known built-in static rules to the existing Phase 3 domain identity", () => {
     expect(resolvePhase3Source("jsts", "jsts/command-injection", "1.0.0")).toEqual({
       sourceKind: "deterministic-passive-scanner",
-      sourceId: "scopeforge:phase3:jsts",
+      sourceId: "scopeforge:jsts:jsts/command-injection",
       sourceVersion: "1.0.0",
-      ruleRef: "jsts/command-injection",
+      ruleRef: "phase3-rule:jsts/command-injection@1.0.0",
       provenanceKind: "scanner-derived",
       evidenceKind: "static-analysis",
       classification: "internal",
@@ -28,7 +28,8 @@ describe("Phase 3 hosted source registry", () => {
 
   it("maps the built-in SCA vulnerability rule to dependency evidence", () => {
     expect(resolvePhase3Source("sca", "sca/known-vulnerability", "1.0.0")).toMatchObject({
-      sourceId: "scopeforge:phase3:sca",
+      sourceId: "scopeforge:sca:sca/known-vulnerability",
+      ruleRef: "phase3-rule:sca/known-vulnerability@1.0.0",
       evidenceKind: "dependency",
       classification: "internal",
       artifactRef: null,
