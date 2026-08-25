@@ -136,6 +136,6 @@ describe("SARIF CLI integration", () => {
     expect(await runCli(["scan", root, "--format", "yaml"], { io: capture.io })).toBe(
       SCAN_EXIT.USAGE_ERROR
     );
-    expect(capture.stderr).toContain("terminal, json, or sarif");
+    expect(capture.stderr).toContain("terminal, json, sarif, or hosted-json");
   });
 });
