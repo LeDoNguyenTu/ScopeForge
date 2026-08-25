@@ -1,7 +1,7 @@
 # Phase 6A Durable Worker Foundation Design
 
 Date: 2026-08-26
-Status: proposed design for user review
+Status: approved
 Scope: durable queue/lease/cancellation/isolation foundation only
 Base: `main` at `9cd4ab5772e4841d2c60b11b73fad2bbd0db4ffc`
 
