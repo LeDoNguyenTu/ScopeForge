@@ -2,15 +2,28 @@
 
 ## Current phase
 
-Phase 5A Hosted Finding Foundation is implemented in PR #30 and this documentation is part of that delivery. The next design boundary is Phase 5B - Security Stories, remediation, and retest workflow.
+Phase 5B Remediation, Retest, and Security Story is implemented and merged through PR #33.
 
-Approved Phase 5A design:
+- last merged application commit: `eb35c2b23468addd817951486c60ac7d68710c9a`
+- Phase 5B exact reviewed PR head: `5c7b8c34432f8bb51731fe069178411a8005d023`
+- exact-head CI: #685
+- current documentation follow-up branch: `docs/phase-5b-completion-handoff`
+
+Phase 5B application code is merged, but the production Supabase migration history still ends at Phase 5A. The two Phase 5B migrations must be deployed and verified before the hosted workflow is considered production-ready.
+
+The next product design boundary after production reconciliation is Phase 5C Hosted Phase 3 finding import.
+
+## Approved designs and plans
+
+Phase 5A:
 
 - `docs/superpowers/specs/2026-08-25-phase-5a-hosted-finding-foundation-design.md`
-
-Approved Phase 5A implementation plan:
-
 - `docs/superpowers/plans/2026-08-25-phase-5a-hosted-finding-foundation.md`
+
+Phase 5B:
+
+- `docs/superpowers/specs/2026-08-25-phase-5b-remediation-retest-security-story-design.md`
+- `docs/superpowers/plans/2026-08-25-phase-5b-remediation-retest-security-story.md`
 
 ## Completed platform work
 
@@ -20,146 +33,161 @@ Approved Phase 5A implementation plan:
 - Phase 4A security-domain contracts merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
 - Phase 4B passive runtime observations merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
 - Phase 4C-1 bounded CORS validation merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
-- Phase 5A hosted finding foundation delivered by PR #30.
+- Phase 5A hosted finding foundation delivered through PR #30.
+- Phase 5B remediation, deterministic retest, and Security Story merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a`.
 
-## Phase 5A completed boundary
+## Phase 5B completed boundary
 
-### Hosted ledger
+### Remediation work
 
-Phase 5A introduces one canonical workspace-scoped ledger:
+Phase 5B adds one workflow row per canonical workspace finding in `security_finding_work`.
 
-- `security_findings` - current finding state
-- `security_evidence` - immutable normalized evidence
-- `security_finding_evidence` - append-only links
-- `security_finding_occurrences` - append-only recurrence per trusted scan job
-- `security_finding_events` - append-only system/operator history
+- owner/admin may assign current workspace members
+- member may self-assign only
+- viewer remains read-only
+- remediation note maximum is 2000 characters
+- assignment and note changes append events
+- authenticated browser roles receive RLS-protected SELECT only
+- mutation is service-role-only and the database independently re-checks actor membership/role
 
-Authenticated clients receive RLS-protected SELECT access only. Direct browser INSERT/UPDATE/DELETE and direct execution of trusted mutation RPCs are not granted.
+### Deterministic retest
 
-### Atomic passive/active ingestion
+`security_finding_retests` stores immutable retest snapshots and bounded terminal history.
 
-`lib/runtime-observations` and `lib/active-validation` persist their normalized runtime observation plus hosted finding/evidence batch through separate service-role-only PostgreSQL RPCs:
+Only two existing runtime authorities may be reused:
 
-- `persist_passive_runtime_result`
-- `persist_active_validation_result`
+- passive: `scopeforge:runtime-observer` version `0.1`
+- active: `scopeforge:runtime-validator` version `cors-origin-policy@1`
 
-Each RPC is `SECURITY DEFINER` with an empty pinned search path. It locks the exact job/workspace/asset row, requires the expected running and uncancelled job kind, validates the normalized observation, and performs finding/evidence ingestion in the same transaction.
+No generic request authority was added.
 
-The hosted ingestion boundary accepts only:
+Retest request:
 
-- `deterministic-runtime-scanner`
-- scanner-derived finding provenance
-- `runtime_observed` or `runtime_validated`
-- observed HTTP/TLS evidence
-- `public` evidence classification
-- exact asset binding
-- bounded text and JSON
-- evidence refs present in the trusted batch
+- requires a supported `resolved` finding
+- locks canonical state
+- prevents a second active retest
+- records source/profile snapshot
+- active path requires owner/admin plus explicit consent
+- transitions `resolved -> retest_pending`
+- appends request history atomically
 
-No hosted Phase 3 import is enabled.
+Execution:
 
-### Identity and immutable evidence
+- enqueues through the existing passive or active service
+- attaches only an exact matching queued scan job
+- validates workspace, asset, requester, job kind, source/profile, and active authorization
+- executes using the existing fixed budgets and runtime safety controls
+- finalizes from authoritative database state
 
-Finding IDs stay semantic and stable across recurrence. Passive finding identity includes `RUNTIME_SOURCE_VERSION`; active finding identity remains scoped to `cors-origin-policy@1`.
+Verified-fixed semantics:
 
-Evidence IDs are content-specific: the stable finding digest is extended with bounded evidence kind, classification, and summary content. This prevents immutable evidence-ID conflicts when a stable finding is observed again with changed evidence content.
+- target job must succeed
+- exact source/profile snapshot must match
+- target finding must not occur in that exact retest job
+- canonical finding must still be `retest_pending`
+- only then can canonical state become `verified_fixed`
 
-### Recurrence
+Failed, blocked, cancelled, stale, mismatched, or still-present retests cannot verify a fix. A recovery trigger returns a still-pending finding to `in_progress` for non-verified terminal outcomes.
 
-One occurrence is recorded per `(workspace, finding, scan job)`. Retry of the same committed batch is idempotent. New evidence links are appended without mutating prior evidence.
+### Security Story v1
 
-Only observations at least as recent as current `last_seen_at` refresh canonical descriptive/validation fields.
+Security Story v1 is a deterministic bounded read model over the canonical finding, immutable evidence/history, remediation work, and retest state.
 
-Trusted recurrence policy:
+It has no model provider, network authority, Supabase write authority, or lifecycle mutation ability. It distinguishes attributable evidence/workflow facts from explanatory text and only reports a verified fix when canonical and authoritative retest state agree.
 
-- `resolved` -> `in_progress`
-- `retest_pending` -> `in_progress`
-- `verified_fixed` -> `open`
-- `accepted_risk` unchanged
-- `false_positive` unchanged
+### UI and action boundary
 
-### Human lifecycle workflow
+Finding detail now includes remediation controls, retest controls/history, active consent where applicable, and Security Story v1.
 
-Phase 5A exposes only:
+Server actions do not accept arbitrary target URL, method, headers, body, budget, source/profile, scan-job ID, desired terminal result, or generic lifecycle target.
 
-- open -> acknowledged
-- open -> in progress
-- acknowledged -> in progress
-- in progress -> resolved
-- resolved -> in progress
+## Security review
 
-Owner/admin/member can perform these actions; viewer is read-only. Resolve and reopen require a note no longer than 1000 characters.
+The Phase 5B security-sensitive diff was reviewed before merge, including:
 
-The server action accepts only finding ID, narrow action enum, and optional note. PostgreSQL independently rechecks actor membership/role, locks the canonical finding, checks expected state and transition, updates the current row, and appends the lifecycle event atomically.
+- server context identity/workspace derivation
+- workspace/role rechecks in privileged RPCs
+- service-role-only mutation privileges
+- `SECURITY DEFINER` functions with `search_path = ''`
+- immutable retest source/profile snapshots
+- active owner/admin consent
+- exact job/workspace/asset/requester binding
+- fresh-evidence-only verified-fix finalization
+- failed-start and non-verified recovery
+- dependency guards preventing generic runtime-network authority in remediation code
 
-Risk acceptance, false-positive workflow, retest-pending/verified-fixed operator actions, Security Stories, and model-driven lifecycle changes remain out of scope.
-
-### Read model and UI
-
-- dedicated `/dashboard/findings` list
-- dedicated finding detail view
-- canonical asset/rule/source/severity/confidence/validation display
-- normalized evidence display
-- occurrence history
-- lifecycle history
-- limited lifecycle controls
-- dashboard open-finding count
-- Findings navigation entry
-
-Read queries are workspace-scoped and bounded to 100 rows for lists/evidence/history. The dashboard uses a count-only query for active findings.
-
-### Architecture/security guards
-
-Executable tests prevent:
-
-- hosted finding services from importing generic runtime-network or scanner execution authority
-- runtime observer/validator packages from depending back on hosted finding persistence
-- passive/active repositories from bypassing their dedicated result RPCs
-- authenticated browser mutation grants on hosted ledger tables
-- mutation RPC execution by public/anon/authenticated roles
-- raw response/body/cookie/credential-style columns from being added to the hosted ledger
-
-## Security review findings already fixed
-
-Two issues were found and fixed before final merge preparation:
-
-1. Immutable evidence reused the stable finding digest and could conflict when evidence content changed. Fixed with content-specific evidence identity while preserving stable finding identity.
-2. Findings/detail reads and dashboard aggregation were initially unbounded. Fixed with explicit 100-row caps and a count-only dashboard query.
-
-Both were introduced as RED regressions first and then fixed without weakening tests.
+No merge-blocking security issue remained at the exact reviewed head.
 
 ## Verification state
 
-Last implementation/security-guard checkpoint before docs:
+CI #685 passed on exact PR head `5c7b8c34432f8bb51731fe069178411a8005d023`:
 
-- head: `3d71ac3b408828608e9173d77db3c739a86f4710`
-- CI: #618
-- 131 test files / 579 tests
-- strict typecheck passed
-- CLI build/version passed
-- benchmark passed
-- Next.js production build passed
+- `npm ci --ignore-scripts --no-audit --no-fund`
+- 148 test files / 654 tests
+- strict TypeScript typecheck
+- CLI build
+- compiled CLI version smoke: `ScopeForge 0.1.0`
+- scanner benchmark: 700 files, 0 errors, 1111 ms wall time against 20000 ms limit
+- Next.js production build
 
-A full exact-head gate is still mandatory after the documentation tail and immediately before merge.
+PR #33 was then merged with expected-head protection as `eb35c2b23468addd817951486c60ac7d68710c9a`.
 
-## Next boundary - Phase 5B
+## Production Supabase state
 
-Design before implementation. Phase 5B should define:
+Project: ScopeForge
 
-- remediation ownership/work tracking without duplicating findings
-- accepted-risk and false-positive authorization/audit policy
-- retest request and execution binding
-- evidence required for `retest_pending` and `verified_fixed`
-- Security Story explanation model/view with provenance and uncertainty
-- evidence versus inference presentation
-- developer versus security views over one canonical state
-- model/advisory boundaries that cannot independently alter validated security state
+The project is healthy, but migration history currently ends at:
 
-Hosted Phase 3 import remains a separate reviewed design task.
+- `20260825004547 phase_5a_hosted_finding_foundation`
 
-Additional active validators also remain separate design/security boundaries. General crawling, arbitrary HTTP authority, authenticated testing, exploit probing, fuzzing, credential attacks, DoS, and generalized DAST remain out of scope.
+The following repository migrations are merged but not yet present in production history:
 
-Worker-scale queues, isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet operations, and abuse controls remain Phase 6.
+1. `20260825090000_phase_5b_remediation_retest_security_story.sql`
+2. `20260825091000_phase_5b_retest_recovery_hardening.sql`
+
+Pre-deployment advisor state:
+
+- security advisor: clean
+- performance advisor: four INFO missing-FK-covering-index notices from Phase 5A plus existing unused-index INFO notices
+
+The first Phase 5B migration intentionally creates covering indexes for those four Phase 5A foreign keys.
+
+## Exact next task
+
+1. Apply the two already-reviewed Phase 5B migrations to production in repository order.
+2. Re-read migration history and confirm both versions are present.
+3. Smoke-check `security_finding_work` and `security_finding_retests`.
+4. Verify RLS and SELECT-only browser authority.
+5. Verify Phase 5B mutation RPCs are not executable by `public`, `anon`, or `authenticated` and remain executable only by the trusted service role.
+6. Re-run Supabase security and performance advisors.
+7. Finish the `docs/phase-5b-completion-handoff` PR with the verified production state and merge it after exact-head CI.
+8. Start Phase 5C Hosted Phase 3 finding import with a design/spec and threat/security review before implementation.
+
+## Phase 5C design boundary
+
+The next design should create a narrow trusted adapter for normalized Phase 3 local/CI results rather than a new hosted scanner authority.
+
+It must define:
+
+- repository/workspace/asset binding
+- trusted import caller and scan-run identity
+- stable hosted identity from Phase 3 fingerprints and source versions
+- idempotent retry semantics
+- evidence kinds/classifications allowed for hosted storage
+- path/source privacy policy
+- strict secret redaction and no secret-value persistence
+- bounded finding/evidence payloads and histories
+- service-role-only mutations and RLS-protected reads
+- append-only occurrence/event provenance
+- recurrence/lifecycle semantics over the existing canonical finding
+
+Do not route Phase 3 output through runtime-only ingestion contracts. Do not introduce package execution, arbitrary filesystem authority, generic runtime networking, or active testing as part of the import adapter.
+
+## Boundaries that remain unchanged
+
+Additional active validators require their own design/security review. General crawling, arbitrary HTTP authority, authenticated testing, exploit probing, fuzzing, credential attacks, denial-of-service behavior, and generalized DAST remain out of scope.
+
+Phase 6 remains queue-backed isolated workers, dedicated egress, concurrency/backpressure, private artifacts, fleet operations, and abuse controls. It must reuse existing target, authorization, budget, cancellation, finding, evidence, retest, and audit contracts without widening them.
 
 ## Resume protocol
 
@@ -168,8 +196,10 @@ Read in this order:
 1. `docs/development/SESSION_HANDOFF.md`
 2. `docs/development/CURRENT_STATE.md`
 3. `docs/development/TEST_STATUS.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/PHASES.md`
-6. Phase 5A design/plan when hosted finding details are needed
-7. Confirm PR #30 is on `main`
-8. Start Phase 5B with design/threat/security review before implementation
+4. `docs/development/NEXT_STEPS.md`
+5. `docs/ARCHITECTURE.md`
+6. `docs/PHASES.md`
+7. Phase 5B design/plan if remediation or retest details are needed
+8. Confirm PR #33 merge is present on `main`
+9. Confirm production migration state before debugging hosted Phase 5B behavior
+10. If Phase 5B production is reconciled, start Phase 5C with design/threat review before implementation
