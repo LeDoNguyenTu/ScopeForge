@@ -13,7 +13,7 @@ export type Phase3ImportValidationErrorCode =
 export class Phase3ImportValidationError extends Error {
   readonly code: Phase3ImportValidationErrorCode;
 
-  constructor(code: Phase3ImportValidationErrorCode, message = code) {
+  constructor(code: Phase3ImportValidationErrorCode, message: string = code) {
     super(message);
     this.name = "Phase3ImportValidationError";
     this.code = code;
