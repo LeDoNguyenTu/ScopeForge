@@ -15,7 +15,7 @@ const runRef = `sfh1:${"a".repeat(64)}`;
 function envelope(overrides: Partial<HostedPhase3EnvelopeV1> = {}): HostedPhase3EnvelopeV1 {
   return {
     schemaVersion: 1,
-    tool: { name: "scopeforge", version: "0.1.0" },
+    tool: { name: "ScopeForge", version: "0.1.0" },
     repository: { canonicalUrl: "https://github.com/acme/example" },
     runRef,
     scan: {
