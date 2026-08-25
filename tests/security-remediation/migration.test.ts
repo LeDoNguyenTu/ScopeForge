@@ -110,4 +110,22 @@ describe("Phase 5B remediation and retest migration", () => {
     expect(sql).toMatch(/revoke all on function public\.change_security_finding_work[\s\S]*from public, anon, authenticated/i);
     expect(sql).toMatch(/grant execute on function public\.change_security_finding_work[\s\S]*to service_role/i);
   });
+
+  it("requests retests atomically from locked canonical state", async () => {
+    const sql = await migrationSql();
+
+    expect(sql).toContain("create or replace function public.request_security_finding_retest");
+    expect(sql).toMatch(/request_security_finding_retest[\s\S]*security definer[\s\S]*set search_path = ''/i);
+    expect(sql).toContain("SECURITY_RETEST_STATE_INVALID");
+    expect(sql).toContain("SECURITY_RETEST_UNSUPPORTED_SOURCE");
+    expect(sql).toContain("SECURITY_RETEST_CONSENT_REQUIRED");
+    expect(sql).toContain("SECURITY_RETEST_FORBIDDEN");
+    expect(sql).toContain("SECURITY_RETEST_ACTIVE_CONFLICT");
+    expect(sql).toMatch(/from public\.security_findings[\s\S]*for update/i);
+    expect(sql).toContain("lifecycle_state = 'retest_pending'");
+    expect(sql).toContain("'finding.retest_requested'");
+    expect(sql).toContain("active_consent_granted_at");
+    expect(sql).toMatch(/revoke all on function public\.request_security_finding_retest[\s\S]*from public, anon, authenticated/i);
+    expect(sql).toMatch(/grant execute on function public\.request_security_finding_retest[\s\S]*to service_role/i);
+  });
 });
