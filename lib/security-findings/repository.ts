@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Database,
   FindingLifecycleState,
+  SecurityFindingRetestRow,
+  SecurityFindingWorkRow,
 } from "@/lib/database.types";
 
 type SecurityFindingRow = Database["public"]["Tables"]["security_findings"]["Row"];
@@ -14,6 +16,11 @@ export interface SecurityFindingDetail {
   evidence: SecurityEvidenceRow[];
   occurrences: SecurityFindingOccurrenceRow[];
   events: SecurityFindingEventRow[];
+}
+
+export interface SecurityFindingWorkflowDetail {
+  work: SecurityFindingWorkRow | null;
+  retests: SecurityFindingRetestRow[];
 }
 
 export interface ChangeFindingLifecycleRepositoryInput {
@@ -125,6 +132,33 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
     };
   }
 
+  async function loadWorkspaceFindingWorkflowDetail(
+    workspaceId: string,
+    findingId: string,
+  ): Promise<SecurityFindingWorkflowDetail> {
+    const { data: work, error: workError } = await client
+      .from("security_finding_work")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("finding_id", findingId)
+      .maybeSingle();
+    if (workError) throw new Error("Unable to load finding remediation work.");
+
+    const { data: retests, error: retestsError } = await client
+      .from("security_finding_retests")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("finding_id", findingId)
+      .order("requested_at", { ascending: false })
+      .limit(50);
+    if (retestsError) throw new Error("Unable to load finding retest history.");
+
+    return {
+      work,
+      retests: retests ?? [],
+    };
+  }
+
   async function changeLifecycle(
     input: ChangeFindingLifecycleRepositoryInput,
   ): Promise<SecurityFindingRow> {
@@ -148,6 +182,7 @@ export function createSecurityFindingRepository(client: SupabaseClient<Database>
     loadFinding,
     listWorkspaceFindings,
     loadWorkspaceFindingDetail,
+    loadWorkspaceFindingWorkflowDetail,
     changeLifecycle,
   });
 }

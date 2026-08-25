@@ -3,8 +3,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Bug, Clock3, FileClock, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import FindingLifecycleControls from "@/components/findings/FindingLifecycleControls";
+import FindingRemediationPanel from "@/components/findings/FindingRemediationPanel";
+import FindingRetestPanel from "@/components/findings/FindingRetestPanel";
+import SecurityStoryPanel from "@/components/findings/SecurityStoryPanel";
 import type { Json } from "@/lib/database.types";
 import { createSecurityFindingRepository } from "@/lib/security-findings/repository";
+import { resolveRetestSource } from "@/lib/security-remediation/source-registry";
+import { buildSecurityStoryV1 } from "@/lib/security-remediation/story";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
@@ -54,10 +59,11 @@ export default async function FindingDetailPage({
   params: Promise<{ findingId: string }>;
 }) {
   const { findingId } = await params;
-  const { supabase, workspace, role, displayName } = await getDashboardContext();
+  const { supabase, user, workspace, role, displayName } = await getDashboardContext();
   const repository = createSecurityFindingRepository(supabase);
   const detail = await repository.loadWorkspaceFindingDetail(workspace.id, findingId);
   if (!detail) notFound();
+  const workflow = await repository.loadWorkspaceFindingWorkflowDetail(workspace.id, findingId);
 
   const { data: asset, error: assetError } = await supabase
     .from("assets")
@@ -69,6 +75,15 @@ export default async function FindingDetailPage({
 
   const taxonomy = scalarEntries(detail.finding.taxonomy);
   const remediation = scalarEntries(detail.finding.remediation);
+  const retestSource = resolveRetestSource(detail.finding);
+  const story = buildSecurityStoryV1({
+    finding: detail.finding,
+    evidence: detail.evidence,
+    occurrences: detail.occurrences,
+    events: detail.events,
+    work: workflow.work,
+    retests: workflow.retests,
+  });
 
   return (
     <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
@@ -114,6 +129,24 @@ export default async function FindingDetailPage({
       </section>
 
       <section className="dashboardGrid">
+        <FindingRemediationPanel
+          currentUserId={user.id}
+          findingId={detail.finding.finding_id}
+          role={role}
+          work={workflow.work}
+        />
+        <FindingRetestPanel
+          executionKind={retestSource?.executionKind ?? null}
+          findingId={detail.finding.finding_id}
+          lifecycleState={detail.finding.lifecycle_state}
+          retests={workflow.retests}
+          role={role}
+        />
+      </section>
+
+      <SecurityStoryPanel story={story} />
+
+      <section className="dashboardGrid">
         <article className="panel">
           <div className="panelTitle"><div><span>Classification</span><h2>Taxonomy</h2></div></div>
           {taxonomy.length > 0 ? (
@@ -124,7 +157,7 @@ export default async function FindingDetailPage({
         </article>
 
         <article className="panel">
-          <div className="panelTitle"><div><span>Next step</span><h2>Remediation</h2></div></div>
+          <div className="panelTitle"><div><span>Canonical guidance</span><h2>Remediation definition</h2></div></div>
           {remediation.length > 0 ? (
             <div className="detailList">
               {remediation.map(([name, value]) => <div key={`${name}-${value}`}><span>{name}</span><strong>{value}</strong></div>)}
@@ -175,7 +208,7 @@ export default async function FindingDetailPage({
                   <strong>{label(event.event_type.replaceAll(".", " "))}</strong>
                   <p>
                     {event.from_lifecycle ? label(event.from_lifecycle) : "created"}
-                    {" → "}
+                    {" -> "}
                     {event.to_lifecycle ? label(event.to_lifecycle) : "unchanged"}
                     {event.reason ? ` · ${event.reason}` : ""}
                   </p>
