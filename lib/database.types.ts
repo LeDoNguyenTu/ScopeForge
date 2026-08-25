@@ -220,6 +220,10 @@ export type Database = {
         Args: { target_workspace_id: string; target_finding_id: string; target_actor_id: string; target_assignee_user_id: string | null; target_remediation_note: string | null };
         Returns: SecurityFindingWorkRow;
       };
+      request_security_finding_retest: {
+        Args: { target_workspace_id: string; target_finding_id: string; target_actor_id: string; target_execution_kind: SecurityFindingRetestExecutionKind; target_source_id: string; target_source_version: string | null; target_rule_ref: string; target_validation_profile_id: string | null; target_validation_profile_version: number | null; target_explicit_consent: boolean };
+        Returns: SecurityFindingRetestRow;
+      };
     };
     Enums: {
       workspace_role: WorkspaceRole;
