@@ -31,6 +31,18 @@ export interface RequestFindingRetestRepositoryInput {
   explicitConsent: boolean;
 }
 
+export interface MarkRetestRunningRepositoryInput {
+  workspaceId: string;
+  retestId: string;
+  scanJobId: string;
+  actorId: string;
+}
+
+export interface FinalizeRetestRepositoryInput {
+  workspaceId: string;
+  retestId: string;
+}
+
 const WORKFLOW_ERROR_CODES = [
   "SECURITY_REMEDIATION_FORBIDDEN",
   "SECURITY_REMEDIATION_ASSIGNEE_INVALID",
@@ -42,7 +54,19 @@ const WORKFLOW_ERROR_CODES = [
   "SECURITY_RETEST_STATE_INVALID",
   "SECURITY_RETEST_ACTIVE_CONFLICT",
   "SECURITY_RETEST_NOT_AVAILABLE",
+  "SECURITY_RETEST_JOB_INVALID",
+  "SECURITY_RETEST_FINALIZATION_INVALID",
 ] as const satisfies readonly SecurityRemediationErrorCode[];
+
+const RETEST_STATUSES = new Set<SecurityFindingRetestRow["status"]>([
+  "requested",
+  "running",
+  "still_present",
+  "verified_fixed",
+  "inconclusive",
+  "failed",
+  "cancelled",
+]);
 
 function isSecurityFindingWorkRow(value: unknown): value is SecurityFindingWorkRow {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -59,7 +83,8 @@ function isSecurityFindingRetestRow(value: unknown): value is SecurityFindingRet
     && typeof row.workspace_id === "string"
     && typeof row.finding_id === "string"
     && (row.execution_kind === "passive_runtime" || row.execution_kind === "active_validation")
-    && row.status === "requested";
+    && typeof row.status === "string"
+    && RETEST_STATUSES.has(row.status as SecurityFindingRetestRow["status"]);
 }
 
 function mapTrustedWorkflowError(message: string | undefined): SecurityRemediationWorkflowError | null {
@@ -70,6 +95,15 @@ function mapTrustedWorkflowError(message: string | undefined): SecurityRemediati
     }
   }
   return null;
+}
+
+function throwRepositoryError(
+  error: { message?: string } | null,
+  fallback: string,
+): never {
+  const workflowError = mapTrustedWorkflowError(error?.message);
+  if (workflowError) throw workflowError;
+  throw new Error(fallback);
 }
 
 export function createSecurityRemediationRepository(client: SupabaseClient<Database>) {
@@ -100,11 +134,8 @@ export function createSecurityRemediationRepository(client: SupabaseClient<Datab
     });
 
     if (error) {
-      const workflowError = mapTrustedWorkflowError(error.message);
-      if (workflowError) throw workflowError;
-      throw new Error("Unable to change finding remediation work.");
+      throwRepositoryError(error, "Unable to change finding remediation work.");
     }
-
     if (!isSecurityFindingWorkRow(data)) {
       throw new Error("Finding remediation work response was invalid.");
     }
@@ -128,13 +159,46 @@ export function createSecurityRemediationRepository(client: SupabaseClient<Datab
     });
 
     if (error) {
-      const workflowError = mapTrustedWorkflowError(error.message);
-      if (workflowError) throw workflowError;
-      throw new Error("Unable to request the finding retest.");
+      throwRepositoryError(error, "Unable to request the finding retest.");
     }
-
-    if (!isSecurityFindingRetestRow(data)) {
+    if (!isSecurityFindingRetestRow(data) || data.status !== "requested") {
       throw new Error("Finding retest response was invalid.");
+    }
+    return data;
+  }
+
+  async function markRetestRunning(
+    input: MarkRetestRunningRepositoryInput,
+  ): Promise<SecurityFindingRetestRow> {
+    const { data, error } = await client.rpc("mark_security_finding_retest_running", {
+      target_workspace_id: input.workspaceId,
+      target_retest_id: input.retestId,
+      target_scan_job_id: input.scanJobId,
+      target_actor_id: input.actorId,
+    });
+
+    if (error) {
+      throwRepositoryError(error, "Unable to attach the retest job.");
+    }
+    if (!isSecurityFindingRetestRow(data) || data.status !== "running") {
+      throw new Error("Finding retest running response was invalid.");
+    }
+    return data;
+  }
+
+  async function finalizeRetest(
+    input: FinalizeRetestRepositoryInput,
+  ): Promise<SecurityFindingRetestRow> {
+    const { data, error } = await client.rpc("finalize_security_finding_retest", {
+      target_workspace_id: input.workspaceId,
+      target_retest_id: input.retestId,
+    });
+
+    if (error) {
+      throwRepositoryError(error, "Unable to finalize the finding retest.");
+    }
+    if (!isSecurityFindingRetestRow(data) || data.status === "requested" || data.status === "running") {
+      throw new Error("Finding retest finalization response was invalid.");
     }
     return data;
   }
@@ -143,6 +207,8 @@ export function createSecurityRemediationRepository(client: SupabaseClient<Datab
     loadFinding,
     changeFindingWork,
     requestFindingRetest,
+    markRetestRunning,
+    finalizeRetest,
   });
 }
 
