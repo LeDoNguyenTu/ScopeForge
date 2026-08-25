@@ -224,6 +224,14 @@ export type Database = {
         Args: { target_workspace_id: string; target_finding_id: string; target_actor_id: string; target_execution_kind: SecurityFindingRetestExecutionKind; target_source_id: string; target_source_version: string | null; target_rule_ref: string; target_validation_profile_id: string | null; target_validation_profile_version: number | null; target_explicit_consent: boolean };
         Returns: SecurityFindingRetestRow;
       };
+      mark_security_finding_retest_running: {
+        Args: { target_workspace_id: string; target_retest_id: string; target_scan_job_id: string; target_actor_id: string };
+        Returns: SecurityFindingRetestRow;
+      };
+      finalize_security_finding_retest: {
+        Args: { target_workspace_id: string; target_retest_id: string };
+        Returns: SecurityFindingRetestRow;
+      };
     };
     Enums: {
       workspace_role: WorkspaceRole;
