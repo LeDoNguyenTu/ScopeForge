@@ -61,13 +61,13 @@ export function createSecurityRemediationRepository(client: SupabaseClient<Datab
   async function changeFindingWork(
     input: ChangeFindingWorkRepositoryInput,
   ): Promise<SecurityFindingWorkRow> {
-    const { data, error } = await client.rpc("change_security_finding_work" as never, {
+    const { data, error } = await client.rpc("change_security_finding_work", {
       target_workspace_id: input.workspaceId,
       target_finding_id: input.findingId,
       target_actor_id: input.actorId,
       target_assignee_user_id: input.assigneeUserId,
       target_remediation_note: input.remediationNote,
-    } as never);
+    });
 
     if (error) {
       const workflowError = mapTrustedWorkflowError(error.message);
