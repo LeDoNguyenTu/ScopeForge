@@ -182,3 +182,162 @@ revoke all on table public.security_finding_retests from anon, authenticated;
 
 grant select on table public.security_finding_work to authenticated;
 grant select on table public.security_finding_retests to authenticated;
+
+create or replace function public.change_security_finding_work(
+  target_workspace_id uuid,
+  target_finding_id text,
+  target_actor_id uuid,
+  target_assignee_user_id uuid,
+  target_remediation_note text
+)
+returns public.security_finding_work
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_role text;
+  current_finding public.security_findings%rowtype;
+  current_work public.security_finding_work%rowtype;
+  updated_work public.security_finding_work%rowtype;
+  normalized_note text;
+begin
+  select role::text
+    into actor_role
+    from public.workspace_members
+   where workspace_id = target_workspace_id
+     and user_id = target_actor_id
+     and role::text in ('owner', 'admin', 'member', 'viewer');
+
+  if actor_role is null or actor_role = 'viewer' then
+    raise exception 'SECURITY_REMEDIATION_FORBIDDEN';
+  end if;
+
+  normalized_note := nullif(btrim(target_remediation_note), '');
+  if normalized_note is not null and char_length(normalized_note) > 2000 then
+    raise exception 'SECURITY_REMEDIATION_NOTE_INVALID';
+  end if;
+
+  select *
+    into current_finding
+    from public.security_findings
+   where workspace_id = target_workspace_id
+     and finding_id = target_finding_id
+   for update;
+
+  if current_finding.finding_id is null then
+    raise exception 'SECURITY_REMEDIATION_FINDING_NOT_AVAILABLE';
+  end if;
+
+  select *
+    into current_work
+    from public.security_finding_work
+   where workspace_id = target_workspace_id
+     and finding_id = target_finding_id
+   for update;
+
+  if actor_role in ('owner', 'admin') then
+    if target_assignee_user_id is not null
+       and not exists (
+         select 1
+           from public.workspace_members
+          where workspace_id = target_workspace_id
+            and user_id = target_assignee_user_id
+       ) then
+      raise exception 'SECURITY_REMEDIATION_ASSIGNEE_INVALID';
+    end if;
+  elsif actor_role = 'member' then
+    if target_assignee_user_id is not null
+       and target_assignee_user_id is distinct from target_actor_id then
+      raise exception 'SECURITY_REMEDIATION_FORBIDDEN';
+    end if;
+
+    if target_assignee_user_id is null
+       and current_work.assignee_user_id is not null
+       and current_work.assignee_user_id is distinct from target_actor_id then
+      raise exception 'SECURITY_REMEDIATION_FORBIDDEN';
+    end if;
+  else
+    raise exception 'SECURITY_REMEDIATION_FORBIDDEN';
+  end if;
+
+  insert into public.security_finding_work (
+    workspace_id,
+    finding_id,
+    assignee_user_id,
+    remediation_note,
+    updated_by
+  ) values (
+    target_workspace_id,
+    target_finding_id,
+    target_assignee_user_id,
+    normalized_note,
+    target_actor_id
+  )
+  on conflict (workspace_id, finding_id) do update
+    set assignee_user_id = excluded.assignee_user_id,
+        remediation_note = excluded.remediation_note,
+        updated_by = excluded.updated_by,
+        updated_at = now()
+  returning * into updated_work;
+
+  if current_work.assignee_user_id is distinct from target_assignee_user_id then
+    insert into public.security_finding_events (
+      workspace_id,
+      finding_id,
+      scan_job_id,
+      actor_type,
+      actor_id,
+      event_type,
+      from_lifecycle,
+      to_lifecycle,
+      reason,
+      metadata
+    ) values (
+      target_workspace_id,
+      target_finding_id,
+      null,
+      'user',
+      target_actor_id,
+      'finding.assignment_changed',
+      null,
+      null,
+      null,
+      jsonb_build_object('assignee_user_id', target_assignee_user_id)
+    );
+  end if;
+
+  if current_work.remediation_note is distinct from normalized_note then
+    insert into public.security_finding_events (
+      workspace_id,
+      finding_id,
+      scan_job_id,
+      actor_type,
+      actor_id,
+      event_type,
+      from_lifecycle,
+      to_lifecycle,
+      reason,
+      metadata
+    ) values (
+      target_workspace_id,
+      target_finding_id,
+      null,
+      'user',
+      target_actor_id,
+      'finding.remediation_note_updated',
+      null,
+      null,
+      null,
+      jsonb_build_object('has_note', normalized_note is not null)
+    );
+  end if;
+
+  return updated_work;
+end;
+$$;
+
+revoke all on function public.change_security_finding_work(uuid, text, uuid, uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.change_security_finding_work(uuid, text, uuid, uuid, text)
+  to service_role;
