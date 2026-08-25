@@ -18,6 +18,7 @@ import { buildRepositoryInventory } from "../scanner-core/inventory/build-invent
 import { evaluatePolicy, resolveScanExitCode } from "../scanner-core/policy/evaluate-policy";
 import { SCAN_EXIT, type ScanExitCode } from "../scanner-core/policy/exit-codes";
 import { generateCycloneDxSbom } from "../scanner-sca/sbom/generate";
+import { serializeHostedScanResult } from "../scanner-output/hosted/serialize";
 import { serializeScanResult } from "../scanner-output/json/serialize";
 import { serializeSarifResult } from "../scanner-output/sarif/serialize";
 import { createBuiltInScanners, formatBuiltInRuleList, validateBuiltInRules } from "./builtins";
@@ -26,6 +27,8 @@ import { formatTerminalResult } from "./terminal";
 
 export const SCOPEFORGE_VERSION = "0.1.0";
 export const DEFAULT_BASELINE_PATH = ".scopeforge-baseline.json";
+
+type CliOutputFormat = ScannerOutputFormat | "hosted-json";
 
 export interface CliIo {
   stdout(value: string): void;
@@ -40,7 +43,8 @@ export interface RunCliOptions {
 
 interface ScanArguments {
   path: string;
-  format?: ScannerOutputFormat;
+  format?: CliOutputFormat;
+  repository?: string;
   output?: string;
   sbom?: string;
   failOn?: Severity;
@@ -62,7 +66,7 @@ function defaultIo(): CliIo {
 function usage(): string {
   return [
     "Usage:",
-    "  scopeforge scan [path] [--format terminal|json|sarif] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
+    "  scopeforge scan [path] [--format terminal|json|sarif|hosted-json] [--repository github-url] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
     "  scopeforge baseline create [path]",
     "  scopeforge rules list",
     "  scopeforge version",
@@ -78,7 +82,8 @@ function requireValue(argv: string[], index: number, option: string): string {
 
 function parseScanArguments(argv: string[], cwd: string): ScanArguments {
   let path: string | undefined;
-  let format: ScannerOutputFormat | undefined;
+  let format: CliOutputFormat | undefined;
+  let repository: string | undefined;
   let output: string | undefined;
   let sbom: string | undefined;
   let failOn: Severity | undefined;
@@ -89,10 +94,15 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
     const token = argv[index];
     if (token === "--format") {
       const value = requireValue(argv, index, token);
-      if (value !== "terminal" && value !== "json" && value !== "sarif") {
-        throw new CliUsageError("Invalid format. Expected terminal, json, or sarif.");
+      if (value !== "terminal" && value !== "json" && value !== "sarif" && value !== "hosted-json") {
+        throw new CliUsageError("Invalid format. Expected terminal, json, sarif, or hosted-json.");
       }
       format = value;
+      index += 1;
+      continue;
+    }
+    if (token === "--repository") {
+      repository = requireValue(argv, index, token);
       index += 1;
       continue;
     }
@@ -141,6 +151,7 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
   return {
     path: resolve(cwd, path ?? "."),
     format,
+    repository,
     output,
     sbom,
     failOn,
@@ -270,12 +281,19 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     const args = parseScanArguments(argv.slice(1), cwd);
     await assertScanRoot(args.path);
     const config = await loadScannerConfig(args.path);
-    const format = args.format ?? config.output.format;
+    const format: CliOutputFormat = args.format ?? config.output.format;
     const output = args.output ?? config.output.path;
     const outputFromRepositoryConfig = args.output === undefined && config.output.path !== undefined;
     const failOn = args.failOn ?? config.failOn;
     const baselinePath = args.baseline ?? config.baseline;
     const baselineGate = args.baselineGate ?? config.baselineGate;
+
+    if (format === "hosted-json" && args.repository === undefined) {
+      throw new CliUsageError("--repository is required when --format hosted-json is selected.");
+    }
+    if (format !== "hosted-json" && args.repository !== undefined) {
+      throw new CliUsageError("--repository is only available with --format hosted-json.");
+    }
 
     if (args.sbom && output && resolve(args.path, args.sbom) === resolve(args.path, output)) {
       throw new CliUsageError("SBOM output must use a different path from the normal scan output.");
@@ -306,11 +324,16 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     result.policy = evaluatePolicy(result.findings, failOn, { baselineGate });
 
     const rendered =
-      format === "json"
-        ? serializeScanResult(result, { toolVersion: SCOPEFORGE_VERSION })
-        : format === "sarif"
-          ? serializeSarifResult(result, { toolVersion: SCOPEFORGE_VERSION })
-          : formatTerminalResult(result, { baselineActive: baselinePath !== undefined });
+      format === "hosted-json"
+        ? serializeHostedScanResult(result, {
+            toolVersion: SCOPEFORGE_VERSION,
+            repositoryUrl: args.repository as string
+          })
+        : format === "json"
+          ? serializeScanResult(result, { toolVersion: SCOPEFORGE_VERSION })
+          : format === "sarif"
+            ? serializeSarifResult(result, { toolVersion: SCOPEFORGE_VERSION })
+            : formatTerminalResult(result, { baselineActive: baselinePath !== undefined });
 
     if (output) {
       await writeScanOutput(args.path, output, rendered, {
