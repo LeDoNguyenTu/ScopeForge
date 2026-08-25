@@ -525,3 +525,330 @@ revoke all on function public.request_security_finding_retest(uuid, text, uuid, 
   from public, anon, authenticated;
 grant execute on function public.request_security_finding_retest(uuid, text, uuid, text, text, text, text, text, integer, boolean)
   to service_role;
+
+create or replace function public.mark_security_finding_retest_running(
+  target_workspace_id uuid,
+  target_retest_id uuid,
+  target_scan_job_id uuid,
+  target_actor_id uuid
+)
+returns public.security_finding_retests
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_role text;
+  current_retest public.security_finding_retests%rowtype;
+  current_finding public.security_findings%rowtype;
+  current_job public.scan_jobs%rowtype;
+  updated_retest public.security_finding_retests%rowtype;
+begin
+  select *
+    into current_retest
+    from public.security_finding_retests
+   where workspace_id = target_workspace_id
+     and id = target_retest_id
+   for update;
+
+  if current_retest.id is null then
+    raise exception 'SECURITY_RETEST_NOT_AVAILABLE';
+  end if;
+
+  select role::text
+    into actor_role
+    from public.workspace_members
+   where workspace_id = target_workspace_id
+     and user_id = target_actor_id;
+
+  if actor_role is null
+     or actor_role = 'viewer'
+     or target_actor_id is distinct from current_retest.requested_by
+     or (current_retest.execution_kind = 'active_validation' and actor_role not in ('owner', 'admin')) then
+    raise exception 'SECURITY_RETEST_FORBIDDEN';
+  end if;
+
+  if current_retest.status <> 'requested'
+     or current_retest.scan_job_id is not null
+     or current_retest.started_at is not null then
+    raise exception 'SECURITY_RETEST_FINALIZATION_INVALID';
+  end if;
+
+  select *
+    into current_finding
+    from public.security_findings
+   where workspace_id = target_workspace_id
+     and finding_id = current_retest.finding_id
+   for update;
+
+  if current_finding.finding_id is null
+     or current_finding.asset_id is distinct from current_retest.asset_id
+     or current_finding.lifecycle_state::text <> 'retest_pending' then
+    raise exception 'SECURITY_RETEST_FINALIZATION_INVALID';
+  end if;
+
+  select *
+    into current_job
+    from public.scan_jobs
+   where id = target_scan_job_id
+     and workspace_id = target_workspace_id
+     and asset_id = current_retest.asset_id
+   for update;
+
+  if current_job.id is null
+     or current_job.status::text <> 'queued'
+     or current_job.requested_by is distinct from target_actor_id
+     or current_job.job_kind::text is distinct from current_retest.execution_kind then
+    raise exception 'SECURITY_RETEST_JOB_INVALID';
+  end if;
+
+  if current_retest.execution_kind = 'passive_runtime' then
+    if current_retest.source_id <> 'scopeforge:runtime-observer'
+       or current_retest.source_version is distinct from '0.1'
+       or current_job.validation_profile_id is not null
+       or current_job.validation_profile_version is not null
+       or current_job.authorization_granted_at is not null then
+      raise exception 'SECURITY_RETEST_JOB_INVALID';
+    end if;
+  elsif current_retest.execution_kind = 'active_validation' then
+    if current_retest.source_id <> 'scopeforge:runtime-validator'
+       or current_retest.source_version is distinct from 'cors-origin-policy@1'
+       or current_retest.validation_profile_id is distinct from 'cors-origin-policy'
+       or current_retest.validation_profile_version is distinct from 1
+       or current_job.validation_profile_id is distinct from current_retest.validation_profile_id
+       or current_job.validation_profile_version is distinct from current_retest.validation_profile_version
+       or current_job.authorization_granted_at is null then
+      raise exception 'SECURITY_RETEST_JOB_INVALID';
+    end if;
+  else
+    raise exception 'SECURITY_RETEST_JOB_INVALID';
+  end if;
+
+  update public.security_finding_retests
+     set status = 'running',
+         scan_job_id = target_scan_job_id,
+         started_at = now(),
+         result_code = null
+   where workspace_id = target_workspace_id
+     and id = target_retest_id
+  returning * into updated_retest;
+
+  insert into public.security_finding_events (
+    workspace_id,
+    finding_id,
+    scan_job_id,
+    actor_type,
+    actor_id,
+    event_type,
+    from_lifecycle,
+    to_lifecycle,
+    reason,
+    metadata
+  ) values (
+    target_workspace_id,
+    current_retest.finding_id,
+    target_scan_job_id,
+    'user',
+    target_actor_id,
+    'finding.retest_started',
+    null,
+    null,
+    null,
+    jsonb_build_object(
+      'retest_id', target_retest_id,
+      'execution_kind', current_retest.execution_kind
+    )
+  );
+
+  return updated_retest;
+end;
+$$;
+
+revoke all on function public.mark_security_finding_retest_running(uuid, uuid, uuid, uuid)
+  from public, anon, authenticated;
+grant execute on function public.mark_security_finding_retest_running(uuid, uuid, uuid, uuid)
+  to service_role;
+
+create or replace function public.finalize_security_finding_retest(
+  target_workspace_id uuid,
+  target_retest_id uuid
+)
+returns public.security_finding_retests
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_retest public.security_finding_retests%rowtype;
+  current_finding public.security_findings%rowtype;
+  current_job public.scan_jobs%rowtype;
+  updated_retest public.security_finding_retests%rowtype;
+  target_occurrence_exists boolean;
+  snapshot_matches boolean := false;
+  terminal_status text;
+  terminal_result_code text;
+  event_from_lifecycle text;
+  event_to_lifecycle text;
+begin
+  select *
+    into current_retest
+    from public.security_finding_retests
+   where workspace_id = target_workspace_id
+     and id = target_retest_id
+   for update;
+
+  if current_retest.id is null then
+    raise exception 'SECURITY_RETEST_NOT_AVAILABLE';
+  end if;
+
+  if current_retest.status <> 'running'
+     or current_retest.scan_job_id is null
+     or current_retest.started_at is null
+     or current_retest.completed_at is not null then
+    raise exception 'SECURITY_RETEST_FINALIZATION_INVALID';
+  end if;
+
+  select *
+    into current_finding
+    from public.security_findings
+   where workspace_id = target_workspace_id
+     and finding_id = current_retest.finding_id
+   for update;
+
+  if current_finding.finding_id is null
+     or current_finding.asset_id is distinct from current_retest.asset_id then
+    raise exception 'SECURITY_RETEST_FINALIZATION_INVALID';
+  end if;
+
+  select *
+    into current_job
+    from public.scan_jobs
+   where id = current_retest.scan_job_id
+     and workspace_id = target_workspace_id
+     and asset_id = current_retest.asset_id
+   for update;
+
+  if current_job.id is null then
+    raise exception 'SECURITY_RETEST_JOB_INVALID';
+  end if;
+
+  snapshot_matches := current_job.job_kind::text = current_retest.execution_kind
+    and current_job.requested_by = current_retest.requested_by
+    and (
+      (
+        current_retest.execution_kind = 'passive_runtime'
+        and current_retest.source_id = 'scopeforge:runtime-observer'
+        and current_retest.source_version = '0.1'
+        and current_job.validation_profile_id is null
+        and current_job.validation_profile_version is null
+        and current_job.authorization_granted_at is null
+      )
+      or (
+        current_retest.execution_kind = 'active_validation'
+        and current_retest.source_id = 'scopeforge:runtime-validator'
+        and current_retest.source_version = 'cors-origin-policy@1'
+        and current_retest.validation_profile_id = 'cors-origin-policy'
+        and current_retest.validation_profile_version = 1
+        and current_job.validation_profile_id = current_retest.validation_profile_id
+        and current_job.validation_profile_version = current_retest.validation_profile_version
+        and current_job.authorization_granted_at is not null
+      )
+    );
+
+  if current_job.status::text in ('queued', 'running') then
+    raise exception 'SECURITY_RETEST_FINALIZATION_INVALID';
+  elsif current_job.status::text = 'succeeded' then
+    select exists (
+      select 1
+        from public.security_finding_occurrences
+       where workspace_id = target_workspace_id
+         and finding_id = current_retest.finding_id
+         and scan_job_id = current_retest.scan_job_id
+    ) into target_occurrence_exists;
+
+    if target_occurrence_exists then
+      terminal_status := 'still_present';
+      terminal_result_code := 'still_present';
+    elsif snapshot_matches and current_finding.lifecycle_state::text = 'retest_pending' then
+      terminal_status := 'verified_fixed';
+      terminal_result_code := 'verified_fixed';
+      event_from_lifecycle := 'retest_pending';
+      event_to_lifecycle := 'verified_fixed';
+
+      update public.security_findings
+         set lifecycle_state = 'verified_fixed',
+             updated_at = now()
+       where workspace_id = target_workspace_id
+         and finding_id = current_retest.finding_id
+         and lifecycle_state = 'retest_pending';
+
+      if not found then
+        terminal_status := 'inconclusive';
+        terminal_result_code := 'lifecycle_changed';
+        event_from_lifecycle := null;
+        event_to_lifecycle := null;
+      end if;
+    else
+      terminal_status := 'inconclusive';
+      terminal_result_code := case
+        when not snapshot_matches then 'job_snapshot_mismatch'
+        else 'lifecycle_changed'
+      end;
+    end if;
+  elsif current_job.status::text = 'failed' then
+    terminal_status := 'failed';
+    terminal_result_code := 'job_failed';
+  elsif current_job.status::text = 'blocked' then
+    terminal_status := 'inconclusive';
+    terminal_result_code := 'job_blocked';
+  elsif current_job.status::text = 'cancelled' then
+    terminal_status := 'cancelled';
+    terminal_result_code := 'job_cancelled';
+  else
+    raise exception 'SECURITY_RETEST_FINALIZATION_INVALID';
+  end if;
+
+  update public.security_finding_retests
+     set status = terminal_status,
+         result_code = terminal_result_code,
+         completed_at = now()
+   where workspace_id = target_workspace_id
+     and id = target_retest_id
+  returning * into updated_retest;
+
+  insert into public.security_finding_events (
+    workspace_id,
+    finding_id,
+    scan_job_id,
+    actor_type,
+    actor_id,
+    event_type,
+    from_lifecycle,
+    to_lifecycle,
+    reason,
+    metadata
+  ) values (
+    target_workspace_id,
+    current_retest.finding_id,
+    current_retest.scan_job_id,
+    'system',
+    null,
+    'finding.retest_completed',
+    event_from_lifecycle,
+    event_to_lifecycle,
+    null,
+    jsonb_build_object(
+      'retest_id', target_retest_id,
+      'result_code', terminal_result_code,
+      'status', terminal_status
+    )
+  );
+
+  return updated_retest;
+end;
+$$;
+
+revoke all on function public.finalize_security_finding_retest(uuid, uuid)
+  from public, anon, authenticated;
+grant execute on function public.finalize_security_finding_retest(uuid, uuid)
+  to service_role;
