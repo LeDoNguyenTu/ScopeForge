@@ -41,6 +41,7 @@ const WORKFLOW_ERROR_CODES = [
   "SECURITY_RETEST_FORBIDDEN",
   "SECURITY_RETEST_STATE_INVALID",
   "SECURITY_RETEST_ACTIVE_CONFLICT",
+  "SECURITY_RETEST_NOT_AVAILABLE",
 ] as const satisfies readonly SecurityRemediationErrorCode[];
 
 function isSecurityFindingWorkRow(value: unknown): value is SecurityFindingWorkRow {
