@@ -105,11 +105,11 @@ describe("shared deterministic Phase 3 persistence normalization", () => {
 
     expect(first).toEqual(second);
     for (const finding of first.findings) {
-      expect(finding.finding_id).toMatch(/^sff1:[a-f0-9]{64}$/);
+      expect(finding.finding_id).toMatch(/^phase3:[a-f0-9]{64}$/);
       expect(finding.evidence_refs).toHaveLength(1);
     }
     for (const evidence of first.evidence) {
-      expect(evidence.evidence_id).toMatch(/^sfe1:[a-f0-9]{64}$/);
+      expect(evidence.evidence_id).toMatch(/^phase3-evidence:[a-f0-9]{64}$/);
     }
   });
 });
