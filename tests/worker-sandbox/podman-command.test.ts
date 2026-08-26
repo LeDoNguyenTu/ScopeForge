@@ -29,7 +29,7 @@ describe("Phase 6C Podman sandbox command", () => {
       "--security-opt=no-new-privileges",
       "--pids-limit=64",
       "--memory=1g",
-      "--memory-swap=1g",
+      "--cgroup-conf=memory.swap.max=0",
       "--cpus=1",
       "--log-driver=none",
       "--user=65532:65532",
@@ -58,7 +58,7 @@ describe("Phase 6C Podman sandbox command", () => {
     }
   });
 
-  it("contains no privilege, host-network, device, shell, or socket escape options", () => {
+  it("contains no privilege, host-network, device, shell, socket, or implicit-swap escape options", () => {
     const command = buildPodmanCreateCommand(INPUT);
     const joined = command.args.join(" ");
     for (const forbidden of [
@@ -67,6 +67,7 @@ describe("Phase 6C Podman sandbox command", () => {
       "--pid=host",
       "--ipc=host",
       "--device",
+      "--memory-swap",
       "docker.sock",
       "podman.sock",
       "/bin/sh",
