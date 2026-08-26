@@ -72,7 +72,7 @@ describe("Phase 6A worker contracts", () => {
     })).toThrow(/unexpected/i);
   });
 
-  it("rejects cross-attempt replay and invalid failure codes", () => {
+  it("rejects cross-attempt replay and non-authoritative failure codes", () => {
     const envelope = {
       schemaVersion: 1,
       taskId: "11111111-1111-4111-8111-111111111111",
@@ -96,14 +96,22 @@ describe("Phase 6A worker contracts", () => {
       executionClass: "foundation_no_egress_v1",
     })).toThrow(/attempt/i);
 
-    expect(() => validateWorkerTerminalEnvelope({
-      ...envelope,
-      failureCode: "x".repeat(65),
-    }, {
-      taskId: envelope.taskId,
-      attemptId: envelope.attemptId,
-      executionClass: "foundation_no_egress_v1",
-    })).toThrow(/failure code/i);
+    for (const failureCode of [
+      "x".repeat(65),
+      "WORKER_NOT_A_REAL_FAILURE",
+      "WORKER_LEASE_EXPIRED",
+      "WORKER_CANCELLED",
+      "WORKER_ATTEMPTS_EXHAUSTED",
+    ]) {
+      expect(() => validateWorkerTerminalEnvelope({
+        ...envelope,
+        failureCode,
+      }, {
+        taskId: envelope.taskId,
+        attemptId: envelope.attemptId,
+        executionClass: "foundation_no_egress_v1",
+      })).toThrow(/failure code/i);
+    }
   });
 
   it("rejects metrics outside the closed profile budget", () => {
