@@ -1,6 +1,12 @@
 export type WorkerExecutionClass = "foundation_no_egress_v1";
 export type WorkerNetworkPolicy = "none";
 export type WorkerTerminalOutcome = "succeeded" | "failed" | "cancelled";
+export type WorkerTerminalFailureCode =
+  | "WORKER_LOST"
+  | "WORKER_BUDGET_EXCEEDED"
+  | "WORKER_OUTPUT_INVALID"
+  | "WORKER_EXECUTION_FAILED"
+  | "WORKER_CLASS_UNAVAILABLE";
 
 export interface WorkerExecutionBudget {
   maxWallTimeMs: number;
@@ -53,7 +59,7 @@ export interface WorkerTerminalEnvelope {
   attemptId: string;
   executionClass: WorkerExecutionClass;
   outcome: WorkerTerminalOutcome;
-  failureCode: string | null;
+  failureCode: WorkerTerminalFailureCode | null;
   metrics: WorkerAttemptMetrics;
   result: FoundationProbeResult | null;
 }
