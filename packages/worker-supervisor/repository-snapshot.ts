@@ -211,6 +211,7 @@ export async function uploadRepositorySnapshotArtifact(input: {
       headers: {
         "content-length": String(input.storedArtifactBytes),
         "content-type": "application/gzip",
+        "if-none-match": "*",
       },
       agent: false,
     }, (response) => {
