@@ -168,7 +168,6 @@ function parseClaim(value: unknown): WorkerPersistenceClaimResult {
     taskId: requiredString(value.taskId),
     attemptId: requiredString(value.attemptId),
     leaseToken: requiredString(value.leaseToken),
-    leaseExpiresAt: requiredString(value.leaseExpiresAt),
     absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
     budget: parseBudget(value.budget, executionClass),
   };
