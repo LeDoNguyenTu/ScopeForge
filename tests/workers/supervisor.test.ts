@@ -7,7 +7,7 @@ const task: WorkerTaskContract = {
   attemptId: "44444444-4444-4444-8444-444444444444",
   executionClass: "foundation_no_egress_v1",
   leaseToken: "b".repeat(64),
-  absoluteDeadlineAt: "2026-08-26T00:05:00.000Z",
+  absoluteDeadlineAt: "2099-08-26T00:05:00.000Z",
   budget: {
     maxWallTimeMs: 30_000,
     maxCpuTimeMs: 20_000,
@@ -46,7 +46,7 @@ describe("worker supervisor", () => {
     await runWorkerOnce({
       control: {
         claim: vi.fn(async () => task),
-        heartbeat: vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: "2026-08-26T00:01:30.000Z" })),
+        heartbeat: vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: "2099-08-26T00:01:30.000Z" })),
         finalize,
       },
       executor: { execute },
@@ -70,7 +70,7 @@ describe("worker supervisor", () => {
     await runWorkerOnce({
       control: {
         claim: vi.fn(async () => task),
-        heartbeat: vi.fn(async () => ({ cancelRequested: true, leaseExpiresAt: "2026-08-26T00:01:30.000Z" })),
+        heartbeat: vi.fn(async () => ({ cancelRequested: true, leaseExpiresAt: "2099-08-26T00:01:30.000Z" })),
         finalize,
       },
       executor: { execute },
@@ -101,6 +101,39 @@ describe("worker supervisor", () => {
       outcome: "failed",
       failureCode: "WORKER_LOST",
     });
+  });
+
+  it("enforces the outer wall-time budget independently of executor output", async () => {
+    vi.useFakeTimers();
+    try {
+      const shortTask: WorkerTaskContract = {
+        ...task,
+        budget: { ...task.budget, maxWallTimeMs: 5 },
+      };
+      const execute = vi.fn(async (_contract, signal: AbortSignal) => new Promise<ReturnType<typeof terminal>>((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(new Error("budget")), { once: true });
+      }));
+      const finalize = vi.fn(async () => ({ outcome: "failed" as const, replayed: false }));
+      const run = runWorkerOnce({
+        control: {
+          claim: vi.fn(async () => shortTask),
+          heartbeat: vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: "2099-08-26T00:01:30.000Z" })),
+          finalize,
+        },
+        executor: { execute },
+        heartbeatMs: 60_000,
+      });
+
+      await vi.advanceTimersByTimeAsync(6);
+      await run;
+
+      expect(finalize.mock.calls[0]?.[0].terminal).toMatchObject({
+        outcome: "failed",
+        failureCode: "WORKER_BUDGET_EXCEEDED",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("returns idle without invoking executor when no task is claimable", async () => {
