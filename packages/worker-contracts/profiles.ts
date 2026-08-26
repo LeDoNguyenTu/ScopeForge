@@ -33,6 +33,21 @@ const REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1: WorkerExecutionProfile = Object.free
   }),
 });
 
+const PHASE3_REPOSITORY_SCAN_NO_EGRESS_V1: WorkerExecutionProfile = Object.freeze({
+  executionClass: "phase3_repository_scan_no_egress_v1",
+  networkPolicy: "none",
+  budget: Object.freeze({
+    maxWallTimeMs: 300_000,
+    maxCpuTimeMs: 300_000,
+    maxMemoryBytes: 1_073_741_824,
+    maxProcesses: 64,
+    maxInputFiles: 20_000,
+    maxInputBytes: 268_435_456,
+    maxScratchBytes: 268_435_456,
+    maxOutputBytes: 3_670_016,
+  }),
+});
+
 export function workerExecutionProfile(
   executionClass: WorkerExecutionClass,
 ): WorkerExecutionProfile {
@@ -41,6 +56,8 @@ export function workerExecutionProfile(
       return FOUNDATION_NO_EGRESS_V1;
     case "repository_snapshot_github_public_v1":
       return REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1;
+    case "phase3_repository_scan_no_egress_v1":
+      return PHASE3_REPOSITORY_SCAN_NO_EGRESS_V1;
   }
 
   const unreachable: never = executionClass;
