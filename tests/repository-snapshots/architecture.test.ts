@@ -61,12 +61,13 @@ describe("Phase 6B repository acquisition architecture", () => {
       path.resolve(root, "lib/repository-snapshots/read-model.ts"),
       path.resolve(root, "lib/repository-snapshots/repository.ts"),
       path.resolve(root, "lib/repository-snapshots/cleanup-repository.ts"),
+      path.resolve(root, "lib/worker-control/repository.ts"),
     ];
     for (const file of files) {
       const source = await readFile(file, "utf8");
       expect(source, path.relative(root, file)).not.toContain("as unknown as");
       expect(source, path.relative(root, file)).not.toMatch(
-        /interface\s+(?:SnapshotReadClient|RepositorySnapshotRpc|CleanupRpc)\b/,
+        /interface\s+(?:SnapshotReadClient|RepositorySnapshotRpc|CleanupRpc|RegisterRepositoryWorkerRpc)\b/,
       );
     }
   });
