@@ -10,6 +10,7 @@ describe("Phase 6B executor authority boundary", () => {
     const source = await readFile(executorPath, "utf8");
     for (const forbidden of [
       "node:child_process",
+      "node:worker_threads",
       "child_process",
       "@supabase/",
       "lib/supabase",
@@ -25,6 +26,12 @@ describe("Phase 6B executor authority boundary", () => {
       expect(source).not.toContain(forbidden);
     }
     expect(source).not.toMatch(/\b(exec|execFile|spawn|fork)\s*\(/);
+  });
+
+  it("requires the attempt PUT to be create-only at R2", async () => {
+    const source = await readFile(executorPath, "utf8");
+    expect(source).toContain('"if-none-match": "*"');
+    expect(source).toContain('"content-type": "application/gzip"');
   });
 
   it("keeps the supervisor provider-neutral and free of repository network/storage credentials", async () => {
