@@ -119,11 +119,15 @@ describe("Phase 6B repository snapshot schema", () => {
   it("keeps cancellation authoritative when publication races a cancelled job", async () => {
     const sql = await readFile(liveHardeningPath, "utf8");
 
+    expect(sql).toContain("finalize_repository_snapshot_worker_attempt_v1");
+    expect(sql).toMatch(/set\s+schema\s+private/i);
     expect(sql).toMatch(
-      /job_record\.status\s+not\s+in\s*\([\s\S]*'running'::public\.scan_job_status[\s\S]*'cancelled'::public\.scan_job_status[\s\S]*\)/i,
+      /j\.cancel_requested_at\s+is\s+not\s+null[\s\S]*j\.status\s*=\s*'cancelled'::public\.scan_job_status/i,
     );
+    expect(sql).toMatch(/return\s+public\.finalize_worker_attempt\([\s\S]*'cancelled'/i);
+    expect(sql).toContain("return private.finalize_repository_snapshot_worker_attempt_v1(");
     expect(sql).toMatch(
-      /job_record\.cancel_requested_at\s+is\s+not\s+null[\s\S]*job_record\.status\s*=\s*'cancelled'::public\.scan_job_status/i,
+      /revoke\s+all\s+on\s+function\s+private\.finalize_repository_snapshot_worker_attempt_v1[\s\S]*service_role/i,
     );
   });
 });
