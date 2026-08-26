@@ -102,20 +102,27 @@ export function createPresignedR2PutUrl(input: {
   const { host, baseUrl } = endpoint(credentials);
   const { dateStamp, amzDate } = amzTimestamp(now);
   const scope = `${dateStamp}/auto/s3/aws4_request`;
+  const signedHeaders = "content-type;host;if-none-match";
   const queryEntries = [
     ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
     ["X-Amz-Credential", `${credentials.accessKeyId}/${scope}`],
     ["X-Amz-Date", amzDate],
     ["X-Amz-Expires", String(expiresInSeconds)],
-    ["X-Amz-SignedHeaders", "host"],
+    ["X-Amz-SignedHeaders", signedHeaders],
   ] as const;
   const unsignedQuery = canonicalQuery(queryEntries);
+  const canonicalHeaders = [
+    "content-type:application/gzip",
+    `host:${host}`,
+    "if-none-match:*",
+    "",
+  ].join("\n");
   const canonicalRequest = [
     "PUT",
     canonicalObjectPath(objectKey),
     unsignedQuery,
-    `host:${host}\n`,
-    "host",
+    canonicalHeaders,
+    signedHeaders,
     "UNSIGNED-PAYLOAD",
   ].join("\n");
   const stringToSign = [
