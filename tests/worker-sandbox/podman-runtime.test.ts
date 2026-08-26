@@ -17,8 +17,8 @@ const BASE = {
   taskMetadataPath: "/var/lib/scopeforge/work/111/task.json",
 };
 
-function ok(stdout = ""): PodmanCommandResult {
-  return { exitCode: 0, stdout, stderr: "" };
+function result(exitCode = 0, stdout = ""): PodmanCommandResult {
+  return { exitCode, stdout, stderr: "" };
 }
 
 function deferred<T>() {
@@ -32,18 +32,19 @@ function deferred<T>() {
 }
 
 describe("Phase 6C Podman sandbox runtime", () => {
-  it("kills, waits for termination, and force-removes the exact container before abort settles", async () => {
-    const wait = deferred<PodmanCommandResult>();
+  it("kills, confirms termination, and force-removes the exact container before abort settles", async () => {
+    const attached = deferred<PodmanCommandResult>();
     const calls: string[][] = [];
     const driver: PodmanCommandDriver = {
       async exec(_file, args) {
         calls.push([...args]);
-        if (args[0] === "wait") return wait.promise;
+        if (args[0] === "start") return attached.promise;
         if (args[0] === "kill") {
-          wait.resolve(ok("137\n"));
-          return ok();
+          attached.resolve(result(137));
+          return result();
         }
-        return ok();
+        if (args[0] === "wait") return result(0, "137\n");
+        return result();
       },
     };
     const workDirectory = await mkdtemp(path.join(tmpdir(), "scopeforge-podman-abort-"));
@@ -59,8 +60,9 @@ describe("Phase 6C Podman sandbox runtime", () => {
       await expect(execution).rejects.toMatchObject({ name: "AbortError" });
 
       const operations = calls.map((args) => args[0]);
-      expect(operations).toEqual(["create", "start", "wait", "kill", "rm"]);
+      expect(operations).toEqual(["create", "start", "kill", "wait", "rm"]);
       const containerName = "scopeforge-scan-11111111-1111-4111-8111-111111111111-22222222-2222-4222-8222-222222222222";
+      expect(calls.find((args) => args[0] === "start")).toEqual(["start", "--attach", containerName]);
       expect(calls.find((args) => args[0] === "kill")).toEqual(["kill", "--signal=KILL", containerName]);
       expect(calls.find((args) => args[0] === "rm")).toEqual(["rm", "--force", containerName]);
     } finally {
@@ -68,41 +70,39 @@ describe("Phase 6C Podman sandbox runtime", () => {
     }
   });
 
-  it("copies the bounded result only after a zero exit and removes the stopped container", async () => {
+  it("accepts bounded attached output only after the saved container exit code is zero", async () => {
     const calls: string[][] = [];
     const driver: PodmanCommandDriver = {
       async exec(_file, args) {
         calls.push([...args]);
-        if (args[0] === "wait") return ok("0\n");
-        return ok();
+        if (args[0] === "start") return result(0, '{"schemaVersion":1}\n');
+        if (args[0] === "wait") return result(0, "0\n");
+        return result();
       },
     };
     const workDirectory = await mkdtemp(path.join(tmpdir(), "scopeforge-podman-success-"));
     try {
-      const result = await createPodmanSandbox({ driver }).execute({
+      const output = await createPodmanSandbox({ driver }).execute({
         ...BASE,
         workDirectory,
       }, new AbortController().signal);
 
-      expect(result.resultPath).toBe(path.join(workDirectory, "result.json"));
-      expect(calls.map((args) => args[0])).toEqual(["create", "start", "wait", "cp", "rm"]);
-      expect(calls[3]).toEqual([
-        "cp",
-        `${result.containerName}:/result/result.json`,
-        path.join(workDirectory, "result.json"),
-      ]);
+      expect(output.output).toBe('{"schemaVersion":1}\n');
+      expect(calls.map((args) => args[0])).toEqual(["create", "start", "wait", "rm"]);
+      expect(calls[1]).toEqual(["start", "--attach", output.containerName]);
     } finally {
       await rm(workDirectory, { recursive: true, force: true });
     }
   });
 
-  it("never copies output from a failed scanner container", async () => {
+  it("never accepts output from a failed scanner container", async () => {
     const calls: string[][] = [];
     const driver: PodmanCommandDriver = {
       async exec(_file, args) {
         calls.push([...args]);
-        if (args[0] === "wait") return ok("1\n");
-        return ok();
+        if (args[0] === "start") return result(1, "attacker-controlled-partial-output");
+        if (args[0] === "wait") return result(0, "1\n");
+        return result();
       },
     };
     const workDirectory = await mkdtemp(path.join(tmpdir(), "scopeforge-podman-fail-"));
