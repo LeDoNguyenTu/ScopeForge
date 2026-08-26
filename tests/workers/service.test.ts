@@ -1,17 +1,24 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
+import type { RepositorySnapshotObjectStore } from "@/lib/repository-snapshots/object-store";
 import {
   claimWorkerTask,
   finalizeWorkerAttempt,
   registerWorkerNode,
   type WorkerControlRepository,
 } from "@/lib/worker-control/service";
+import { workerExecutionProfile } from "@/packages/worker-contracts";
 
 function repository(overrides: Partial<WorkerControlRepository> = {}): WorkerControlRepository {
   return {
     register: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
       executionClass: "foundation_no_egress_v1",
+      softwareVersion: "0.1.0",
+    })),
+    registerRepositorySnapshot: vi.fn(async () => ({
+      workerId: "11111111-1111-4111-8111-111111111111",
+      executionClass: "repository_snapshot_github_public_v1",
       softwareVersion: "0.1.0",
     })),
     disable: vi.fn(async () => ({ workerId: "11111111-1111-4111-8111-111111111111", disabledAt: "2026-08-26T00:00:00.000Z" })),
@@ -35,6 +42,12 @@ function repository(overrides: Partial<WorkerControlRepository> = {}): WorkerCon
       replayed: false,
     })),
     recover: vi.fn(async () => 0),
+    fleetSnapshot: vi.fn(async () => ({
+      generatedAt: "2026-08-26T00:00:00.000Z",
+      nodes: [],
+      taskCounts: { queued: 0, leased: 0, retryWait: 0, completed: 0, deadLetter: 0, cancelled: 0 },
+      activeLeaseCount: 0,
+    })),
     ...overrides,
   };
 }
@@ -64,7 +77,54 @@ describe("worker control service", () => {
     expect(claim).toHaveBeenCalledWith({ workerId: "11111111-1111-4111-8111-111111111111" });
   });
 
-  it("validates and hashes terminal content before repository finalization", async () => {
+  it("replaces the private repository object key with one presigned PUT descriptor", async () => {
+    const artifactObjectKey = `repository-source/${"a".repeat(64)}.tar.gz`;
+    const claim = vi.fn(async () => ({
+      taskId: "33333333-3333-4333-8333-333333333333",
+      attemptId: "44444444-4444-4444-8444-444444444444",
+      executionClass: "repository_snapshot_github_public_v1" as const,
+      leaseToken: "b".repeat(64),
+      absoluteDeadlineAt: "2026-08-27T03:40:00.000Z",
+      budget: workerExecutionProfile("repository_snapshot_github_public_v1").budget,
+      artifactObjectKey,
+      input: {
+        kind: "repository_snapshot_github_public" as const,
+        owner: "openai",
+        repository: "openai-node",
+        canonicalRepositoryUrl: "https://github.com/openai/openai-node",
+      },
+    }));
+    const createAttemptUpload = vi.fn(async () => ({
+      method: "PUT" as const,
+      url: "https://scopeforge-artifacts.example.r2.cloudflarestorage.com/object?X-Amz-Signature=test",
+      expiresAt: "2026-08-27T03:26:00.000Z",
+    }));
+    const store: RepositorySnapshotObjectStore = {
+      createAttemptUpload,
+      headObject: vi.fn(),
+      deleteObject: vi.fn(),
+    };
+
+    const result = await claimWorkerTask({
+      workerId: "11111111-1111-4111-8111-111111111111",
+    }, {
+      repository: repository({ claim }),
+      repositorySnapshotObjectStore: () => store,
+      now: () => new Date("2026-08-27T03:20:00.000Z"),
+    });
+
+    expect(createAttemptUpload).toHaveBeenCalledWith({
+      objectKey: artifactObjectKey,
+      expiresAt: new Date("2026-08-27T03:26:00.000Z"),
+    });
+    expect(result?.input).toMatchObject({
+      kind: "repository_snapshot_github_public",
+      artifactUpload: { method: "PUT" },
+    });
+    expect(JSON.stringify(result)).not.toContain(artifactObjectKey);
+  });
+
+  it("validates and hashes foundation terminal content before repository finalization", async () => {
     const finalize = vi.fn(async (input) => ({
       taskId: input.taskId,
       attemptId: input.attemptId,
@@ -112,6 +172,38 @@ describe("worker control service", () => {
     });
     expect(persisted).not.toHaveProperty("command");
     expect(persisted).not.toHaveProperty("networkPolicy");
+  });
+
+  it("forces successful repository snapshots through the dedicated publication service", async () => {
+    const repo = repository();
+    await expect(finalizeWorkerAttempt({
+      workerId: "11111111-1111-4111-8111-111111111111",
+      leaseToken: "b".repeat(64),
+      terminal: {
+        schemaVersion: 1,
+        taskId: "33333333-3333-4333-8333-333333333333",
+        attemptId: "44444444-4444-4444-8444-444444444444",
+        executionClass: "repository_snapshot_github_public_v1",
+        outcome: "succeeded",
+        failureCode: null,
+        metrics: { wallTimeMs: 1, cpuTimeMs: 1, peakMemoryBytes: 1, inputBytes: 0, outputBytes: 0 },
+        result: {
+          kind: "repository_snapshot_github_public",
+          canonicalRepositoryUrl: "https://github.com/openai/openai-node",
+          defaultBranch: "main",
+          resolvedCommitSha: "a".repeat(40),
+          contentDigest: "b".repeat(64),
+          artifactDigest: "c".repeat(64),
+          compressedBytes: 0,
+          expandedBytes: 0,
+          retainedFileCount: 0,
+          retainedBytes: 0,
+          storedArtifactBytes: 1,
+          skipCounts: { symlink: 0, hardlink: 0, fileTooLarge: 0, retainedFileLimit: 0, retainedBytesLimit: 0 },
+        },
+      },
+    }, { repository: repo })).rejects.toMatchObject({ code: "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED" });
+    expect(repo.finalize).not.toHaveBeenCalled();
   });
 
   it("rejects unexpected terminal fields before persistence", async () => {
