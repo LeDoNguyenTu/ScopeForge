@@ -2,6 +2,7 @@ import type {
   WorkerAttemptMetrics,
   WorkerExecutionClass,
   WorkerTaskContract,
+  WorkerTerminalFailureCode,
   WorkerTerminalOutcome,
 } from "@/packages/worker-contracts";
 
@@ -61,7 +62,7 @@ export interface WorkerHeartbeatResult {
 
 export interface WorkerPersistenceFinalizationInput extends WorkerLeaseIdentity, WorkerAttemptMetrics {
   terminalOutcome: WorkerTerminalOutcome;
-  failureCode: string | null;
+  failureCode: WorkerTerminalFailureCode | null;
   terminalPayloadDigest: string;
 }
 
