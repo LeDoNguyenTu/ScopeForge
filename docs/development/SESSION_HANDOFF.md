@@ -2,151 +2,182 @@
 
 ## Current phase
 
-Phase 5C Hosted Phase 3 finding import is complete in code and production database reconciliation.
+Phase 6A zero-egress worker foundation is complete, merged, and production-reconciled.
 
-- PR #37 merged as `2867e603df3e2430a78aaca8ba9cb6d09f6bdccb`
-- exact reviewed PR head: `58d930685078df3ebd3c85fdf0d45007659e5704`
+- exact reviewed feature head: `53ece5cd4b14f6e27961d1fbb478f9420c9761fb`
+- direct two-parent merge to `main`: `91f856f53fb57a4b9cd6710ee767361f473cea45`
 - production Supabase project: `tdgpibrepzcvdivztkta`
-- Phase 5C production schema verified and advisor-reconciled
+- no pull request was opened for Phase 6A
+- no GitHub Actions run was triggered or used for Phase 6A closeout
 
-GitHub Actions monthly allowance was exhausted during PR #37. The user explicitly directed that ScopeForge continue without triggering, rerunning, or depending on GitHub Actions for the remainder of the month. Post-quota commits use `[skip ci]`.
-
-Do not run GitHub Actions unless the user explicitly changes this instruction or the quota period is over.
+GitHub Actions monthly allowance is exhausted. The user explicitly directed ScopeForge to continue without GitHub Actions for the remainder of the month. Continue using `[skip ci]` and do not trigger/rerun Actions unless that instruction changes.
 
 ## Completed platform work
 
 - Phase 1 foundation complete.
 - Phase 2 asset control and authorization complete.
-- Phase 3 code and supply-chain security merged through PR #21 as `86fb5c561e5b49fbf84eaef454fbaaa71b67bd3e`.
-- Phase 4A security-domain contracts merged through PR #23 as `56192756079375957c4918a2be5cfbfb30a33376`.
-- Phase 4B passive runtime observations merged through PR #25 as `6879ff95f88be5cdb0eb0d7a94ef6ce56df0aa63`.
-- Phase 4C-1 bounded CORS validation merged through PR #27 as `fb3aa27fac898cf20c87b57c86d6e8b2492fedd0`.
-- Phase 5A hosted finding foundation delivered through PR #30.
-- Phase 5B remediation, deterministic retest, and Security Story merged through PR #33 as `eb35c2b23468addd817951486c60ac7d68710c9a` and production-reconciled.
-- Phase 5C hosted Phase 3 import merged through PR #37 as `2867e603df3e2430a78aaca8ba9cb6d09f6bdccb` and production-reconciled.
+- Phase 3 code/supply-chain security complete through PR #21.
+- Phase 4A security-domain contracts complete through PR #23.
+- Phase 4B passive runtime observations complete through PR #25.
+- Phase 4C-1 bounded CORS validation complete through PR #27.
+- Phase 5A hosted finding foundation complete.
+- Phase 5B remediation/retest/Security Story complete and production-reconciled.
+- Phase 5C hosted Phase 3 import merged as `2867e603df3e2430a78aaca8ba9cb6d09f6bdccb` and production-reconciled.
+- Phase 6A zero-egress worker foundation merged as `91f856f53fb57a4b9cd6710ee767361f473cea45` and production-reconciled.
 
-## Phase 5C implementation boundary
+## Phase 6A security boundary
 
-### Local/CI export
+The worker foundation is infrastructure only. No existing product scan is worker-backed yet.
 
-`scopeforge scan . --format hosted-json --repository <public-github-repo> --output scopeforge-hosted.json`
+### Closed execution profile
 
-The versioned export includes bounded normalized scanner facts only. It excludes local roots, source code, snippets, data-flow traces, arbitrary metadata, scanner diagnostics, credentials, raw secret values, and SBOM bodies/artifacts.
+The only execution class is `foundation_no_egress_v1` with `networkPolicy: "none"` and fixed budgets:
 
-Secret-specific hardening:
+- 30s wall time
+- 20s CPU time
+- 256 MiB memory
+- 4 processes
+- 100 input files
+- 10 MiB input
+- 32 MiB scratch
+- 1 MiB output
 
-- no exact columns
-- no local secret-derived fingerprint crosses the hosted boundary
-- hosted secret fingerprints use reviewed rule/version + repository-relative path + line
-- hosted secret evidence summaries are regenerated from reviewed rule metadata
+The only executable input is a deterministic `foundation_probe` nonce. It hashes the nonce and has no repository, scanner, filesystem, subprocess, HTTP, DNS, socket, or runtime-target behavior.
 
-### Trusted import
+### Queue, lease, retry, and cancellation
 
-The Phase 5C server boundary:
+PostgreSQL is authoritative for worker scheduling while `scan_jobs` remains canonical product lifecycle.
 
-- accepts one selected repository `assetId`
-- derives actor/workspace/role from authenticated server context
-- requires `application/json`
-- enforces 3.5 MB from both declared length and streamed bytes
-- validates a closed scanner/rule/version registry
-- canonicalizes/recomputes the payload before accepting runRef
-- rejects traversal, absolute paths, unsupported/extra fields, malformed repository identity, and oversized payloads
-- derives canonical finding/evidence/source/provenance rows server-side
-- never accepts arbitrary lifecycle, URL, request headers/body, budget, command, checkout, package-manager, or runtime-network authority
+- private worker nodes/tasks/attempts/events
+- exact task binding to `(scan_job_id, workspace_id, asset_id)`
+- deterministic `FOR UPDATE SKIP LOCKED` claim ordering
+- maximum 4 globally leased tasks and one per workspace
+- 90-second lease, bounded by absolute task deadline
+- lease token generated as 32 random bytes, only SHA-256 digest stored
+- maximum 3 attempts
+- retry delays 15s then 60s
+- cancellation wins finalization and recovery races
+- cancellation-aware recovery runs before unleased absolute-deadline dead-lettering
+- lease-expiry provenance can be assigned only by database recovery
 
-### Production persistence
+### Worker authentication and broker
 
-Live Phase 5C migrations:
+Worker secrets are generated server-side and returned once. Only SHA-256 digests are stored.
 
-- `20260825210845 phase_5c_phase3_import_enum`
-- `20260825211003 phase_5c_phase3_import`
-- `20260825211239 phase_5c_phase3_import_fk_indexes`
+Broker routes use worker bearer authentication plus canonical worker UUID and do not accept user-session authentication as worker authority.
 
-The database has:
+- claim accepts no body
+- heartbeat/finalize accept strict JSON only
+- streamed body cap: 64 KiB
+- canonical UUID validation occurs before RPC calls
+- no caller command/image/env/URL/headers/body/package-manager/network-policy/lifecycle/validation/budget fields
 
-- `phase3_import` scan job kind
-- immutable `security_phase3_import_runs`
-- RLS member SELECT-only policy
-- service-role-only `persist_phase3_import_result`
-- terminal repository-import scan-job constraint
-- exact retry advisory locking/idempotency
-- conflict rejection
-- canonical finding/evidence/occurrence/event reuse
-- three covering indexes for Phase 5C foreign keys
+### Supervisor and executor
 
-Post-deployment verification confirmed:
+The supervisor keeps lease tokens and broker credentials outside the executor contract.
 
-- authenticated SELECT true, mutations false
-- anon SELECT false
-- RPC is `SECURITY DEFINER`
-- RPC `search_path` is empty
-- service_role EXECUTE true
-- public/anon/authenticated EXECUTE false
-- immutable triggers enabled
-- intended constraints/indexes present
-- import table smoke read succeeds and currently has zero rows
-- security advisor clean
-- no Phase 5C missing-FK-index notices
-- remaining performance notices are INFO-level unused indexes
-- live-generated Supabase TypeScript types confirm the new enum/table/RPC shape
+It:
 
-## Phase 5C UI/read model
+- heartbeats every 30 seconds by default
+- aborts on cancellation
+- aborts after two consecutive control-channel failures
+- validates exact terminal task/attempt/class binding
+- accepts only five worker-originated failure codes
+- validates fixed resource metrics
+- validates the exact expected foundation-probe SHA-256 digest
+- enforces an outer hard wall-time boundary even if the executor ignores `AbortSignal`
 
-Repository asset detail provides:
+Future concrete sandbox adapters must additionally terminate their underlying process/container resources.
 
-- exact hosted-json CLI command
-- privacy disclosure
-- bounded JSON upload
-- latest 20 import runs
-- canonical findings navigation
+## Production Phase 6A migrations
 
-Repository assets remain unsupported by passive runtime and active validation.
+Live production migration history includes Phase 6A through:
 
-Canonical findings are paginated at 100 rows with one-row lookahead and deterministic `last_seen_at DESC, finding_id ASC` ordering.
+- `20260826100538 phase_6a_worker_probe_enum`
+- `20260826100608 phase_6a_worker_foundation`
+- `20260826101122 phase_6a_worker_control`
+- `20260826101157 phase_6a_worker_claim_heartbeat`
+- `20260826101233 phase_6a_worker_finalize`
+- `20260826101305 phase_6a_worker_recovery`
+- `20260826101327 phase_6a_worker_auth`
+- `20260826152840 phase_6a_worker_fleet_read`
+- `20260826152905 phase_6a_worker_deadline_recovery`
+- `20260826152912 phase_6a_worker_fk_indexes`
+- `20260826152927 phase_6a_worker_recovery_compat`
+- `20260826152940 phase_6a_worker_job_contract`
+- `20260826153014 phase_6a_worker_terminal_provenance_hardening`
+- `20260826153244 phase_6a_worker_private_helper_privileges`
 
-## Security review findings fixed before merge
+Direct verification confirmed:
 
-1. **Secret-derived hosted correlation token** - local secret `sfs1` identity included a secret-derived hash. Hosted export now re-keys secret fingerprints from safe rule/location identity only.
-2. **Secret summary trust** - secret evidence summaries are regenerated from reviewed rule metadata instead of trusting scanner text.
-3. **Finding pagination tie ordering** - identical import timestamps now have stable `finding_id` ordering.
-4. **Phase 5C database type drift** - application types now include `phase3_import`, import-run table, persistence RPC, and existing retest recovery RPC.
-5. **Missing Phase 5C FK indexes** - three advisor-reported missing covering indexes were added in a third migration and deployed.
-6. **Architecture guard breadth** - trusted import guards now forbid HTTP/fetch, VM/worker authority, and model-provider/advisory-inference dependencies in addition to existing execution/network boundaries.
+- `worker_foundation_probe` exists in `scan_job_kind`
+- anon/authenticated cannot read private worker tables
+- intended public worker RPCs are `SECURITY DEFINER` with empty `search_path`
+- public/anon/authenticated cannot execute worker RPCs
+- service_role can execute intended worker broker/operations RPCs
+- internal recovery/private helper execution is revoked
+- task/job binding constraints and worker indexes are live
+- worker probe scan-job snapshot constraint is live
+- security advisor is clean
+- performance advisor has no Phase 6A missing-FK-index notices
+- generated Supabase types confirm the public worker enum/RPC contract
 
-## Verification evidence
+## Production smoke
 
-Pre-quota executable checkpoints include full-green Task 3 and Task 4 runs. CI #720 passed 156 test files / 701 tests, strict typecheck, CLI build/version smoke, and scanner benchmark before detecting an invalid Next.js route export during production build. That specific framework issue was corrected afterward by moving the transport constant outside the route module.
+Production has zero auth users/workspaces/assets, so an enqueue-to-finalize product-bound probe smoke was intentionally not fabricated.
 
-Later Actions jobs did not execute repository steps because the monthly allowance was exhausted.
+A worker-control smoke passed:
 
-The merged final head was not exact-head CI green. Final acceptance used:
+- register
+- authenticate
+- idle claim
+- fleet snapshot visibility
+- disable
 
-- targeted security-sensitive code review
-- live Supabase schema/privilege/constraint/index checks
-- Supabase security/performance advisors
-- live-generated TypeScript schema comparison
-- local TypeScript syntax checks on final critical modules
-- zero blocking PR review threads
-- expected-head protected merge of exact head `58d930685078df3ebd3c85fdf0d45007659e5704`
+All smoke rows were removed. Verified final worker table counts are zero for nodes, tasks, attempts, and events.
+
+## Verification limitation
+
+The final Phase 6A head did not run the complete npm/Vitest/typecheck/build suite after the GitHub Actions allowance was exhausted and no materialized dependency-complete repository was available in the execution environment.
+
+Do not claim otherwise. Acceptance evidence is:
+
+- explicit test-first contract commits
+- targeted final security/source review
+- direct live database migration/privilege/constraint/index verification
+- clean Supabase security advisor
+- generated Supabase type comparison
+- production worker-control smoke
+- exact-head inventory showing only approved Phase 6A scope
+- direct two-parent `[skip ci]` merge
+
+## Review findings fixed before merge
+
+- hard supervisor deadline now handles uncooperative executors
+- worker cannot claim lease-expiry provenance
+- cancellation wins the deadline recovery race
+- private helper default EXECUTE privileges are revoked
+- malformed worker/task/attempt IDs fail before PostgreSQL
+- worker RPC repository is now compile-time typed instead of stringly cast
 
 ## Exact next task
 
-Begin **Phase 6 isolated workers and scanner scale** with design/threat modeling before implementation.
+Begin **Phase 6B repository acquisition and private input artifacts** with threat modeling/design approval before code.
 
-Define first:
+Phase 6B must define:
 
-- queue/job lifecycle
-- worker lease and recovery semantics
-- isolated execution workspace
-- CPU/memory/time/file/byte budgets
-- concurrency/backpressure
-- cancellation race semantics
-- private artifact classification/retention
-- dedicated egress policy
-- scanner/result provenance
-- quotas, abuse controls, observability, and operational kill switches
+- exact repository asset/workspace binding
+- trusted acquisition authority and credential model
+- remote-fetch allowlist/policy
+- private immutable input artifacts
+- byte/file limits
+- artifact classification and retention/deletion
+- provenance and audit records
+- scanner consumption contract
+- no package lifecycle scripts
+- no caller-selected commands, clone flags, package-manager config, environment variables, arbitrary URLs/headers/body, credentials, or network policy
 
-Do not move repository cloning, package execution, generic outbound networking, or arbitrary caller configuration into the control plane. Worker isolation must preserve the security boundaries established in Phases 2-5.
+Do not move passive runtime, active validation, or Phase 3 import through workers by convenience. Dedicated network-enabled execution remains a later separately approved Phase 6C/6D boundary.
 
 ## Resume protocol
 
@@ -158,7 +189,7 @@ Read in this order:
 4. `docs/development/NEXT_STEPS.md`
 5. `docs/ARCHITECTURE.md`
 6. `docs/PHASES.md`
-7. Phase 5C design/plan if import details are needed
-8. Confirm the three Phase 5C production migrations remain present if investigating drift
-9. Do not trigger GitHub Actions until the user explicitly changes the current instruction or the quota period is over
-10. Start Phase 6 with a design and threat model before code
+7. `docs/superpowers/specs/2026-08-26-phase-6a-worker-foundation-design.md` if worker internals are needed
+8. `docs/superpowers/plans/2026-08-26-phase-6a-worker-foundation.md` for implementation history
+9. Never trigger GitHub Actions while the no-Actions instruction remains active
+10. Start Phase 6B with design/threat modeling before implementation
