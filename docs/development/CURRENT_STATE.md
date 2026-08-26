@@ -20,10 +20,9 @@ Authorization, deterministic evidence, explanation, remediation, and execution a
 - **Phase 5B Remediation, deterministic retest, and Security Story** - bounded human workflow and authoritative fresh-evidence retest semantics.
 - **Phase 5C Hosted Phase 3 finding import** - privacy-reduced local/CI import without hosted repository execution.
 - **Phase 6A Zero-egress worker foundation** - private PostgreSQL worker queue, scoped worker identity, exact leases, retries/recovery, cancellation-wins behavior, and provider-neutral supervision.
+- **Phase 6B Public GitHub repository acquisition and immutable source snapshots** - merged through PR #38. Exact reviewed feature head `6a999df6bbb849e5eb698dbc387f7ec2a82df6d6`; merge commit `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`.
 
-## Phase 6B repository acquisition - review candidate deployed
-
-Phase 6B implementation is on `feat/phase-6b-repository-acquisition`. The exact review candidate is not considered merged until the Phase 6B pull request is reviewed and merged.
+## Phase 6B repository acquisition - complete
 
 Phase 6B creates private immutable source snapshots only. It does not execute repository code, run package managers or hooks, use `git clone`, fetch submodules/LFS, run Phase 3 scanners, create findings, or gain runtime-validation authority.
 
@@ -148,25 +147,13 @@ Direct live verification confirmed:
 - performance advisor has no Phase 6B missing-FK-index notices; remaining notices are INFO-level unused-index observations expected on an empty database
 - live generated TypeScript types contain the Phase 6B public enum/table/RPC surface and no private schema
 
-A rollback-only production smoke successfully exercised:
-
-- repository snapshot enqueue
-- repository-class worker registration and claim
-- canonical asset-derived GitHub identity
-- lease-bound artifact lookup
-- successful atomic snapshot publication
-- exact idempotent replay
-- conflicting replay rejection
-- cancellation-wins publication race
-- orphan cleanup eligibility and marking
-
-The transaction was rolled back. Follow-up counts confirmed zero users, workspaces, assets, scan jobs, snapshots, worker nodes/tasks/attempts, uploads, and artifacts.
+A rollback-only production smoke successfully exercised repository snapshot enqueue, repository-class worker claim, canonical asset-derived GitHub identity, lease-bound artifact lookup, atomic publication, exact replay, conflicting replay rejection, cancellation-wins publication, and orphan cleanup. The transaction was rolled back and follow-up counts returned to zero.
 
 ## Verification constraint
 
-GitHub Actions monthly allowance is exhausted and must not be used. Phase 6B commits use `[skip ci]`.
+GitHub Actions monthly allowance is exhausted and must not be used. Phase 6B implementation and closeout commits used `[skip ci]`.
 
-The current execution container cannot resolve `github.com`, and no dependency-complete local checkout is available. Therefore these commands have not run for the final Phase 6B head:
+The current execution container cannot resolve `github.com`, and no dependency-complete local checkout is available. Therefore these commands were not run for the merged Phase 6B head:
 
 - `npm test`
 - `npm run typecheck`
@@ -175,10 +162,10 @@ The current execution container cannot resolve `github.com`, and no dependency-c
 - `npm run benchmark:scanner`
 - `npm run build`
 
-Do not describe those checks as green. Current acceptance evidence consists of test-first repository contracts, targeted source/security review, exact changed-file inventory, live Supabase migration/ACL/RLS/function/index verification, clean security advisor, generated-type comparison, and rollback-only production workflow smoke.
+Do not describe those checks as green. Phase 6B acceptance evidence consists of test-first repository contracts, targeted exact-head source/security review, exact changed-file inventory, live Supabase migration/ACL/RLS/function/index verification, clean security advisor, generated-type comparison, and rollback-only production workflow smoke.
 
-## Next boundary
+## Current boundary
 
-After the exact Phase 6B review head is merged and `main` is reconciled, begin **Phase 6C isolated zero-egress Phase 3 scanning over immutable repository snapshots**.
+**Phase 6C isolated zero-egress Phase 3 scanning over immutable repository snapshots** is the next implementation boundary.
 
-Phase 6C may consume only the already published immutable private snapshot. It must not widen Phase 6B acquisition into generic HTTP authority, run package lifecycle scripts, recurse into remote submodules/LFS, or allow model/advisory output to independently change authoritative finding validation/security state.
+Phase 6C may consume only an already published immutable private snapshot. It must not widen Phase 6B acquisition into generic HTTP authority, run repository/package lifecycle commands, recurse into remote submodules/LFS, or allow model/advisory output to independently change authoritative finding validation/security state.
