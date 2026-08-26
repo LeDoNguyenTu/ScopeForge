@@ -2,9 +2,9 @@
 
 ## GitHub Actions and local execution constraint
 
-GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use. Phase 6B commits therefore use `[skip ci]` and no workflow is to be triggered, rerun, or used as merge evidence.
+GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use. Phase 6B implementation, merge, and reconciliation commits use `[skip ci]` and no workflow is to be triggered, rerun, or used as merge evidence.
 
-The current execution container cannot resolve `github.com` and no dependency-complete ScopeForge checkout is available. The exact final Phase 6B head therefore has **not** executed:
+The current execution container cannot resolve `github.com` and no dependency-complete ScopeForge checkout is available. The merged Phase 6B head therefore has **not** executed:
 
 ```text
 npm test
@@ -17,9 +17,20 @@ npm run build
 
 Do not describe those checks as green.
 
+## Phase 6B merge evidence
+
+Phase 6B merged through PR #38.
+
+- exact reviewed feature head: `6a999df6bbb849e5eb698dbc387f7ec2a82df6d6`
+- merge commit: `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`
+- PR was `mergeable: true` and `mergeable_state: clean` immediately before merge
+- exact-head review was recorded
+- unresolved review threads: none
+- expected-head SHA protection was used for merge
+
 ## Phase 6B executable repository contracts
 
-The Phase 6B branch contains test-first contracts for:
+The merged tree contains test-first contracts for:
 
 - closed `repository_snapshot_github_public_v1` worker input/output and fixed budgets
 - owner/admin repository snapshot enqueue and exact asset/workspace binding
@@ -47,7 +58,7 @@ These tests are source-controlled acceptance contracts, but they have not been e
 
 ## Production migration verification
 
-ScopeForge Supabase project `tdgpibrepzcvdivztkta` now contains:
+ScopeForge Supabase project `tdgpibrepzcvdivztkta` contains:
 
 - `20260826221813 phase_6b_repository_snapshot_enum`
 - `20260826221849 phase_6b_repository_snapshot_schema`
@@ -78,17 +89,17 @@ Direct SQL verification confirmed:
 
 ## Review-driven defects fixed before merge
 
-1. **Stale presigned PUT overwrite** - an attempt bearer URL could otherwise be reused until expiry. SigV4 now signs `If-None-Match: *` and the executor sends it, so the first successful upload creates the object and a replay cannot overwrite it.
-2. **Cleanup orphan race** - orphan eligibility previously depended partly on mutable task state. Cleanup now uses monotonic attempt state: attempt finished or exact lease expired, and the mark RPC rechecks it.
-3. **Default service-role table authority** - Supabase default ACL left `service_role` with direct public snapshot mutation/truncate authority. Forward live hardening revokes all direct service-role privileges on the table.
-4. **Unreachable cancelled publication branch** - original publication required `running` before a later cancelled-status branch. The live public RPC is now a cancellation-first wrapper over a private non-executable v1 implementation.
+1. **Stale presigned PUT overwrite** - SigV4 now signs `If-None-Match: *` and the executor sends it, so a replay cannot overwrite an existing snapshot object.
+2. **Cleanup orphan race** - cleanup now uses monotonic attempt state: attempt finished or exact lease expired, with mark-time recheck.
+3. **Default service-role table authority** - forward live hardening revokes all direct service-role privileges on the public snapshot table.
+4. **Unreachable cancelled publication branch** - the public publication RPC is now a cancellation-first wrapper over a private non-executable v1 implementation.
 5. **Missing actor FK indexes** - public snapshot and private repository task `requested_by` foreign keys now have covering indexes.
-6. **Temporary RPC casts** - the public Phase 6B database type surface was reconciled and repository snapshot code now uses typed RPCs directly.
-7. **Authority-regression gaps** - permanent guards now explicitly forbid worker threads, process/package-manager execution, scanner coordinator/inventory/filesystem authority, runtime observer/validator, model providers, browser object-store/broker access, Phase 5C-to-worker authority, and foundation-worker GitHub/R2 imports.
+6. **Temporary RPC casts** - repository snapshot code uses the reconciled typed public RPC surface directly.
+7. **Authority-regression gaps** - permanent guards explicitly forbid worker threads, process/package-manager execution, scanner coordinator/inventory/filesystem authority, runtime observer/validator, model providers, browser object-store/broker access, Phase 5C-to-worker authority, and foundation-worker GitHub/R2 imports.
 
 ## Advisor state
 
-After the forward hardening migration:
+After forward hardening:
 
 - Supabase security advisor: **clean**
 - Supabase performance advisor: **no missing Phase 6B FK indexes**
@@ -106,47 +117,16 @@ Live TypeScript generation independently confirmed:
 - the private repository tables are not emitted
 - the private v1 publication helper is not emitted
 
-The checked-in curated `lib/database.types.ts` intentionally remains smaller than a wholesale generated file and preserves useful nullability refinements for cleanup RPCs while matching the required live Phase 6B public surface.
+The checked-in curated `lib/database.types.ts` remains intentionally smaller than a wholesale generated file while matching the required live Phase 6B public surface.
 
 ## Rollback-only production workflow smoke
 
-Because production contains zero users/workspaces/assets, a synthetic workflow was exercised inside an explicit transaction and rolled back.
+A synthetic workflow was exercised inside an explicit transaction and rolled back. It passed repository asset creation, owner/admin snapshot enqueue, repository worker registration, class-aware claim, canonical asset-derived identity, exact lease-bound artifact lookup, atomic publication, exact replay, conflicting replay rejection, cancelled-job publication with no snapshot, orphan candidate selection, and orphan mark/removal.
 
-The smoke passed:
+Post-rollback verification confirmed zero users, workspaces, assets, scan jobs, repository snapshots, worker nodes/tasks/attempts, attempt uploads, and source artifact rows.
 
-- synthetic owner/workspace/repository asset creation
-- owner/admin snapshot enqueue
-- repository worker registration
-- class-aware claim
-- canonical asset-derived GitHub identity
-- exact lease-bound artifact lookup
-- successful atomic snapshot publication
-- public provenance/private artifact row creation
-- exact replay returning `replayed=true`
-- conflicting replay rejection
-- cancelled-job publication returning `cancelled` with no snapshot row
-- 24-hour orphan candidate selection
-- orphan mark/removal
+## Phase 6B acceptance statement
 
-The first smoke script attempt failed only because a PL/pgSQL local variable shadowed a column in the assertion script. That transaction aborted and left no data. The corrected smoke passed.
+Phase 6B is merged based on exact-head targeted security/source/database review plus live database verification and rollback-only workflow smoke. This is deliberately **not** described as a full green CI/build result because the complete npm/Vitest/type/build suite could not run in the current environment.
 
-Post-rollback verification confirmed all of these counts are zero:
-
-```text
-auth users
-workspaces
-assets
-scan_jobs
-repository_source_snapshots
-worker_nodes
-worker_tasks
-worker_attempts
-repository_snapshot_attempt_uploads
-repository_source_artifacts
-```
-
-## Phase 6B acceptance rule
-
-Phase 6B may be merged only after exact-head diff review and PR/thread reconciliation. Since the complete npm/Vitest/type/build suite is unavailable, acceptance must be described precisely as source-contract review plus live database verification and rollback-only workflow smoke, not as a full green CI/build result.
-
-Phase 6C must receive separate threat-model/design approval before immutable snapshots are consumed by hosted scanner execution.
+Phase 6C requires separate architectural threat-model/design approval before immutable snapshots are consumed by hosted scanner execution.
