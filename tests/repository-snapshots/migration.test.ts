@@ -106,11 +106,11 @@ describe("Phase 6B repository snapshot schema", () => {
     }
   });
 
-  it("removes live default service-role mutation and covers actor foreign keys", async () => {
+  it("removes live default service-role table authority and covers actor foreign keys", async () => {
     const sql = await readFile(liveHardeningPath, "utf8");
 
     expect(sql).toMatch(
-      /revoke\s+insert,\s*update,\s*delete\s+on\s+table\s+public\.repository_source_snapshots\s+from\s+service_role/i,
+      /revoke\s+all\s+on\s+table\s+public\.repository_source_snapshots\s+from\s+service_role/i,
     );
     expect(sql).toContain("repository_source_snapshots_requested_by_idx");
     expect(sql).toContain("repository_snapshot_tasks_requested_by_idx");
