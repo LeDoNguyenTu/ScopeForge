@@ -136,6 +136,36 @@ describe("worker supervisor", () => {
     }
   });
 
+  it("stops waiting at the outer deadline even when the executor ignores abort", async () => {
+    vi.useFakeTimers();
+    try {
+      const shortTask: WorkerTaskContract = {
+        ...task,
+        budget: { ...task.budget, maxWallTimeMs: 5 },
+      };
+      const execute = vi.fn(async () => new Promise<ReturnType<typeof terminal>>(() => {}));
+      const finalize = vi.fn(async () => ({ outcome: "failed" as const, replayed: false }));
+      const run = runWorkerOnce({
+        control: {
+          claim: vi.fn(async () => shortTask),
+          heartbeat: vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: "2099-08-26T00:01:30.000Z" })),
+          finalize,
+        },
+        executor: { execute },
+        heartbeatMs: 60_000,
+      });
+
+      await vi.advanceTimersByTimeAsync(6);
+      await expect(run).resolves.toMatchObject({ status: "completed", outcome: "failed" });
+      expect(finalize.mock.calls[0]?.[0].terminal).toMatchObject({
+        outcome: "failed",
+        failureCode: "WORKER_BUDGET_EXCEEDED",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("returns idle without invoking executor when no task is claimable", async () => {
     const execute = vi.fn();
     await expect(runWorkerOnce({
