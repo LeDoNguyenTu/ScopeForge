@@ -35,7 +35,6 @@ describe("Phase 6C Podman sandbox command", () => {
       "--user=65532:65532",
       "--unsetenv-all",
       "--tmpfs=/tmp:rw,size=268435456,mode=0700,nosuid,nodev,noexec",
-      "--tmpfs=/result:rw,size=4194304,mode=0700,nosuid,nodev,noexec",
       "--mount=type=bind,src=/var/lib/scopeforge/work/111/source,dst=/workspace,ro=true",
       "--mount=type=bind,src=/var/lib/scopeforge/work/111/task.json,dst=/scopeforge/task.json,ro=true",
       "--entrypoint=/usr/local/bin/node",
@@ -58,7 +57,7 @@ describe("Phase 6C Podman sandbox command", () => {
     }
   });
 
-  it("contains no privilege, host-network, device, shell, socket, or implicit-swap escape options", () => {
+  it("contains no privilege, host-network, device, shell, socket, writable-result, or implicit-swap escape options", () => {
     const command = buildPodmanCreateCommand(INPUT);
     const joined = command.args.join(" ");
     for (const forbidden of [
@@ -68,6 +67,7 @@ describe("Phase 6C Podman sandbox command", () => {
       "--ipc=host",
       "--device",
       "--memory-swap",
+      "/result",
       "docker.sock",
       "podman.sock",
       "/bin/sh",
