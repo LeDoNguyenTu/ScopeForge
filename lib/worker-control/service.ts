@@ -1,14 +1,19 @@
 import { createHash, randomBytes as nodeRandomBytes } from "node:crypto";
+import type { RepositorySnapshotObjectStore } from "@/lib/repository-snapshots/object-store";
 import {
   validateWorkerTerminalEnvelope,
+  type WorkerExecutionClass,
   type WorkerTerminalEnvelope,
 } from "@/packages/worker-contracts";
-import type {
-  FoundationProbeEnqueueInput,
-  WorkerAuthenticationInput,
-  WorkerClaimInput,
-  WorkerLeaseIdentity,
-  WorkerNodeIdentity,
+import {
+  WorkerControlError,
+  type FoundationProbeEnqueueInput,
+  type WorkerAuthenticationInput,
+  type WorkerClaimInput,
+  type WorkerClaimResult,
+  type WorkerLeaseIdentity,
+  type WorkerNodeIdentity,
+  type WorkerPersistenceClaimResult,
 } from "./types";
 import type { WorkerControlRepository } from "./repository";
 
@@ -16,6 +21,7 @@ export type { WorkerControlRepository } from "./repository";
 
 export interface WorkerControlServiceDependencies {
   repository: WorkerControlRepository;
+  repositorySnapshotObjectStore?: () => RepositorySnapshotObjectStore;
   randomBytes?: (size: number) => Buffer;
   now?: () => Date;
 }
@@ -37,16 +43,37 @@ function currentTime(dependencies: WorkerControlServiceDependencies): Date {
   return (dependencies.now ?? (() => new Date()))();
 }
 
+async function registerWith(
+  softwareVersion: string,
+  dependencies: WorkerControlServiceDependencies,
+  executionClass: WorkerExecutionClass,
+) {
+  const secret = randomSecret(dependencies);
+  const input = {
+    credentialHash: sha256(secret),
+    softwareVersion,
+  };
+  const node = executionClass === "foundation_no_egress_v1"
+    ? await dependencies.repository.register(input)
+    : await dependencies.repository.registerRepositorySnapshot(input);
+  if (node.executionClass !== executionClass) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({ ...node, secret });
+}
+
 export async function registerWorkerNode(
   input: { softwareVersion: string },
   dependencies: WorkerControlServiceDependencies,
 ) {
-  const secret = randomSecret(dependencies);
-  const node = await dependencies.repository.register({
-    credentialHash: sha256(secret),
-    softwareVersion: input.softwareVersion,
-  });
-  return Object.freeze({ ...node, secret });
+  return registerWith(input.softwareVersion, dependencies, "foundation_no_egress_v1");
+}
+
+export async function registerRepositorySnapshotWorkerNode(
+  input: { softwareVersion: string },
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return registerWith(input.softwareVersion, dependencies, "repository_snapshot_github_public_v1");
 }
 
 export async function disableWorkerNode(
@@ -77,11 +104,64 @@ export async function enqueueFoundationWorkerProbe(
   return dependencies.repository.enqueueFoundationProbe(input);
 }
 
+function repositoryClaimExpiry(
+  claim: Exclude<WorkerPersistenceClaimResult, null>,
+  now: Date,
+): Date {
+  const deadline = new Date(claim.absoluteDeadlineAt);
+  if (!Number.isFinite(deadline.getTime()) || !Number.isFinite(now.getTime())) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const expiresAt = new Date(Math.min(deadline.getTime(), now.getTime() + 360_000));
+  if (expiresAt.getTime() - now.getTime() < 1_000) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return expiresAt;
+}
+
+async function composePublicClaim(
+  claim: WorkerPersistenceClaimResult,
+  dependencies: WorkerControlServiceDependencies,
+): Promise<WorkerClaimResult> {
+  if (claim === null) return null;
+  if (claim.executionClass === "foundation_no_egress_v1") {
+    return Object.freeze({
+      taskId: claim.taskId,
+      attemptId: claim.attemptId,
+      executionClass: claim.executionClass,
+      leaseToken: claim.leaseToken,
+      absoluteDeadlineAt: claim.absoluteDeadlineAt,
+      budget: claim.budget,
+      input: claim.input,
+    });
+  }
+
+  const objectStoreFactory = dependencies.repositorySnapshotObjectStore;
+  if (!objectStoreFactory) throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  const upload = await objectStoreFactory().createAttemptUpload({
+    objectKey: claim.artifactObjectKey,
+    expiresAt: repositoryClaimExpiry(claim, currentTime(dependencies)),
+  });
+  return Object.freeze({
+    taskId: claim.taskId,
+    attemptId: claim.attemptId,
+    executionClass: claim.executionClass,
+    leaseToken: claim.leaseToken,
+    absoluteDeadlineAt: claim.absoluteDeadlineAt,
+    budget: claim.budget,
+    input: Object.freeze({
+      ...claim.input,
+      artifactUpload: upload,
+    }),
+  });
+}
+
 export async function claimWorkerTask(
   input: WorkerClaimInput,
   dependencies: WorkerControlServiceDependencies,
-) {
-  return dependencies.repository.claim({ workerId: input.workerId });
+): Promise<WorkerClaimResult> {
+  const claim = await dependencies.repository.claim({ workerId: input.workerId });
+  return composePublicClaim(claim, dependencies);
 }
 
 export async function heartbeatWorkerAttempt(
@@ -94,7 +174,7 @@ export async function heartbeatWorkerAttempt(
 function terminalExpectation(value: unknown): {
   taskId: string;
   attemptId: string;
-  executionClass: "foundation_no_egress_v1";
+  executionClass: WorkerExecutionClass;
 } {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("Worker terminal envelope must be an object.");
@@ -103,10 +183,16 @@ function terminalExpectation(value: unknown): {
   if (typeof candidate.taskId !== "string" || typeof candidate.attemptId !== "string") {
     throw new Error("Worker terminal envelope is missing task binding.");
   }
+  if (
+    candidate.executionClass !== "foundation_no_egress_v1"
+    && candidate.executionClass !== "repository_snapshot_github_public_v1"
+  ) {
+    throw new Error("Worker terminal execution class is unsupported.");
+  }
   return {
     taskId: candidate.taskId,
     attemptId: candidate.attemptId,
-    executionClass: "foundation_no_egress_v1",
+    executionClass: candidate.executionClass,
   };
 }
 
@@ -127,6 +213,12 @@ export async function finalizeWorkerAttempt(
   }
   const expected = terminalExpectation(input.terminal);
   const terminal = validateWorkerTerminalEnvelope(input.terminal, expected);
+  if (
+    terminal.executionClass === "repository_snapshot_github_public_v1"
+    && terminal.outcome === "succeeded"
+  ) {
+    throw new WorkerControlError("REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED");
+  }
 
   return dependencies.repository.finalize({
     workerId: input.workerId,
