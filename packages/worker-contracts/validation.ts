@@ -4,6 +4,7 @@ import type {
   WorkerAttemptMetrics,
   WorkerTerminalEnvelope,
   WorkerTerminalExpectation,
+  WorkerTerminalFailureCode,
   WorkerTerminalOutcome,
 } from "./types";
 
@@ -26,6 +27,13 @@ const METRIC_KEYS = [
 ] as const;
 const RESULT_KEYS = ["kind", "nonceDigest"] as const;
 const OUTCOMES = new Set<WorkerTerminalOutcome>(["succeeded", "failed", "cancelled"]);
+const TERMINAL_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
+  "WORKER_LOST",
+  "WORKER_BUDGET_EXCEEDED",
+  "WORKER_OUTPUT_INVALID",
+  "WORKER_EXECUTION_FAILED",
+  "WORKER_CLASS_UNAVAILABLE",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -86,20 +94,20 @@ function parseResult(value: unknown, outcome: WorkerTerminalOutcome): Foundation
   return Object.freeze({ kind: "foundation_probe", nonceDigest: value.nonceDigest });
 }
 
-function parseFailureCode(value: unknown, outcome: WorkerTerminalOutcome): string | null {
+function parseFailureCode(
+  value: unknown,
+  outcome: WorkerTerminalOutcome,
+): WorkerTerminalFailureCode | null {
   if (outcome === "succeeded" || outcome === "cancelled") {
     if (value !== null) {
       throw new Error(`${outcome === "succeeded" ? "Successful" : "Cancelled"} worker attempts cannot include a caller-selected failure code.`);
     }
     return null;
   }
-  if (typeof value !== "string" || value.length < 1 || value.length > 64) {
-    throw new Error("Worker failure code must contain between 1 and 64 characters.");
+  if (typeof value !== "string" || !TERMINAL_FAILURE_CODES.has(value as WorkerTerminalFailureCode)) {
+    throw new Error("Worker failure code is not an allowed terminal failure code.");
   }
-  if (!/^[A-Z0-9_]+$/.test(value)) {
-    throw new Error("Worker failure code must use the closed uppercase code format.");
-  }
-  return value;
+  return value as WorkerTerminalFailureCode;
 }
 
 function resultBytes(value: FoundationProbeResult | null): number {
