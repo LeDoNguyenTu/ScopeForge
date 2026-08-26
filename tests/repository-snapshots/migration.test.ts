@@ -72,7 +72,7 @@ describe("Phase 6B repository snapshot schema", () => {
     expect(sql).toContain("^[a-f0-9]{64}$");
     expect(sql).toContain("retained_file_count between 0 and 20000");
     expect(sql).toContain("stored_artifact_bytes between 1 and 335544320");
-    expect(sql).toContain("char_length(default_branch) between 1 and 255");
+    expect(sql).toContain("octet_length(default_branch) between 1 and 255");
   });
 
   it("keeps repository snapshot scan jobs outside runtime and finding authority", async () => {
