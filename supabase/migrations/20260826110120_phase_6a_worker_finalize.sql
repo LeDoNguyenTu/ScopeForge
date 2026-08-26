@@ -43,12 +43,13 @@ begin
      or target_cpu_time_ms is null or target_cpu_time_ms < 0 or target_cpu_time_ms > 20000
      or target_peak_memory_bytes is null or target_peak_memory_bytes < 0 or target_peak_memory_bytes > 268435456
      or target_input_bytes is null or target_input_bytes < 0 or target_input_bytes > 10485760
-     or target_output_bytes is null or target_output_bytes < 0 or target_output_bytes > 1048576 then
+     or target_output_bytes is null or target_output_bytes > 1048576 then
     raise exception 'WORKER_BUDGET_EXCEEDED';
   end if;
 
   if target_terminal_outcome = 'failed' then
     if target_failure_code not in (
+      'WORKER_LEASE_EXPIRED',
       'WORKER_LOST',
       'WORKER_BUDGET_EXCEEDED',
       'WORKER_OUTPUT_INVALID',
