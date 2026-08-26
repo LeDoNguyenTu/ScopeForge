@@ -12,10 +12,10 @@ describe("Phase 6A worker foundation scan job contract", () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toContain("scan_jobs_worker_foundation_probe_snapshot_check");
     expect(sql).toContain("job_kind <> 'worker_foundation_probe'::public.scan_job_kind");
-    expect(sql).toContain("'maxWallTimeMs', 30000");
-    expect(sql).toContain("'maxCpuTimeMs', 20000");
-    expect(sql).toContain("'maxMemoryBytes', 268435456");
-    expect(sql).toContain("'maxProcesses', 4");
+    expect(sql).toContain('"maxWallTimeMs":30000');
+    expect(sql).toContain('"maxCpuTimeMs":20000');
+    expect(sql).toContain('"maxMemoryBytes":268435456');
+    expect(sql).toContain('"maxProcesses":4');
     expect(sql).toContain("request_count = 0");
     expect(sql).toContain("redirect_count = 0");
     expect(sql).toContain("finding_count = 0");
