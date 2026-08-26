@@ -64,7 +64,6 @@ export function buildPodmanCreateCommand(input: PodmanSandboxCommandInput): Podm
       "--user=65532:65532",
       "--unsetenv-all",
       "--tmpfs=/tmp:rw,size=268435456,mode=0700,nosuid,nodev,noexec",
-      "--tmpfs=/result:rw,size=4194304,mode=0700,nosuid,nodev,noexec",
       `--mount=type=bind,src=${sourceDirectory},dst=/workspace,ro=true`,
       `--mount=type=bind,src=${taskMetadataPath},dst=/scopeforge/task.json,ro=true`,
       "--entrypoint=/usr/local/bin/node",
