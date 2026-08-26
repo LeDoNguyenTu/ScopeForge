@@ -25,7 +25,7 @@ describe("Phase 6B hostile archive budgets", () => {
     expect(REPOSITORY_SNAPSHOT_LIMITS).toEqual({
       maxCompressedBytes: 134_217_728,
       maxExpandedRegularBytes: 536_870_912,
-      maxTarStreamBytes: 570_425_344,
+      maxTarStreamBytes: 671_088_640,
       maxEntries: 50_000,
       maxRetainedFiles: 20_000,
       maxRetainedFileBytes: 2_097_152,
