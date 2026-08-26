@@ -72,6 +72,31 @@ export interface WorkerFinalizationResult {
   replayed: boolean;
 }
 
+export interface WorkerFleetNodeSnapshot {
+  workerId: string;
+  executionClass: WorkerExecutionClass;
+  softwareVersion: string;
+  registeredAt: string;
+  lastSeenAt: string | null;
+  disabledAt: string | null;
+}
+
+export interface WorkerFleetTaskCounts {
+  queued: number;
+  leased: number;
+  retryWait: number;
+  completed: number;
+  deadLetter: number;
+  cancelled: number;
+}
+
+export interface WorkerFleetSnapshot {
+  generatedAt: string;
+  nodes: readonly WorkerFleetNodeSnapshot[];
+  taskCounts: WorkerFleetTaskCounts;
+  activeLeaseCount: number;
+}
+
 export type WorkerControlErrorCode =
   | "WORKER_AUTHENTICATION_FAILED"
   | "WORKER_DISABLED"
