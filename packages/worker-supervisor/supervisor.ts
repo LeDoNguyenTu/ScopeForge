@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   validateWorkerTerminalEnvelope,
   type WorkerTaskContract,
@@ -70,16 +71,27 @@ function cancelledTerminal(
   });
 }
 
+function foundationProbeDigest(nonce: string): string {
+  return createHash("sha256").update(nonce, "utf8").digest("hex");
+}
+
 function canonicalTerminal(
   task: WorkerTaskContract,
   value: unknown,
 ): WorkerTerminalEnvelope {
   try {
-    return validateWorkerTerminalEnvelope(value, {
+    const terminal = validateWorkerTerminalEnvelope(value, {
       taskId: task.taskId,
       attemptId: task.attemptId,
       executionClass: task.executionClass,
     });
+    if (terminal.outcome === "succeeded") {
+      if (terminal.result?.kind !== "foundation_probe"
+          || terminal.result.nonceDigest !== foundationProbeDigest(task.input.nonce)) {
+        return failureTerminal(task, "WORKER_OUTPUT_INVALID");
+      }
+    }
+    return terminal;
   } catch {
     return failureTerminal(task, "WORKER_OUTPUT_INVALID");
   }
@@ -121,7 +133,7 @@ function executeWithinSupervisorBoundary(
     signal.addEventListener("abort", onAbort, { once: true });
 
     void executor.execute(contract, signal).then(
-      (value) => finish(() => resolve(value)),
+      (result) => finish(() => resolve(result)),
       (error: unknown) => finish(() => reject(error)),
     );
   });
