@@ -62,8 +62,8 @@ describe("worker control repository", () => {
     expect(result).toMatchObject({
       executionClass: "repository_snapshot_github_public_v1",
       artifactObjectKey: objectKey,
-      leaseExpiresAt: "2026-08-27T03:21:30.000Z",
     });
+    expect(result).not.toHaveProperty("leaseExpiresAt");
     expect(result && "input" in result ? result.input : null).not.toHaveProperty("artifactUpload");
   });
 
