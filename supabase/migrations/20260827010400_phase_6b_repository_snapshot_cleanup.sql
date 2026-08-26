@@ -53,7 +53,6 @@ begin
       and (
         attempt.finished_at is not null
         or attempt.lease_expires_at <= target_now
-        or task.state <> 'leased'
       )
   )
   select
@@ -150,7 +149,6 @@ begin
      or (
        attempt_record.finished_at is null
        and attempt_record.lease_expires_at > target_now
-       and task_record.state = 'leased'
      )
      or exists (
        select 1
