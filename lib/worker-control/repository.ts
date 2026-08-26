@@ -11,6 +11,9 @@ import {
   type WorkerClaimResult,
   type WorkerDisableResult,
   type WorkerFinalizationResult,
+  type WorkerFleetNodeSnapshot,
+  type WorkerFleetSnapshot,
+  type WorkerFleetTaskCounts,
   type WorkerHeartbeatResult,
   type WorkerLeaseIdentity,
   type WorkerNodeIdentity,
@@ -44,11 +47,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function requiredString(value: unknown, label: string): string {
+function requiredString(value: unknown): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
   return value;
+}
+
+function nullableString(value: unknown): string | null {
+  if (value === null) return null;
+  return requiredString(value);
+}
+
+function boundedCount(value: unknown): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return value as number;
 }
 
 function mapRpcError(message: string): WorkerControlError {
@@ -63,9 +78,9 @@ function parseNode(value: unknown): WorkerNodeIdentity {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
   return Object.freeze({
-    workerId: requiredString(value.workerId, "workerId"),
+    workerId: requiredString(value.workerId),
     executionClass: "foundation_no_egress_v1" as const,
-    softwareVersion: requiredString(value.softwareVersion, "softwareVersion"),
+    softwareVersion: requiredString(value.softwareVersion),
   });
 }
 
@@ -76,8 +91,8 @@ function parseRegistration(value: unknown): WorkerRegistrationResult {
 function parseDisable(value: unknown): WorkerDisableResult {
   if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   return Object.freeze({
-    workerId: requiredString(value.workerId, "workerId"),
-    disabledAt: requiredString(value.disabledAt, "disabledAt"),
+    workerId: requiredString(value.workerId),
+    disabledAt: requiredString(value.disabledAt),
   });
 }
 
@@ -86,10 +101,10 @@ function parseFoundationProbe(value: unknown): FoundationProbeEnqueueResult {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
   return Object.freeze({
-    scanJobId: requiredString(value.scanJobId, "scanJobId"),
-    taskId: requiredString(value.taskId, "taskId"),
+    scanJobId: requiredString(value.scanJobId),
+    taskId: requiredString(value.taskId),
     executionClass: "foundation_no_egress_v1" as const,
-    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt, "absoluteDeadlineAt"),
+    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
   });
 }
 
@@ -114,15 +129,15 @@ function parseClaim(value: unknown): WorkerClaimResult {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
   const contract: WorkerTaskContract = {
-    taskId: requiredString(value.taskId, "taskId"),
-    attemptId: requiredString(value.attemptId, "attemptId"),
+    taskId: requiredString(value.taskId),
+    attemptId: requiredString(value.attemptId),
     executionClass: "foundation_no_egress_v1",
-    leaseToken: requiredString(value.leaseToken, "leaseToken"),
-    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt, "absoluteDeadlineAt"),
+    leaseToken: requiredString(value.leaseToken),
+    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
     budget: parseBudget(value.budget),
     input: {
       kind: "foundation_probe",
-      nonce: requiredString(value.input.nonce, "nonce"),
+      nonce: requiredString(value.input.nonce),
     },
   };
   if (!/^[a-f0-9]{64}$/.test(contract.leaseToken)) {
@@ -137,7 +152,7 @@ function parseHeartbeat(value: unknown): WorkerHeartbeatResult {
   }
   return Object.freeze({
     cancelRequested: value.cancelRequested,
-    leaseExpiresAt: requiredString(value.leaseExpiresAt, "leaseExpiresAt"),
+    leaseExpiresAt: requiredString(value.leaseExpiresAt),
   });
 }
 
@@ -148,10 +163,48 @@ function parseFinalization(value: unknown): WorkerFinalizationResult {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
   return Object.freeze({
-    taskId: requiredString(value.taskId, "taskId"),
-    attemptId: requiredString(value.attemptId, "attemptId"),
+    taskId: requiredString(value.taskId),
+    attemptId: requiredString(value.attemptId),
     outcome: value.outcome as WorkerFinalizationResult["outcome"],
     replayed: value.replayed,
+  });
+}
+
+function parseFleetNode(value: unknown): WorkerFleetNodeSnapshot {
+  if (!isRecord(value) || value.executionClass !== "foundation_no_egress_v1") {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    workerId: requiredString(value.workerId),
+    executionClass: "foundation_no_egress_v1" as const,
+    softwareVersion: requiredString(value.softwareVersion),
+    registeredAt: requiredString(value.registeredAt),
+    lastSeenAt: nullableString(value.lastSeenAt),
+    disabledAt: nullableString(value.disabledAt),
+  });
+}
+
+function parseFleetTaskCounts(value: unknown): WorkerFleetTaskCounts {
+  if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  return Object.freeze({
+    queued: boundedCount(value.queued),
+    leased: boundedCount(value.leased),
+    retryWait: boundedCount(value.retryWait),
+    completed: boundedCount(value.completed),
+    deadLetter: boundedCount(value.deadLetter),
+    cancelled: boundedCount(value.cancelled),
+  });
+}
+
+function parseFleetSnapshot(value: unknown): WorkerFleetSnapshot {
+  if (!isRecord(value) || !Array.isArray(value.nodes) || value.nodes.length > 100) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    generatedAt: requiredString(value.generatedAt),
+    nodes: Object.freeze(value.nodes.map(parseFleetNode)),
+    taskCounts: parseFleetTaskCounts(value.taskCounts),
+    activeLeaseCount: boundedCount(value.activeLeaseCount),
   });
 }
 
@@ -164,6 +217,7 @@ export interface WorkerControlRepository {
   heartbeat(input: WorkerLeaseIdentity): Promise<WorkerHeartbeatResult>;
   finalize(input: WorkerPersistenceFinalizationInput): Promise<WorkerFinalizationResult>;
   recover(nowIso: string): Promise<number>;
+  fleetSnapshot(): Promise<WorkerFleetSnapshot>;
 }
 
 export function createWorkerControlRepository(
@@ -229,10 +283,10 @@ export function createWorkerControlRepository(
     },
     async recover(nowIso) {
       const value = await call("recover_expired_worker_attempts", { target_now: nowIso });
-      if (!Number.isInteger(value) || (value as number) < 0) {
-        throw new WorkerControlError("WORKER_CONTROL_FAILED");
-      }
-      return value as number;
+      return boundedCount(value);
+    },
+    async fleetSnapshot() {
+      return parseFleetSnapshot(await call("get_worker_fleet_snapshot"));
     },
   });
 }
