@@ -40,6 +40,7 @@ describe("worker control repository", () => {
             attemptId: "44444444-4444-4444-8444-444444444444",
             executionClass: "repository_snapshot_github_public_v1",
             leaseToken: "b".repeat(64),
+            leaseExpiresAt: "2026-08-27T03:21:30.000Z",
             absoluteDeadlineAt: "2026-08-27T03:40:00.000Z",
             budget: workerExecutionProfile("repository_snapshot_github_public_v1").budget,
             artifactObjectKey: objectKey,
@@ -61,6 +62,7 @@ describe("worker control repository", () => {
     expect(result).toMatchObject({
       executionClass: "repository_snapshot_github_public_v1",
       artifactObjectKey: objectKey,
+      leaseExpiresAt: "2026-08-27T03:21:30.000Z",
     });
     expect(result && "input" in result ? result.input : null).not.toHaveProperty("artifactUpload");
   });
