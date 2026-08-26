@@ -14,8 +14,11 @@ import {
 
 export type { RepositorySnapshotRepository } from "./repository";
 
-export interface RepositorySnapshotServiceDependencies {
+export interface RepositorySnapshotRequestDependencies {
   repository: RepositorySnapshotRepository;
+}
+
+export interface RepositorySnapshotServiceDependencies extends RepositorySnapshotRequestDependencies {
   objectStore: RepositorySnapshotObjectStore;
 }
 
@@ -81,7 +84,7 @@ function validateSuccessfulRepositoryTerminal(value: unknown): WorkerTerminalEnv
 
 export async function requestRepositorySnapshot(
   input: RequestRepositorySnapshotInput,
-  dependencies: RepositorySnapshotServiceDependencies,
+  dependencies: RepositorySnapshotRequestDependencies,
 ) {
   assertUuid(input.workspaceId, "workspaceId");
   assertUuid(input.assetId, "assetId");
