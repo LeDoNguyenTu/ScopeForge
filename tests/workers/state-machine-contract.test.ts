@@ -12,10 +12,11 @@ const workerMigrationPaths = [
   "20260826110110_phase_6a_worker_claim_heartbeat.sql",
   "20260826110120_phase_6a_worker_finalize.sql",
   "20260826110130_phase_6a_worker_recovery.sql",
+  "20260826110800_phase_6a_worker_terminal_provenance_hardening.sql",
 ].map((file) => path.resolve(process.cwd(), "supabase/migrations", file));
-const finalizeMigrationPath = path.resolve(
+const terminalHardeningMigrationPath = path.resolve(
   process.cwd(),
-  "supabase/migrations/20260826110120_phase_6a_worker_finalize.sql",
+  "supabase/migrations/20260826110800_phase_6a_worker_terminal_provenance_hardening.sql",
 );
 const recoveryMigrationPath = path.resolve(
   process.cwd(),
@@ -83,11 +84,11 @@ describe("Phase 6A worker lease state machine", () => {
   });
 
   it("reserves lease-expiry provenance for authoritative recovery", async () => {
-    const [finalizeSql, recoverySql] = await Promise.all([
-      readFile(finalizeMigrationPath, "utf8"),
+    const [hardeningSql, recoverySql] = await Promise.all([
+      readFile(terminalHardeningMigrationPath, "utf8"),
       readFile(recoveryMigrationPath, "utf8"),
     ]);
-    expect(finalizeSql).not.toContain("'WORKER_LEASE_EXPIRED'");
+    expect(hardeningSql).not.toContain("'WORKER_LEASE_EXPIRED'");
     expect(recoverySql).toContain("'WORKER_LEASE_EXPIRED'");
     expect(recoverySql).toContain("outcome = 'lease_expired'");
   });
