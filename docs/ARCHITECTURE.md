@@ -15,15 +15,16 @@ Vercel / Next.js control plane
   +--> narrow trusted server actions / API routes
   |      |
   |      +--> service-role finding/workflow/import RPCs
+  |      +--> service-role worker broker RPCs
   |
-  +--> future scan queue
+  +--> private worker queue / broker
            |
-           +--> isolated workers
-           +--> private artifacts
-           +--> dedicated egress controls
+           +--> provider-neutral supervisor
+                    |
+                    +--> zero-egress executor
 ```
 
-Authenticated users belong to workspaces through `workspace_members`. Exposed hosted security tables are member-readable through RLS. Browser roles do not receive INSERT, UPDATE, DELETE, or direct mutation-RPC authority for the canonical security ledger, remediation/retest workflow, or Phase 5C import provenance.
+Authenticated users belong to workspaces through `workspace_members`. Exposed hosted security tables are member-readable through RLS. Browser roles do not receive INSERT, UPDATE, DELETE, or direct mutation-RPC authority for the canonical security ledger, remediation/retest workflow, Phase 5C import provenance, or Phase 6A worker state.
 
 ## Phase 3 local scanner
 
@@ -44,7 +45,7 @@ hosted-json privacy reducer
 versioned normalized envelope
 ```
 
-The hosted control plane still does not clone, fetch, checkout, build, install, or execute repository content. Hosted execution remains a future Phase 6 worker boundary.
+The hosted control plane still does not clone, fetch, checkout, build, install, or execute repository content. Phase 6A establishes only the worker execution foundation; repository acquisition remains a later Phase 6B boundary.
 
 ## Product security domain
 
@@ -163,64 +164,79 @@ service-role-only persist_phase3_import_result
 
 ### Hosted export privacy contract
 
-The export intentionally omits:
+The export intentionally omits local absolute roots, arbitrary scanner metadata, source code, snippets, data-flow traces, raw scanner diagnostics/errors, credentials, raw secrets, and full SBOM bodies/artifacts.
 
-- local absolute root
-- arbitrary scanner metadata
-- source code
-- snippets, including redacted snippets
-- data-flow traces
-- raw scanner diagnostics/errors
-- credentials
-- raw secrets
-- full SBOM bodies/artifacts
+Secret findings remove exact columns, do not upload local secret-derived `sfs1` fingerprints, derive hosted-safe identity from reviewed rule/version plus repository-relative location, and regenerate secret evidence summaries from reviewed rule metadata.
 
-Secret findings receive stronger handling:
+### Validation, request, and persistence authority
 
-- exact columns are removed to avoid leaking secret length
-- local secret `sfs1` fingerprints are not uploaded because their local identity contains secret-derived hash material
-- a hosted-safe `sfs1` is derived only from reviewed rule ID/version, repository-relative path, and line
-- secret evidence summaries are regenerated as reviewed rule metadata rather than copied from scanner output
+`lib/phase3-import/validation.ts` accepts exact versioned JSON shapes only. The route accepts only `assetId` as request-side authority, derives actor/workspace/role from authenticated server context, requires `application/json`, and enforces a 3.5 MB streamed cap.
 
-The hosted file therefore contains no raw secret and no direct secret-derived digest.
+`persist_phase3_import_result` is `SECURITY DEFINER`, pins `search_path = ''`, is executable only by `service_role`, independently re-checks actor membership and repository binding, admits only closed deterministic passive scanner provenance, makes exact retries idempotent, rejects conflicting identity reuse, and never treats absence from a later static scan as a verified fix.
 
-### Validation and request authority
+## Phase 6A zero-egress worker foundation
 
-`lib/phase3-import/validation.ts` accepts exact versioned JSON shapes only. It canonicalizes repository/path/text/count fields, verifies a closed scanner/rule/version registry, sorts safe collections/findings, reconstructs the canonical payload, and recomputes runRef before acceptance.
+Phase 6A creates an execution-plane foundation without moving any product scanner/runtime job onto it.
 
-The route accepts only `assetId` as request-side authority. Actor/workspace/role come from authenticated server context. The body must be `application/json` and is bounded to 3.5 MB both by declared length and while streaming.
+```text
+trusted server composition
+        |
+        v
+service-role worker RPC surface
+        |
+        v
+private.worker_tasks / private.worker_attempts
+        |
+        v
+worker-authenticated broker routes
+        |
+        v
+provider-neutral supervisor
+        |
+        +--> keeps worker secret + lease token
+        |
+        v
+zero-egress executor contract
+        |
+        v
+foundation_probe only
+```
 
-The route cannot accept lifecycle, source kind, arbitrary repository URL to fetch, request method/headers/body, runtime target, scan budget, shell command, checkout options, package-manager configuration, or model-provider input.
+### Queue and lease authority
 
-### Persistence authority
+PostgreSQL is authoritative for worker scheduling. `scan_jobs` remains the canonical product lifecycle while private worker tables store scheduling detail.
 
-`security_phase3_import_runs` records immutable safe scan provenance. Authenticated workspace members receive SELECT only through RLS.
+- `private.worker_nodes` stores only a SHA-256 credential digest, fixed execution class, software version, and health timestamps.
+- `private.worker_tasks` binds exactly one task to `(scan_job_id, workspace_id, asset_id)` and a closed execution class.
+- `private.worker_attempts` binds task, attempt number, worker, and lease-token digest.
+- `private.worker_events` contains bounded operational metadata only.
+- browser roles cannot read private worker tables.
 
-`persist_phase3_import_result`:
+`claim_worker_task` serializes global capacity, uses deterministic ordering with `FOR UPDATE SKIP LOCKED`, permits at most one leased task per workspace and four globally, generates a 32-byte lease token, stores only its SHA-256 digest, and issues a lease bounded to 90 seconds and the absolute task deadline.
 
-- is `SECURITY DEFINER`
-- pins `search_path = ''`
-- is executable only by `service_role`
-- independently re-checks actor membership and owner/admin/member role
-- locks and validates the exact repository asset/workspace binding
-- permits only the closed Phase 3 scanner descriptors
-- permits only deterministic passive scanner provenance
-- permits only `static-analysis` or `dependency` evidence classified `internal` with no artifact reference
-- caps findings and evidence at 500 each
-- serializes retry identity with an advisory transaction lock
-- returns an existing run only for an exact idempotent replay
-- rejects conflicting run/finding/evidence identity reuse
-- appends canonical occurrences/events
-- reopens recurrence according to existing lifecycle policy
-- never treats absence in a later static scan as a verified fix
+Retries are bounded to 15 seconds then 60 seconds with at most three attempts. Recovery owns lease-expiry provenance. Cancellation is evaluated before deadline dead-lettering and wins finalization/recovery races.
 
-The `phase3_import` scan-job constraint requires a terminal succeeded repository snapshot with zero runtime requests/redirects, empty runtime budget, no verification/active profile authority, and no runtime cancellation state.
+### Broker and credential boundary
 
-### Import read model
+Worker credentials are generated server-side, returned once, and persisted only as SHA-256 digests. Worker routes use `Authorization: Bearer <64-hex-secret>` plus a canonical worker UUID. Browser user sessions do not satisfy worker authentication.
 
-Repository asset detail shows a bounded 20-run import history. Canonical finding lists use 100-row pagination with one-row lookahead and stable `last_seen_at DESC, finding_id ASC` ordering.
+Claim accepts no body. Heartbeat and finalize accept strict JSON only and enforce a 64 KiB body cap both by declared size and streaming byte count. Caller-supplied commands, images, environment variables, URLs, headers/body, package-manager options, network policy, lifecycle state, validation state, and execution budgets are not part of the route contract.
 
-Three covering indexes support the Phase 5C foreign keys in addition to the history indexes.
+### Executor isolation
+
+The supervisor retains the lease token and never puts it into the executor contract. The executor receives only task/attempt IDs, the closed execution class, absolute deadline, fixed budget, and `foundation_probe` input.
+
+The sole Phase 6A profile is `foundation_no_egress_v1` with `networkPolicy: "none"`. Dependency guards forbid the supervisor from importing runtime-network, runtime observer/validator, generic HTTP/socket/DNS/TLS, child-process/worker-thread, Supabase/admin, or global fetch authority.
+
+The supervisor validates terminal IDs, execution class, closed failure codes, bounded metrics, exact output shape, and the expected SHA-256 probe digest. Its outer wall-time boundary stops awaiting an executor even if the executor ignores `AbortSignal`; later concrete sandbox adapters must additionally kill underlying resources.
+
+### Database authority and fleet view
+
+Intended public worker RPCs are `SECURITY DEFINER`, use an empty `search_path`, deny `anon`/`authenticated`, and grant execute only to `service_role`. Internal recovery helpers and private trigger/event helpers have direct execute revoked even from `service_role` and are reachable only from their reviewed parent functions/triggers.
+
+`get_worker_fleet_snapshot` is bounded to 100 nodes and exposes only worker ID, execution class, software version, health timestamps, task-state counts, and active lease count. It never returns credential/lease hashes, tokens, terminal payloads, repository/source content, or environment data.
+
+The internal `worker_foundation_probe` job constraint fixes the zero-egress budget, requires all runtime authorization/profile fields to remain null, fixes request/redirect/finding counts at zero, and permits only the reviewed lifecycle. Existing passive runtime, active validation, and Phase 3 import code cannot import the worker path.
 
 ## Lifecycle authority
 
@@ -236,6 +252,8 @@ Runtime persistence stores normalized observations rather than raw responses. Re
 
 Phase 5C stores only privacy-reduced local/CI facts. No arbitrary source fragments or full local artifacts cross the hosted boundary. Evidence is immutable and provenance-attributed.
 
+Phase 6A stores no repository artifact or scanner output at all; its only executable result is a deterministic probe digest.
+
 ## Executable dependency boundaries
 
 Repository regression guards enforce these directions:
@@ -246,18 +264,23 @@ Repository regression guards enforce these directions:
 - application/component code cannot import generic runtime-network authority.
 - passive and active runtime packages remain separated.
 - hosted finding/remediation code cannot acquire generic scanner or network execution authority.
-- Phase 5C trusted import modules cannot import runtime packages or scanner filesystem/inventory/coordinator execution.
-- Phase 5C import modules cannot acquire Node child-process, filesystem, socket/network, HTTP/TLS, VM, or worker-thread authority.
-- Phase 5C import modules cannot directly fetch repositories, clone/checkout code, run package-manager installation, or import model-provider/advisory-inference authority.
-- the browser uploader is same-origin and pinned to the Phase 3 import endpoint.
-- hosted workflow/import mutation RPCs remain service-role-only while browser roles stay SELECT-only.
+- Phase 5C trusted import modules cannot import worker-control/supervisor, runtime packages, or scanner execution authority.
+- Phase 5C import modules cannot acquire Node process/filesystem/socket/HTTP/TLS/VM/worker authority, repository checkout/package execution, or model-provider authority.
+- `worker-contracts` remains a pure closed contract layer.
+- `worker-supervisor` has no target-network, application service-role, database, or generic process authority.
+- browser/components cannot import the worker supervisor.
+- existing passive runtime, active validation, and Phase 3 import paths do not route through Phase 6A workers.
+- service-role composition remains server-only.
+- trial worker concurrency remains disabled in product quota configuration.
 
 These are security controls, not formatting rules.
 
-## Future isolation and non-goals
+## Next isolation boundary and non-goals
 
-Phase 6 is responsible for queue-backed isolated workers, leases, dedicated egress, concurrency/backpressure, CPU/memory/time budgets, cancellation, private artifacts, fleet isolation, observability, and abuse controls.
+Phase 6B is responsible for separately reviewed repository acquisition and private input artifacts. Phase 6A is not permission to clone repositories or execute scanners over hosted source.
 
-Moving repository scanning or runtime execution to workers must not widen the target, authorization, request, evidence, lifecycle, or privacy contracts established in Phases 2-5.
+Any future repository acquisition must preserve existing asset/workspace binding, use a bounded trusted acquisition stage, create classified private immutable inputs, keep package lifecycle scripts disabled, and avoid caller-selected commands/network policy.
 
-The current architecture does not authorize generalized crawling, endpoint discovery, user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, or automatic remediation.
+Network-enabled runtime/active execution remains a later separately approved Phase 6C/6D boundary with dedicated egress and preserved target authorization.
+
+The architecture does not authorize generalized crawling, endpoint discovery, user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, or automatic remediation.
