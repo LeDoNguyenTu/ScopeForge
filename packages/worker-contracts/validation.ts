@@ -26,6 +26,7 @@ const METRIC_KEYS = [
   "outputBytes",
 ] as const;
 const RESULT_KEYS = ["kind", "nonceDigest"] as const;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const OUTCOMES = new Set<WorkerTerminalOutcome>(["succeeded", "failed", "cancelled"]);
 const TERMINAL_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
   "WORKER_LOST",
@@ -121,6 +122,12 @@ export function validateWorkerTerminalEnvelope(
   if (!isRecord(value)) throw new Error("Worker terminal envelope must be an object.");
   assertExactKeys(value, ENVELOPE_KEYS, "Worker terminal envelope");
   if (value.schemaVersion !== 1) throw new Error("Worker terminal schema version is unsupported.");
+  if (typeof value.taskId !== "string" || !UUID_PATTERN.test(value.taskId)) {
+    throw new Error("Worker terminal task identifier is invalid.");
+  }
+  if (typeof value.attemptId !== "string" || !UUID_PATTERN.test(value.attemptId)) {
+    throw new Error("Worker terminal attempt identifier is invalid.");
+  }
   if (value.taskId !== expected.taskId) throw new Error("Worker terminal task binding does not match.");
   if (value.attemptId !== expected.attemptId) throw new Error("Worker terminal attempt binding does not match.");
   if (value.executionClass !== expected.executionClass) {
