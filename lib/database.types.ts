@@ -4,7 +4,7 @@ export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export type AssetKind = "web_application" | "api" | "repository";
 export type AssetVerificationStatus = "unverified" | "pending" | "verified" | "failed";
 export type ScanJobStatus = "queued" | "running" | "succeeded" | "failed" | "blocked" | "cancelled";
-export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation" | "phase3_import" | "worker_foundation_probe";
+export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation" | "phase3_import" | "worker_foundation_probe" | "repository_snapshot";
 export type AuditActorType = "user" | "system";
 export type SecuritySeverity = "critical" | "high" | "medium" | "low" | "info";
 export type SecurityConfidence = "high" | "medium" | "low";
@@ -141,6 +141,16 @@ export type Database = {
           { foreignKeyName: "scan_jobs_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }
         ];
       };
+      repository_source_snapshots: {
+        Row: { id: string; workspace_id: string; asset_id: string; scan_job_id: string; requested_by: string; source_kind: string; schema_version: number; canonical_repository_url: string; default_branch: string; resolved_commit_sha: string; content_digest: string; artifact_digest: string; compressed_bytes: number; expanded_bytes: number; retained_file_count: number; retained_bytes: number; stored_artifact_bytes: number; skip_counts: Json; created_at: string; expires_at: string };
+        Insert: { id?: string; workspace_id: string; asset_id: string; scan_job_id: string; requested_by: string; source_kind?: string; schema_version?: number; canonical_repository_url: string; default_branch: string; resolved_commit_sha: string; content_digest: string; artifact_digest: string; compressed_bytes: number; expanded_bytes: number; retained_file_count: number; retained_bytes: number; stored_artifact_bytes: number; skip_counts: Json; created_at?: string; expires_at: string };
+        Update: { id?: string; workspace_id?: string; asset_id?: string; scan_job_id?: string; requested_by?: string; source_kind?: string; schema_version?: number; canonical_repository_url?: string; default_branch?: string; resolved_commit_sha?: string; content_digest?: string; artifact_digest?: string; compressed_bytes?: number; expanded_bytes?: number; retained_file_count?: number; retained_bytes?: number; stored_artifact_bytes?: number; skip_counts?: Json; created_at?: string; expires_at?: string };
+        Relationships: [
+          { foreignKeyName: "repository_source_snapshots_asset_workspace_fkey"; columns: ["asset_id", "workspace_id"]; isOneToOne: false; referencedRelation: "assets"; referencedColumns: ["id", "workspace_id"] },
+          { foreignKeyName: "repository_source_snapshots_job_workspace_asset_fkey"; columns: ["scan_job_id", "workspace_id", "asset_id"]; isOneToOne: true; referencedRelation: "scan_jobs"; referencedColumns: ["id", "workspace_id", "asset_id"] },
+          { foreignKeyName: "repository_source_snapshots_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }
+        ];
+      };
       runtime_observations: {
         Row: { id: string; workspace_id: string; job_id: string; asset_id: string; sequence: number; kind: string; payload: Json; created_at: string };
         Insert: { id?: string; workspace_id: string; job_id: string; asset_id: string; sequence: number; kind: string; payload: Json; created_at?: string };
@@ -253,6 +263,10 @@ export type Database = {
         Args: { target_credential_hash: string; target_software_version: string };
         Returns: Json;
       };
+      register_repository_snapshot_worker_node: {
+        Args: { target_credential_hash: string; target_software_version: string };
+        Returns: Json;
+      };
       disable_worker_node: {
         Args: { target_worker_id: string };
         Returns: Json;
@@ -262,6 +276,10 @@ export type Database = {
         Returns: Json;
       };
       enqueue_foundation_worker_task: {
+        Args: { target_workspace_id: string; target_asset_id: string; target_actor_id: string };
+        Returns: Json;
+      };
+      enqueue_repository_snapshot_worker_task: {
         Args: { target_workspace_id: string; target_asset_id: string; target_actor_id: string };
         Returns: Json;
       };
@@ -277,6 +295,14 @@ export type Database = {
         Args: { target_worker_id: string; target_task_id: string; target_attempt_id: string; target_lease_token: string; target_terminal_outcome: string; target_failure_code: string | null; target_terminal_payload_digest: string; target_wall_time_ms: number; target_cpu_time_ms: number; target_peak_memory_bytes: number; target_input_bytes: number; target_output_bytes: number };
         Returns: Json;
       };
+      get_repository_snapshot_attempt_artifact: {
+        Args: { target_worker_id: string; target_task_id: string; target_attempt_id: string; target_lease_token: string };
+        Returns: Json;
+      };
+      finalize_repository_snapshot_worker_attempt: {
+        Args: { target_worker_id: string; target_task_id: string; target_attempt_id: string; target_lease_token: string; target_terminal_payload_digest: string; target_canonical_repository_url: string; target_default_branch: string; target_resolved_commit_sha: string; target_content_digest: string; target_artifact_digest: string; target_compressed_bytes: number; target_expanded_bytes: number; target_retained_file_count: number; target_retained_bytes: number; target_stored_artifact_bytes: number; target_skip_counts: Json; target_wall_time_ms: number; target_cpu_time_ms: number; target_peak_memory_bytes: number; target_input_bytes: number; target_output_bytes: number; target_server_observed_object_bytes: number };
+        Returns: Json;
+      };
       recover_expired_worker_attempts: {
         Args: { target_now?: string };
         Returns: number;
@@ -284,6 +310,14 @@ export type Database = {
       get_worker_fleet_snapshot: {
         Args: never;
         Returns: Json;
+      };
+      list_repository_snapshot_cleanup_candidates: {
+        Args: { target_now?: string; target_limit?: number };
+        Returns: { snapshot_id: string | null; object_key: string; expires_at: string; reason: string }[];
+      };
+      mark_repository_snapshot_artifact_deleted: {
+        Args: { target_snapshot_id: string | null; target_object_key: string; target_reason: string; target_now?: string };
+        Returns: undefined;
       };
       change_security_finding_lifecycle: {
         Args: { target_workspace_id: string; target_finding_id: string; expected_lifecycle: FindingLifecycleState; next_lifecycle: FindingLifecycleState; target_actor_id: string; event_reason: string | null };

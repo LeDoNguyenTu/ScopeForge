@@ -1,3 +1,5 @@
+import { createRepositorySnapshotServerDependencies } from "@/lib/repository-snapshots/server-dependencies";
+import { publishRepositorySnapshotAttempt } from "@/lib/repository-snapshots/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
 import {
@@ -14,6 +16,13 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isRepositorySnapshotSuccess(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return candidate.executionClass === "repository_snapshot_github_public_v1"
+    && candidate.outcome === "succeeded";
+}
+
 export async function POST(request: Request): Promise<Response> {
   try {
     const dependencies = createWorkerControlServerDependencies();
@@ -25,11 +34,17 @@ export async function POST(request: Request): Promise<Response> {
       throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
     }
 
-    const result = await finalizeWorkerAttempt({
-      workerId: worker.workerId,
-      leaseToken: body.leaseToken,
-      terminal: body.terminal,
-    }, dependencies);
+    const result = isRepositorySnapshotSuccess(body.terminal)
+      ? await publishRepositorySnapshotAttempt({
+          workerId: worker.workerId,
+          leaseToken: body.leaseToken,
+          terminal: body.terminal,
+        }, createRepositorySnapshotServerDependencies())
+      : await finalizeWorkerAttempt({
+          workerId: worker.workerId,
+          leaseToken: body.leaseToken,
+          terminal: body.terminal,
+        }, dependencies);
     return workerJson({ ok: true, data: result });
   } catch (error) {
     return workerRouteError(error);

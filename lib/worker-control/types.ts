@@ -1,5 +1,8 @@
 import type {
+  FoundationProbeInput,
+  RepositorySnapshotInput,
   WorkerAttemptMetrics,
+  WorkerExecutionBudget,
   WorkerExecutionClass,
   WorkerTaskContract,
   WorkerTerminalFailureCode,
@@ -38,13 +41,39 @@ export interface FoundationProbeEnqueueInput {
 export interface FoundationProbeEnqueueResult {
   scanJobId: string;
   taskId: string;
-  executionClass: WorkerExecutionClass;
+  executionClass: "foundation_no_egress_v1";
   absoluteDeadlineAt: string;
 }
 
 export interface WorkerClaimInput {
   workerId: string;
 }
+
+export interface FoundationWorkerPersistenceClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "foundation_no_egress_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: FoundationProbeInput;
+}
+
+export interface RepositorySnapshotWorkerPersistenceClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "repository_snapshot_github_public_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  artifactObjectKey: string;
+  input: Omit<RepositorySnapshotInput, "artifactUpload">;
+}
+
+export type WorkerPersistenceClaimResult =
+  | FoundationWorkerPersistenceClaim
+  | RepositorySnapshotWorkerPersistenceClaim
+  | null;
 
 export type WorkerClaimResult = WorkerTaskContract | null;
 
@@ -113,6 +142,13 @@ export type WorkerControlErrorCode =
   | "WORKER_BUDGET_EXCEEDED"
   | "WORKER_JOB_NOT_AVAILABLE"
   | "WORKER_JOB_STATE_CONFLICT"
+  | "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED"
+  | "REPOSITORY_UNAVAILABLE"
+  | "REPOSITORY_IDENTITY_CHANGED"
+  | "REPOSITORY_NETWORK_POLICY_FAILED"
+  | "REPOSITORY_ARCHIVE_UNSAFE"
+  | "REPOSITORY_ARCHIVE_BUDGET_EXCEEDED"
+  | "REPOSITORY_ARTIFACT_UPLOAD_FAILED"
   | "WORKER_CONTROL_FAILED";
 
 export class WorkerControlError extends Error {

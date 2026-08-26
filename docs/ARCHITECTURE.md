@@ -1,286 +1,200 @@
 # ScopeForge Architecture
 
-ScopeForge separates control-plane authorization from scanner/runtime execution so the public application cannot become an unrestricted scanning proxy. Safety boundaries are expressed in package dependency direction, database authority, target policy, privacy contracts, and executable regression tests.
+ScopeForge separates authorization, acquisition, scanner execution, runtime execution, security-state mutation, and advisory/model output. Lower-level infrastructure does not implicitly grant higher-risk authority.
 
-## Control plane
+The core product loop is:
+
+`Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify`
+
+Deterministic/runtime evidence or explicit human workflow is authoritative. Model/advisory output is downstream and cannot independently promote finding validation or lifecycle state.
+
+## Control plane and worker plane
 
 ```text
 Browser
   |
   v
-Vercel / Next.js control plane
+Next.js / Vercel control plane
   |
-  +--> Supabase Auth
-  +--> authenticated SELECTs protected by RLS
-  +--> narrow trusted server actions / API routes
+  +--> Supabase Auth + workspace membership
+  +--> RLS-protected read models
+  +--> narrow trusted server actions/routes
   |      |
-  |      +--> service-role finding/workflow/import RPCs
-  |      +--> service-role worker broker RPCs
+  |      +--> finding/import/retest RPCs
+  |      +--> worker-control RPCs
+  |      +--> repository snapshot services
   |
-  +--> private worker queue / broker
+  +--> private PostgreSQL worker queue
            |
-           +--> provider-neutral supervisor
-                    |
-                    +--> zero-egress executor
+           v
+     worker-authenticated broker
+           |
+           v
+     provider-neutral supervisor
+           |
+           +--> foundation_no_egress_v1
+           |
+           +--> repository_snapshot_github_public_v1
 ```
 
-Authenticated users belong to workspaces through `workspace_members`. Exposed hosted security tables are member-readable through RLS. Browser roles do not receive INSERT, UPDATE, DELETE, or direct mutation-RPC authority for the canonical security ledger, remediation/retest workflow, Phase 5C import provenance, or Phase 6A worker state.
+Workers never receive Supabase `service_role`. Browser components do not receive worker credentials, lease tokens, R2 credentials, private object keys, scanner execution authority, or generic network authority.
 
 ## Phase 3 local scanner
 
-The Phase 3 scanner is a separate local execution path. Repository content is hostile data. Phase 3 performs bounded inventory and safe reads and does not execute target modules, package lifecycle scripts, Dockerfiles, Terraform, Kubernetes, GitHub Actions, package managers, or cloud tooling.
+Phase 3 remains a deterministic passive repository scanner. Repository content is hostile data. It performs bounded inventory and safe reads and does not execute target modules, package lifecycle scripts, Dockerfiles, Terraform, Kubernetes, GitHub Actions, package managers, cloud tooling, or project commands.
 
-Detector packages flow into normalized scanner results and CLI outputs. Phase 5C adds a dedicated privacy-reduced output:
-
-```text
-local/CI repository
-      |
-      v
-bounded Phase 3 scanner
-      |
-      v
-hosted-json privacy reducer
-      |
-      v
-versioned normalized envelope
-```
-
-The hosted control plane still does not clone, fetch, checkout, build, install, or execute repository content. Phase 6A establishes only the worker execution foundation; repository acquisition remains a later Phase 6B boundary.
+Phase 5C can upload a privacy-reduced normalized Phase 3 envelope, but hosted Phase 5C itself does not acquire or execute repository source.
 
 ## Product security domain
 
-`packages/security-domain` is the framework-independent domain for findings, evidence, provenance, validation, lifecycle, remediation, relationships, and provider-neutral advisory contracts.
+`packages/security-domain` remains framework-independent and provider-neutral. Scanner/runtime adapters map deterministic source results into findings/evidence/provenance contracts. Advisory/model output remains downstream from authoritative evidence.
+
+## Runtime security authority
+
+Runtime networking is separate from repository acquisition.
 
 ```text
-scanner packages -> security-domain-adapters/phase3 -> security-domain
-                                                    ^
-                                                    |
-                                             runtime mappings
+runtime-observer --------+
+                         +--> runtime-network --> network-safety
+runtime-validator -------+
 ```
 
-The domain does not import Next.js, React, Supabase, database adapters, workers, scanners, CLI composition, or model-provider SDKs. Advisory/model output is downstream and cannot independently promote validation or lifecycle state.
+`network-safety` is pure IP/DNS policy. `runtime-network` owns reviewed target DNS/HTTPS pinning and deadlines. Passive observer and bounded active validator own separate authorization/policy semantics.
 
-## Runtime security architecture
-
-```text
-trusted application services
-        |
-        +----------------------+----------------------+
-        |                                             |
-        v                                             v
-runtime-observer                               runtime-validator
-(passive authority)                           (bounded active authority)
-        |                                             |
-        +----------------------+----------------------+
-                               |
-                               v
-                         runtime-network
-                    DNS + HTTPS + pinning + deadlines
-                               |
-                               v
-                         network-safety
-                       pure IP/DNS policy
-```
-
-`packages/network-safety` is pure policy with no DNS, HTTP/TLS, database, framework, or application I/O.
-
-`packages/runtime-network` owns fresh DNS resolution, complete public-address-set validation, deterministic socket pinning, Host/SNI/certificate preservation, body destruction, and DNS-inclusive request deadlines. It does not own findings, UI, database state, passive redirect policy, or active profiles.
-
-`packages/runtime-observer` remains passive-only. It owns verified web/API target policy, same-host redirect decisions, bounded/redacted status/header/cookie-attribute/TLS observations, passive budgets, and deterministic `runtime_observed` findings.
-
-`packages/runtime-validator` contains only the approved `cors-origin-policy@1` active profile: verified web/API targets, separate owner/admin consent, exact verified HTTPS/443 target, exactly one unauthenticated GET, fixed `Origin: https://scopeforge.invalid`, zero redirect following/retries/request body/credentials/caller headers, bounded time/observation budgets, no response-body capture, and deterministic `runtime_validated` findings.
-
-Repository assets are not valid targets for either runtime authority.
+Repository assets are not valid passive-runtime or active-validation targets, and Phase 6B acquisition does not reuse runtime-network as a generic HTTP client.
 
 ## Canonical hosted finding ledger
 
-Phase 5A established one hosted persistence model shared by trusted deterministic sources.
+Trusted deterministic sources enter hosted state only through reviewed persistence boundaries.
 
 ```text
-passive runtime result ----+
-                           |
-active validation result --+--> dedicated trusted atomic RPCs
-                           |      |
-hosted Phase 3 import -----+      +--> security_evidence
-                                  +--> security_findings
-                                  +--> security_finding_evidence
-                                  +--> security_finding_occurrences
-                                  +--> security_finding_events
+passive runtime result -----+
+active validation result ---+--> trusted atomic RPCs --> canonical finding/evidence ledger
+Phase 5C normalized import -+
+future Phase 6C scan result +
 ```
 
-- `security_findings` stores current canonical state keyed by `(workspace_id, finding_id)`.
-- `security_evidence` stores immutable normalized evidence keyed by `(workspace_id, evidence_id)`.
-- `security_finding_evidence` links canonical findings to evidence and is append-only.
-- `security_finding_occurrences` records trusted reobservation per scan job and is append-only.
-- `security_finding_events` records creation, recurrence, reopening, operator lifecycle changes, remediation workflow, and retest events and is append-only.
-
-Finding identity is semantic and stable across recurrence. Evidence identity additionally fingerprints bounded normalized evidence content so changed evidence creates a new immutable record instead of overwriting an older fact.
-
-Runtime persistence remains on its separate passive/active RPCs. Phase 5C does not widen or reuse those runtime-only contracts.
-
-## Phase 5B remediation and deterministic retest
-
-`security_finding_work` stores assignment and bounded remediation notes beside the canonical finding. `security_finding_retests` stores immutable retest execution/source/profile snapshots.
-
-Retest sources remain closed to the existing passive runtime observer and `cors-origin-policy@1` active validator. Active retests require owner/admin plus explicit consent. Callers cannot choose target URLs, methods, headers, bodies, budgets, source/profile snapshots, scan jobs, or desired terminal results.
-
-`verified_fixed` requires fresh authoritative retest evidence. Failed, blocked, cancelled, stale, mismatched, or still-present results cannot verify a fix.
-
-Security Story v1 is a pure bounded projection over canonical finding/evidence/history, remediation work, and retest state. It has no model-provider, network, or mutation authority.
+The canonical ledger uses immutable/append-only evidence and history where designed. Missing findings from a later static scan do not automatically mean `verified_fixed`; fresh authoritative retest evidence remains required.
 
 ## Phase 5C hosted Phase 3 import
 
-Phase 5C is a normalized-data ingestion boundary, not hosted scanner execution.
+Phase 5C is normalized-data ingestion, not hosted source acquisition or execution.
 
-```text
-local/CI ScopeForge scanner
-        |
-        v
-hosted-json privacy reducer
-        |
-        v
-POST /api/phase3-import?assetId=<repository-asset>
-        |
-        +--> authenticated server context
-        +--> 3.5 MB streaming cap
-        +--> strict envelope validation
-        +--> closed scanner/rule/version registry
-        +--> exact repository binding
-        |
-        v
-trusted Phase 3 import service
-        |
-        +--> server-derived finding/evidence identities
-        +--> deterministic-passive-scanner provenance
-        +--> static-analysis/dependency evidence only
-        |
-        v
-service-role-only persist_phase3_import_result
-        |
-        +--> terminal phase3_import scan job
-        +--> immutable security_phase3_import_runs
-        +--> canonical finding ledger
-```
+The browser supplies only the selected repository asset ID. Trusted server state derives actor/workspace/role and validates the versioned privacy-reduced envelope. Phase 5C cannot import worker-control/supervisor, repository acquisition, runtime networking, process/filesystem execution, package execution, or model-provider authority.
 
-### Hosted export privacy contract
+## Phase 6A worker foundation
 
-The export intentionally omits local absolute roots, arbitrary scanner metadata, source code, snippets, data-flow traces, raw scanner diagnostics/errors, credentials, raw secrets, and full SBOM bodies/artifacts.
+PostgreSQL is authoritative for worker scheduling while `scan_jobs` remains the canonical product lifecycle.
 
-Secret findings remove exact columns, do not upload local secret-derived `sfs1` fingerprints, derive hosted-safe identity from reviewed rule/version plus repository-relative location, and regenerate secret evidence summaries from reviewed rule metadata.
+Private worker nodes/tasks/attempts/events hold scheduling state. Claims are class-aware, globally/workspace bounded, exact-lease-bound, retry-bounded, and cancellation-aware. Worker secrets and lease tokens are never placed in executor contracts.
 
-### Validation, request, and persistence authority
+The foundation execution class `foundation_no_egress_v1` performs only deterministic probe hashing. It has no repository, scanner, target-network, Supabase, process, or filesystem authority.
 
-`lib/phase3-import/validation.ts` accepts exact versioned JSON shapes only. The route accepts only `assetId` as request-side authority, derives actor/workspace/role from authenticated server context, requires `application/json`, and enforces a 3.5 MB streamed cap.
+The provider-neutral supervisor owns heartbeat, cancellation, validation of terminal binding/metrics/output, and an outer hard deadline.
 
-`persist_phase3_import_result` is `SECURITY DEFINER`, pins `search_path = ''`, is executable only by `service_role`, independently re-checks actor membership and repository binding, admits only closed deterministic passive scanner provenance, makes exact retries idempotent, rejects conflicting identity reuse, and never treats absence from a later static scan as a verified fix.
+## Phase 6B public GitHub repository acquisition
 
-## Phase 6A zero-egress worker foundation
+Phase 6B adds a separate trusted acquisition class:
 
-Phase 6A creates an execution-plane foundation without moving any product scanner/runtime job onto it.
+`repository_snapshot_github_public_v1`
 
-```text
-trusted server composition
-        |
-        v
-service-role worker RPC surface
-        |
-        v
-private.worker_tasks / private.worker_attempts
-        |
-        v
-worker-authenticated broker routes
-        |
-        v
-provider-neutral supervisor
-        |
-        +--> keeps worker secret + lease token
-        |
-        v
-zero-egress executor contract
-        |
-        v
-foundation_probe only
-```
+It creates source snapshots only. It does not execute repository code, run package managers or hooks, use `git clone`, fetch submodules/LFS, run Phase 3 scanners, create findings, or gain runtime-validation authority.
 
-### Queue and lease authority
+### Trusted identity and network path
 
-PostgreSQL is authoritative for worker scheduling. `scan_jobs` remains the canonical product lifecycle while private worker tables store scheduling detail.
+Repository identity always derives from the stored canonical repository asset:
 
-- `private.worker_nodes` stores only a SHA-256 credential digest, fixed execution class, software version, and health timestamps.
-- `private.worker_tasks` binds exactly one task to `(scan_job_id, workspace_id, asset_id)` and a closed execution class.
-- `private.worker_attempts` binds task, attempt number, worker, and lease-token digest.
-- `private.worker_events` contains bounded operational metadata only.
-- browser roles cannot read private worker tables.
+`https://github.com/<owner>/<repo>`
 
-`claim_worker_task` serializes global capacity, uses deterministic ordering with `FOR UPDATE SKIP LOCKED`, permits at most one leased task per workspace and four globally, generates a 32-byte lease token, stores only its SHA-256 digest, and issues a lease bounded to 90 seconds and the absolute task deadline.
+No browser/worker caller can supply an arbitrary URL, ref, branch, commit SHA, request header, proxy, git argument, package-manager configuration, command, budget, or network policy.
 
-Retries are bounded to 15 seconds then 60 seconds with at most three attempts. Recovery owns lease-expiry provenance. Cancellation is evaluated before deadline dead-lettering and wins finalization/recovery races.
+The only acquisition network authorities are:
 
-### Broker and credential boundary
+1. `api.github.com`
+2. one reviewed redirect to `codeload.github.com`
+3. one attempt-specific presigned R2 `PUT`
 
-Worker credentials are generated server-side, returned once, and persisted only as SHA-256 digests. Worker routes use `Authorization: Bearer <64-hex-secret>` plus a canonical worker UUID. Browser user sessions do not satisfy worker authentication.
+GitHub DNS resolution validates the complete address set against `network-safety`. A validated public address is pinned into the HTTPS socket while the reviewed hostname is retained for Host/SNI/certificate identity.
 
-Claim accepts no body. Heartbeat and finalize accept strict JSON only and enforce a 64 KiB body cap both by declared size and streaming byte count. Caller-supplied commands, images, environment variables, URLs, headers/body, package-manager options, network policy, lifecycle state, validation state, and execution budgets are not part of the route contract.
+The repository metadata response must describe the exact expected public canonical repository. The default branch is bounded and resolved to an immutable 40-hex commit SHA. Archive acquisition is pinned to that SHA.
 
-### Executor isolation
+### Hostile archive processing
 
-The supervisor retains the lease token and never puts it into the executor contract. The executor receives only task/attempt IDs, the closed execution class, absolute deadline, fixed budget, and `foundation_probe` input.
+The GitHub gzip/tar stream is parsed in-process with no shell/tar/git subprocess and no package execution.
 
-The sole Phase 6A profile is `foundation_no_egress_v1` with `networkPolicy: "none"`. Dependency guards forbid the supervisor from importing runtime-network, runtime observer/validator, generic HTTP/socket/DNS/TLS, child-process/worker-thread, Supabase/admin, or global fetch authority.
+The parser enforces checksums, strict numeric encoding, wrapper-directory structure, valid UTF-8, normalized relative paths, traversal/backslash/NUL rejection, duplicate/shadow-path rejection, bounded PAX metadata, entry/stream/expanded/retained limits, and rejection of unsupported special entries.
 
-The supervisor validates terminal IDs, execution class, closed failure codes, bounded metrics, exact output shape, and the expected SHA-256 probe digest. Its outer wall-time boundary stops awaiting an executor even if the executor ignores `AbortSignal`; later concrete sandbox adapters must additionally kill underlying resources.
+Symlinks and hardlinks are skipped and never followed/materialized. Retained regular files are scratch-backed. This prevents source plus normalized artifact from being held simultaneously in RAM under the fixed worker memory budget.
 
-### Database authority and fleet view
+The retained set is lexically deterministic. The bundle contains a canonical manifest, content digest, normalized metadata, deterministic tar.gz bytes, and artifact digest.
 
-Intended public worker RPCs are `SECURITY DEFINER`, use an empty `search_path`, deny `anon`/`authenticated`, and grant execute only to `service_role`. Internal recovery helpers and private trigger/event helpers have direct execute revoked even from `service_role` and are reachable only from their reviewed parent functions/triggers.
+### R2 artifact authority
 
-`get_worker_fleet_snapshot` is bounded to 100 nodes and exposes only worker ID, execution class, software version, health timestamps, task-state counts, and active lease count. It never returns credential/lease hashes, tokens, terminal payloads, repository/source content, or environment data.
+Private object keys are opaque and attempt-specific:
 
-The internal `worker_foundation_probe` job constraint fixes the zero-egress budget, requires all runtime authorization/profile fields to remain null, fixes request/redirect/finding counts at zero, and permits only the reviewed lifecycle. Existing passive runtime, active validation, and Phase 3 import code cannot import the worker path.
+`repository-source/<64-hex>.tar.gz`
 
-## Lifecycle authority
+R2 credentials stay server-only. The broker converts the raw object key into a short-lived worker-safe presigned PUT descriptor and does not return the private key itself.
 
-Human workflow remains intentionally narrow. Browser-exposed lifecycle actions are limited to the existing approved transitions.
+The PUT is signed with fixed `If-None-Match: *` and content type. The executor sends those exact headers. This makes the object create-only: a replayed/still-valid presigned URL cannot overwrite an already created immutable snapshot.
 
-Trusted deterministic recurrence can reopen canonical state according to domain policy: resolved/retest-pending return to in-progress and verified-fixed returns to open. Accepted-risk and false-positive remain unchanged by automated recurrence.
+Server publication performs a signed R2 HEAD with redirects disabled and requires the exact observed object size to equal the worker terminal's stored-artifact byte count.
 
-Phase 5C does not infer `verified_fixed` from a finding being absent in a later local scan.
+### Database publication authority
+
+Repository success is forbidden through the generic worker finalizer. The dedicated publication RPC atomically validates exact worker/task/attempt/lease binding, repository task identity, canonical repository URL, bounded provenance, job state, replay/conflict behavior, and exact server-observed object bytes before publishing safe immutable provenance and private artifact state.
+
+A live review found a cancelled-status race in the first deployed publication function. Forward hardening now exposes a cancellation-first public wrapper. Cancelled/cancel-requested jobs route through exact-lease generic cancellation before any snapshot insert. The original publication body is a private v1 helper with direct execute revoked from application roles and `service_role`.
+
+`public.repository_source_snapshots` is member-readable through RLS but is not directly mutable by `authenticated` or `service_role`. Service-role publication authority exists only through the reviewed `SECURITY DEFINER` RPC.
+
+### Cleanup authority
+
+Published artifacts expire after seven days. Orphan attempt uploads become eligible after 24 hours only when the exact attempt is finished or its lease has expired.
+
+Cleanup lists at most 100 candidates, deletes the R2 object first, then marks/removes private database state. The database rechecks eligibility at mark time. Missing/repeated object deletion is idempotent. Public snapshot provenance is never updated or deleted by cleanup.
+
+## Authority guards
+
+Executable repository guards enforce security dependency direction, including:
+
+- `security-domain` remains infrastructure/provider independent
+- `network-safety` remains pure and I/O-free
+- Phase 5C cannot import workers/acquisition/runtime/process/package/model authority
+- acquisition network/snapshot/executor code cannot import `child_process` or `worker_threads`
+- acquisition cannot invoke package managers or scanner coordinator/inventory/filesystem execution
+- acquisition cannot import runtime observer/validator or model providers
+- browser components cannot import R2/object-store/server snapshot authority or internal worker broker/supervisor
+- foundation worker path cannot import GitHub/R2 acquisition authority
+- repository snapshot normalization does not persist findings or call Phase 3 hosted import persistence
+- worker supervisor remains free of repository provider credentials and generic target network authority
+
+These are security controls, not formatting conventions.
+
+## Database privilege boundary
+
+Trusted public operation RPCs are `SECURITY DEFINER`, pin `search_path = ''`, deny `anon`/`authenticated`, and grant execute only to `service_role` where required.
+
+Private repository task/upload/artifact tables have no direct application or service-role DML grants. Private helper functions have direct execute revoked unless a reviewed parent function/trigger must own them.
+
+After Phase 6B live hardening, `service_role` has zero direct privileges on `public.repository_source_snapshots`, preventing bypass of the dedicated atomic publication path.
 
 ## Evidence and secret boundary
 
-Runtime persistence stores normalized observations rather than raw responses. Response bodies and cookie values are never persisted. Runtime URLs remove query strings, fragments, and credentials.
+Runtime persistence stores normalized observations instead of raw responses. Phase 5C stores privacy-reduced scanner facts instead of arbitrary source/snippet/secret content.
 
-Phase 5C stores only privacy-reduced local/CI facts. No arbitrary source fragments or full local artifacts cross the hosted boundary. Evidence is immutable and provenance-attributed.
+Phase 6B intentionally stores source bytes only in private R2 artifacts. The public snapshot row exposes bounded provenance and digests, not source content, object keys, presigned URLs, or download locators.
 
-Phase 6A stores no repository artifact or scanner output at all; its only executable result is a deterministic probe digest.
+## Next isolation boundary - Phase 6C
 
-## Executable dependency boundaries
+Phase 6C will consume a broker-selected immutable Phase 6B snapshot inside an isolated zero-egress scanner execution class.
 
-Repository regression guards enforce these directions:
+Phase 6C must enforce concrete sandbox limits and terminate underlying resources on cancellation/deadline. It must not gain GitHub/R2 acquisition authority, runtime-network authority, package lifecycle execution, project commands, caller-selected scanners/configuration, or generic egress.
 
-- `security-domain` remains framework/infrastructure/provider independent.
-- `network-safety` remains pure and I/O-free.
-- `runtime-network` remains below observer/validator/application/domain layers.
-- application/component code cannot import generic runtime-network authority.
-- passive and active runtime packages remain separated.
-- hosted finding/remediation code cannot acquire generic scanner or network execution authority.
-- Phase 5C trusted import modules cannot import worker-control/supervisor, runtime packages, or scanner execution authority.
-- Phase 5C import modules cannot acquire Node process/filesystem/socket/HTTP/TLS/VM/worker authority, repository checkout/package execution, or model-provider authority.
-- `worker-contracts` remains a pure closed contract layer.
-- `worker-supervisor` has no target-network, application service-role, database, or generic process authority.
-- browser/components cannot import the worker supervisor.
-- existing passive runtime, active validation, and Phase 3 import paths do not route through Phase 6A workers.
-- service-role composition remains server-only.
-- trial worker concurrency remains disabled in product quota configuration.
+Deterministic Phase 3 results must still pass the existing normalized authoritative ingestion model before hosted findings change.
 
-These are security controls, not formatting rules.
+Dedicated network-enabled runtime/active worker execution remains a later separately reviewed boundary. Phase 6B GitHub networking is not general-purpose worker egress.
 
-## Next isolation boundary and non-goals
+## Non-goals
 
-Phase 6B is responsible for separately reviewed repository acquisition and private input artifacts. Phase 6A is not permission to clone repositories or execute scanners over hosted source.
-
-Any future repository acquisition must preserve existing asset/workspace binding, use a bounded trusted acquisition stage, create classified private immutable inputs, keep package lifecycle scripts disabled, and avoid caller-selected commands/network policy.
-
-Network-enabled runtime/active execution remains a later separately approved Phase 6C/6D boundary with dedicated egress and preserved target authorization.
-
-The architecture does not authorize generalized crawling, endpoint discovery, user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, or automatic remediation.
+The architecture does not authorize generalized crawling, endpoint discovery, arbitrary user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, arbitrary repository command execution, or automatic remediation.

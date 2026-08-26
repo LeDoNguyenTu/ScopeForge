@@ -75,6 +75,23 @@ function foundationProbeDigest(nonce: string): string {
   return createHash("sha256").update(nonce, "utf8").digest("hex");
 }
 
+function successfulOutputMatchesTask(
+  task: WorkerTaskContract,
+  terminal: WorkerTerminalEnvelope,
+): boolean {
+  if (task.executionClass === "foundation_no_egress_v1") {
+    return task.input.kind === "foundation_probe"
+      && terminal.result?.kind === "foundation_probe"
+      && terminal.result.nonceDigest === foundationProbeDigest(task.input.nonce);
+  }
+  if (task.executionClass === "repository_snapshot_github_public_v1") {
+    return task.input.kind === "repository_snapshot_github_public"
+      && terminal.result?.kind === "repository_snapshot_github_public"
+      && terminal.result.canonicalRepositoryUrl === task.input.canonicalRepositoryUrl;
+  }
+  return false;
+}
+
 function canonicalTerminal(
   task: WorkerTaskContract,
   value: unknown,
@@ -85,11 +102,8 @@ function canonicalTerminal(
       attemptId: task.attemptId,
       executionClass: task.executionClass,
     });
-    if (terminal.outcome === "succeeded") {
-      if (terminal.result?.kind !== "foundation_probe"
-          || terminal.result.nonceDigest !== foundationProbeDigest(task.input.nonce)) {
-        return failureTerminal(task, "WORKER_OUTPUT_INVALID");
-      }
+    if (terminal.outcome === "succeeded" && !successfulOutputMatchesTask(task, terminal)) {
+      return failureTerminal(task, "WORKER_OUTPUT_INVALID");
     }
     return terminal;
   } catch {

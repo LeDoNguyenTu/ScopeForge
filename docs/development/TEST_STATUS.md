@@ -1,15 +1,12 @@
 # ScopeForge Test Status
 
-## GitHub Actions constraint
+## GitHub Actions and local execution constraint
 
-GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use for the remainder of the month. Phase 6A commits and merge therefore use `[skip ci]`.
+GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use. Phase 6B commits therefore use `[skip ci]` and no workflow is to be triggered, rerun, or used as merge evidence.
 
-Do not describe the Phase 6A final head as having passed a full npm test/type/build suite. The current execution environment did not have a materialized repository with dependencies, so `npm test`, project-wide typecheck, CLI build, scanner benchmark, and Next.js production build could not be run after the quota boundary.
-
-The normal full repository gate remains, when an execution environment is available:
+The current execution container cannot resolve `github.com` and no dependency-complete ScopeForge checkout is available. The exact final Phase 6B head therefore has **not** executed:
 
 ```text
-npm ci --ignore-scripts --no-audit --no-fund
 npm test
 npm run typecheck
 npm run build:cli
@@ -18,113 +15,138 @@ npm run benchmark:scanner
 npm run build
 ```
 
-## Phase 6A merged state
+Do not describe those checks as green.
 
-Phase 6A zero-egress worker foundation was reviewed at feature head `53ece5cd4b14f6e27961d1fbb478f9420c9761fb` and merged directly to `main` as `91f856f53fb57a4b9cd6710ee767361f473cea45` without opening a pull request. This avoided any pull-request-triggered Actions workflow.
+## Phase 6B executable repository contracts
 
-The feature branch added explicit regression suites covering:
+The Phase 6B branch contains test-first contracts for:
 
-- closed worker contracts and terminal envelopes
-- zero-egress dependency direction
-- private worker scheduling schema
-- atomic claim/lease/heartbeat/finalize/recovery semantics
-- cancellation-wins races
-- bounded retries and absolute deadlines
-- worker credential authentication
-- 64 KiB broker transport limits
-- trusted worker repository/service behavior
-- supervisor cancellation/control-loss/hard-wall-time behavior
-- deterministic foundation-probe output and digest checking
-- bounded fleet read model
-- private helper execution revocation
-- worker scan-job snapshot contract
-- central database type surface
-- preservation of Phase 5C/runtime/active isolation from workers
+- closed `repository_snapshot_github_public_v1` worker input/output and fixed budgets
+- owner/admin repository snapshot enqueue and exact asset/workspace binding
+- body-free class-aware worker claim
+- exact lease/task/attempt binding
+- private attempt object-key handling and broker secrecy
+- GitHub-only URL construction and redirect policy
+- complete DNS public-address validation and pinned HTTPS options
+- immutable default-branch commit resolution
+- hostile gzip/tar parsing, checksums, numeric fields, PAX metadata, paths, duplicates, special entries, links, bombs, and bounds
+- deterministic manifest/content/artifact digests and tar.gz output
+- R2 SigV4 PUT/HEAD/DELETE boundaries
+- create-only R2 PUT using signed `If-None-Match: *`
+- server-side HEAD exact-size gate
+- dedicated publication and generic-finalizer rejection of repository success
+- exact replay and conflict behavior
+- cancellation-wins publication
+- immutable public provenance and private artifact separation
+- repository-only UX/read model/server action
+- bounded seven-day/orphan cleanup
+- database public type surface
+- permanent dependency/authority guards
 
-These tests remain executable repository contracts, but the final Phase 6A head was not run through Vitest after the GitHub Actions quota was exhausted.
-
-## Review-driven defects fixed before merge
-
-Targeted review found and fixed several concrete issues:
-
-1. **Uncooperative executor wall-time escape** - aborting `AbortSignal` alone could leave `runWorkerOnce` awaiting forever. The supervisor now races executor completion against its own abort boundary, so orchestration terminates at the hard deadline even when the executor ignores abort.
-2. **Worker-controlled lease-expiry provenance** - live finalization previously allowed `WORKER_LEASE_EXPIRED`. The terminal contract and forward SQL hardening now reserve lease-expiry provenance to database recovery only.
-3. **Cancellation versus absolute deadline race** - a queued/retrying cancelled task could be dead-lettered for budget before cancellation recovery. Combined recovery now runs the cancellation-aware/leased pass before unleased deadline dead-lettering.
-4. **Private helper EXECUTE exposure** - PostgreSQL's default function privilege left a private recovery helper callable. `phase_6a_worker_private_helper_privileges` revokes direct execution of private event/recovery/trigger helpers from public, anon, authenticated, and service_role.
-5. **Malformed worker IDs reaching PostgreSQL** - worker, task, and attempt identifiers are now canonical UUID-validated at broker/terminal boundaries before RPC calls.
-6. **Stringly typed worker RPC escape hatch** - production-generated Supabase types were reconciled into `lib/database.types.ts`, and the worker repository now calls typed literal RPCs directly rather than casting a generic `(name, args)` function.
+These tests are source-controlled acceptance contracts, but they have not been executed by Vitest in the current environment.
 
 ## Production migration verification
 
-ScopeForge production Supabase contains Phase 6A migrations through:
+ScopeForge Supabase project `tdgpibrepzcvdivztkta` now contains:
 
-- `20260826100538 phase_6a_worker_probe_enum`
-- `20260826100608 phase_6a_worker_foundation`
-- `20260826101122 phase_6a_worker_control`
-- `20260826101157 phase_6a_worker_claim_heartbeat`
-- `20260826101233 phase_6a_worker_finalize`
-- `20260826101305 phase_6a_worker_recovery`
-- `20260826101327 phase_6a_worker_auth`
-- `20260826152840 phase_6a_worker_fleet_read`
-- `20260826152905 phase_6a_worker_deadline_recovery`
-- `20260826152912 phase_6a_worker_fk_indexes`
-- `20260826152927 phase_6a_worker_recovery_compat`
-- `20260826152940 phase_6a_worker_job_contract`
-- `20260826153014 phase_6a_worker_terminal_provenance_hardening`
-- `20260826153244 phase_6a_worker_private_helper_privileges`
+- `20260826221813 phase_6b_repository_snapshot_enum`
+- `20260826221849 phase_6b_repository_snapshot_schema`
+- `20260826224132 phase_6b_repository_snapshot_control`
+- `20260826224240 phase_6b_repository_snapshot_publication`
+- `20260826224409 phase_6b_repository_snapshot_cleanup`
+- `20260826224847 phase_6b_repository_snapshot_live_hardening`
+
+All future Phase 6B database corrections must be forward migrations.
 
 Direct SQL verification confirmed:
 
-- `worker_foundation_probe` exists in `scan_job_kind`
-- anon/authenticated have no SELECT on worker nodes/tasks/attempts/events
-- intended public worker RPCs are `SECURITY DEFINER`
-- intended public worker RPCs pin `search_path = ''`
-- anon/authenticated cannot execute worker RPCs
-- service_role can execute only the intended public broker/operations RPCs
-- internal recovery wrappers and private helper functions are not directly executable by application roles/service_role
-- task/job composite binding and worker foreign keys/constraints exist
-- claim/recovery indexes and workspace FK covering index exist
-- worker probe scan jobs are constrained to the fixed no-egress budget, null runtime authorization/profile fields, and zero request/redirect/finding counts
-- live recovery processes cancellation-aware state before unleased deadline dead-lettering
-- live finalization accepts only the five worker-originated failure codes
+- `repository_snapshot` exists in `scan_job_kind`
+- `repository_source_snapshots` has RLS enabled
+- authenticated member SELECT policy is present
+- anon has no table access
+- authenticated has SELECT only
+- service_role has zero direct privileges on the public snapshot table after hardening
+- intended Phase 6B public RPCs are `SECURITY DEFINER`
+- intended public RPCs pin `search_path = ''`
+- public/anon/authenticated cannot execute trusted worker/snapshot RPCs
+- service_role can execute only the intended public operation RPCs
+- the private v1 publication helper is not directly executable by anon/authenticated/service_role
+- private repository task/upload/artifact tables have no direct application/service-role DML grants
+- public snapshot provenance update/delete guards are live
+- Phase 6B foreign keys and covering indexes are live
+- the two `requested_by` covering indexes identified by the performance advisor are live
 
-Supabase advisor state after reconciliation:
+## Review-driven defects fixed before merge
 
-- security advisor: clean
-- performance advisor: no Phase 6A missing-FK-index notices
-- remaining performance lints: INFO-level unused indexes expected on an empty/new worker subsystem
+1. **Stale presigned PUT overwrite** - an attempt bearer URL could otherwise be reused until expiry. SigV4 now signs `If-None-Match: *` and the executor sends it, so the first successful upload creates the object and a replay cannot overwrite it.
+2. **Cleanup orphan race** - orphan eligibility previously depended partly on mutable task state. Cleanup now uses monotonic attempt state: attempt finished or exact lease expired, and the mark RPC rechecks it.
+3. **Default service-role table authority** - Supabase default ACL left `service_role` with direct public snapshot mutation/truncate authority. Forward live hardening revokes all direct service-role privileges on the table.
+4. **Unreachable cancelled publication branch** - original publication required `running` before a later cancelled-status branch. The live public RPC is now a cancellation-first wrapper over a private non-executable v1 implementation.
+5. **Missing actor FK indexes** - public snapshot and private repository task `requested_by` foreign keys now have covering indexes.
+6. **Temporary RPC casts** - the public Phase 6B database type surface was reconciled and repository snapshot code now uses typed RPCs directly.
+7. **Authority-regression gaps** - permanent guards now explicitly forbid worker threads, process/package-manager execution, scanner coordinator/inventory/filesystem authority, runtime observer/validator, model providers, browser object-store/broker access, Phase 5C-to-worker authority, and foundation-worker GitHub/R2 imports.
 
-## Generated type verification
+## Advisor state
 
-Live Supabase TypeScript generation independently confirmed:
+After the forward hardening migration:
 
-- `scan_job_kind` includes `worker_foundation_probe`
-- intended worker RPC names and argument shapes exist
-- the generated schema matches the reconciled custom public type surface used by the worker repository
-- internal recovery helpers remain deliberately omitted from the application type contract because they are not intended application-callable APIs
+- Supabase security advisor: **clean**
+- Supabase performance advisor: **no missing Phase 6B FK indexes**
+- remaining performance notices: INFO-level unused-index observations, expected because the project currently has no application data and index usage statistics are not meaningful yet
 
-## Production smoke
+Do not remove required FK/operational indexes merely because they are currently unused.
 
-Production currently has zero auth users, workspaces, memberships, and assets, so an end-to-end enqueue/claim/finalize foundation probe could not be executed without fabricating user authentication state. That fabrication was intentionally avoided.
+## Live generated type verification
 
-A worker-control smoke was still executed safely:
+Live TypeScript generation independently confirmed:
 
-- registered one temporary worker
-- authenticated it through the worker RPC
-- confirmed claim returned idle because no tasks exist
-- confirmed the bounded fleet snapshot contained the worker
-- disabled the worker
-- removed the smoke worker/events
+- `scan_job_kind` contains `repository_snapshot`
+- `repository_source_snapshots` is present in the public schema
+- all Phase 6B public RPCs and argument shapes are present
+- the private repository tables are not emitted
+- the private v1 publication helper is not emitted
 
-Post-cleanup verification confirmed:
+The checked-in curated `lib/database.types.ts` intentionally remains smaller than a wholesale generated file and preserves useful nullability refinements for cleanup RPCs while matching the required live Phase 6B public surface.
+
+## Rollback-only production workflow smoke
+
+Because production contains zero users/workspaces/assets, a synthetic workflow was exercised inside an explicit transaction and rolled back.
+
+The smoke passed:
+
+- synthetic owner/workspace/repository asset creation
+- owner/admin snapshot enqueue
+- repository worker registration
+- class-aware claim
+- canonical asset-derived GitHub identity
+- exact lease-bound artifact lookup
+- successful atomic snapshot publication
+- public provenance/private artifact row creation
+- exact replay returning `replayed=true`
+- conflicting replay rejection
+- cancelled-job publication returning `cancelled` with no snapshot row
+- 24-hour orphan candidate selection
+- orphan mark/removal
+
+The first smoke script attempt failed only because a PL/pgSQL local variable shadowed a column in the assertion script. That transaction aborted and left no data. The corrected smoke passed.
+
+Post-rollback verification confirmed all of these counts are zero:
 
 ```text
-worker_nodes    0
-worker_tasks    0
-worker_attempts 0
-worker_events   0
+auth users
+workspaces
+assets
+scan_jobs
+repository_source_snapshots
+worker_nodes
+worker_tasks
+worker_attempts
+repository_snapshot_attempt_uploads
+repository_source_artifacts
 ```
 
-## Acceptance rule for Phase 6B
+## Phase 6B acceptance rule
 
-Do not treat Phase 6A infrastructure as permission for repository fetching or scanner execution. Phase 6B requires a separately approved threat model/design plus executable tests for repository/asset binding, acquisition authority, private artifact handling, retention, input limits, credential isolation, and no caller-selected command/network configuration.
+Phase 6B may be merged only after exact-head diff review and PR/thread reconciliation. Since the complete npm/Vitest/type/build suite is unavailable, acceptance must be described precisely as source-contract review plus live database verification and rollback-only workflow smoke, not as a full green CI/build result.
+
+Phase 6C must receive separate threat-model/design approval before immutable snapshots are consumed by hosted scanner execution.

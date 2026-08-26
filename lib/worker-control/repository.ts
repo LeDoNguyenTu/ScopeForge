@@ -1,14 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
-import type { WorkerExecutionBudget, WorkerTaskContract } from "@/packages/worker-contracts";
+import type { WorkerExecutionBudget, WorkerExecutionClass } from "@/packages/worker-contracts";
 import {
   WorkerControlError,
   type FoundationProbeEnqueueInput,
   type FoundationProbeEnqueueResult,
   type WorkerAuthenticationInput,
   type WorkerClaimInput,
-  type WorkerClaimResult,
   type WorkerDisableResult,
   type WorkerFinalizationResult,
   type WorkerFleetNodeSnapshot,
@@ -17,11 +16,18 @@ import {
   type WorkerHeartbeatResult,
   type WorkerLeaseIdentity,
   type WorkerNodeIdentity,
+  type WorkerPersistenceClaimResult,
   type WorkerPersistenceFinalizationInput,
   type WorkerRegistrationInput,
   type WorkerRegistrationResult,
 } from "./types";
 
+const EXECUTION_CLASSES = new Set<WorkerExecutionClass>([
+  "foundation_no_egress_v1",
+  "repository_snapshot_github_public_v1",
+]);
+const OBJECT_KEY_PATTERN = /^repository-source\/[a-f0-9]{64}[.]tar[.]gz$/;
+const OWNER_REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
 const KNOWN_CODES = [
   "WORKER_AUTHENTICATION_FAILED",
   "WORKER_DISABLED",
@@ -37,6 +43,13 @@ const KNOWN_CODES = [
   "WORKER_BUDGET_EXCEEDED",
   "WORKER_JOB_NOT_AVAILABLE",
   "WORKER_JOB_STATE_CONFLICT",
+  "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED",
+  "REPOSITORY_UNAVAILABLE",
+  "REPOSITORY_IDENTITY_CHANGED",
+  "REPOSITORY_NETWORK_POLICY_FAILED",
+  "REPOSITORY_ARCHIVE_UNSAFE",
+  "REPOSITORY_ARCHIVE_BUDGET_EXCEEDED",
+  "REPOSITORY_ARTIFACT_UPLOAD_FAILED",
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -62,6 +75,13 @@ function boundedCount(value: unknown): number {
   return value as number;
 }
 
+function parseExecutionClass(value: unknown): WorkerExecutionClass {
+  if (typeof value !== "string" || !EXECUTION_CLASSES.has(value as WorkerExecutionClass)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return value as WorkerExecutionClass;
+}
+
 function mapRpcError(message: string): WorkerControlError {
   for (const code of KNOWN_CODES) {
     if (message.includes(code)) return new WorkerControlError(code);
@@ -69,21 +89,19 @@ function mapRpcError(message: string): WorkerControlError {
   return new WorkerControlError("WORKER_CONTROL_FAILED");
 }
 
-async function rpcData(
-  result: PromiseLike<{ data: unknown; error: { message: string } | null }>,
-): Promise<unknown> {
+async function rpcData<T>(
+  result: PromiseLike<{ data: T; error: { message: string } | null }>,
+): Promise<T> {
   const { data, error } = await result;
   if (error) throw mapRpcError(error.message);
   return data;
 }
 
 function parseNode(value: unknown): WorkerNodeIdentity {
-  if (!isRecord(value) || value.executionClass !== "foundation_no_egress_v1") {
-    throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  }
+  if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   return Object.freeze({
     workerId: requiredString(value.workerId),
-    executionClass: "foundation_no_egress_v1" as const,
+    executionClass: parseExecutionClass(value.executionClass),
     softwareVersion: requiredString(value.softwareVersion),
   });
 }
@@ -112,9 +130,9 @@ function parseFoundationProbe(value: unknown): FoundationProbeEnqueueResult {
   });
 }
 
-function parseBudget(value: unknown): WorkerExecutionBudget {
+function parseBudget(value: unknown, executionClass: WorkerExecutionClass): WorkerExecutionBudget {
   if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  const expected = workerExecutionProfile("foundation_no_egress_v1").budget;
+  const expected = workerExecutionProfile(executionClass).budget;
   for (const [key, expectedValue] of Object.entries(expected)) {
     if (value[key] !== expectedValue) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
@@ -124,30 +142,70 @@ function parseBudget(value: unknown): WorkerExecutionBudget {
   return expected;
 }
 
-function parseClaim(value: unknown): WorkerClaimResult {
+function parseCanonicalRepositoryIdentity(input: Record<string, unknown>): {
+  owner: string;
+  repository: string;
+  canonicalRepositoryUrl: string;
+} {
+  const owner = requiredString(input.owner);
+  const repository = requiredString(input.repository);
+  const canonicalRepositoryUrl = requiredString(input.canonicalRepositoryUrl);
+  if (!OWNER_REPOSITORY_PATTERN.test(owner) || !OWNER_REPOSITORY_PATTERN.test(repository)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  if (canonicalRepositoryUrl !== `https://github.com/${owner}/${repository}`) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return { owner, repository, canonicalRepositoryUrl };
+}
+
+function parseClaim(value: unknown): WorkerPersistenceClaimResult {
   if (value === null) return null;
-  if (!isRecord(value) || value.executionClass !== "foundation_no_egress_v1") {
-    throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  }
-  if (!isRecord(value.input) || value.input.kind !== "foundation_probe") {
-    throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  }
-  const contract: WorkerTaskContract = {
+  if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  const executionClass = parseExecutionClass(value.executionClass);
+  if (!isRecord(value.input)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  const common = {
     taskId: requiredString(value.taskId),
     attemptId: requiredString(value.attemptId),
-    executionClass: "foundation_no_egress_v1",
     leaseToken: requiredString(value.leaseToken),
     absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
-    budget: parseBudget(value.budget),
-    input: {
-      kind: "foundation_probe",
-      nonce: requiredString(value.input.nonce),
-    },
+    budget: parseBudget(value.budget, executionClass),
   };
-  if (!/^[a-f0-9]{64}$/.test(contract.leaseToken)) {
+  if (!/^[a-f0-9]{64}$/.test(common.leaseToken)) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
-  return Object.freeze(contract);
+
+  if (executionClass === "foundation_no_egress_v1") {
+    if (value.input.kind !== "foundation_probe") {
+      throw new WorkerControlError("WORKER_CONTROL_FAILED");
+    }
+    return Object.freeze({
+      ...common,
+      executionClass,
+      input: Object.freeze({
+        kind: "foundation_probe" as const,
+        nonce: requiredString(value.input.nonce),
+      }),
+    });
+  }
+
+  if (value.input.kind !== "repository_snapshot_github_public") {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const artifactObjectKey = requiredString(value.artifactObjectKey);
+  if (!OBJECT_KEY_PATTERN.test(artifactObjectKey)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const identity = parseCanonicalRepositoryIdentity(value.input);
+  return Object.freeze({
+    ...common,
+    executionClass,
+    artifactObjectKey,
+    input: Object.freeze({
+      kind: "repository_snapshot_github_public" as const,
+      ...identity,
+    }),
+  });
 }
 
 function parseHeartbeat(value: unknown): WorkerHeartbeatResult {
@@ -175,12 +233,10 @@ function parseFinalization(value: unknown): WorkerFinalizationResult {
 }
 
 function parseFleetNode(value: unknown): WorkerFleetNodeSnapshot {
-  if (!isRecord(value) || value.executionClass !== "foundation_no_egress_v1") {
-    throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  }
+  if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   return Object.freeze({
     workerId: requiredString(value.workerId),
-    executionClass: "foundation_no_egress_v1" as const,
+    executionClass: parseExecutionClass(value.executionClass),
     softwareVersion: requiredString(value.softwareVersion),
     registeredAt: requiredString(value.registeredAt),
     lastSeenAt: nullableString(value.lastSeenAt),
@@ -214,10 +270,11 @@ function parseFleetSnapshot(value: unknown): WorkerFleetSnapshot {
 
 export interface WorkerControlRepository {
   register(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
+  registerRepositorySnapshot(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   disable(workerId: string): Promise<WorkerDisableResult>;
   authenticate(input: WorkerAuthenticationInput): Promise<WorkerNodeIdentity>;
   enqueueFoundationProbe(input: FoundationProbeEnqueueInput): Promise<FoundationProbeEnqueueResult>;
-  claim(input: WorkerClaimInput): Promise<WorkerClaimResult>;
+  claim(input: WorkerClaimInput): Promise<WorkerPersistenceClaimResult>;
   heartbeat(input: WorkerLeaseIdentity): Promise<WorkerHeartbeatResult>;
   finalize(input: WorkerPersistenceFinalizationInput): Promise<WorkerFinalizationResult>;
   recover(nowIso: string): Promise<number>;
@@ -230,6 +287,12 @@ export function createWorkerControlRepository(
   return Object.freeze({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
+        target_credential_hash: input.credentialHash,
+        target_software_version: input.softwareVersion,
+      })));
+    },
+    async registerRepositorySnapshot(input) {
+      return parseRegistration(await rpcData(client.rpc("register_repository_snapshot_worker_node", {
         target_credential_hash: input.credentialHash,
         target_software_version: input.softwareVersion,
       })));

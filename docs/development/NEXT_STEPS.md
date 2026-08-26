@@ -1,71 +1,117 @@
 # ScopeForge Next Steps
 
-## Completed boundary - Phase 6A zero-egress worker foundation
+## Current closeout boundary - Phase 6B repository acquisition
 
-Phase 6A is merged to `main` as `91f856f53fb57a4b9cd6710ee767361f473cea45` and its production Supabase schema is reconciled.
+Phase 6B implementation is complete on `feat/phase-6b-repository-acquisition` and its reviewed database schema is deployed to ScopeForge Supabase project `tdgpibrepzcvdivztkta`. The branch is still a review candidate until its exact head is reviewed and merged.
 
 Delivered:
 
-- private PostgreSQL worker nodes, tasks, attempts, and bounded events
-- internal-only `worker_foundation_probe` scan job kind
-- closed `foundation_no_egress_v1` execution profile
-- fixed CPU, memory, process, input, scratch, output, and wall-time budgets
-- service-role-only worker registration, authentication, enqueue, claim, heartbeat, finalize, recovery, and fleet RPCs
-- worker secrets generated server-side and stored only as SHA-256 digests
-- exact worker/task/attempt/lease binding with 90-second leases
-- deterministic claim ordering, fleet/workspace capacity checks, 15s/60s retry delays, and maximum three attempts
-- cancellation-wins finalization and recovery
-- authoritative lease-expiry provenance reserved to recovery
-- hard supervisor wall-time boundary even when an executor ignores `AbortSignal`
-- executor isolation from worker credentials and lease tokens
-- deterministic pure-hash foundation probe with no repository, process, scanner, filesystem, or target-network behavior
-- 64 KiB streamed broker request cap and strict route schemas
-- bounded fleet health read model with no credential/lease/output/source exposure
-- permanent dependency guards preventing Phase 5C, passive runtime, active validation, browser, and component code from gaining worker execution authority
+- closed worker class `repository_snapshot_github_public_v1`
+- owner/admin-only repository snapshot enqueue derived from the selected stored asset
+- GitHub public repository identity fixed to `https://github.com/<owner>/<repo>`
+- default branch resolved to an immutable 40-hex commit SHA
+- only `api.github.com`, one reviewed `codeload.github.com` redirect, and one attempt R2 PUT are network-authorized
+- complete DNS public-address validation with pinned HTTPS socket and preserved Host/SNI
+- streamed hostile tar/gzip validation with strict path, type, checksum, PAX, entry, byte, and retention bounds
+- symlink/hardlink skipping without following or materialization
+- deterministic lexical normalization, canonical manifest/content digest, deterministic tar.gz, and artifact digest
+- scratch-backed source/artifact processing within the worker memory boundary
+- server-only R2 SigV4 credentials
+- opaque `repository-source/<64-hex>.tar.gz` object keys
+- create-only signed upload using `If-None-Match: *`, preventing stale bearer URLs from overwriting a published object
+- server-side signed R2 `HEAD` and exact object-size gate before publication
+- dedicated atomic publication RPC; repository success is rejected by the generic worker finalizer
+- exact replay/conflict semantics and cancellation-wins behavior
+- immutable member-readable snapshot provenance with no browser mutation/download locator
+- seven-day private artifact retention and bounded, idempotent cleanup
+- permanent architecture guards keeping scanners, process execution, runtime authority, models, Phase 5C, browser code, and foundation workers outside acquisition authority
 
-Production verification confirmed private worker tables are unreadable by `anon` and `authenticated`, intended public worker RPCs are `SECURITY DEFINER` with empty `search_path` and service-role-only execution, private helper execution is revoked, the worker job snapshot constraint is live, all worker foreign keys have covering indexes, and Supabase security advisor is clean.
+## Live Phase 6B hardening
 
-A worker-control smoke successfully registered/authenticated a temporary worker, confirmed an idle claim, observed it through the bounded fleet snapshot, disabled it, and then removed all smoke rows. Production contains zero worker nodes/tasks/attempts/events after cleanup.
+Deployment review found and fixed three concrete issues before merge:
 
-A full enqueue/claim/finalize probe smoke could not run because production currently has zero auth users, workspaces, memberships, and assets. Do not fabricate auth state just to satisfy that smoke.
+1. Supabase default ACL gave `service_role` direct mutation authority on `public.repository_source_snapshots`. Forward hardening revokes all direct service-role table privileges, so publication is RPC-only.
+2. The original publication RPC checked `status = running` before a later cancelled-status branch, making that branch unreachable. A forward cancellation-first wrapper now routes cancelled jobs through exact-lease generic cancellation finalization before any snapshot insert.
+3. `requested_by` foreign keys on the public snapshot and private repository task tables lacked covering indexes. Both indexes are now live.
+
+The original deployed publication implementation is now a private v1 helper that is not executable by application roles or `service_role`.
+
+## Production verification
+
+Live migration history includes Phase 6B through:
+
+`20260826224847 phase_6b_repository_snapshot_live_hardening`
+
+Verification confirmed:
+
+- Phase 6B enum/table/RPC schema is live
+- authenticated workspace members have snapshot SELECT only
+- anon has no snapshot access
+- service_role has zero direct snapshot table privileges
+- public Phase 6B mutation RPCs are `SECURITY DEFINER`, use empty `search_path`, and are service-role-only
+- private repository state has no direct application/service-role DML grants
+- private publication/helper functions are not directly executable by application roles/service_role
+- covering FK/index set is complete
+- security advisor is clean
+- performance advisor has no Phase 6B missing-FK-index notices
+- generated public TypeScript types match the intended Phase 6B surface and omit private tables/functions
+
+A rollback-only live smoke passed enqueue, repository-class claim, lease-bound artifact lookup, publication, exact replay, conflicting replay rejection, cancellation-wins, and orphan cleanup. The transaction rolled back and all application/worker/snapshot counts returned to zero.
 
 ## Verification constraint
 
-GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use for the remainder of the month. Continue using `[skip ci]` and never claim an exact-head full npm test/type/build pass unless it was actually run in another available environment.
+Do not use GitHub Actions. The monthly allowance is exhausted and the user explicitly requested no further Actions use.
 
-Phase 6A final acceptance used targeted source/security review, permanent test contracts, live migration/privilege/constraint/index verification, clean Supabase security advisor, generated Supabase types, production worker-control smoke, and exact-head direct merge without a PR.
+Continue using `[skip ci]`. The current execution environment cannot resolve `github.com` and has no dependency-complete checkout, so the following final-head checks remain unexecuted unless another runnable environment becomes available:
 
-## Next major boundary - Phase 6B repository acquisition and private input artifacts
+```text
+npm test
+npm run typecheck
+npm run build:cli
+node .scopeforge-build/packages/cli/index.js version
+npm run benchmark:scanner
+npm run build
+```
 
-Phase 6B should introduce the first hosted repository-input path without granting the executor arbitrary network or command authority.
+Never label them green without fresh executable evidence.
+
+## Immediate closeout steps
+
+1. Review the exact final Phase 6B diff and changed-file inventory.
+2. Open the Phase 6B pull request without triggering/rerunning Actions.
+3. Inspect review threads and exact PR head.
+4. Merge only the exact reviewed head with expected-head protection when no merge-blocking finding remains.
+5. Reconcile permanent docs on `main` after merge.
+
+## Next major boundary - Phase 6C isolated zero-egress scanner execution
+
+Phase 6C should consume the immutable Phase 6B snapshot as a private scanner input while preserving the existing deterministic Phase 3 semantics.
 
 Required properties:
 
-1. Acquisition is a separate trusted stage from scanner execution.
-2. Browser callers never submit shell commands, clone flags, package-manager options, environment variables, credentials, arbitrary headers/body, resource limits, or network policy.
-3. Repository identity must bind to an existing workspace repository asset and immutable acquisition request.
-4. Any remote fetch must use a separately reviewed allowlist/credential model and produce a private immutable input artifact.
-5. The scanner executor consumes only the broker-selected private artifact plus the closed execution profile.
-6. Package lifecycle scripts remain disabled.
-7. Input artifacts require classification, byte/file limits, retention policy, deletion/recovery behavior, and audit provenance.
-8. Existing Phase 3 deterministic finding semantics remain authoritative.
-9. Existing runtime/active network authorities remain separate and must not be reused for repository acquisition by convenience.
-10. Phase 6B must receive its own threat-model/design approval before implementation.
+1. Scanner execution receives only the broker-selected immutable snapshot and closed scan profile.
+2. No GitHub/R2 acquisition credential or presigned PUT reaches the Phase 6C scanner executor.
+3. No target network egress is allowed during scanning.
+4. No repository code, package lifecycle script, build tool, package manager, Git hook, container definition, IaC tool, or project command is executed.
+5. Archive extraction/consumption must remain path-safe, bounded, and isolated from the host filesystem.
+6. CPU, memory, process, input, scratch, output, and wall-time limits must be enforceable by the concrete sandbox adapter, not merely advisory metrics.
+7. Cancellation and hard deadlines must terminate underlying sandbox resources.
+8. Scanner outputs must pass the existing closed deterministic normalization/ingestion boundary before findings can enter canonical hosted state.
+9. Absence from a scan must not automatically mean `verified_fixed`.
+10. Model/advisory output remains downstream and cannot independently change authoritative validation or lifecycle state.
+11. Phase 6C must not gain generic HTTP, runtime-observer, runtime-validator, GitHub acquisition, or R2 upload authority.
 
-## Later Phase 6 slices
+## Later Phase 6 boundary
 
-- **6C** - scanner execution over approved private repository artifacts, with sandbox enforcement and resource accounting.
-- **6D** - dedicated egress for already-authorized runtime/active operations, only after separate target-policy and abuse-control review.
-
-After Phase 6: Community Security Packs, validation/benchmarks/public methodology, then production hardening/public release.
+Dedicated network-enabled runtime/active worker execution remains separately reviewed after zero-egress scanning is demonstrated. Do not reuse Phase 6B acquisition networking as a shortcut for runtime/active egress.
 
 ## Resume protocol
 
-Before the next implementation session:
+Before new implementation work:
 
-1. Read `docs/development/SESSION_HANDOFF.md`, `CURRENT_STATE.md`, and `TEST_STATUS.md`.
+1. Read `SESSION_HANDOFF.md`, `CURRENT_STATE.md`, `TEST_STATUS.md`, and this file.
 2. Read `docs/ARCHITECTURE.md` and `docs/PHASES.md`.
-3. Confirm `main` contains merge `91f856f53fb57a4b9cd6710ee767361f473cea45` or a later reconciliation commit.
-4. Confirm Phase 6A production migrations through `phase_6a_worker_private_helper_privileges` remain present.
-5. Preserve zero-egress execution, service-role isolation, cancellation-wins semantics, private-table boundary, and product-job separation.
-6. Start Phase 6B with a threat model and approved design before implementation.
+3. Re-check the exact branch/main head and production migration history.
+4. Never edit already deployed Phase 6B migration history; use forward migrations only.
+5. Preserve create-only R2 upload, cancellation-first publication, RPC-only snapshot mutation, private-table isolation, and Phase 5C/6A authority separation.
+6. Begin Phase 6C with an explicit threat model and approved design before scanner execution code.
