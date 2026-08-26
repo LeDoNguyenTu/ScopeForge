@@ -10,6 +10,10 @@ const schemaPath = path.resolve(
   process.cwd(),
   "supabase/migrations/20260827010100_phase_6b_repository_snapshot_schema.sql",
 );
+const liveHardeningPath = path.resolve(
+  process.cwd(),
+  "supabase/migrations/20260827010500_phase_6b_repository_snapshot_live_hardening.sql",
+);
 
 describe("Phase 6B repository snapshot schema", () => {
   it("adds repository_snapshot in an enum-only migration", async () => {
@@ -100,5 +104,15 @@ describe("Phase 6B repository snapshot schema", () => {
     ]) {
       expect(sql).toContain(index);
     }
+  });
+
+  it("removes live default service-role mutation and covers actor foreign keys", async () => {
+    const sql = await readFile(liveHardeningPath, "utf8");
+
+    expect(sql).toMatch(
+      /revoke\s+insert,\s*update,\s*delete\s+on\s+table\s+public\.repository_source_snapshots\s+from\s+service_role/i,
+    );
+    expect(sql).toContain("repository_source_snapshots_requested_by_idx");
+    expect(sql).toContain("repository_snapshot_tasks_requested_by_idx");
   });
 });
