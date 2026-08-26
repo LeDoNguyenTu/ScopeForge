@@ -18,12 +18,29 @@ const FOUNDATION_NO_EGRESS_V1: WorkerExecutionProfile = Object.freeze({
   }),
 });
 
+const REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1: WorkerExecutionProfile = Object.freeze({
+  executionClass: "repository_snapshot_github_public_v1",
+  networkPolicy: "github_public_archive_and_attempt_artifact_put_v1",
+  budget: Object.freeze({
+    maxWallTimeMs: 300_000,
+    maxCpuTimeMs: 120_000,
+    maxMemoryBytes: 536_870_912,
+    maxProcesses: 1,
+    maxInputFiles: 20_000,
+    maxInputBytes: 268_435_456,
+    maxScratchBytes: 536_870_912,
+    maxOutputBytes: 65_536,
+  }),
+});
+
 export function workerExecutionProfile(
   executionClass: WorkerExecutionClass,
 ): WorkerExecutionProfile {
   switch (executionClass) {
     case "foundation_no_egress_v1":
       return FOUNDATION_NO_EGRESS_V1;
+    case "repository_snapshot_github_public_v1":
+      return REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1;
   }
 
   const unreachable: never = executionClass;
