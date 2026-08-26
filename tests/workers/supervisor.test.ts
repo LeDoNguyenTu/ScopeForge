@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { runWorkerOnce } from "@/packages/worker-supervisor";
 import type { WorkerTaskContract } from "@/packages/worker-contracts";
@@ -21,6 +22,10 @@ const task: WorkerTaskContract = {
   input: { kind: "foundation_probe", nonce: "abc" },
 };
 
+function nonceDigest(nonce = task.input.nonce): string {
+  return createHash("sha256").update(nonce, "utf8").digest("hex");
+}
+
 function terminal(outcome: "succeeded" | "cancelled" = "succeeded") {
   return {
     schemaVersion: 1 as const,
@@ -30,7 +35,7 @@ function terminal(outcome: "succeeded" | "cancelled" = "succeeded") {
     outcome,
     failureCode: null,
     metrics: { wallTimeMs: 1, cpuTimeMs: 1, peakMemoryBytes: 1, inputBytes: 3, outputBytes: 64 },
-    result: outcome === "succeeded" ? { kind: "foundation_probe" as const, nonceDigest: "a".repeat(64) } : null,
+    result: outcome === "succeeded" ? { kind: "foundation_probe" as const, nonceDigest: nonceDigest() } : null,
   };
 }
 
@@ -55,6 +60,30 @@ describe("worker supervisor", () => {
 
     expect(execute).toHaveBeenCalledTimes(1);
     expect(finalize).toHaveBeenCalledWith({ leaseToken: task.leaseToken, terminal: terminal() });
+  });
+
+  it("rejects a successful probe result that is not bound to the claimed nonce", async () => {
+    const execute = vi.fn(async () => ({
+      ...terminal(),
+      result: { kind: "foundation_probe" as const, nonceDigest: "f".repeat(64) },
+    }));
+    const finalize = vi.fn(async () => ({ outcome: "failed" as const, replayed: false }));
+
+    await runWorkerOnce({
+      control: {
+        claim: vi.fn(async () => task),
+        heartbeat: vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: "2099-08-26T00:01:30.000Z" })),
+        finalize,
+      },
+      executor: { execute },
+      heartbeatMs: 60_000,
+    });
+
+    expect(finalize.mock.calls[0]?.[0].terminal).toMatchObject({
+      outcome: "failed",
+      failureCode: "WORKER_OUTPUT_INVALID",
+      result: null,
+    });
   });
 
   it("aborts execution when a heartbeat reports cancellation", async () => {
