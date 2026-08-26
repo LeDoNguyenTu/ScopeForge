@@ -108,15 +108,17 @@ function repositoryClaimExpiry(
   claim: Exclude<WorkerPersistenceClaimResult, null>,
   now: Date,
 ): Date {
+  const leaseExpiry = new Date(claim.leaseExpiresAt);
   const deadline = new Date(claim.absoluteDeadlineAt);
-  if (!Number.isFinite(deadline.getTime()) || !Number.isFinite(now.getTime())) {
+  if (!Number.isFinite(leaseExpiry.getTime())
+      || !Number.isFinite(deadline.getTime())
+      || !Number.isFinite(now.getTime())
+      || leaseExpiry.getTime() > deadline.getTime()
+      || leaseExpiry.getTime() - now.getTime() < 1_000
+      || leaseExpiry.getTime() - now.getTime() > 120_000) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
-  const expiresAt = new Date(Math.min(deadline.getTime(), now.getTime() + 360_000));
-  if (expiresAt.getTime() - now.getTime() < 1_000) {
-    throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  }
-  return expiresAt;
+  return leaseExpiry;
 }
 
 async function composePublicClaim(
