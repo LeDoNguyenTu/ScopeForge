@@ -22,10 +22,6 @@ import {
   type WorkerRegistrationResult,
 } from "./types";
 
-type WorkerRpcError = { message: string } | null;
-type WorkerRpcResult = Promise<{ data: unknown; error: WorkerRpcError }>;
-type WorkerRpc = (name: string, args?: Record<string, unknown>) => WorkerRpcResult;
-
 const KNOWN_CODES = [
   "WORKER_AUTHENTICATION_FAILED",
   "WORKER_DISABLED",
@@ -71,6 +67,14 @@ function mapRpcError(message: string): WorkerControlError {
     if (message.includes(code)) return new WorkerControlError(code);
   }
   return new WorkerControlError("WORKER_CONTROL_FAILED");
+}
+
+async function rpcData(
+  result: PromiseLike<{ data: unknown; error: { message: string } | null }>,
+): Promise<unknown> {
+  const { data, error } = await result;
+  if (error) throw mapRpcError(error.message);
+  return data;
 }
 
 function parseNode(value: unknown): WorkerNodeIdentity {
@@ -223,50 +227,42 @@ export interface WorkerControlRepository {
 export function createWorkerControlRepository(
   client: SupabaseClient<Database>,
 ): WorkerControlRepository {
-  const rpc = client.rpc.bind(client) as unknown as WorkerRpc;
-
-  async function call(name: string, args: Record<string, unknown> = {}): Promise<unknown> {
-    const { data, error } = await rpc(name, args);
-    if (error) throw mapRpcError(error.message);
-    return data;
-  }
-
   return Object.freeze({
     async register(input) {
-      return parseRegistration(await call("register_worker_node", {
+      return parseRegistration(await rpcData(client.rpc("register_worker_node", {
         target_credential_hash: input.credentialHash,
         target_software_version: input.softwareVersion,
-      }));
+      })));
     },
     async disable(workerId) {
-      return parseDisable(await call("disable_worker_node", { target_worker_id: workerId }));
+      return parseDisable(await rpcData(client.rpc("disable_worker_node", { target_worker_id: workerId })));
     },
     async authenticate(input) {
-      return parseNode(await call("authenticate_worker_node", {
+      return parseNode(await rpcData(client.rpc("authenticate_worker_node", {
         target_worker_id: input.workerId,
         target_credential_hash: input.credentialHash,
-      }));
+      })));
     },
     async enqueueFoundationProbe(input) {
-      return parseFoundationProbe(await call("enqueue_foundation_worker_task", {
+      return parseFoundationProbe(await rpcData(client.rpc("enqueue_foundation_worker_task", {
         target_workspace_id: input.workspaceId,
         target_asset_id: input.assetId,
         target_actor_id: input.actorId,
-      }));
+      })));
     },
     async claim(input) {
-      return parseClaim(await call("claim_worker_task", { target_worker_id: input.workerId }));
+      return parseClaim(await rpcData(client.rpc("claim_worker_task", { target_worker_id: input.workerId })));
     },
     async heartbeat(input) {
-      return parseHeartbeat(await call("heartbeat_worker_attempt", {
+      return parseHeartbeat(await rpcData(client.rpc("heartbeat_worker_attempt", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
         target_lease_token: input.leaseToken,
-      }));
+      })));
     },
     async finalize(input) {
-      return parseFinalization(await call("finalize_worker_attempt", {
+      return parseFinalization(await rpcData(client.rpc("finalize_worker_attempt", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
@@ -279,14 +275,13 @@ export function createWorkerControlRepository(
         target_peak_memory_bytes: input.peakMemoryBytes,
         target_input_bytes: input.inputBytes,
         target_output_bytes: input.outputBytes,
-      }));
+      })));
     },
     async recover(nowIso) {
-      const value = await call("recover_expired_worker_attempts", { target_now: nowIso });
-      return boundedCount(value);
+      return boundedCount(await rpcData(client.rpc("recover_expired_worker_attempts", { target_now: nowIso })));
     },
     async fleetSnapshot() {
-      return parseFleetSnapshot(await call("get_worker_fleet_snapshot"));
+      return parseFleetSnapshot(await rpcData(client.rpc("get_worker_fleet_snapshot")));
     },
   });
 }
