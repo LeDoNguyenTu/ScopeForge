@@ -49,7 +49,6 @@ begin
 
   if target_terminal_outcome = 'failed' then
     if target_failure_code not in (
-      'WORKER_LEASE_EXPIRED',
       'WORKER_LOST',
       'WORKER_BUDGET_EXCEEDED',
       'WORKER_OUTPUT_INVALID',
