@@ -3,6 +3,7 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { rm, unlink } from "node:fs/promises";
 import path from "node:path";
 import { once } from "node:events";
+import type { Writable } from "node:stream";
 import { createDeflateRaw } from "node:zlib";
 import {
   REPOSITORY_SNAPSHOT_LIMITS,
@@ -105,7 +106,7 @@ function padding(size: number): Buffer {
   return Buffer.alloc(count);
 }
 
-async function writeWithBackpressure(stream: NodeJS.WritableStream, bytes: Buffer): Promise<void> {
+async function writeWithBackpressure(stream: Writable, bytes: Buffer): Promise<void> {
   if (bytes.length === 0) return;
   if (!stream.write(bytes)) await once(stream, "drain");
 }
@@ -228,8 +229,9 @@ export async function writeDeterministicRepositoryTarGzip(input: {
       storedArtifactBytes: artifactBytes,
     });
   } catch (error) {
-    deflater.destroy();
     output.destroy();
+    deflater.destroy();
+    await compressionDrain.catch(() => undefined);
     await rm(artifactPath, { force: true });
     throw error;
   }
