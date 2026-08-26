@@ -10,9 +10,10 @@ export interface WorkerSupervisorDependencies {
   control: WorkerSupervisorControlClient;
   executor: WorkerExecutor;
   heartbeatMs?: number;
+  now?: () => number;
 }
 
-type StopReason = "cancelled" | "lost" | null;
+type StopReason = "cancelled" | "lost" | "budget" | null;
 
 function executorContract(task: WorkerTaskContract): WorkerExecutorContract {
   return Object.freeze({
@@ -27,7 +28,7 @@ function executorContract(task: WorkerTaskContract): WorkerExecutorContract {
 
 function failureTerminal(
   task: WorkerTaskContract,
-  code: "WORKER_LOST" | "WORKER_EXECUTION_FAILED" | "WORKER_OUTPUT_INVALID",
+  code: "WORKER_LOST" | "WORKER_EXECUTION_FAILED" | "WORKER_OUTPUT_INVALID" | "WORKER_BUDGET_EXCEEDED",
 ): WorkerTerminalEnvelope {
   return Object.freeze({
     schemaVersion: 1,
@@ -84,6 +85,15 @@ function canonicalTerminal(
   }
 }
 
+function executionTimeoutMs(
+  task: WorkerTaskContract,
+  now: () => number,
+): number {
+  const deadlineMs = Date.parse(task.absoluteDeadlineAt);
+  if (!Number.isFinite(deadlineMs)) return 0;
+  return Math.max(0, Math.min(task.budget.maxWallTimeMs, deadlineMs - now()));
+}
+
 export async function runWorkerOnce(
   dependencies: WorkerSupervisorDependencies,
 ): Promise<
@@ -95,11 +105,19 @@ export async function runWorkerOnce(
 
   const abortController = new AbortController();
   const heartbeatMs = Math.max(1, Math.trunc(dependencies.heartbeatMs ?? 30_000));
+  const now = dependencies.now ?? Date.now;
   let stopReason: StopReason = null;
   let consecutiveHeartbeatFailures = 0;
   let heartbeatInFlight = false;
 
-  const timer = setInterval(() => {
+  const timeout = setTimeout(() => {
+    if (!abortController.signal.aborted) {
+      stopReason = "budget";
+      abortController.abort();
+    }
+  }, executionTimeoutMs(task, now));
+
+  const heartbeatTimer = setInterval(() => {
     if (heartbeatInFlight || abortController.signal.aborted) return;
     heartbeatInFlight = true;
     void dependencies.control.heartbeat({
@@ -135,15 +153,20 @@ export async function runWorkerOnce(
       ? cancelledTerminal(task)
       : stopReason === "lost"
         ? failureTerminal(task, "WORKER_LOST")
-        : failureTerminal(task, "WORKER_EXECUTION_FAILED");
+        : stopReason === "budget"
+          ? failureTerminal(task, "WORKER_BUDGET_EXCEEDED")
+          : failureTerminal(task, "WORKER_EXECUTION_FAILED");
   } finally {
-    clearInterval(timer);
+    clearTimeout(timeout);
+    clearInterval(heartbeatTimer);
   }
 
   if (stopReason === "cancelled") {
     terminal = cancelledTerminal(task, terminal);
   } else if (stopReason === "lost") {
     terminal = failureTerminal(task, "WORKER_LOST");
+  } else if (stopReason === "budget") {
+    terminal = failureTerminal(task, "WORKER_BUDGET_EXCEEDED");
   }
 
   const finalization = await dependencies.control.finalize({
