@@ -38,7 +38,7 @@ export interface PodmanCommandDriver {
 
 export interface PodmanSandboxResult {
   containerName: string;
-  resultPath: string;
+  output: string;
 }
 
 export interface PodmanSandbox {
