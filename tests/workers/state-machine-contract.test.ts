@@ -6,21 +6,16 @@ const enumMigrationPath = path.resolve(
   process.cwd(),
   "supabase/migrations/20260826105900_phase_6a_worker_probe_enum.sql",
 );
-const schemaMigrationPath = path.resolve(
-  process.cwd(),
-  "supabase/migrations/20260826110000_phase_6a_worker_foundation.sql",
-);
-const controlMigrationPath = path.resolve(
-  process.cwd(),
-  "supabase/migrations/20260826110100_phase_6a_worker_control.sql",
-);
+const workerMigrationPaths = [
+  "20260826110000_phase_6a_worker_foundation.sql",
+  "20260826110100_phase_6a_worker_control.sql",
+  "20260826110110_phase_6a_worker_claim_heartbeat.sql",
+  "20260826110120_phase_6a_worker_finalize.sql",
+  "20260826110130_phase_6a_worker_recovery.sql",
+].map((file) => path.resolve(process.cwd(), "supabase/migrations", file));
 
 async function workerSql(): Promise<string> {
-  const [schemaSql, controlSql] = await Promise.all([
-    readFile(schemaMigrationPath, "utf8"),
-    readFile(controlMigrationPath, "utf8"),
-  ]);
-  return `${schemaSql}\n${controlSql}`;
+  return (await Promise.all(workerMigrationPaths.map((file) => readFile(file, "utf8")))).join("\n");
 }
 
 describe("Phase 6A worker lease state machine", () => {
@@ -54,7 +49,7 @@ describe("Phase 6A worker lease state machine", () => {
 
   it("claims atomically with deterministic ordering and a 90 second lease", async () => {
     const sql = await workerSql();
-    expect(sql).toContain("for update skip locked");
+    expect(sql).toContain("for update of t skip locked");
     expect(sql).toContain("priority desc, available_at asc, created_at asc, id asc");
     expect(sql).toContain("interval '90 seconds'");
     expect(sql).toContain("attempt_count = task_record.attempt_count + 1");
@@ -73,7 +68,7 @@ describe("Phase 6A worker lease state machine", () => {
   it("requires exact current lease identity and lets cancellation win", async () => {
     const sql = await workerSql();
     expect(sql).toContain("WORKER_LEASE_INVALID");
-    expect(sql).toContain("lease_expires_at <= now()");
+    expect(sql).toMatch(/lease_expires_at\s*<=\s*(heartbeat_now|finalize_now|target_now)/);
     expect(sql).toContain("cancel_requested_at is not null");
     expect(sql).toContain("WORKER_CANCELLED");
     expect(sql).not.toMatch(/cancel_requested_at\s*=\s*null/i);
