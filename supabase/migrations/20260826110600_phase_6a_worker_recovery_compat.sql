@@ -14,8 +14,8 @@ declare
   leased_count integer;
 begin
   perform pg_advisory_xact_lock(hashtextextended('scopeforge-worker-recovery-v1', 0));
-  unleased_count := private.recover_expired_unleased_worker_tasks(target_now);
   leased_count := public.recover_expired_worker_attempts_leased_only(target_now);
+  unleased_count := private.recover_expired_unleased_worker_tasks(target_now);
   return unleased_count + leased_count;
 end;
 $$;
