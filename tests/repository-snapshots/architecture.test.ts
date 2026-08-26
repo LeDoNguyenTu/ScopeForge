@@ -25,7 +25,10 @@ describe("Phase 6B repository acquisition architecture", () => {
     for (const file of files) {
       const source = await readFile(file, "utf8");
       expect(source, path.relative(root, file)).not.toMatch(
-        /node:child_process|\b(?:spawn|exec|execFile|fork)\s*\(|@supabase\/|lib\/supabase|scanner-coordinator|runtime-observations|active-validation|model-provider|@anthropic-ai\/|@ai-sdk\/|from\s+["']openai["']/,
+        /node:(?:child_process|worker_threads)|\b(?:spawn|exec|execFile|fork)\s*\(|@supabase\/|lib\/supabase|scanner-core\/(?:filesystem|inventory|coordinator)|scanner-coordinator|runtime-observations|active-validation|model-provider|@anthropic-ai\/|@ai-sdk\/|from\s+["']openai["']/,
+      );
+      expect(source, path.relative(root, file)).not.toMatch(
+        /\b(?:npm|pnpm|yarn|bun)\s+(?:install|ci|run|exec)|package-manager/i,
       );
     }
   });
@@ -43,12 +46,27 @@ describe("Phase 6B repository acquisition architecture", () => {
     }
   });
 
-  it("keeps private object-store authority out of browser components", async () => {
+  it("keeps private object-store and worker-broker authority out of browser components", async () => {
     const files = await collectSourceFiles(path.resolve(root, "components"));
     for (const file of files) {
       const source = await readFile(file, "utf8");
       expect(source, path.relative(root, file)).not.toMatch(
-        /R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|r2-signature-v4|r2-object-store|repository-source\/[a-f0-9]/,
+        /R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|r2-signature-v4|r2-object-store|repository-snapshots\/object-store|repository-snapshots\/server-|api\/internal\/workers|lib\/worker-control|worker-supervisor|repository-source\/[a-f0-9]/,
+      );
+    }
+  });
+
+  it("uses the reviewed public database surface without temporary generic RPC casts", async () => {
+    const files = [
+      path.resolve(root, "lib/repository-snapshots/read-model.ts"),
+      path.resolve(root, "lib/repository-snapshots/repository.ts"),
+      path.resolve(root, "lib/repository-snapshots/cleanup-repository.ts"),
+    ];
+    for (const file of files) {
+      const source = await readFile(file, "utf8");
+      expect(source, path.relative(root, file)).not.toContain("as unknown as");
+      expect(source, path.relative(root, file)).not.toMatch(
+        /interface\s+(?:SnapshotReadClient|RepositorySnapshotRpc|CleanupRpc)\b/,
       );
     }
   });
