@@ -12,16 +12,36 @@ function baseMetrics(inputBytes: number, outputBytes: number) {
   });
 }
 
+function invalidContract(contract: WorkerExecutorContract): WorkerTerminalEnvelope {
+  return Object.freeze({
+    schemaVersion: 1,
+    taskId: contract.taskId,
+    attemptId: contract.attemptId,
+    executionClass: contract.executionClass,
+    outcome: "failed",
+    failureCode: "WORKER_OUTPUT_INVALID",
+    metrics: baseMetrics(0, 0),
+    result: null,
+  });
+}
+
 export async function executeFoundationProbe(
   contract: WorkerExecutorContract,
   signal: AbortSignal,
 ): Promise<WorkerTerminalEnvelope> {
+  if (
+    contract.executionClass !== "foundation_no_egress_v1"
+    || contract.input.kind !== "foundation_probe"
+  ) {
+    return invalidContract(contract);
+  }
+
   if (signal.aborted) {
     return Object.freeze({
       schemaVersion: 1,
       taskId: contract.taskId,
       attemptId: contract.attemptId,
-      executionClass: contract.executionClass,
+      executionClass: "foundation_no_egress_v1",
       outcome: "cancelled",
       failureCode: null,
       metrics: baseMetrics(0, 0),
@@ -39,7 +59,7 @@ export async function executeFoundationProbe(
       schemaVersion: 1,
       taskId: contract.taskId,
       attemptId: contract.attemptId,
-      executionClass: contract.executionClass,
+      executionClass: "foundation_no_egress_v1",
       outcome: "cancelled",
       failureCode: null,
       metrics: baseMetrics(inputBytes, 0),
@@ -51,7 +71,7 @@ export async function executeFoundationProbe(
     schemaVersion: 1,
     taskId: contract.taskId,
     attemptId: contract.attemptId,
-    executionClass: contract.executionClass,
+    executionClass: "foundation_no_egress_v1",
     outcome: "succeeded",
     failureCode: null,
     metrics: baseMetrics(inputBytes, nonceDigest.length),
