@@ -15,20 +15,6 @@ export interface RepositorySnapshotCleanupRepository {
 
 const OBJECT_KEY_PATTERN = /^repository-source\/[a-f0-9]{64}[.]tar[.]gz$/;
 
-type RpcResult = PromiseLike<{ data: unknown; error: { message: string } | null }>;
-interface CleanupRpc {
-  (name: "list_repository_snapshot_cleanup_candidates", args: {
-    target_now: string;
-    target_limit: number;
-  }): RpcResult;
-  (name: "mark_repository_snapshot_artifact_deleted", args: {
-    target_snapshot_id: string | null;
-    target_object_key: string;
-    target_reason: "expired" | "orphan";
-    target_now: string;
-  }): RpcResult;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -56,7 +42,9 @@ function parseCandidate(value: unknown): RepositorySnapshotCleanupCandidate {
   });
 }
 
-async function rpcData(result: RpcResult): Promise<unknown> {
+async function rpcData<T>(
+  result: PromiseLike<{ data: T; error: { message: string } | null }>,
+): Promise<T> {
   const { data, error } = await result;
   if (error) throw new Error("REPOSITORY_SNAPSHOT_CLEANUP_FAILED");
   return data;
@@ -65,10 +53,9 @@ async function rpcData(result: RpcResult): Promise<unknown> {
 export function createRepositorySnapshotCleanupRepository(
   client: SupabaseClient<Database>,
 ): RepositorySnapshotCleanupRepository {
-  const rpc = client.rpc.bind(client) as unknown as CleanupRpc;
   return Object.freeze({
     async listCandidates(input) {
-      const data = await rpcData(rpc("list_repository_snapshot_cleanup_candidates", {
+      const data = await rpcData(client.rpc("list_repository_snapshot_cleanup_candidates", {
         target_now: input.nowIso,
         target_limit: input.limit,
       }));
@@ -78,7 +65,7 @@ export function createRepositorySnapshotCleanupRepository(
       return Object.freeze(data.map(parseCandidate));
     },
     async markDeleted(input, nowIso) {
-      await rpcData(rpc("mark_repository_snapshot_artifact_deleted", {
+      await rpcData(client.rpc("mark_repository_snapshot_artifact_deleted", {
         target_snapshot_id: input.snapshotId,
         target_object_key: input.objectKey,
         target_reason: input.reason,
