@@ -14,7 +14,7 @@ const now = new Date("2026-08-27T00:00:00.000Z");
 const objectKey = `repository-source/${"a".repeat(64)}.tar.gz`;
 
 describe("Phase 6B R2 SigV4", () => {
-  it("creates deterministic PUT-only presigned URLs scoped to one object", () => {
+  it("creates deterministic create-only PUT presigned URLs scoped to one object", () => {
     const first = createPresignedR2PutUrl({ credentials, objectKey, expiresInSeconds: 360, now });
     const second = createPresignedR2PutUrl({ credentials, objectKey, expiresInSeconds: 360, now });
 
@@ -27,7 +27,7 @@ describe("Phase 6B R2 SigV4", () => {
     expect(url.searchParams.get("X-Amz-Credential")).toBe(`${credentials.accessKeyId}/20260827/auto/s3/aws4_request`);
     expect(url.searchParams.get("X-Amz-Date")).toBe("20260827T000000Z");
     expect(url.searchParams.get("X-Amz-Expires")).toBe("360");
-    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("host");
+    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("content-type;host;if-none-match");
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[a-f0-9]{64}$/);
   });
 
