@@ -77,14 +77,13 @@ describe("worker control service", () => {
     expect(claim).toHaveBeenCalledWith({ workerId: "11111111-1111-4111-8111-111111111111" });
   });
 
-  it("replaces the private repository object key with a presigned PUT bound to the exact lease", async () => {
+  it("replaces the private repository object key with one bounded presigned PUT descriptor", async () => {
     const artifactObjectKey = `repository-source/${"a".repeat(64)}.tar.gz`;
     const claim = vi.fn(async () => ({
       taskId: "33333333-3333-4333-8333-333333333333",
       attemptId: "44444444-4444-4444-8444-444444444444",
       executionClass: "repository_snapshot_github_public_v1" as const,
       leaseToken: "b".repeat(64),
-      leaseExpiresAt: "2026-08-27T03:21:30.000Z",
       absoluteDeadlineAt: "2026-08-27T03:40:00.000Z",
       budget: workerExecutionProfile("repository_snapshot_github_public_v1").budget,
       artifactObjectKey,
@@ -98,7 +97,7 @@ describe("worker control service", () => {
     const createAttemptUpload = vi.fn(async () => ({
       method: "PUT" as const,
       url: "https://scopeforge-artifacts.example.r2.cloudflarestorage.com/object?X-Amz-Signature=test",
-      expiresAt: "2026-08-27T03:21:30.000Z",
+      expiresAt: "2026-08-27T03:26:00.000Z",
     }));
     const store: RepositorySnapshotObjectStore = {
       createAttemptUpload,
@@ -116,7 +115,7 @@ describe("worker control service", () => {
 
     expect(createAttemptUpload).toHaveBeenCalledWith({
       objectKey: artifactObjectKey,
-      expiresAt: new Date("2026-08-27T03:21:30.000Z"),
+      expiresAt: new Date("2026-08-27T03:26:00.000Z"),
     });
     expect(result?.input).toMatchObject({
       kind: "repository_snapshot_github_public",
