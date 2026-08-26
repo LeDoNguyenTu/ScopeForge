@@ -8,12 +8,17 @@ import ActiveValidationPanel, {
 import RepositoryImportPanel, {
   type RepositoryImportHistoryItem,
 } from "@/components/assets/RepositoryImportPanel";
+import RepositorySnapshotPanel from "@/components/assets/RepositorySnapshotPanel";
 import RuntimeObservationPanel, {
   type RuntimeObservationPanelObservation,
 } from "@/components/assets/RuntimeObservationPanel";
 import VerificationPanel from "@/components/assets/VerificationPanel";
 import type { Json } from "@/lib/database.types";
 import { createPhase3ImportRepository } from "@/lib/phase3-import/repository";
+import {
+  listRepositorySnapshots,
+  type RepositorySnapshotHistoryItem,
+} from "@/lib/repository-snapshots/read-model";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
@@ -134,9 +139,13 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
   }
 
   let repositoryImportHistory: RepositoryImportHistoryItem[] = [];
+  let repositorySnapshotHistory: readonly RepositorySnapshotHistoryItem[] = [];
   if (asset.kind === "repository") {
     const importRepository = createPhase3ImportRepository(supabase);
-    const importRows = await importRepository.listRecentImports(workspace.id, asset.id, 20);
+    const [importRows, snapshotRows] = await Promise.all([
+      importRepository.listRecentImports(workspace.id, asset.id, 20),
+      listRepositorySnapshots(supabase, workspace.id, asset.id, 20),
+    ]);
     repositoryImportHistory = importRows.map((row) => ({
       id: row.id,
       scanJobId: row.scan_job_id,
@@ -149,6 +158,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       findingCount: row.finding_count,
       createdAt: row.created_at,
     }));
+    repositorySnapshotHistory = snapshotRows;
   }
 
   const isVerified = asset.verification_status === "verified";
@@ -201,13 +211,22 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       </section>
 
       {asset.kind === "repository" && (
-        <section className="panel verificationSection">
-          <RepositoryImportPanel
-            assetId={asset.id}
-            repositoryUrl={asset.canonical_target}
-            history={repositoryImportHistory}
-          />
-        </section>
+        <>
+          <section className="panel verificationSection">
+            <RepositorySnapshotPanel
+              assetId={asset.id}
+              role={role}
+              history={repositorySnapshotHistory}
+            />
+          </section>
+          <section className="panel verificationSection">
+            <RepositoryImportPanel
+              assetId={asset.id}
+              repositoryUrl={asset.canonical_target}
+              history={repositoryImportHistory}
+            />
+          </section>
+        </>
       )}
 
       <section className="panel verificationSection">
