@@ -1,5 +1,7 @@
 export const WORKER_CONTROL_MAX_BODY_BYTES = 65_536;
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 export class WorkerTransportError extends Error {
   readonly code: "WORKER_REQUEST_INVALID" | "WORKER_REQUEST_TOO_LARGE" | "WORKER_CONTENT_TYPE_UNSUPPORTED";
   readonly status: number;
@@ -22,6 +24,13 @@ function declaredLength(request: Request): number | null {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed)) throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
   return parsed;
+}
+
+export function workerUuid(value: unknown): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
+    throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
+  }
+  return value;
 }
 
 export function assertNoWorkerRequestBody(request: Request): void {
