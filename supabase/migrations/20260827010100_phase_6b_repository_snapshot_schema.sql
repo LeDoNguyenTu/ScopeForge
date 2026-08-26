@@ -31,7 +31,7 @@ alter table public.scan_jobs
       and validation_profile_id is null
       and validation_profile_version is null
       and authorization_granted_at is null
-      and budget = '{}'::jsonb
+      and budget = '{"maxWallTimeMs":300000,"maxCpuTimeMs":120000,"maxMemoryBytes":536870912,"maxProcesses":1,"maxInputFiles":20000,"maxInputBytes":268435456,"maxScratchBytes":536870912,"maxOutputBytes":65536}'::jsonb
       and request_count = 0
       and redirect_count = 0
       and finding_count = 0
@@ -87,11 +87,11 @@ create table public.repository_source_snapshots (
       'retainedFileLimit',
       'retainedBytesLimit'
     ]) = '{}'::jsonb
-    and skip_counts->>'symlink' ~ '^[0-9]+$'
-    and skip_counts->>'hardlink' ~ '^[0-9]+$'
-    and skip_counts->>'fileTooLarge' ~ '^[0-9]+$'
-    and skip_counts->>'retainedFileLimit' ~ '^[0-9]+$'
-    and skip_counts->>'retainedBytesLimit' ~ '^[0-9]+$'
+    and (skip_counts->>'symlink') ~ '^[0-9]+$'
+    and (skip_counts->>'hardlink') ~ '^[0-9]+$'
+    and (skip_counts->>'fileTooLarge') ~ '^[0-9]+$'
+    and (skip_counts->>'retainedFileLimit') ~ '^[0-9]+$'
+    and (skip_counts->>'retainedBytesLimit') ~ '^[0-9]+$'
     and (skip_counts->>'symlink')::bigint between 0 and 50000
     and (skip_counts->>'hardlink')::bigint between 0 and 50000
     and (skip_counts->>'fileTooLarge')::bigint between 0 and 50000
