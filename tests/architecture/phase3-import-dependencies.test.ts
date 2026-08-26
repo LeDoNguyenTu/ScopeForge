@@ -26,6 +26,9 @@ describe("Phase 5C hosted Phase 3 import architecture", () => {
       expect(source, path.relative(root, file)).not.toMatch(
         /packages\/runtime-|lib\/runtime-|scanner-core\/(?:filesystem|inventory|coordinator)|node:(?:child_process|fs|net|dgram|tls|http|https|vm|worker_threads)|\b(?:spawn|execFile|execSync|fetch)\s*\(/,
       );
+      expect(source, path.relative(root, file)).not.toMatch(
+        /worker-control|worker-supervisor|api\/internal\/workers/,
+      );
     }
   });
 

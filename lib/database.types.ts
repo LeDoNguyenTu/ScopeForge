@@ -4,7 +4,7 @@ export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export type AssetKind = "web_application" | "api" | "repository";
 export type AssetVerificationStatus = "unverified" | "pending" | "verified" | "failed";
 export type ScanJobStatus = "queued" | "running" | "succeeded" | "failed" | "blocked" | "cancelled";
-export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation" | "phase3_import";
+export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation" | "phase3_import" | "worker_foundation_probe";
 export type AuditActorType = "user" | "system";
 export type SecuritySeverity = "critical" | "high" | "medium" | "low" | "info";
 export type SecurityConfidence = "high" | "medium" | "low";
@@ -247,6 +247,42 @@ export type Database = {
       };
       persist_phase3_import_result: {
         Args: { target_workspace_id: string; target_asset_id: string; target_actor_id: string; target_repository_canonical_url: string; target_run_ref: string; target_tool_version: string; target_scan_started_at: string; target_scan_duration_ms: number; target_scanner_descriptors: Json; target_scanner_error_count: number; target_files_analyzed: number; target_files_skipped: number; target_total_bytes: number; finding_rows: Json; evidence_rows: Json };
+        Returns: Json;
+      };
+      register_worker_node: {
+        Args: { target_credential_hash: string; target_software_version: string };
+        Returns: Json;
+      };
+      disable_worker_node: {
+        Args: { target_worker_id: string };
+        Returns: Json;
+      };
+      authenticate_worker_node: {
+        Args: { target_worker_id: string; target_credential_hash: string };
+        Returns: Json;
+      };
+      enqueue_foundation_worker_task: {
+        Args: { target_workspace_id: string; target_asset_id: string; target_actor_id: string };
+        Returns: Json;
+      };
+      claim_worker_task: {
+        Args: { target_worker_id: string };
+        Returns: Json;
+      };
+      heartbeat_worker_attempt: {
+        Args: { target_worker_id: string; target_task_id: string; target_attempt_id: string; target_lease_token: string };
+        Returns: Json;
+      };
+      finalize_worker_attempt: {
+        Args: { target_worker_id: string; target_task_id: string; target_attempt_id: string; target_lease_token: string; target_terminal_outcome: string; target_failure_code: string | null; target_terminal_payload_digest: string; target_wall_time_ms: number; target_cpu_time_ms: number; target_peak_memory_bytes: number; target_input_bytes: number; target_output_bytes: number };
+        Returns: Json;
+      };
+      recover_expired_worker_attempts: {
+        Args: { target_now?: string };
+        Returns: number;
+      };
+      get_worker_fleet_snapshot: {
+        Args: never;
         Returns: Json;
       };
       change_security_finding_lifecycle: {
