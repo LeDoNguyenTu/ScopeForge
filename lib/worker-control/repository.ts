@@ -52,12 +52,6 @@ const KNOWN_CODES = [
   "REPOSITORY_ARTIFACT_UPLOAD_FAILED",
 ] as const;
 
-type RpcResult = PromiseLike<{ data: unknown; error: { message: string } | null }>;
-type RegisterRepositoryWorkerRpc = (
-  name: "register_repository_snapshot_worker_node",
-  args: { target_credential_hash: string; target_software_version: string },
-) => RpcResult;
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -95,9 +89,9 @@ function mapRpcError(message: string): WorkerControlError {
   return new WorkerControlError("WORKER_CONTROL_FAILED");
 }
 
-async function rpcData(
-  result: PromiseLike<{ data: unknown; error: { message: string } | null }>,
-): Promise<unknown> {
+async function rpcData<T>(
+  result: PromiseLike<{ data: T; error: { message: string } | null }>,
+): Promise<T> {
   const { data, error } = await result;
   if (error) throw mapRpcError(error.message);
   return data;
@@ -174,6 +168,7 @@ function parseClaim(value: unknown): WorkerPersistenceClaimResult {
     taskId: requiredString(value.taskId),
     attemptId: requiredString(value.attemptId),
     leaseToken: requiredString(value.leaseToken),
+    leaseExpiresAt: requiredString(value.leaseExpiresAt),
     absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
     budget: parseBudget(value.budget, executionClass),
   };
@@ -290,7 +285,6 @@ export interface WorkerControlRepository {
 export function createWorkerControlRepository(
   client: SupabaseClient<Database>,
 ): WorkerControlRepository {
-  const registerRepositoryRpc = client.rpc.bind(client) as unknown as RegisterRepositoryWorkerRpc;
   return Object.freeze({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
@@ -299,7 +293,7 @@ export function createWorkerControlRepository(
       })));
     },
     async registerRepositorySnapshot(input) {
-      return parseRegistration(await rpcData(registerRepositoryRpc("register_repository_snapshot_worker_node", {
+      return parseRegistration(await rpcData(client.rpc("register_repository_snapshot_worker_node", {
         target_credential_hash: input.credentialHash,
         target_software_version: input.softwareVersion,
       })));
