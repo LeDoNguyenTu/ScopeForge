@@ -20,6 +20,20 @@ describe("Phase 6A unleased deadline recovery", () => {
     expect(sql).toContain("WORKER_BUDGET_EXCEEDED");
   });
 
+  it("runs authoritative cancellation recovery before unleased deadline failure", async () => {
+    const [deadlineSql, compatibilitySql] = await Promise.all([
+      readFile(deadlineMigrationPath, "utf8"),
+      readFile(compatibilityMigrationPath, "utf8"),
+    ]);
+
+    expect(deadlineSql.indexOf("public.recover_expired_worker_attempts(target_now)")).toBeLessThan(
+      deadlineSql.indexOf("private.recover_expired_unleased_worker_tasks(target_now)"),
+    );
+    expect(compatibilitySql.indexOf("public.recover_expired_worker_attempts_leased_only(target_now)")).toBeLessThan(
+      compatibilitySql.indexOf("private.recover_expired_unleased_worker_tasks(target_now)"),
+    );
+  });
+
   it("keeps one stable combined service-role recovery entry point", async () => {
     const sql = await readFile(compatibilityMigrationPath, "utf8");
     expect(sql).toContain("rename to recover_expired_worker_attempts_leased_only");
