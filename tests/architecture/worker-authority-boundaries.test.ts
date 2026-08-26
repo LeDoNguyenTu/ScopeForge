@@ -74,4 +74,24 @@ describe("Phase 6A worker authority boundaries", () => {
       expect(source, path.relative(root, file)).not.toContain("createAdminClient");
     }
   });
+
+  it("does not route existing product scan executors through the Phase 6A worker path", async () => {
+    const directories = [
+      path.join(root, "lib/runtime-observations"),
+      path.join(root, "lib/active-validation"),
+      path.join(root, "lib/phase3-import"),
+    ];
+    for (const directory of directories) {
+      const files = await collect(directory);
+      for (const file of files) {
+        const source = await readFile(file, "utf8");
+        expect(source, path.relative(root, file)).not.toMatch(/worker-control|worker-supervisor|internal\/workers/);
+      }
+    }
+  });
+
+  it("keeps trial worker concurrency disabled in Phase 6A", async () => {
+    const source = await readFile(path.join(root, "lib/quotas/limits.ts"), "utf8");
+    expect(source).toContain("concurrentScanJobsPerWorkspace: 0");
+  });
 });
