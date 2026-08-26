@@ -54,7 +54,6 @@ export interface FoundationWorkerPersistenceClaim {
   attemptId: string;
   executionClass: "foundation_no_egress_v1";
   leaseToken: string;
-  leaseExpiresAt: string;
   absoluteDeadlineAt: string;
   budget: WorkerExecutionBudget;
   input: FoundationProbeInput;
@@ -65,7 +64,6 @@ export interface RepositorySnapshotWorkerPersistenceClaim {
   attemptId: string;
   executionClass: "repository_snapshot_github_public_v1";
   leaseToken: string;
-  leaseExpiresAt: string;
   absoluteDeadlineAt: string;
   budget: WorkerExecutionBudget;
   artifactObjectKey: string;
