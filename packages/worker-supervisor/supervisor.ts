@@ -94,6 +94,39 @@ function executionTimeoutMs(
   return Math.max(0, Math.min(task.budget.maxWallTimeMs, deadlineMs - now()));
 }
 
+function executeWithinSupervisorBoundary(
+  executor: WorkerExecutor,
+  contract: WorkerExecutorContract,
+  signal: AbortSignal,
+): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      callback();
+    };
+
+    const onAbort = () => {
+      finish(() => reject(new Error("WORKER_EXECUTOR_ABORTED")));
+    };
+
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+
+    signal.addEventListener("abort", onAbort, { once: true });
+
+    void executor.execute(contract, signal).then(
+      (value) => finish(() => resolve(value)),
+      (error: unknown) => finish(() => reject(error)),
+    );
+  });
+}
+
 export async function runWorkerOnce(
   dependencies: WorkerSupervisorDependencies,
 ): Promise<
@@ -143,7 +176,8 @@ export async function runWorkerOnce(
 
   let terminal: WorkerTerminalEnvelope;
   try {
-    const raw = await dependencies.executor.execute(
+    const raw = await executeWithinSupervisorBoundary(
+      dependencies.executor,
       executorContract(task),
       abortController.signal,
     );
