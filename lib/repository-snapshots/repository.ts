@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "@/lib/database.types";
+import type { Database } from "@/lib/database.types";
 import {
   RepositorySnapshotError,
   type RepositorySnapshotAttemptArtifact,
@@ -30,49 +30,6 @@ const KNOWN_CODES = [
   "WORKER_JOB_STATE_CONFLICT",
 ] as const;
 
-type RpcResult = PromiseLike<{ data: unknown; error: { message: string } | null }>;
-interface RepositorySnapshotRpc {
-  (name: "enqueue_repository_snapshot_worker_task", args: {
-    target_workspace_id: string;
-    target_asset_id: string;
-    target_actor_id: string;
-  }): RpcResult;
-  (name: "get_repository_snapshot_attempt_artifact", args: {
-    target_worker_id: string;
-    target_task_id: string;
-    target_attempt_id: string;
-    target_lease_token: string;
-  }): RpcResult;
-  (name: "finalize_repository_snapshot_worker_attempt", args: {
-    target_worker_id: string;
-    target_task_id: string;
-    target_attempt_id: string;
-    target_lease_token: string;
-    target_terminal_payload_digest: string;
-    target_canonical_repository_url: string;
-    target_default_branch: string;
-    target_resolved_commit_sha: string;
-    target_content_digest: string;
-    target_artifact_digest: string;
-    target_compressed_bytes: number;
-    target_expanded_bytes: number;
-    target_retained_file_count: number;
-    target_retained_bytes: number;
-    target_stored_artifact_bytes: number;
-    target_skip_counts: Json;
-    target_wall_time_ms: number;
-    target_cpu_time_ms: number;
-    target_peak_memory_bytes: number;
-    target_input_bytes: number;
-    target_output_bytes: number;
-    target_server_observed_object_bytes: number;
-  }): RpcResult;
-}
-
-function rpcFor(client: SupabaseClient<Database>): RepositorySnapshotRpc {
-  return client.rpc.bind(client) as unknown as RepositorySnapshotRpc;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -97,7 +54,9 @@ function mapRpcError(message: string): RepositorySnapshotError {
   return new RepositorySnapshotError("REPOSITORY_SNAPSHOT_FAILED");
 }
 
-async function rpcData(result: RpcResult): Promise<unknown> {
+async function rpcData<T>(
+  result: PromiseLike<{ data: T; error: { message: string } | null }>,
+): Promise<T> {
   const { data, error } = await result;
   if (error) throw mapRpcError(error.message);
   return data;
@@ -157,10 +116,9 @@ export interface RepositorySnapshotRepository {
 export function createRepositorySnapshotRepository(
   client: SupabaseClient<Database>,
 ): RepositorySnapshotRepository {
-  const rpc = rpcFor(client);
   return Object.freeze({
     async enqueue(input) {
-      return parseEnqueue(await rpcData(rpc("enqueue_repository_snapshot_worker_task", {
+      return parseEnqueue(await rpcData(client.rpc("enqueue_repository_snapshot_worker_task", {
         target_workspace_id: input.workspaceId,
         target_asset_id: input.assetId,
         target_actor_id: input.actorId,
@@ -168,7 +126,7 @@ export function createRepositorySnapshotRepository(
     },
 
     async getAttemptArtifact(input) {
-      return parseAttemptArtifact(await rpcData(rpc("get_repository_snapshot_attempt_artifact", {
+      return parseAttemptArtifact(await rpcData(client.rpc("get_repository_snapshot_attempt_artifact", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
@@ -177,7 +135,7 @@ export function createRepositorySnapshotRepository(
     },
 
     async publish(input) {
-      return parsePublication(await rpcData(rpc("finalize_repository_snapshot_worker_attempt", {
+      return parsePublication(await rpcData(client.rpc("finalize_repository_snapshot_worker_attempt", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
