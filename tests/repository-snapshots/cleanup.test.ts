@@ -88,6 +88,14 @@ describe("Phase 6B repository snapshot artifact cleanup", () => {
     expect(vi.mocked(repo.markDeleted).mock.calls[0]?.[0].objectKey).toContain("b".repeat(64));
   });
 
+  it("uses monotonic attempt state for orphan eligibility before object deletion", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toContain("attempt.finished_at is not null");
+    expect(sql).toContain("attempt.lease_expires_at <= target_now");
+    expect(sql).not.toContain("or task.state <> 'leased'");
+    expect(sql).not.toContain("task_record.state = 'leased'");
+  });
+
   it("keeps cleanup service-role-only and public provenance immutable", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toContain("create or replace function public.list_repository_snapshot_cleanup_candidates");
