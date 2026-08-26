@@ -64,6 +64,14 @@ describe("Phase 6B repository snapshot control authority", () => {
     expect(publicationSql).toContain("cancel_requested_at");
   });
 
+  it("forces repository success through publication instead of the generic finalizer", async () => {
+    const sql = await readFile(publicationPath, "utf8");
+
+    expect(sql).toContain("REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED");
+    expect(sql).toMatch(/execution_class = 'repository_snapshot_github_public_v1'[\s\S]*target_terminal_outcome = 'succeeded'[\s\S]*REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED/i);
+    expect(sql).toContain("target_server_observed_object_bytes <> target_stored_artifact_bytes");
+  });
+
   it("keeps all public mutation RPCs service-role-only with an empty search path", async () => {
     const sql = `${await readFile(controlPath, "utf8")}\n${await readFile(publicationPath, "utf8")}`;
 
@@ -73,11 +81,12 @@ describe("Phase 6B repository snapshot control authority", () => {
       "get_repository_snapshot_attempt_artifact(uuid, uuid, uuid, text)",
     ]) {
       expect(sql).toContain(`revoke all on function public.${signature}`);
-      expect(sql).toContain(`grant execute on function public.${signature} to service_role`);
+      const escaped = signature.replace(/[()]/g, (match) => `\\${match}`);
+      expect(sql).toMatch(new RegExp(`grant execute on function public\\.${escaped}\\s+to service_role`, "i"));
     }
     expect(sql).toContain("security definer");
     expect(sql).toContain("set search_path = ''");
     expect(sql).toContain("revoke all on function public.finalize_repository_snapshot_worker_attempt");
-    expect(sql).toContain("grant execute on function public.finalize_repository_snapshot_worker_attempt");
+    expect(sql).toMatch(/grant execute on function public\.finalize_repository_snapshot_worker_attempt[\s\S]*to service_role/i);
   });
 });
