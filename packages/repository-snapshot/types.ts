@@ -4,7 +4,7 @@ export const REPOSITORY_SNAPSHOT_MANIFEST_PATH = ".scopeforge/snapshot-manifest-
 export const REPOSITORY_SNAPSHOT_LIMITS = Object.freeze({
   maxCompressedBytes: 134_217_728,
   maxExpandedRegularBytes: 536_870_912,
-  maxTarStreamBytes: 570_425_344,
+  maxTarStreamBytes: 671_088_640,
   maxEntries: 50_000,
   maxRetainedFiles: 20_000,
   maxRetainedFileBytes: 2_097_152,
