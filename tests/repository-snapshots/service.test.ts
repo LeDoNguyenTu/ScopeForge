@@ -94,7 +94,7 @@ describe("Phase 6B trusted repository snapshot services", () => {
       workspaceId: ids.workspaceId,
       assetId: ids.assetId,
       actorId: ids.actorId,
-    }, { repository: repo, objectStore: objectStore() });
+    }, { repository: repo });
 
     expect(result.taskId).toBe(ids.taskId);
     expect(repo.enqueue).toHaveBeenCalledWith({
