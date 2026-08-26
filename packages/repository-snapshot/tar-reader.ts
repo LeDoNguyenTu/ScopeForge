@@ -157,8 +157,8 @@ async function consumePadding(reader: AsyncByteReader, size: number): Promise<vo
   const padding = paddingSize(size);
   if (padding === 0) return;
   const bytes = await reader.readExact(padding);
-  if (!isZeroBlock(Buffer.concat([bytes, Buffer.alloc(BLOCK_SIZE - bytes.length)]).subarray(0, BLOCK_SIZE))) {
-    for (const byte of bytes) if (byte !== 0) throw new Error("Tar entry padding is not zero-filled.");
+  for (const byte of bytes) {
+    if (byte !== 0) throw new Error("Tar entry padding is not zero-filled.");
   }
 }
 
@@ -403,6 +403,7 @@ export async function parseGitHubRepositoryArchive(input: {
       skipCounts: Object.freeze({ ...skipCounts }),
     });
   } catch (error) {
+    input.archive.destroy();
     await rm(sourceDirectory, { recursive: true, force: true });
     throw error;
   } finally {
