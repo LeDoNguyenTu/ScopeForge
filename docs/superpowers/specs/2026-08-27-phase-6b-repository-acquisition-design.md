@@ -201,9 +201,10 @@ Acquisition then:
 2. Requires the returned repository identity to match the stored asset case-insensitively. Renamed/transferred repositories fail closed.
 3. Requires the repository to be public.
 4. Reads the current default branch from GitHub metadata.
-5. Resolves that branch to an exact 40-hex commit SHA.
-6. Requests the repository archive by that immutable commit SHA.
-7. Records the default branch and resolved commit SHA as provenance.
+5. Treats the default-branch value as bounded untrusted text: maximum 255 UTF-8 bytes, URL-encoded only inside the fixed GitHub API path, and never allowed to alter host, port, method, or path prefix.
+6. Resolves that branch to an exact 40-hex commit SHA.
+7. Requests the repository archive by that immutable commit SHA.
+8. Records the default branch and resolved commit SHA as provenance.
 
 Callers cannot request tags, historical SHAs, branches, pull requests, forks, subdirectories, or alternate refs in Phase 6B v1.
 
@@ -238,7 +239,9 @@ The final snapshot metadata records retained counts, skip counts, received compr
 
 The worker never invokes `git`, `tar`, `unzip`, a shell, a package manager, or repository code. Archive handling is an in-process streaming parser.
 
-Before retaining an entry, the worker validates the path and type.
+The GitHub archive must be a gzip-compressed tar stream. The parser requires exactly one generated top-level archive directory. That wrapper is stripped before repository-relative path validation and is never included in file identity or snapshot digests. Any entry outside the single wrapper, or multiple unrelated top-level wrappers, fails the acquisition.
+
+Before retaining an entry, the worker validates the stripped path and type.
 
 Rejected archive conditions:
 
@@ -309,15 +312,18 @@ The deterministic manifest contains only stable source identity and retained-con
 - default branch
 - sorted retained file records
 - deterministic skip counts
+- `contentDigest`
 
-Operational timestamps and request/user identifiers remain in database metadata, not inside the deterministic content digest.
+`content_digest` is non-circular: first construct canonical JSON containing all manifest fields above **except** `contentDigest`, with object keys and retained file records in the prescribed deterministic order. SHA-256 those UTF-8 bytes. Then add the resulting lowercase 64-hex value as `contentDigest` and serialize the final embedded manifest canonically. `artifact_digest` is never embedded in the artifact because it hashes the final artifact bytes.
+
+Operational timestamps and request/user identifiers remain in database metadata, not inside either deterministic digest.
 
 Two hashes are recorded:
 
-1. `content_digest`: SHA-256 over the canonical manifest/source identity before the manifest entry is embedded in the bundle.
+1. `content_digest`: SHA-256 over the canonical pre-digest manifest bytes defined above.
 2. `artifact_digest`: SHA-256 over the exact final deterministic gzip-compressed tar bytes uploaded to object storage.
 
-Any later Phase 6C consumer must recompute and verify `artifact_digest` before materializing or scanning the bundle, and must then verify the embedded manifest/content digest before trusting file provenance.
+Any later Phase 6C consumer must recompute and verify `artifact_digest` before materializing or scanning the bundle, and must then recompute the embedded `contentDigest` before trusting file provenance.
 
 ## Private artifact storage
 
@@ -640,32 +646,33 @@ The Phase 6B implementation must include tests for at least:
 3. request quotas and same-asset cooldown
 4. no caller URL/ref/SHA/header/credential/command/budget authority
 5. exact public GitHub identity match and moved-repository rejection
-6. immutable commit resolution before archive acquisition
+6. bounded default-branch handling and immutable commit resolution before archive acquisition
 7. GitHub host/HTTPS/port redirect allowlist
 8. DNS/private-address rejection and pinned TLS behavior
 9. compressed, expanded, entry, file, retained-byte, artifact-byte, and attempt-wall-time limits
-10. absolute path and traversal rejection
-11. invalid UTF-8, NUL, backslash, overlong, reserved-manifest, and duplicate path rejection
-12. symlink/hardlink non-materialization
-13. special-file rejection
-14. submodule/LFS non-expansion
-15. deterministic normalized tar/gzip metadata
-16. deterministic manifest/content digest/artifact digest
-17. no executable bit/host ownership/timestamp preservation in normalized bundle
-18. attempt-specific object key and presigned PUT only
-19. no presigned URL/query logging
-20. storage object existence/exact-size verification before publication
-21. stale attempt cannot publish or overwrite current artifact
-22. cancellation wins before publication
-23. exact replay idempotency and conflicting replay rejection
-24. orphan/expired artifact cleanup and 7-day expiry semantics
-25. no browser artifact read/download authority
-26. private table/RPC/helper privileges
-27. service-role-only trusted mutation RPCs with empty `search_path`
-28. live type-contract reconciliation
-29. architecture guards for process/package/runtime/model/network authority separation
-30. Phase 6A foundation remains zero-egress
-31. Phase 5C import remains non-executing
+10. single GitHub archive wrapper stripping and multi-wrapper/outside-entry rejection
+11. absolute path and traversal rejection
+12. invalid UTF-8, NUL, backslash, overlong, reserved-manifest, and duplicate path rejection
+13. symlink/hardlink non-materialization
+14. special-file rejection
+15. submodule/LFS non-expansion
+16. deterministic normalized tar/gzip metadata
+17. exact non-circular manifest/content-digest calculation and artifact digest
+18. no executable bit/host ownership/timestamp preservation in normalized bundle
+19. attempt-specific object key and presigned PUT only
+20. no presigned URL/query logging
+21. storage object existence/exact-size verification before publication
+22. stale attempt cannot publish or overwrite current artifact
+23. cancellation wins before publication
+24. exact replay idempotency and conflicting replay rejection
+25. orphan/expired artifact cleanup and 7-day expiry semantics
+26. no browser artifact read/download authority
+27. private table/RPC/helper privileges
+28. service-role-only trusted mutation RPCs with empty `search_path`
+29. live type-contract reconciliation
+30. architecture guards for process/package/runtime/model/network authority separation
+31. Phase 6A foundation remains zero-egress
+32. Phase 5C import remains non-executing
 
 ## Production rollout gate
 
