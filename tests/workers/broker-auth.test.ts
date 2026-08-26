@@ -9,9 +9,13 @@ function request(headers: Record<string, string> = {}): Request {
 }
 
 describe("worker broker authentication", () => {
-  it("requires a worker id and exact bearer secret", async () => {
+  it("requires a canonical worker id and exact bearer secret", async () => {
     const authenticate = vi.fn();
     await expect(authenticateWorkerRequest(request(), { authenticate })).rejects.toBeInstanceOf(WorkerBrokerAuthError);
+    await expect(authenticateWorkerRequest(request({
+      authorization: `Bearer ${"a".repeat(64)}`,
+      "x-scopeforge-worker-id": "not-a-uuid",
+    }), { authenticate })).rejects.toBeInstanceOf(WorkerBrokerAuthError);
     await expect(authenticateWorkerRequest(request({
       authorization: "Bearer not-hex",
       "x-scopeforge-worker-id": "11111111-1111-4111-8111-111111111111",
