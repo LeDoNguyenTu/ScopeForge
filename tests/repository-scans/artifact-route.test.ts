@@ -7,10 +7,11 @@ const routePath = path.resolve(
 );
 
 describe("Phase 6C artifact broker route", () => {
-  it("authenticates the worker and accepts only exact lease identity fields", async () => {
+  it("authenticates the exact Phase 6C worker and accepts only exact lease identity fields", async () => {
     const source = await readFile(routePath, "utf8");
 
     expect(source).toContain("authenticateWorkerRequest");
+    expect(source).toContain('worker.executionClass !== "phase3_repository_scan_no_egress_v1"');
     expect(source).toContain("readBoundedWorkerJson");
     expect(source).toContain('strictObject(await readBoundedWorkerJson(request), ["taskId", "attemptId", "leaseToken"])');
     expect(source).toContain("workerUuid(body.taskId)");
