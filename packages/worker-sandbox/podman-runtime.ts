@@ -106,13 +106,13 @@ export function createPodmanSandbox(
       if (signal.aborted) throw abortError();
       const command = buildPodmanCreateCommand(input);
       safeWorkDirectory(input.workDirectory);
-      let created = false;
+      let containerMayExist = false;
       let removed = false;
       let forceRemoval: Promise<void> | null = null;
       let primaryError: unknown = null;
 
       const forceRemove = (): Promise<void> => {
-        if (!created || removed) return Promise.resolve();
+        if (!containerMayExist || removed) return Promise.resolve();
         if (forceRemoval !== null) return forceRemoval;
         forceRemoval = driver.exec(command.file, [
           "rm",
@@ -130,16 +130,19 @@ export function createPodmanSandbox(
       };
 
       const onAbort = () => {
-        void forceRemove();
+        void forceRemove().catch(() => undefined);
       };
 
       try {
+        // Once the create command is dispatched, a control-channel error is not proof
+        // that Podman failed before persisting the deterministic container name.
+        // Treat the name as potentially live so finally always attempts idempotent cleanup.
+        containerMayExist = true;
         const createdResult = await driver.exec(command.file, command.args, {
           timeoutMs: CONTROL_TIMEOUT_MS,
           maxOutputBytes: CONTROL_OUTPUT_BYTES,
         });
         requireSuccess(createdResult, "create");
-        created = true;
 
         signal.addEventListener("abort", onAbort, { once: true });
         if (signal.aborted) {
@@ -207,7 +210,7 @@ export function createPodmanSandbox(
             }
           }
         }
-        if (created && !removed) {
+        if (containerMayExist && !removed) {
           try {
             const cleaned = await driver.exec(command.file, [
               "rm",
