@@ -70,6 +70,7 @@ function control(overrides: Partial<WorkerSupervisorControlClient> = {}): Worker
         expiresAt: "2026-08-27T02:01:00.000Z",
       },
     })),
+    repositoryScanFinalizeSuccess: vi.fn(async () => ({ outcome: "succeeded" as const, replayed: false })),
     heartbeat: vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: "2026-08-27T02:01:00.000Z" })),
     finalize: vi.fn(async ({ terminal }) => ({ outcome: terminal.outcome, replayed: false })),
     ...overrides,
@@ -103,7 +104,7 @@ function preparer(cleanup = vi.fn(async () => undefined)): RepositoryScanPrepare
 }
 
 describe("Phase 6C supervisor preparation", () => {
-  it("keeps lease and signed artifact authority outside the prepared executor contract", async () => {
+  it("keeps lease and signed artifact authority outside the prepared executor contract and uses dedicated success publication", async () => {
     const repoControl = control();
     const prep = preparer();
     const executor: WorkerExecutor = {
@@ -132,10 +133,17 @@ describe("Phase 6C supervisor preparation", () => {
     });
     expect(prep.prepare).toHaveBeenCalled();
     expect(executor.execute).toHaveBeenCalled();
+    expect(repoControl.repositoryScanFinalizeSuccess).toHaveBeenCalledWith({
+      taskId: task.taskId,
+      attemptId: task.attemptId,
+      leaseToken: task.leaseToken,
+      terminal: success,
+    });
+    expect(repoControl.finalize).not.toHaveBeenCalled();
     expect(result).toEqual({ status: "completed", outcome: "succeeded", replayed: false });
   });
 
-  it("aborts staging on cancellation and never invokes the sandbox executor", async () => {
+  it("aborts staging on cancellation and uses only generic cancellation finalization", async () => {
     const executor: WorkerExecutor = { execute: vi.fn(async () => success) };
     const prepare = vi.fn(async ({ signal }: Parameters<RepositoryScanPreparer["prepare"]>[0]) => {
       await new Promise<void>((_resolve, reject) => {
@@ -157,6 +165,11 @@ describe("Phase 6C supervisor preparation", () => {
     });
 
     expect(executor.execute).not.toHaveBeenCalled();
+    expect(repoControl.repositoryScanFinalizeSuccess).not.toHaveBeenCalled();
+    expect(repoControl.finalize).toHaveBeenCalledWith(expect.objectContaining({
+      leaseToken: task.leaseToken,
+      terminal: expect.objectContaining({ outcome: "cancelled" }),
+    }));
     expect(result).toEqual({ status: "completed", outcome: "cancelled", replayed: false });
   });
 });
