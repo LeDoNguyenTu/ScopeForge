@@ -8,6 +8,9 @@ const enumMigration = path.resolve(
 const schemaMigration = path.resolve(
   "supabase/migrations/20260827020100_phase_6c_repository_scan_schema.sql",
 );
+const fkIndexMigration = path.resolve(
+  "supabase/migrations/20260827020700_phase_6c_repository_scan_fk_indexes.sql",
+);
 
 describe("Phase 6C repository scan schema migrations", () => {
   it("adds repository_scan as a distinct scan job kind", async () => {
@@ -75,8 +78,12 @@ describe("Phase 6C repository scan schema migrations", () => {
     }
   });
 
-  it("provides covering indexes for every new foreign-key path", async () => {
-    const sql = await readFile(schemaMigration, "utf8");
+  it("provides covering indexes for every new foreign-key path, including requested-by users", async () => {
+    const [schemaSql, indexSql] = await Promise.all([
+      readFile(schemaMigration, "utf8"),
+      readFile(fkIndexMigration, "utf8"),
+    ]);
+    const sql = `${schemaSql}\n${indexSql}`;
     for (const index of [
       "repository_scan_tasks_job_workspace_asset_idx",
       "repository_scan_tasks_snapshot_workspace_asset_idx",
@@ -84,6 +91,8 @@ describe("Phase 6C repository scan schema migrations", () => {
       "repository_scan_runs_job_workspace_asset_idx",
       "repository_scan_runs_snapshot_workspace_asset_idx",
       "repository_scan_runs_asset_workspace_idx",
+      "repository_scan_tasks_requested_by_idx",
+      "repository_scan_runs_requested_by_idx",
     ]) {
       expect(sql).toContain(index);
     }
