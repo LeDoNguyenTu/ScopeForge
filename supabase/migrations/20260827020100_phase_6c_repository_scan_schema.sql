@@ -87,7 +87,7 @@ create table public.repository_scan_runs (
   resolved_commit_sha text not null check (resolved_commit_sha ~ '^[a-f0-9]{40}$'),
   snapshot_content_digest text not null check (snapshot_content_digest ~ '^[a-f0-9]{64}$'),
   snapshot_artifact_digest text not null check (snapshot_artifact_digest ~ '^[a-f0-9]{64}$'),
-  run_ref text not null unique check (run_ref ~ '^sfh1:[a-f0-9]{64}$'),
+  run_ref text not null check (run_ref ~ '^sfh1:[a-f0-9]{64}$'),
   scan_started_at timestamptz not null,
   scan_duration_ms integer not null check (scan_duration_ms between 0 and 300000),
   scanner_descriptors jsonb not null check (
@@ -99,6 +99,7 @@ create table public.repository_scan_runs (
   finding_count integer not null check (finding_count between 0 and 500),
   result_digest text not null check (result_digest ~ '^[a-f0-9]{64}$'),
   created_at timestamptz not null default now(),
+  unique (workspace_id, asset_id, run_ref),
   constraint repository_scan_runs_asset_workspace_fkey
     foreign key (asset_id, workspace_id)
     references public.assets(id, workspace_id)
