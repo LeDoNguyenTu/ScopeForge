@@ -55,7 +55,9 @@ async function registerWith(
   };
   const node = executionClass === "foundation_no_egress_v1"
     ? await dependencies.repository.register(input)
-    : await dependencies.repository.registerRepositorySnapshot(input);
+    : executionClass === "repository_snapshot_github_public_v1"
+      ? await dependencies.repository.registerRepositorySnapshot(input)
+      : await dependencies.repository.registerRepositoryScan(input);
   if (node.executionClass !== executionClass) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
@@ -74,6 +76,13 @@ export async function registerRepositorySnapshotWorkerNode(
   dependencies: WorkerControlServiceDependencies,
 ) {
   return registerWith(input.softwareVersion, dependencies, "repository_snapshot_github_public_v1");
+}
+
+export async function registerRepositoryScanWorkerNode(
+  input: { softwareVersion: string },
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return registerWith(input.softwareVersion, dependencies, "phase3_repository_scan_no_egress_v1");
 }
 
 export async function disableWorkerNode(
@@ -124,7 +133,8 @@ async function composePublicClaim(
   dependencies: WorkerControlServiceDependencies,
 ): Promise<WorkerClaimResult> {
   if (claim === null) return null;
-  if (claim.executionClass === "foundation_no_egress_v1") {
+  if (claim.executionClass === "foundation_no_egress_v1"
+      || claim.executionClass === "phase3_repository_scan_no_egress_v1") {
     return Object.freeze({
       taskId: claim.taskId,
       attemptId: claim.attemptId,
@@ -164,6 +174,19 @@ export async function claimWorkerTask(
   return composePublicClaim(claim, dependencies);
 }
 
+export async function claimWorkerTaskForNode(
+  worker: WorkerNodeIdentity,
+  dependencies: WorkerControlServiceDependencies,
+): Promise<WorkerClaimResult> {
+  const claim = worker.executionClass === "phase3_repository_scan_no_egress_v1"
+    ? await dependencies.repository.claimRepositoryScan({ workerId: worker.workerId })
+    : await dependencies.repository.claim({ workerId: worker.workerId });
+  if (claim !== null && claim.executionClass !== worker.executionClass) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return composePublicClaim(claim, dependencies);
+}
+
 export async function heartbeatWorkerAttempt(
   input: WorkerLeaseIdentity,
   dependencies: WorkerControlServiceDependencies,
@@ -186,6 +209,7 @@ function terminalExpectation(value: unknown): {
   if (
     candidate.executionClass !== "foundation_no_egress_v1"
     && candidate.executionClass !== "repository_snapshot_github_public_v1"
+    && candidate.executionClass !== "phase3_repository_scan_no_egress_v1"
   ) {
     throw new Error("Worker terminal execution class is unsupported.");
   }
@@ -219,8 +243,14 @@ export async function finalizeWorkerAttempt(
   ) {
     throw new WorkerControlError("REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED");
   }
+  if (
+    terminal.executionClass === "phase3_repository_scan_no_egress_v1"
+    && terminal.outcome === "succeeded"
+  ) {
+    throw new WorkerControlError("REPOSITORY_SCAN_PUBLICATION_REQUIRED");
+  }
 
-  return dependencies.repository.finalize({
+  const persistenceInput = {
     workerId: input.workerId,
     taskId: terminal.taskId,
     attemptId: terminal.attemptId,
@@ -233,7 +263,11 @@ export async function finalizeWorkerAttempt(
     peakMemoryBytes: terminal.metrics.peakMemoryBytes,
     inputBytes: terminal.metrics.inputBytes,
     outputBytes: terminal.metrics.outputBytes,
-  });
+  };
+
+  return terminal.executionClass === "phase3_repository_scan_no_egress_v1"
+    ? dependencies.repository.finalizeRepositoryScanFailure(persistenceInput)
+    : dependencies.repository.finalize(persistenceInput);
 }
 
 export async function recoverExpiredWorkerAttempts(
