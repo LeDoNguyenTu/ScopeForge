@@ -12,6 +12,7 @@ export interface RepositoryScanPreparedInput {
   canonicalRepositoryUrl: string;
   resolvedCommitSha: string;
   contentDigest: string;
+  artifactDigest: string;
   scannerProfileId: "phase3-hosted-static-v1";
   scannerProfileVersion: 1;
   retainedBytes: number;
@@ -42,7 +43,7 @@ export interface WorkerExecutorDispatcherDependencies {
 export function createWorkerExecutorDispatcher(
   dependencies: WorkerExecutorDispatcherDependencies,
 ): WorkerExecutor {
-  return Object.freeze({
+  const dispatcher: WorkerExecutor = {
     execute(contract, signal) {
       switch (contract.executionClass) {
         case "foundation_no_egress_v1":
@@ -55,5 +56,6 @@ export function createWorkerExecutorDispatcher(
       const unreachable: never = contract.executionClass;
       throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
     },
-  });
+  };
+  return Object.freeze(dispatcher);
 }
