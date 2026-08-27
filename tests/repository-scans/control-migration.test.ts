@@ -37,8 +37,8 @@ describe("Phase 6C isolated worker control migration", () => {
 
   it("requires the selected snapshot artifact to remain active through the task deadline", async () => {
     const sql = await readFile(migrationPath, "utf8");
-    expect(sql).toMatch(/snapshot_record\.expires_at >= task_record\.absolute_deadline_at/i);
-    expect(sql).toMatch(/artifact_record\.expires_at >= task_record\.absolute_deadline_at/i);
+    expect(sql).toMatch(/snapshot_record\.expires_at < task_record\.absolute_deadline_at/i);
+    expect(sql).toMatch(/artifact_record\.expires_at < task_record\.absolute_deadline_at/i);
     expect(sql).toMatch(/artifact_record\.deletion_status <> 'active'/i);
     expect(sql).toMatch(/artifact_record\.deleted_at is not null/i);
     expect(sql).toMatch(/artifact_record\.stored_byte_count <> snapshot_record\.stored_artifact_bytes/i);
@@ -66,13 +66,18 @@ describe("Phase 6C isolated worker control migration", () => {
 
   it("keeps both control RPCs service-role-only", async () => {
     const sql = await readFile(migrationPath, "utf8");
-    for (const signature of [
-      "public.claim_repository_scan_worker_task(uuid)",
-      "public.finalize_repository_scan_worker_failure(uuid, uuid, uuid, text, text, text, text, integer, integer, bigint, bigint, bigint)",
-    ]) {
-      expect(sql).toContain(`revoke all on function ${signature}`);
-      expect(sql).toContain(`grant execute on function ${signature}`);
-    }
+    const compact = sql.replace(/\s+/g, " ");
+
+    expect(compact).toContain(
+      "revoke all on function public.claim_repository_scan_worker_task(uuid) from public, anon, authenticated, service_role;",
+    );
+    expect(compact).toContain(
+      "grant execute on function public.claim_repository_scan_worker_task(uuid) to service_role;",
+    );
+
+    const failureSignature = "public.finalize_repository_scan_worker_failure( uuid, uuid, uuid, text, text, text, text, integer, integer, bigint, bigint, bigint )";
+    expect(compact).toContain(`revoke all on function ${failureSignature} from public, anon, authenticated, service_role;`);
+    expect(compact).toContain(`grant execute on function ${failureSignature} to service_role;`);
     expect(sql).toMatch(/set search_path = ''/i);
   });
 });
