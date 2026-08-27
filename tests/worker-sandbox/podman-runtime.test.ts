@@ -77,6 +77,7 @@ describe("Phase 6C Podman sandbox runtime", () => {
           queueMicrotask(() => controller.abort());
           return result();
         }
+        if (args[0] === "rm" && args.includes("--time=0")) return result();
         return result(125);
       },
     };
