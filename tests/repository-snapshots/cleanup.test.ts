@@ -22,6 +22,7 @@ function repository(candidates: Awaited<ReturnType<RepositorySnapshotCleanupRepo
 function objectStore(deleteObject = vi.fn(async () => undefined)): RepositorySnapshotObjectStore {
   return {
     createAttemptUpload: vi.fn(),
+    createAttemptDownload: vi.fn(),
     headObject: vi.fn(),
     deleteObject,
   };
