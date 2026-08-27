@@ -1,3 +1,4 @@
+import type { Phase6cDatabase } from "@/lib/database.phase6c.types";
 import { createRepositoryScanArtifactAccess } from "@/lib/repository-scans/artifact-access";
 import { createRepositoryScanArtifactRepository } from "@/lib/repository-scans/repository";
 import { RepositoryScanError } from "@/lib/repository-scans/types";
@@ -34,7 +35,7 @@ export async function POST(request: Request): Promise<Response> {
       throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
     }
 
-    const admin = createAdminClient();
+    const admin = createAdminClient<Phase6cDatabase>();
     const result = await createRepositoryScanArtifactAccess({
       workerId: worker.workerId,
       taskId,
