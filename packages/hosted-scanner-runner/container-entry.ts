@@ -1,9 +1,8 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { runHostedRepositoryScan } from "./run";
 
 const SOURCE_ROOT = "/workspace";
 const TASK_METADATA_PATH = "/scopeforge/task.json";
-const RESULT_PATH = "/result/result.json";
 const MAX_TASK_METADATA_BYTES = 2048;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,10 +32,7 @@ async function main(): Promise<void> {
     root: SOURCE_ROOT,
     canonicalRepositoryUrl,
   });
-  await writeFile(RESULT_PATH, `${JSON.stringify(result)}\n`, {
-    flag: "wx",
-    mode: 0o600,
-  });
+  process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
 void main().catch(() => {
