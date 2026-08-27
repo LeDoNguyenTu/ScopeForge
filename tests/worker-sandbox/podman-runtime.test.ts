@@ -32,18 +32,17 @@ function deferred<T>() {
 }
 
 describe("Phase 6C Podman sandbox runtime", () => {
-  it("kills, confirms termination, and force-removes the exact container before abort settles", async () => {
+  it("force-removes the exact container with zero grace before abort settles", async () => {
     const attached = deferred<PodmanCommandResult>();
     const calls: string[][] = [];
     const driver: PodmanCommandDriver = {
       async exec(_file, args) {
         calls.push([...args]);
         if (args[0] === "start") return attached.promise;
-        if (args[0] === "kill") {
+        if (args[0] === "rm" && args.includes("--time=0")) {
           attached.resolve(result(137));
           return result();
         }
-        if (args[0] === "wait") return result(0, "137\n");
         return result();
       },
     };
@@ -59,12 +58,41 @@ describe("Phase 6C Podman sandbox runtime", () => {
       controller.abort();
       await expect(execution).rejects.toMatchObject({ name: "AbortError" });
 
-      const operations = calls.map((args) => args[0]);
-      expect(operations).toEqual(["create", "start", "kill", "wait", "rm"]);
       const containerName = "scopeforge-scan-11111111-1111-4111-8111-111111111111-22222222-2222-4222-8222-222222222222";
-      expect(calls.find((args) => args[0] === "start")).toEqual(["start", "--attach", containerName]);
-      expect(calls.find((args) => args[0] === "kill")).toEqual(["kill", "--signal=KILL", containerName]);
-      expect(calls.find((args) => args[0] === "rm")).toEqual(["rm", "--force", containerName]);
+      expect(calls.map((args) => args[0])).toEqual(["create", "start", "rm"]);
+      expect(calls[1]).toEqual(["start", "--attach", containerName]);
+      expect(calls[2]).toEqual(["rm", "--time=0", "--force", containerName]);
+    } finally {
+      await rm(workDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("also removes a created container if cancellation wins before attached start completes", async () => {
+    const calls: string[][] = [];
+    const controller = new AbortController();
+    const driver: PodmanCommandDriver = {
+      async exec(_file, args) {
+        calls.push([...args]);
+        if (args[0] === "create") {
+          queueMicrotask(() => controller.abort());
+          return result();
+        }
+        return result(125);
+      },
+    };
+    const workDirectory = await mkdtemp(path.join(tmpdir(), "scopeforge-podman-prestart-abort-"));
+    try {
+      await expect(createPodmanSandbox({ driver }).execute({
+        ...BASE,
+        workDirectory,
+      }, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+      expect(calls.map((args) => args[0])).toEqual(["create", "rm"]);
+      expect(calls[1]).toEqual([
+        "rm",
+        "--time=0",
+        "--force",
+        "scopeforge-scan-11111111-1111-4111-8111-111111111111-22222222-2222-4222-8222-222222222222",
+      ]);
     } finally {
       await rm(workDirectory, { recursive: true, force: true });
     }
@@ -90,6 +118,7 @@ describe("Phase 6C Podman sandbox runtime", () => {
       expect(output.output).toBe('{"schemaVersion":1}\n');
       expect(calls.map((args) => args[0])).toEqual(["create", "start", "wait", "rm"]);
       expect(calls[1]).toEqual(["start", "--attach", output.containerName]);
+      expect(calls[3]).toEqual(["rm", "--force", "--ignore", output.containerName]);
     } finally {
       await rm(workDirectory, { recursive: true, force: true });
     }
