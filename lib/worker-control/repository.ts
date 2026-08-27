@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Phase6cDatabase } from "@/lib/database.phase6c.types";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
 import type { WorkerExecutionBudget, WorkerExecutionClass } from "@/packages/worker-contracts";
 import {
@@ -57,14 +57,6 @@ const KNOWN_CODES = [
   "REPOSITORY_ARCHIVE_BUDGET_EXCEEDED",
   "REPOSITORY_ARTIFACT_UPLOAD_FAILED",
 ] as const;
-
-type Phase6cWorkerRpc = (
-  fn:
-    | "register_repository_scan_worker_node"
-    | "claim_repository_scan_worker_task"
-    | "finalize_repository_scan_worker_failure",
-  args: Record<string, unknown>,
-) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -362,10 +354,8 @@ export interface WorkerControlRepository {
 }
 
 export function createWorkerControlRepository(
-  client: SupabaseClient<Database>,
+  client: SupabaseClient<Phase6cDatabase>,
 ): WorkerControlRepository {
-  const phase6cRpc = client.rpc.bind(client) as unknown as Phase6cWorkerRpc;
-
   return Object.freeze({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
@@ -380,7 +370,7 @@ export function createWorkerControlRepository(
       })));
     },
     async registerRepositoryScan(input) {
-      return parseRegistration(await rpcData(phase6cRpc("register_repository_scan_worker_node", {
+      return parseRegistration(await rpcData(client.rpc("register_repository_scan_worker_node", {
         target_credential_hash: input.credentialHash,
         target_software_version: input.softwareVersion,
       })));
@@ -405,7 +395,7 @@ export function createWorkerControlRepository(
       return parseClaim(await rpcData(client.rpc("claim_worker_task", { target_worker_id: input.workerId })));
     },
     async claimRepositoryScan(input) {
-      const claim = parseClaim(await rpcData(phase6cRpc("claim_repository_scan_worker_task", {
+      const claim = parseClaim(await rpcData(client.rpc("claim_repository_scan_worker_task", {
         target_worker_id: input.workerId,
       })));
       if (claim !== null && claim.executionClass !== "phase3_repository_scan_no_egress_v1") {
@@ -438,7 +428,7 @@ export function createWorkerControlRepository(
       })));
     },
     async finalizeRepositoryScanFailure(input) {
-      return parseFinalization(await rpcData(phase6cRpc("finalize_repository_scan_worker_failure", {
+      return parseFinalization(await rpcData(client.rpc("finalize_repository_scan_worker_failure", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
