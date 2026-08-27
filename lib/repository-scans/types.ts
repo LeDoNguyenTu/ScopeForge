@@ -29,6 +29,7 @@ export interface RepositoryScanArtifactAccess {
 }
 
 export interface RepositoryScanPublicationContext {
+  assetId: string;
   snapshotId: string;
   canonicalRepositoryUrl: string;
   resolvedCommitSha: string;
