@@ -57,6 +57,16 @@ const success: WorkerTerminalEnvelope = {
   },
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 function control(overrides: Partial<WorkerSupervisorControlClient> = {}): WorkerSupervisorControlClient {
   return {
     claim: vi.fn(async () => task),
@@ -171,5 +181,53 @@ describe("Phase 6C supervisor preparation", () => {
       terminal: expect.objectContaining({ outcome: "cancelled" }),
     }));
     expect(result).toEqual({ status: "completed", outcome: "cancelled", replayed: false });
+  });
+
+  it("waits for the Phase 6C sandbox executor to confirm stop before cleanup or finalization", async () => {
+    const stopped = deferred<void>();
+    const abortObserved = deferred<void>();
+    const events: string[] = [];
+    const cleanup = vi.fn(async () => {
+      events.push("cleanup");
+    });
+    const finalize = vi.fn(async ({ terminal }: Parameters<WorkerSupervisorControlClient["finalize"]>[0]) => {
+      events.push("finalize");
+      return { outcome: terminal.outcome, replayed: false };
+    });
+    const repoControl = control({
+      heartbeat: vi.fn(async () => ({ cancelRequested: true, leaseExpiresAt: "2026-08-27T02:01:00.000Z" })),
+      finalize,
+    });
+    const executor: WorkerExecutor = {
+      execute: vi.fn(async (_contract, signal) => {
+        if (!signal.aborted) {
+          await new Promise<void>((resolve) => {
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          });
+        }
+        events.push("abort-observed");
+        abortObserved.resolve();
+        await stopped.promise;
+        events.push("executor-stopped");
+        throw new DOMException("sandbox stopped", "AbortError");
+      }),
+    };
+
+    const execution = runWorkerOnce({
+      control: repoControl,
+      executor,
+      repositoryScanPreparer: preparer(cleanup),
+      heartbeatMs: 1,
+      now: () => Date.parse("2026-08-27T02:00:00.000Z"),
+    });
+
+    await abortObserved.promise;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(finalize).not.toHaveBeenCalled();
+
+    stopped.resolve();
+    await expect(execution).resolves.toEqual({ status: "completed", outcome: "cancelled", replayed: false });
+    expect(events).toEqual(["abort-observed", "executor-stopped", "cleanup", "finalize"]);
   });
 });
