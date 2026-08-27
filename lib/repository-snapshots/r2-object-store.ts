@@ -82,7 +82,7 @@ export function createR2RepositorySnapshotObjectStore(
     });
   }
 
-  return Object.freeze({
+  const store: RepositorySnapshotObjectStore = {
     async createAttemptUpload(input): Promise<RepositorySnapshotUploadDescriptor> {
       assertRepositorySnapshotObjectKey(input.objectKey);
       const issuedAt = now();
@@ -148,5 +148,6 @@ export function createR2RepositorySnapshotObjectStore(
       }
       throw new Error(`R2 object DELETE failed with status ${response.status}.`);
     },
-  });
+  };
+  return Object.freeze(store);
 }
