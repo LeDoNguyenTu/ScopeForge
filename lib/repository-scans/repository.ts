@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Phase6cDatabase as Database } from "@/lib/database.phase6c.types";
 import type { RepositoryScanPublicationRepository } from "./service";
 import {
   RepositoryScanError,
@@ -28,31 +28,6 @@ const KNOWN_CODES = [
   "WORKER_DISABLED",
   "WORKER_JOB_STATE_CONFLICT",
 ] as const;
-
-type Phase6cArtifactRpc = (
-  fn: "get_repository_scan_snapshot_artifact",
-  args: {
-    target_worker_id: string;
-    target_task_id: string;
-    target_attempt_id: string;
-    target_lease_token: string;
-  },
-) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
-
-type Phase6cPublicationContextRpc = (
-  fn: "get_repository_scan_publication_context",
-  args: {
-    target_worker_id: string;
-    target_task_id: string;
-    target_attempt_id: string;
-    target_lease_token: string;
-  },
-) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
-
-type Phase6cPublishRpc = (
-  fn: "finalize_repository_scan_success",
-  args: Record<string, unknown>,
-) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -189,13 +164,9 @@ export type RepositoryScanRepository = RepositoryScanArtifactRepository
 export function createRepositoryScanArtifactRepository(
   client: SupabaseClient<Database>,
 ): RepositoryScanRepository {
-  const artifactRpc = client.rpc.bind(client) as unknown as Phase6cArtifactRpc;
-  const contextRpc = client.rpc.bind(client) as unknown as Phase6cPublicationContextRpc;
-  const publishRpc = client.rpc.bind(client) as unknown as Phase6cPublishRpc;
-
-  return Object.freeze({
+  const repository: RepositoryScanRepository = {
     async resolveLeaseBoundArtifact(input) {
-      const { data, error } = await artifactRpc("get_repository_scan_snapshot_artifact", {
+      const { data, error } = await client.rpc("get_repository_scan_snapshot_artifact", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
@@ -206,7 +177,7 @@ export function createRepositoryScanArtifactRepository(
     },
 
     async resolvePublicationContext(input) {
-      const { data, error } = await contextRpc("get_repository_scan_publication_context", {
+      const { data, error } = await client.rpc("get_repository_scan_publication_context", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
@@ -217,7 +188,7 @@ export function createRepositoryScanArtifactRepository(
     },
 
     async publishSuccess(input: RepositoryScanSuccessPersistenceInput) {
-      const { data, error } = await publishRpc("finalize_repository_scan_success", {
+      const { data, error } = await client.rpc("finalize_repository_scan_success", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,
@@ -251,5 +222,6 @@ export function createRepositoryScanArtifactRepository(
       if (error) throw mapRpcError(error.message);
       return parsePublication(data);
     },
-  });
+  };
+  return Object.freeze(repository);
 }
