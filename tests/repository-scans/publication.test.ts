@@ -5,6 +5,8 @@ import {
   type RepositoryScanPublicationRepository,
 } from "@/lib/repository-scans/service";
 import { HOSTED_PHASE3_SCANNER_DESCRIPTORS } from "@/packages/hosted-scanner-runner/contract";
+import { createHostedFindingIdentity } from "@/packages/scanner-output/hosted/identity";
+import type { HostedPhase3EnvelopeV1 } from "@/packages/scanner-output/hosted/types";
 
 const ids = {
   workerId: "11111111-1111-4111-8111-111111111111",
@@ -15,10 +17,30 @@ const ids = {
 };
 const repositoryUrl = "https://github.com/openai/openai-node";
 
-function hostedResult() {
+const canonicalFinding: HostedPhase3EnvelopeV1["findings"][number] = {
+  fingerprint: `sf1:${"e".repeat(64)}`,
+  scanner: "sca",
+  ruleId: "sca/known-vulnerability",
+  ruleVersion: "1.0.0",
+  title: "Known vulnerable dependency",
+  description: "A dependency version matches a reviewed vulnerability source.",
+  severity: "high",
+  confidence: "high",
+  validation: "static_confirmed",
+  location: { path: "package-lock.json", line: 1, startColumn: 1, endColumn: 2 },
+  evidence: { summary: "Dependency evidence." },
+  taxonomy: { cwe: ["CWE-1104"], owasp: [], references: [] },
+  remediation: {
+    summary: "Upgrade the dependency.",
+    guidance: "Upgrade to a fixed release.",
+    verification: "Run the scanner again.",
+  },
+};
+
+function hostedResult(findings: HostedPhase3EnvelopeV1["findings"] = []) {
   const payload = {
-    schemaVersion: 1,
-    tool: { name: "ScopeForge", version: "0.1.0" },
+    schemaVersion: 1 as const,
+    tool: { name: "ScopeForge" as const, version: "0.1.0" },
     repository: { canonicalUrl: repositoryUrl },
     scan: {
       startedAt: "2026-08-27T01:00:00.000Z",
@@ -27,7 +49,7 @@ function hostedResult() {
       scannerErrorCount: 0,
     },
     inventory: { filesAnalyzed: 1, filesSkipped: 0, totalBytes: 64 },
-    findings: [],
+    findings,
   };
   return {
     ...payload,
@@ -35,8 +57,8 @@ function hostedResult() {
   };
 }
 
-function terminal() {
-  const hosted = hostedResult();
+function terminal(findings: HostedPhase3EnvelopeV1["findings"] = []) {
+  const hosted = hostedResult(findings);
   return {
     schemaVersion: 1,
     taskId: ids.taskId,
@@ -117,9 +139,36 @@ describe("Phase 6C atomic publication service", () => {
   });
 
   it("keeps repository asset identity distinct from snapshot identity for canonical finding normalization", async () => {
-    const source = await import("@/lib/repository-scans/service");
-    expect(source.publishRepositoryScanSuccess.toString()).toContain("deriveHostedPhase3PersistenceRows(assetId, envelope)");
-    expect(ids.assetId).not.toBe(ids.snapshotId);
+    const repo = repository();
+    await publishRepositoryScanSuccess({
+      workerId: ids.workerId,
+      taskId: ids.taskId,
+      attemptId: ids.attemptId,
+      leaseToken: "c".repeat(64),
+      terminal: terminal([canonicalFinding]),
+      claimedSnapshot: claimedSnapshot(),
+    }, { repository: repo });
+
+    const expectedAssetIdentity = createHostedFindingIdentity({
+      repositoryAssetId: ids.assetId,
+      fingerprint: canonicalFinding.fingerprint,
+      scanner: canonicalFinding.scanner,
+      ruleId: canonicalFinding.ruleId,
+      ruleVersion: canonicalFinding.ruleVersion,
+    });
+    const snapshotBoundIdentity = createHostedFindingIdentity({
+      repositoryAssetId: ids.snapshotId,
+      fingerprint: canonicalFinding.fingerprint,
+      scanner: canonicalFinding.scanner,
+      ruleId: canonicalFinding.ruleId,
+      ruleVersion: canonicalFinding.ruleVersion,
+    });
+
+    const publish = vi.mocked(repo.publishSuccess);
+    const persisted = publish.mock.calls[0]?.[0];
+    expect(expectedAssetIdentity).not.toBe(snapshotBoundIdentity);
+    expect(persisted?.findings[0]?.finding_id).toBe(expectedAssetIdentity);
+    expect(persisted?.findings[0]?.finding_id).not.toBe(snapshotBoundIdentity);
   });
 
   it("never invokes persistence when validation fails", async () => {
