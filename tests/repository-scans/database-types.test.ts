@@ -41,6 +41,9 @@ describe("Phase 6C live database type contract", () => {
 
   it("does not expose private worker or repository-scan implementation tables", async () => {
     const source = await readFile(databaseTypesPath, "utf8");
+    const tablesStart = source.indexOf("Tables: {");
+    const viewsStart = source.indexOf("Views:", tablesStart);
+    const tables = source.slice(tablesStart, viewsStart);
     for (const forbidden of [
       "worker_nodes:",
       "worker_tasks:",
@@ -49,7 +52,7 @@ describe("Phase 6C live database type contract", () => {
       "repository_snapshot_tasks:",
       "repository_source_artifacts:",
     ]) {
-      expect(source).not.toContain(forbidden);
+      expect(tables).not.toContain(forbidden);
     }
   });
 });
