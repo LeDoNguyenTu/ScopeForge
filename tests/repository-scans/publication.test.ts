@@ -4,7 +4,7 @@ import {
   publishRepositoryScanSuccess,
   type RepositoryScanPublicationRepository,
 } from "@/lib/repository-scans/service";
-import { HOSTED_PHASE3_SCANNER_DESCRIPTORS } from "@/packages/hosted-scanner-runner/profile";
+import { HOSTED_PHASE3_SCANNER_DESCRIPTORS } from "@/packages/hosted-scanner-runner/contract";
 
 const ids = {
   workerId: "11111111-1111-4111-8111-111111111111",
@@ -51,6 +51,7 @@ function terminal() {
       canonicalRepositoryUrl: repositoryUrl,
       resolvedCommitSha: "a".repeat(40),
       contentDigest: "b".repeat(64),
+      artifactDigest: "d".repeat(64),
       scannerProfileId: "phase3-hosted-static-v1",
       scannerProfileVersion: 1,
       resultDigest: createHash("sha256").update(JSON.stringify(hosted), "utf8").digest("hex"),
@@ -65,7 +66,7 @@ function repository(): RepositoryScanPublicationRepository {
       taskId: ids.taskId,
       attemptId: ids.attemptId,
       runId: "66666666-6666-4666-8666-666666666666",
-      outcome: "succeeded",
+      outcome: "succeeded" as const,
       replayed: false,
     })),
   };
