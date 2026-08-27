@@ -168,6 +168,21 @@ function executeWithinSupervisorBoundary(
   });
 }
 
+async function executePreparedTask(
+  task: WorkerTaskContract,
+  executor: WorkerExecutor,
+  contract: WorkerExecutorContract,
+  signal: AbortSignal,
+): Promise<unknown> {
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
+    // Phase 6C owns a killable external sandbox. Do not detach on abort: the
+    // executor resolves/rejects only after Podman has stopped or cleanup fails
+    // closed, so staged source and lease finalization cannot race live hostile work.
+    return executor.execute(contract, signal);
+  }
+  return executeWithinSupervisorBoundary(executor, contract, signal);
+}
+
 async function preparedExecutorContract(
   task: WorkerTaskContract,
   dependencies: WorkerSupervisorDependencies,
@@ -273,7 +288,8 @@ export async function runWorkerOnce(
   try {
     const prepared = await preparedExecutorContract(task, dependencies, abortController.signal);
     cleanup = prepared.cleanup;
-    const raw = await executeWithinSupervisorBoundary(
+    const raw = await executePreparedTask(
+      task,
       dependencies.executor,
       prepared.contract,
       abortController.signal,
