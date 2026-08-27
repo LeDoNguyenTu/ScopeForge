@@ -136,6 +136,7 @@ function parsePublicationContext(value: unknown): RepositoryScanPublicationConte
     throw new RepositoryScanError("REPOSITORY_SCAN_FAILED");
   }
   return Object.freeze({
+    assetId: requiredUuid(value.assetId),
     snapshotId: requiredUuid(value.snapshotId),
     canonicalRepositoryUrl: requiredString(value.canonicalRepositoryUrl),
     resolvedCommitSha,
@@ -149,14 +150,22 @@ function parsePublicationContext(value: unknown): RepositoryScanPublicationConte
 }
 
 function parsePublication(value: unknown): RepositoryScanPublicationResult {
-  if (!isRecord(value) || value.outcome !== "succeeded" || typeof value.replayed !== "boolean") {
+  if (!isRecord(value) || !["succeeded", "cancelled"].includes(String(value.outcome)) || typeof value.replayed !== "boolean") {
+    throw new RepositoryScanError("REPOSITORY_SCAN_PUBLICATION_FAILED");
+  }
+  const outcome = value.outcome as "succeeded" | "cancelled";
+  const runId = value.runId === undefined || value.runId === null ? undefined : requiredUuid(value.runId);
+  if (outcome === "succeeded" && runId === undefined) {
+    throw new RepositoryScanError("REPOSITORY_SCAN_PUBLICATION_FAILED");
+  }
+  if (outcome === "cancelled" && runId !== undefined) {
     throw new RepositoryScanError("REPOSITORY_SCAN_PUBLICATION_FAILED");
   }
   return Object.freeze({
     taskId: requiredUuid(value.taskId),
     attemptId: requiredUuid(value.attemptId),
-    runId: requiredUuid(value.runId),
-    outcome: "succeeded" as const,
+    ...(runId === undefined ? {} : { runId }),
+    outcome,
     replayed: value.replayed,
   });
 }
