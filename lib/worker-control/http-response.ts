@@ -61,10 +61,16 @@ function statusForRepositoryScanError(code: RepositoryScanError["code"]): number
   switch (code) {
     case "WORKER_DISABLED":
       return 403;
+    case "REPOSITORY_SCAN_OUTPUT_INVALID":
+      return 400;
     case "WORKER_LEASE_INVALID":
     case "WORKER_JOB_STATE_CONFLICT":
     case "REPOSITORY_SCAN_ARTIFACT_NOT_AVAILABLE":
     case "REPOSITORY_SCAN_ARTIFACT_AUTHORIZATION_FAILED":
+    case "REPOSITORY_SCAN_PUBLICATION_REQUIRED":
+    case "REPOSITORY_SCAN_TERMINAL_CONFLICT":
+    case "REPOSITORY_SCAN_FINDING_ID_CONFLICT":
+    case "REPOSITORY_SCAN_EVIDENCE_ID_CONFLICT":
       return 409;
     default:
       return 500;
