@@ -25,7 +25,7 @@ describe("Phase 6C repository scan enqueue migration", () => {
     expect(sql).toContain("REPOSITORY_SCAN_ASSET_MISMATCH");
   });
 
-  it("selects the newest active snapshot server-side and requires at least thirty minutes of retention", async () => {
+  it("selects and locks the newest active snapshot artifact server-side with thirty minutes of retention", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toMatch(/from public\.repository_source_snapshots s[\s\S]*join private\.repository_source_artifacts a/i);
     expect(sql).toMatch(/s\.workspace_id = target_workspace_id/i);
@@ -33,7 +33,10 @@ describe("Phase 6C repository scan enqueue migration", () => {
     expect(sql).toMatch(/a\.deletion_status = 'active'/i);
     expect(sql).toMatch(/a\.expires_at >= request_now \+ interval '30 minutes'/i);
     expect(sql).toMatch(/s\.expires_at >= request_now \+ interval '30 minutes'/i);
+    expect(sql).toMatch(/a\.stored_byte_count = s\.stored_artifact_bytes/i);
+    expect(sql).toMatch(/a\.artifact_digest = s\.artifact_digest/i);
     expect(sql).toMatch(/order by s\.created_at desc, s\.id desc/i);
+    expect(sql).toMatch(/for update of s, a/i);
     expect(sql).toMatch(/limit 1/i);
     expect(sql).toContain("REPOSITORY_SCAN_SNAPSHOT_NOT_AVAILABLE");
   });
