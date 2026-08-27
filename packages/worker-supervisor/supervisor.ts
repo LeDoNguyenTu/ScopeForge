@@ -196,6 +196,30 @@ async function preparedExecutorContract(
   return { contract: prepared.contract, cleanup: prepared.cleanup };
 }
 
+async function finalizeThroughTrustedBoundary(
+  task: WorkerTaskContract,
+  terminal: WorkerTerminalEnvelope,
+  control: WorkerSupervisorControlClient,
+): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }> {
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1" && terminal.outcome === "succeeded") {
+    const finalizeSuccess = control.repositoryScanFinalizeSuccess;
+    if (!finalizeSuccess) {
+      throw new Error("Phase 6C success publication authority is unavailable.");
+    }
+    return finalizeSuccess({
+      taskId: task.taskId,
+      attemptId: task.attemptId,
+      leaseToken: task.leaseToken,
+      terminal,
+    });
+  }
+
+  return control.finalize({
+    leaseToken: task.leaseToken,
+    terminal,
+  });
+}
+
 export async function runWorkerOnce(
   dependencies: WorkerSupervisorDependencies,
 ): Promise<
@@ -285,10 +309,7 @@ export async function runWorkerOnce(
     terminal = failureTerminal(task, "WORKER_EXECUTION_FAILED");
   }
 
-  const finalization = await dependencies.control.finalize({
-    leaseToken: task.leaseToken,
-    terminal,
-  });
+  const finalization = await finalizeThroughTrustedBoundary(task, terminal, dependencies.control);
 
   return Object.freeze({
     status: "completed" as const,
