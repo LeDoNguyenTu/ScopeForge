@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Phase6cDatabase } from "@/lib/database.phase6c.types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,15 +11,6 @@ export type HostedRepositoryScanActionResult =
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED = false;
-
-type RepositoryScanEnqueueRpc = (
-  fn: "enqueue_repository_scan_worker_task",
-  args: {
-    target_workspace_id: string;
-    target_asset_id: string;
-    target_actor_id: string;
-  },
-) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
 
 function enqueueResult(value: unknown): { taskId: string } | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -95,9 +87,8 @@ export async function requestHostedRepositoryScan(assetId: string): Promise<Host
   }
 
   try {
-    const admin = createAdminClient();
-    const rpc = admin.rpc.bind(admin) as unknown as RepositoryScanEnqueueRpc;
-    const { data, error } = await rpc("enqueue_repository_scan_worker_task", {
+    const admin = createAdminClient<Phase6cDatabase>();
+    const { data, error } = await admin.rpc("enqueue_repository_scan_worker_task", {
       target_workspace_id: asset.workspace_id,
       target_asset_id: asset.id,
       target_actor_id: user.id,
