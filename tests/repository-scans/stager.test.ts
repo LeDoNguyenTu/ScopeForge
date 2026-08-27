@@ -4,10 +4,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { ReadableStream } from "node:stream/web";
 import { describe, expect, it, vi } from "vitest";
-import {
-  downloadRepositoryScanArtifact,
-  stageRepositoryScanSnapshot,
-} from "@/packages/worker-supervisor/repository-scan-stager";
+import { materializeRepositorySnapshotBundle } from "@/packages/repository-snapshot";
+import { downloadRepositoryScanArtifact } from "@/packages/worker-supervisor/repository-scan-download";
+import { stageRepositoryScanSnapshot } from "@/packages/worker-supervisor/repository-scan-stager";
 
 const SNAPSHOT_ID = "11111111-1111-4111-8111-111111111111";
 const bytes = Buffer.from("scopeforge-phase6c-artifact", "utf8");
@@ -58,10 +57,10 @@ describe("Phase 6C trusted snapshot stager", () => {
   });
 
   it("rejects redirect, content-length mismatch, stream overflow, and digest mismatch without keeping partial files", async () => {
-    const cases = [
+    const cases: Array<() => Promise<Response>> = [
       async () => new Response(null, { status: 302, headers: { location: "https://example.com/" } }),
       async () => response(bytes, String(bytes.length + 1)),
-      async () => response(Buffer.concat([bytes, Buffer.from("overflow")])),
+      async () => response(Buffer.concat([bytes, Buffer.from("overflow")]), null),
       async () => response(bytes),
     ];
     for (let index = 0; index < cases.length; index += 1) {
@@ -85,10 +84,12 @@ describe("Phase 6C trusted snapshot stager", () => {
 
   it("passes exact immutable snapshot provenance into the strict bundle reader and removes the archive after staging", async () => {
     const work = await mkdtemp(path.join(tmpdir(), "scopeforge-scan-stage-"));
-    const materialize = vi.fn(async (input) => ({
+    const materialize = vi.fn(async (
+      input: Parameters<typeof materializeRepositorySnapshotBundle>[0],
+    ) => ({
       sourceDirectory: path.join(input.workDirectory, "materialized-source"),
       manifest: { contentDigest: input.expected.contentDigest },
-    }));
+    })) as unknown as typeof materializeRepositorySnapshotBundle;
     try {
       const result = await stageRepositoryScanSnapshot({
         workDirectory: work,
