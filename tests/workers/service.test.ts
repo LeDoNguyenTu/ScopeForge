@@ -14,29 +14,29 @@ function repository(overrides: Partial<WorkerControlRepository> = {}): WorkerCon
   return {
     register: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
-      executionClass: "foundation_no_egress_v1",
+      executionClass: "foundation_no_egress_v1" as const,
       softwareVersion: "0.1.0",
     })),
     registerRepositorySnapshot: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
-      executionClass: "repository_snapshot_github_public_v1",
+      executionClass: "repository_snapshot_github_public_v1" as const,
       softwareVersion: "0.1.0",
     })),
     registerRepositoryScan: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
-      executionClass: "phase3_repository_scan_no_egress_v1",
+      executionClass: "phase3_repository_scan_no_egress_v1" as const,
       softwareVersion: "0.1.0",
     })),
     disable: vi.fn(async () => ({ workerId: "11111111-1111-4111-8111-111111111111", disabledAt: "2026-08-26T00:00:00.000Z" })),
     authenticate: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
-      executionClass: "foundation_no_egress_v1",
+      executionClass: "foundation_no_egress_v1" as const,
       softwareVersion: "0.1.0",
     })),
     enqueueFoundationProbe: vi.fn(async () => ({
       scanJobId: "22222222-2222-4222-8222-222222222222",
       taskId: "33333333-3333-4333-8333-333333333333",
-      executionClass: "foundation_no_egress_v1",
+      executionClass: "foundation_no_egress_v1" as const,
       absoluteDeadlineAt: "2026-08-26T00:05:00.000Z",
     })),
     claim: vi.fn(async () => null),
@@ -45,13 +45,13 @@ function repository(overrides: Partial<WorkerControlRepository> = {}): WorkerCon
     finalize: vi.fn(async () => ({
       taskId: "33333333-3333-4333-8333-333333333333",
       attemptId: "44444444-4444-4444-8444-444444444444",
-      outcome: "succeeded",
+      outcome: "succeeded" as const,
       replayed: false,
     })),
     finalizeRepositoryScanFailure: vi.fn(async () => ({
       taskId: "33333333-3333-4333-8333-333333333333",
       attemptId: "44444444-4444-4444-8444-444444444444",
-      outcome: "failed",
+      outcome: "failed" as const,
       replayed: false,
     })),
     recover: vi.fn(async () => 0),
@@ -275,6 +275,7 @@ describe("worker control service", () => {
           canonicalRepositoryUrl: "https://github.com/openai/openai-node",
           resolvedCommitSha: "a".repeat(40),
           contentDigest: "b".repeat(64),
+          artifactDigest: "d".repeat(64),
           scannerProfileId: "phase3-hosted-static-v1",
           scannerProfileVersion: 1,
           resultDigest: "c".repeat(64),
