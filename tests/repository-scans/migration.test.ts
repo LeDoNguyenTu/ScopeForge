@@ -63,6 +63,8 @@ describe("Phase 6C repository scan schema migrations", () => {
     expect(sql).toContain("snapshot_artifact_digest text not null");
     expect(sql).toContain("result_digest text not null");
     expect(sql).toContain("run_ref text not null");
+    expect(sql).toContain("unique (workspace_id, asset_id, run_ref)");
+    expect(sql).not.toMatch(/run_ref text not null unique/i);
     expect(sql).toContain("repository_scan_runs_guard_update");
     expect(sql).toContain("repository_scan_runs_guard_delete");
     expect(sql).toContain("repository_scan_runs_member_select");
