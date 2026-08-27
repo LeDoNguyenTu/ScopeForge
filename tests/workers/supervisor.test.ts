@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { runWorkerOnce } from "@/packages/worker-supervisor";
 import type { WorkerTaskContract } from "@/packages/worker-contracts";
 
+const foundationInput = { kind: "foundation_probe", nonce: "abc" } as const;
+
 const task: WorkerTaskContract = {
   taskId: "33333333-3333-4333-8333-333333333333",
   attemptId: "44444444-4444-4444-8444-444444444444",
@@ -19,10 +21,10 @@ const task: WorkerTaskContract = {
     maxScratchBytes: 33_554_432,
     maxOutputBytes: 1_048_576,
   },
-  input: { kind: "foundation_probe", nonce: "abc" },
+  input: foundationInput,
 };
 
-function nonceDigest(nonce = task.input.nonce): string {
+function nonceDigest(nonce = foundationInput.nonce): string {
   return createHash("sha256").update(nonce, "utf8").digest("hex");
 }
 
@@ -79,11 +81,13 @@ describe("worker supervisor", () => {
       heartbeatMs: 60_000,
     });
 
-    expect(finalize.mock.calls[0]?.[0].terminal).toMatchObject({
-      outcome: "failed",
-      failureCode: "WORKER_OUTPUT_INVALID",
-      result: null,
-    });
+    expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
+      terminal: expect.objectContaining({
+        outcome: "failed",
+        failureCode: "WORKER_OUTPUT_INVALID",
+        result: null,
+      }),
+    }));
   });
 
   it("aborts execution when a heartbeat reports cancellation", async () => {
@@ -107,7 +111,9 @@ describe("worker supervisor", () => {
     });
 
     expect(aborted).toBe(true);
-    expect(finalize.mock.calls[0]?.[0].terminal.outcome).toBe("cancelled");
+    expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
+      terminal: expect.objectContaining({ outcome: "cancelled" }),
+    }));
   });
 
   it("aborts after two consecutive control-channel heartbeat failures", async () => {
@@ -126,10 +132,12 @@ describe("worker supervisor", () => {
     });
 
     expect(heartbeat).toHaveBeenCalledTimes(2);
-    expect(finalize.mock.calls[0]?.[0].terminal).toMatchObject({
-      outcome: "failed",
-      failureCode: "WORKER_LOST",
-    });
+    expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
+      terminal: expect.objectContaining({
+        outcome: "failed",
+        failureCode: "WORKER_LOST",
+      }),
+    }));
   });
 
   it("enforces the outer wall-time budget independently of executor output", async () => {
@@ -156,10 +164,12 @@ describe("worker supervisor", () => {
       await vi.advanceTimersByTimeAsync(6);
       await run;
 
-      expect(finalize.mock.calls[0]?.[0].terminal).toMatchObject({
-        outcome: "failed",
-        failureCode: "WORKER_BUDGET_EXCEEDED",
-      });
+      expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
+        terminal: expect.objectContaining({
+          outcome: "failed",
+          failureCode: "WORKER_BUDGET_EXCEEDED",
+        }),
+      }));
     } finally {
       vi.useRealTimers();
     }
@@ -186,10 +196,12 @@ describe("worker supervisor", () => {
 
       await vi.advanceTimersByTimeAsync(6);
       await expect(run).resolves.toMatchObject({ status: "completed", outcome: "failed" });
-      expect(finalize.mock.calls[0]?.[0].terminal).toMatchObject({
-        outcome: "failed",
-        failureCode: "WORKER_BUDGET_EXCEEDED",
-      });
+      expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
+        terminal: expect.objectContaining({
+          outcome: "failed",
+          failureCode: "WORKER_BUDGET_EXCEEDED",
+        }),
+      }));
     } finally {
       vi.useRealTimers();
     }
