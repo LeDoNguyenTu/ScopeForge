@@ -45,6 +45,7 @@ function objectStore(overrides: Partial<RepositorySnapshotObjectStore> = {}): Re
       url: "https://scopeforge-artifacts.example.r2.cloudflarestorage.com/object?X-Amz-Signature=test",
       expiresAt: "2026-08-27T03:26:00.000Z",
     })),
+    createAttemptDownload: vi.fn(),
     headObject: vi.fn(async () => ({ exists: true, size: 1234 })),
     deleteObject: vi.fn(async () => undefined),
     ...overrides,
