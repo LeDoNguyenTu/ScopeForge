@@ -27,6 +27,7 @@ function fixedPodmanEnvironment(): NodeJS.ProcessEnv {
     LANG: "C.UTF-8",
     LC_ALL: "C.UTF-8",
     TMPDIR: "/tmp",
+    NODE_ENV: process.env.NODE_ENV ?? "production",
   };
   if (process.env.HOME) environment.HOME = process.env.HOME;
   if (process.env.XDG_RUNTIME_DIR) environment.XDG_RUNTIME_DIR = process.env.XDG_RUNTIME_DIR;
@@ -134,9 +135,6 @@ export function createPodmanSandbox(
       };
 
       try {
-        // Once the create command is dispatched, a control-channel error is not proof
-        // that Podman failed before persisting the deterministic container name.
-        // Treat the name as potentially live so finally always attempts idempotent cleanup.
         containerMayExist = true;
         const createdResult = await driver.exec(command.file, command.args, {
           timeoutMs: CONTROL_TIMEOUT_MS,
