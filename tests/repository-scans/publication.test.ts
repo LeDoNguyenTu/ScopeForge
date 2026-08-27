@@ -11,6 +11,7 @@ const ids = {
   taskId: "22222222-2222-4222-8222-222222222222",
   attemptId: "33333333-3333-4333-8333-333333333333",
   snapshotId: "44444444-4444-4444-8444-444444444444",
+  assetId: "55555555-5555-4555-8555-555555555555",
 };
 const repositoryUrl = "https://github.com/openai/openai-node";
 
@@ -63,10 +64,25 @@ function repository(): RepositoryScanPublicationRepository {
     publishSuccess: vi.fn(async () => ({
       taskId: ids.taskId,
       attemptId: ids.attemptId,
-      runId: "55555555-5555-4555-8555-555555555555",
+      runId: "66666666-6666-4666-8666-666666666666",
       outcome: "succeeded",
       replayed: false,
     })),
+  };
+}
+
+function claimedSnapshot() {
+  return {
+    assetId: ids.assetId,
+    snapshotId: ids.snapshotId,
+    canonicalRepositoryUrl: repositoryUrl,
+    resolvedCommitSha: "a".repeat(40),
+    contentDigest: "b".repeat(64),
+    artifactDigest: "d".repeat(64),
+    scannerProfileId: "phase3-hosted-static-v1" as const,
+    scannerProfileVersion: 1 as const,
+    retainedFileCount: 1,
+    retainedBytes: 64,
   };
 }
 
@@ -79,16 +95,7 @@ describe("Phase 6C atomic publication service", () => {
       attemptId: ids.attemptId,
       leaseToken: "c".repeat(64),
       terminal: terminal(),
-      claimedSnapshot: {
-        snapshotId: ids.snapshotId,
-        canonicalRepositoryUrl: repositoryUrl,
-        resolvedCommitSha: "a".repeat(40),
-        contentDigest: "b".repeat(64),
-        scannerProfileId: "phase3-hosted-static-v1",
-        scannerProfileVersion: 1,
-        retainedFileCount: 1,
-        retainedBytes: 64,
-      },
+      claimedSnapshot: claimedSnapshot(),
     }, { repository: repo });
 
     expect(repo.publishSuccess).toHaveBeenCalledWith(expect.objectContaining({
@@ -108,6 +115,12 @@ describe("Phase 6C atomic publication service", () => {
     expect(result.outcome).toBe("succeeded");
   });
 
+  it("keeps repository asset identity distinct from snapshot identity for canonical finding normalization", async () => {
+    const source = await import("@/lib/repository-scans/service");
+    expect(source.publishRepositoryScanSuccess.toString()).toContain("deriveHostedPhase3PersistenceRows(assetId, envelope)");
+    expect(ids.assetId).not.toBe(ids.snapshotId);
+  });
+
   it("never invokes persistence when validation fails", async () => {
     const repo = repository();
     const invalid = terminal();
@@ -119,16 +132,7 @@ describe("Phase 6C atomic publication service", () => {
       attemptId: ids.attemptId,
       leaseToken: "c".repeat(64),
       terminal: invalid,
-      claimedSnapshot: {
-        snapshotId: ids.snapshotId,
-        canonicalRepositoryUrl: repositoryUrl,
-        resolvedCommitSha: "a".repeat(40),
-        contentDigest: "b".repeat(64),
-        scannerProfileId: "phase3-hosted-static-v1",
-        scannerProfileVersion: 1,
-        retainedFileCount: 1,
-        retainedBytes: 64,
-      },
+      claimedSnapshot: claimedSnapshot(),
     }, { repository: repo })).rejects.toThrow();
     expect(repo.publishSuccess).not.toHaveBeenCalled();
   });
