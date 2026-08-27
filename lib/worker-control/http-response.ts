@@ -15,6 +15,8 @@ function statusForControlError(code: WorkerControlError["code"]): number {
     case "WORKER_TERMINAL_CONFLICT":
     case "WORKER_JOB_STATE_CONFLICT":
     case "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED":
+    case "REPOSITORY_SCAN_PUBLICATION_REQUIRED":
+    case "REPOSITORY_SCAN_ARTIFACT_NOT_AVAILABLE":
       return 409;
     case "WORKER_CREDENTIAL_INVALID":
     case "WORKER_VERSION_INVALID":
