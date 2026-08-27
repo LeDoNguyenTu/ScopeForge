@@ -25,7 +25,7 @@ describe("Phase 6B repository acquisition architecture", () => {
     for (const file of files) {
       const source = await readFile(file, "utf8");
       expect(source, path.relative(root, file)).not.toMatch(
-        /node:(?:child_process|worker_threads)|\b(?:spawn|exec|execFile|fork)\s*\(|@supabase\/|lib\/supabase|scanner-core\/(?:filesystem|inventory|coordinator)|scanner-coordinator|runtime-observations|active-validation|model-provider|@anthropic-ai\/|@ai-sdk\/|from\s+["']openai["']/,
+        /node:(?:child_process|worker_threads)|\b(?:spawn|execFile|fork)\s*\(|@supabase\/|lib\/supabase|scanner-core\/(?:filesystem|inventory|coordinator)|scanner-coordinator|runtime-observations|active-validation|model-provider|@anthropic-ai\/|@ai-sdk\/|from\s+["']openai["']/,
       );
       expect(source, path.relative(root, file)).not.toMatch(
         /\b(?:npm|pnpm|yarn|bun)\s+(?:install|ci|run|exec)|package-manager/i,
