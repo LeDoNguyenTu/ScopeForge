@@ -6,7 +6,7 @@ import type { RepositoryScanStagingArtifact } from "./repository-scan-stager";
 
 export interface WorkerSupervisorControlClient {
   claim(): Promise<WorkerTaskContract | null>;
-  repositoryScanArtifact(input: {
+  repositoryScanArtifact?(input: {
     taskId: string;
     attemptId: string;
     leaseToken: string;
