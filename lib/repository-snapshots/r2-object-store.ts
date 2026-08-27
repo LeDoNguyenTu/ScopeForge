@@ -1,15 +1,18 @@
 import type {
+  RepositorySnapshotDownloadDescriptor,
   RepositorySnapshotObjectStore,
   RepositorySnapshotUploadDescriptor,
 } from "./object-store";
 import {
   assertRepositorySnapshotObjectKey,
+  createPresignedR2GetUrl,
   createPresignedR2PutUrl,
   createSignedR2Request,
   type R2SigningCredentials,
 } from "./r2-signature-v4";
 
 const MAX_UPLOAD_AUTHORIZATION_MS = 360_000;
+const MAX_DOWNLOAD_AUTHORIZATION_MS = 120_000;
 const MAX_STORED_ARTIFACT_BYTES = 335_544_320;
 
 type FetchLike = typeof fetch;
@@ -34,6 +37,28 @@ function validContentLength(value: string | null): number {
     throw new Error("R2 object response content length exceeds the repository snapshot bound.");
   }
   return size;
+}
+
+function boundedAuthorization(
+  issuedAt: Date,
+  requestedExpiry: Date,
+  maxLifetimeMs: number,
+  label: string,
+): { expiresInSeconds: number; effectiveExpiry: Date } {
+  const issuedAtMs = issuedAt.getTime();
+  const expiresAtMs = requestedExpiry.getTime();
+  if (!Number.isFinite(issuedAtMs) || !Number.isFinite(expiresAtMs)) {
+    throw new Error(`Repository snapshot ${label} timing is invalid.`);
+  }
+  const remainingMs = expiresAtMs - issuedAtMs;
+  if (remainingMs < 1_000 || remainingMs > maxLifetimeMs) {
+    throw new Error(`Repository snapshot ${label} authorization exceeds the allowed lifetime.`);
+  }
+  const expiresInSeconds = Math.floor(remainingMs / 1_000);
+  return {
+    expiresInSeconds,
+    effectiveExpiry: new Date(issuedAtMs + expiresInSeconds * 1_000),
+  };
 }
 
 export function createR2RepositorySnapshotObjectStore(
@@ -61,26 +86,44 @@ export function createR2RepositorySnapshotObjectStore(
     async createAttemptUpload(input): Promise<RepositorySnapshotUploadDescriptor> {
       assertRepositorySnapshotObjectKey(input.objectKey);
       const issuedAt = now();
-      const expiresAtMs = input.expiresAt.getTime();
-      if (!Number.isFinite(issuedAt.getTime()) || !Number.isFinite(expiresAtMs)) {
-        throw new Error("Repository snapshot upload timing is invalid.");
-      }
-      const remainingMs = expiresAtMs - issuedAt.getTime();
-      if (remainingMs < 1_000 || remainingMs > MAX_UPLOAD_AUTHORIZATION_MS) {
-        throw new Error("Repository snapshot upload authorization exceeds the allowed lifetime.");
-      }
-      const expiresInSeconds = Math.floor(remainingMs / 1_000);
-      const effectiveExpiry = new Date(issuedAt.getTime() + expiresInSeconds * 1_000);
+      const authorization = boundedAuthorization(
+        issuedAt,
+        input.expiresAt,
+        MAX_UPLOAD_AUTHORIZATION_MS,
+        "upload",
+      );
       const url = createPresignedR2PutUrl({
         credentials: dependencies.config,
         objectKey: input.objectKey,
-        expiresInSeconds,
+        expiresInSeconds: authorization.expiresInSeconds,
         now: issuedAt,
       });
       return Object.freeze({
         method: "PUT",
         url,
-        expiresAt: effectiveExpiry.toISOString(),
+        expiresAt: authorization.effectiveExpiry.toISOString(),
+      });
+    },
+
+    async createAttemptDownload(input): Promise<RepositorySnapshotDownloadDescriptor> {
+      assertRepositorySnapshotObjectKey(input.objectKey);
+      const issuedAt = now();
+      const authorization = boundedAuthorization(
+        issuedAt,
+        input.expiresAt,
+        MAX_DOWNLOAD_AUTHORIZATION_MS,
+        "download",
+      );
+      const url = createPresignedR2GetUrl({
+        credentials: dependencies.config,
+        objectKey: input.objectKey,
+        expiresInSeconds: authorization.expiresInSeconds,
+        now: issuedAt,
+      });
+      return Object.freeze({
+        method: "GET",
+        url,
+        expiresAt: authorization.effectiveExpiry.toISOString(),
       });
     },
 
