@@ -24,10 +24,12 @@ async function withRepository(
   }
 }
 
+const syntheticGitHubToken = "ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8";
+
 describe("Phase 6C hosted scanner runner", () => {
   it("uses the closed built-in scanner profile and privacy-reduced hosted output", async () => {
     await withRepository({
-      "src/config.ts": `export const token = "ghp_${"a".repeat(36)}";\n`,
+      "src/config.ts": `export const token = "${syntheticGitHubToken}";\n`,
       ".scopeforge.json": JSON.stringify({ scanners: [] }),
     }, async (root) => {
       const envelope = await runHostedRepositoryScan({
@@ -46,7 +48,7 @@ describe("Phase 6C hosted scanner runner", () => {
       expect(envelope.findings.some((finding) => finding.ruleId === "secrets/github-token")).toBe(true);
       const secret = envelope.findings.find((finding) => finding.ruleId === "secrets/github-token");
       expect(secret?.location).toEqual({ path: "src/config.ts", line: 1 });
-      expect(JSON.stringify(secret)).not.toContain(`ghp_${"a".repeat(36)}`);
+      expect(JSON.stringify(secret)).not.toContain(syntheticGitHubToken);
     });
   });
 
