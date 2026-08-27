@@ -5,7 +5,7 @@ import {
   HOSTED_PHASE3_SCANNER_PROFILE_ID,
   HOSTED_PHASE3_SCANNER_PROFILE_VERSION,
   HOSTED_PHASE3_TOOL_VERSION,
-} from "@/packages/hosted-scanner-runner/profile";
+} from "@/packages/hosted-scanner-runner/contract";
 import {
   validateWorkerTerminalEnvelope,
   type WorkerTerminalEnvelope,
@@ -20,6 +20,7 @@ export interface RepositoryScanSuccessExpectation {
   canonicalRepositoryUrl: string;
   resolvedCommitSha: string;
   contentDigest: string;
+  artifactDigest: string;
   scannerProfileId: typeof HOSTED_PHASE3_SCANNER_PROFILE_ID;
   scannerProfileVersion: typeof HOSTED_PHASE3_SCANNER_PROFILE_VERSION;
   retainedFileCount: number;
@@ -74,6 +75,7 @@ export function validateRepositoryScanSuccess(
     || result.canonicalRepositoryUrl !== expected.canonicalRepositoryUrl
     || result.resolvedCommitSha !== expected.resolvedCommitSha
     || result.contentDigest !== expected.contentDigest
+    || result.artifactDigest !== expected.artifactDigest
     || result.scannerProfileId !== expected.scannerProfileId
     || result.scannerProfileVersion !== expected.scannerProfileVersion
     || result.scannerProfileId !== HOSTED_PHASE3_SCANNER_PROFILE_ID
