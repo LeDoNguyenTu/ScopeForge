@@ -20,7 +20,9 @@ export interface PublishRepositoryScanSuccessInput {
   attemptId: string;
   leaseToken: string;
   terminal: unknown;
-  claimedSnapshot: Omit<RepositoryScanSuccessExpectation, "taskId" | "attemptId">;
+  claimedSnapshot: Omit<RepositoryScanSuccessExpectation, "taskId" | "attemptId"> & {
+    assetId: string;
+  };
 }
 
 export interface RepositoryScanPublicationDependencies {
@@ -35,16 +37,17 @@ export async function publishRepositoryScanSuccess(
   input: PublishRepositoryScanSuccessInput,
   dependencies: RepositoryScanPublicationDependencies,
 ): Promise<RepositoryScanPublicationResult> {
+  const { assetId, ...snapshotExpectation } = input.claimedSnapshot;
   const validated = validateRepositoryScanSuccess(input.terminal, {
     taskId: input.taskId,
     attemptId: input.attemptId,
-    ...input.claimedSnapshot,
+    ...snapshotExpectation,
   });
   const terminal = validated.terminal as WorkerTerminalEnvelope & {
     result: NonNullable<WorkerTerminalEnvelope["result"]> & { kind: "phase3_repository_scan" };
   };
   const envelope = validated.envelope;
-  const rows = deriveHostedPhase3PersistenceRows(input.claimedSnapshot.snapshotId, envelope);
+  const rows = deriveHostedPhase3PersistenceRows(assetId, envelope);
 
   return dependencies.repository.publishSuccess({
     workerId: input.workerId,
