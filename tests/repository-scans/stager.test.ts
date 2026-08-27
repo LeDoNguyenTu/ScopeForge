@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ReadableStream } from "node:stream/web";
 import { describe, expect, it, vi } from "vitest";
 import { materializeRepositorySnapshotBundle } from "@/packages/repository-snapshot";
 import { downloadRepositoryScanArtifact } from "@/packages/worker-supervisor/repository-scan-download";
@@ -21,12 +20,7 @@ const descriptor = {
 function response(body: Buffer, contentLength: string | null = String(body.length)): Response {
   const headers = new Headers();
   if (contentLength !== null) headers.set("content-length", contentLength);
-  return new Response(new ReadableStream<Uint8Array>({
-    start(controller) {
-      controller.enqueue(body);
-      controller.close();
-    },
-  }), { status: 200, headers });
+  return new Response(body.toString("utf8"), { status: 200, headers });
 }
 
 describe("Phase 6C trusted snapshot stager", () => {
