@@ -29,10 +29,12 @@ describe("Phase 6C repository scan server action", () => {
   it("uses only the service-role RPC after authenticated asset and membership checks", async () => {
     const source = await readFile(actionPath, "utf8");
     const membership = source.indexOf("workspace_members");
-    const admin = source.indexOf("createAdminClient");
+    const roleCheck = source.indexOf('membership.role !== "owner" && membership.role !== "admin"');
+    const adminInvocation = source.indexOf("const admin = createAdminClient<Phase6cDatabase>()");
     const enqueue = source.indexOf("enqueue_repository_scan_worker_task");
     expect(membership).toBeGreaterThan(-1);
-    expect(admin).toBeGreaterThan(membership);
-    expect(enqueue).toBeGreaterThan(admin);
+    expect(roleCheck).toBeGreaterThan(membership);
+    expect(adminInvocation).toBeGreaterThan(roleCheck);
+    expect(enqueue).toBeGreaterThan(adminInvocation);
   });
 });
