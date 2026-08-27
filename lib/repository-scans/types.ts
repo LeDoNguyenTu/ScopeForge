@@ -71,8 +71,8 @@ export interface RepositoryScanSuccessPersistenceInput extends RepositoryScanLea
 export interface RepositoryScanPublicationResult {
   taskId: string;
   attemptId: string;
-  runId: string;
-  outcome: "succeeded";
+  runId?: string;
+  outcome: "succeeded" | "cancelled";
   replayed: boolean;
 }
 
