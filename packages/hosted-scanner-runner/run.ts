@@ -7,8 +7,8 @@ import type { HostedPhase3EnvelopeV1 } from "../scanner-output/hosted/types";
 import {
   HOSTED_PHASE3_SCANNER_DESCRIPTORS,
   HOSTED_PHASE3_TOOL_VERSION,
-  createHostedPhase3Scanners,
-} from "./profile";
+} from "./contract";
+import { createHostedPhase3Scanners } from "./profile";
 
 export class HostedScannerRunnerError extends Error {
   constructor(message: string) {
