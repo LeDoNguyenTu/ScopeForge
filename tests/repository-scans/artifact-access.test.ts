@@ -44,7 +44,7 @@ function objectStore(calls: Array<{ objectKey: string; expiresAt: Date }>): Repo
       calls.push(input);
       return {
         method: "GET",
-        url: "https://scopeforge-repository-source.example.invalid/repository-source/signed.tar.gz?signature=redacted",
+        url: `https://scopeforge-repository-source.example.invalid/${input.objectKey}?signature=redacted`,
         expiresAt: input.expiresAt.toISOString(),
       };
     },
@@ -81,11 +81,11 @@ describe("Phase 6C lease-bound artifact access", () => {
       artifactDigest: ARTIFACT_DIGEST,
       download: {
         method: "GET",
-        url: "https://scopeforge-repository-source.example.invalid/repository-source/signed.tar.gz?signature=redacted",
+        url: `https://scopeforge-repository-source.example.invalid/${OBJECT_KEY}?signature=redacted`,
         expiresAt: "2026-08-27T00:31:00.000Z",
       },
     });
-    expect(JSON.stringify(result)).not.toContain(OBJECT_KEY);
+    expect(result).not.toHaveProperty("objectKey");
     expect(JSON.stringify(result)).not.toContain("secretAccessKey");
   });
 
