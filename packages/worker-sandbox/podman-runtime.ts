@@ -10,8 +10,9 @@ import type {
 } from "./types";
 
 const CONTROL_TIMEOUT_MS = 30_000;
-const WAIT_TIMEOUT_MS = 330_000;
+const EXECUTION_TIMEOUT_MS = 330_000;
 const CONTROL_OUTPUT_BYTES = 64 * 1024;
+const SCANNER_OUTPUT_BYTES = 3_670_016;
 
 export class PodmanSandboxError extends Error {
   constructor(message: string) {
@@ -48,7 +49,7 @@ export function createExecFilePodmanDriver(): PodmanCommandDriver {
           env: fixedPodmanEnvironment(),
         }, (error, stdout, stderr) => {
           if (error && typeof error.code !== "number") {
-            reject(new PodmanSandboxError("Podman control command could not be executed."));
+            reject(new PodmanSandboxError("Podman control command could not be executed within its fixed boundary."));
             return;
           }
           resolve({
@@ -104,26 +105,33 @@ export function createPodmanSandbox(
     ) {
       if (signal.aborted) throw abortError();
       const command = buildPodmanCreateCommand(input);
-      const workDirectory = safeWorkDirectory(input.workDirectory);
-      const resultPath = path.join(workDirectory, "result.json");
+      safeWorkDirectory(input.workDirectory);
       let created = false;
-      let started = false;
-      let terminationPromise: Promise<PodmanCommandResult> | null = null;
+      let removed = false;
+      let forceRemoval: Promise<void> | null = null;
       let primaryError: unknown = null;
 
-      const terminate = () => {
-        if (!started || terminationPromise !== null) return;
-        terminationPromise = driver.exec(command.file, [
-          "kill",
-          "--signal=KILL",
+      const forceRemove = (): Promise<void> => {
+        if (!created || removed) return Promise.resolve();
+        if (forceRemoval !== null) return forceRemoval;
+        forceRemoval = driver.exec(command.file, [
+          "rm",
+          "--time=0",
+          "--force",
           command.containerName,
         ], {
           timeoutMs: CONTROL_TIMEOUT_MS,
           maxOutputBytes: CONTROL_OUTPUT_BYTES,
+        }).then((result) => {
+          requireSuccess(result, "forced termination");
+          removed = true;
         });
+        return forceRemoval;
       };
 
-      const onAbort = () => terminate();
+      const onAbort = () => {
+        void forceRemove();
+      };
 
       try {
         const createdResult = await driver.exec(command.file, command.args, {
@@ -133,60 +141,85 @@ export function createPodmanSandbox(
         requireSuccess(createdResult, "create");
         created = true;
 
-        if (signal.aborted) throw abortError();
         signal.addEventListener("abort", onAbort, { once: true });
-
-        const startedResult = await driver.exec(command.file, ["start", command.containerName], {
-          timeoutMs: CONTROL_TIMEOUT_MS,
-          maxOutputBytes: CONTROL_OUTPUT_BYTES,
-        });
-        requireSuccess(startedResult, "start");
-        started = true;
-        if (signal.aborted) terminate();
-
-        const waited = await driver.exec(command.file, ["wait", command.containerName], {
-          timeoutMs: WAIT_TIMEOUT_MS,
-          maxOutputBytes: CONTROL_OUTPUT_BYTES,
-        });
-        const containerExit = parseContainerExit(waited);
-        if (terminationPromise !== null) {
-          await terminationPromise.catch(() => undefined);
+        if (signal.aborted) {
+          await forceRemove();
+          throw abortError();
         }
-        if (signal.aborted) throw abortError();
-        if (containerExit !== 0) {
+
+        let attached: PodmanCommandResult;
+        try {
+          attached = await driver.exec(command.file, [
+            "start",
+            "--attach",
+            command.containerName,
+          ], {
+            timeoutMs: EXECUTION_TIMEOUT_MS,
+            maxOutputBytes: SCANNER_OUTPUT_BYTES,
+          });
+        } catch (error) {
+          await forceRemove();
+          if (signal.aborted) throw abortError();
+          throw error;
+        }
+
+        if (signal.aborted) {
+          await forceRemove();
+          throw abortError();
+        }
+
+        let waited: PodmanCommandResult;
+        try {
+          waited = await driver.exec(command.file, ["wait", command.containerName], {
+            timeoutMs: CONTROL_TIMEOUT_MS,
+            maxOutputBytes: CONTROL_OUTPUT_BYTES,
+          });
+        } catch (error) {
+          await forceRemove();
+          throw error;
+        }
+        const savedExit = parseContainerExit(waited);
+        if (attached.exitCode !== savedExit) {
+          throw new PodmanSandboxError("Podman attached and saved scanner exit statuses disagree.");
+        }
+        if (savedExit !== 0) {
           throw new PodmanSandboxError("Hosted scanner container failed inside the fixed sandbox boundary.");
         }
-
-        const copied = await driver.exec(command.file, [
-          "cp",
-          `${command.containerName}:/result/result.json`,
-          resultPath,
-        ], {
-          timeoutMs: CONTROL_TIMEOUT_MS,
-          maxOutputBytes: CONTROL_OUTPUT_BYTES,
-        });
-        requireSuccess(copied, "result copy");
+        if (Buffer.byteLength(attached.stdout, "utf8") > SCANNER_OUTPUT_BYTES) {
+          throw new PodmanSandboxError("Hosted scanner output exceeds the fixed result boundary.");
+        }
 
         return Object.freeze({
           containerName: command.containerName,
-          resultPath,
+          output: attached.stdout,
         });
       } catch (error) {
         primaryError = error;
         throw error;
       } finally {
         signal.removeEventListener("abort", onAbort);
-        if (created) {
+        if (forceRemoval !== null) {
           try {
-            const removed = await driver.exec(command.file, [
+            await forceRemoval;
+          } catch (terminationError) {
+            if (primaryError === null || primaryError instanceof DOMException) {
+              throw terminationError;
+            }
+          }
+        }
+        if (created && !removed) {
+          try {
+            const cleaned = await driver.exec(command.file, [
               "rm",
               "--force",
+              "--ignore",
               command.containerName,
             ], {
               timeoutMs: CONTROL_TIMEOUT_MS,
               maxOutputBytes: CONTROL_OUTPUT_BYTES,
             });
-            requireSuccess(removed, "cleanup");
+            requireSuccess(cleaned, "cleanup");
+            removed = true;
           } catch (cleanupError) {
             if (primaryError === null) throw cleanupError;
           }
