@@ -51,6 +51,7 @@ const REPOSITORY_SCAN_RESULT_KEYS = [
   "canonicalRepositoryUrl",
   "resolvedCommitSha",
   "contentDigest",
+  "artifactDigest",
   "scannerProfileId",
   "scannerProfileVersion",
   "resultDigest",
@@ -269,6 +270,9 @@ function parseRepositoryScanResult(value: unknown): RepositoryScanResult {
   if (typeof value.contentDigest !== "string" || !SHA256_PATTERN.test(value.contentDigest)) {
     throw new Error("Repository scan content digest is invalid.");
   }
+  if (typeof value.artifactDigest !== "string" || !SHA256_PATTERN.test(value.artifactDigest)) {
+    throw new Error("Repository scan artifact digest is invalid.");
+  }
   if (value.scannerProfileId !== "phase3-hosted-static-v1" || value.scannerProfileVersion !== 1) {
     throw new Error("Repository scan scanner profile is invalid.");
   }
@@ -284,6 +288,7 @@ function parseRepositoryScanResult(value: unknown): RepositoryScanResult {
     canonicalRepositoryUrl,
     resolvedCommitSha: value.resolvedCommitSha,
     contentDigest: value.contentDigest,
+    artifactDigest: value.artifactDigest,
     scannerProfileId: "phase3-hosted-static-v1",
     scannerProfileVersion: 1,
     resultDigest: value.resultDigest,
@@ -308,11 +313,10 @@ function parseResult(
     case "phase3_repository_scan_no_egress_v1":
       return parseRepositoryScanResult(value);
   }
-  const unreachable: never = executionClass;
-  throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
+  throw new Error("Worker terminal execution class is not supported.");
 }
 
-function allowedFailureCodes(executionClass: WorkerExecutionClass): ReadonlySet<WorkerTerminalFailureCode> {
+function failureCodesFor(executionClass: WorkerExecutionClass): Set<WorkerTerminalFailureCode> {
   switch (executionClass) {
     case "foundation_no_egress_v1":
       return FOUNDATION_FAILURE_CODES;
@@ -321,70 +325,42 @@ function allowedFailureCodes(executionClass: WorkerExecutionClass): ReadonlySet<
     case "phase3_repository_scan_no_egress_v1":
       return REPOSITORY_SCAN_FAILURE_CODES;
   }
-  const unreachable: never = executionClass;
-  throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
-}
-
-function parseFailureCode(
-  value: unknown,
-  outcome: WorkerTerminalOutcome,
-  executionClass: WorkerExecutionClass,
-): WorkerTerminalFailureCode | null {
-  if (outcome === "succeeded" || outcome === "cancelled") {
-    if (value !== null) {
-      throw new Error(`${outcome === "succeeded" ? "Successful" : "Cancelled"} worker attempts cannot include a caller-selected failure code.`);
-    }
-    return null;
-  }
-  const allowed = allowedFailureCodes(executionClass);
-  if (typeof value !== "string" || !allowed.has(value as WorkerTerminalFailureCode)) {
-    throw new Error("Worker failure code is not an allowed terminal failure code.");
-  }
-  return value as WorkerTerminalFailureCode;
-}
-
-function resultBytes(value: WorkerTerminalResult | null): number {
-  return new TextEncoder().encode(JSON.stringify(value)).byteLength;
 }
 
 export function validateWorkerTerminalEnvelope(
   value: unknown,
-  expected: WorkerTerminalExpectation,
+  expectation: WorkerTerminalExpectation,
 ): WorkerTerminalEnvelope {
   if (!isRecord(value)) throw new Error("Worker terminal envelope must be an object.");
   assertExactKeys(value, ENVELOPE_KEYS, "Worker terminal envelope");
   if (value.schemaVersion !== 1) throw new Error("Worker terminal schema version is unsupported.");
-  if (typeof value.taskId !== "string" || !UUID_PATTERN.test(value.taskId)) {
-    throw new Error("Worker terminal task identifier is invalid.");
+  if (value.taskId !== expectation.taskId || value.attemptId !== expectation.attemptId) {
+    throw new Error("Worker terminal identity does not match the active attempt.");
   }
-  if (typeof value.attemptId !== "string" || !UUID_PATTERN.test(value.attemptId)) {
-    throw new Error("Worker terminal attempt identifier is invalid.");
-  }
-  if (value.taskId !== expected.taskId) throw new Error("Worker terminal task binding does not match.");
-  if (value.attemptId !== expected.attemptId) throw new Error("Worker terminal attempt binding does not match.");
-  if (value.executionClass !== expected.executionClass) {
-    throw new Error("Worker terminal execution class binding does not match.");
+  if (value.executionClass !== expectation.executionClass) {
+    throw new Error("Worker terminal execution class does not match the active attempt.");
   }
   if (typeof value.outcome !== "string" || !OUTCOMES.has(value.outcome as WorkerTerminalOutcome)) {
-    throw new Error("Worker terminal outcome is unsupported.");
+    throw new Error("Worker terminal outcome is invalid.");
   }
   const outcome = value.outcome as WorkerTerminalOutcome;
-  const metrics = parseMetrics(value.metrics, expected.executionClass);
-  const failureCode = parseFailureCode(value.failureCode, outcome, expected.executionClass);
-  const result = parseResult(value.result, outcome, expected.executionClass);
-  const budget = workerExecutionProfile(expected.executionClass).budget;
-  if (resultBytes(result) > budget.maxOutputBytes) {
-    throw new Error("Worker terminal result exceeds the execution budget.");
+  const failureCodes = failureCodesFor(expectation.executionClass);
+  if (outcome === "succeeded") {
+    if (value.failureCode !== null) throw new Error("Successful worker attempts cannot carry a failure code.");
+  } else if (
+    typeof value.failureCode !== "string"
+    || !failureCodes.has(value.failureCode as WorkerTerminalFailureCode)
+  ) {
+    throw new Error("Failed or cancelled worker attempts require a closed failure code.");
   }
-
   return Object.freeze({
     schemaVersion: 1,
-    taskId: expected.taskId,
-    attemptId: expected.attemptId,
-    executionClass: expected.executionClass,
+    taskId: expectation.taskId,
+    attemptId: expectation.attemptId,
+    executionClass: expectation.executionClass,
     outcome,
-    failureCode,
-    metrics,
-    result,
+    failureCode: value.failureCode as WorkerTerminalFailureCode | null,
+    metrics: parseMetrics(value.metrics, expectation.executionClass),
+    result: parseResult(value.result, outcome, expectation.executionClass),
   });
 }
