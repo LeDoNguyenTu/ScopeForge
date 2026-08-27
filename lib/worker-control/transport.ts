@@ -26,6 +26,13 @@ function declaredLength(request: Request): number | null {
   return parsed;
 }
 
+function boundedLimit(maxBytes: number): number {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 4 * 1024 * 1024) {
+    throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
+  }
+  return maxBytes;
+}
+
 export function workerUuid(value: unknown): string {
   if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
     throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
@@ -40,7 +47,11 @@ export function assertNoWorkerRequestBody(request: Request): void {
   }
 }
 
-export async function readBoundedWorkerJson(request: Request): Promise<unknown> {
+export async function readBoundedWorkerJsonWithLimit(
+  request: Request,
+  requestedMaxBytes: number,
+): Promise<unknown> {
+  const maxBytes = boundedLimit(requestedMaxBytes);
   const contentType = request.headers.get("content-type")
     ?.split(";", 1)[0]
     ?.trim()
@@ -50,7 +61,7 @@ export async function readBoundedWorkerJson(request: Request): Promise<unknown> 
   }
 
   const length = declaredLength(request);
-  if (length !== null && length > WORKER_CONTROL_MAX_BODY_BYTES) {
+  if (length !== null && length > maxBytes) {
     throw new WorkerTransportError("WORKER_REQUEST_TOO_LARGE", 413);
   }
   if (!request.body) throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
@@ -65,7 +76,7 @@ export async function readBoundedWorkerJson(request: Request): Promise<unknown> 
       const { value, done } = await reader.read();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > WORKER_CONTROL_MAX_BODY_BYTES) {
+      if (bytes > maxBytes) {
         await reader.cancel();
         throw new WorkerTransportError("WORKER_REQUEST_TOO_LARGE", 413);
       }
@@ -83,6 +94,10 @@ export async function readBoundedWorkerJson(request: Request): Promise<unknown> 
   } catch {
     throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
   }
+}
+
+export async function readBoundedWorkerJson(request: Request): Promise<unknown> {
+  return readBoundedWorkerJsonWithLimit(request, WORKER_CONTROL_MAX_BODY_BYTES);
 }
 
 export function strictObject(
