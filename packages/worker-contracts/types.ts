@@ -129,6 +129,7 @@ export interface RepositoryScanResult {
   canonicalRepositoryUrl: string;
   resolvedCommitSha: string;
   contentDigest: string;
+  artifactDigest: string;
   scannerProfileId: "phase3-hosted-static-v1";
   scannerProfileVersion: 1;
   resultDigest: string;
