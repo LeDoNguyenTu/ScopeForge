@@ -172,10 +172,11 @@ export function createPhase3ImportRepository(
       .order("created_at", { ascending: false })
       .limit(historyLimit(requestedLimit));
 
-    if (error || !Array.isArray(data) || !data.every(isHistoryRow)) {
+    const rows: unknown[] = Array.isArray(data) ? data : [];
+    if (error || !rows.every(isHistoryRow)) {
       throw new Error("Unable to load Phase 3 import history.");
     }
-    return data;
+    return rows;
   }
 
   return Object.freeze({ loadAsset, persist, listRecentImports });
