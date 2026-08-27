@@ -101,6 +101,7 @@ describe("worker control service", () => {
     }));
     const store: RepositorySnapshotObjectStore = {
       createAttemptUpload,
+      createAttemptDownload: vi.fn(),
       headObject: vi.fn(),
       deleteObject: vi.fn(),
     };
