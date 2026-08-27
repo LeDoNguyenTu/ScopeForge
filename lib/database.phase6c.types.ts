@@ -134,9 +134,19 @@ type RepositoryScanRunTable = {
   ];
 };
 
+type BaseScanJobTable = BaseDatabase["public"]["Tables"]["scan_jobs"];
+type Phase6cScanJobKind = BaseScanJobTable["Row"]["job_kind"] | "repository_scan";
+type Phase6cScanJobTable = {
+  Row: Omit<BaseScanJobTable["Row"], "job_kind"> & { job_kind: Phase6cScanJobKind };
+  Insert: Omit<BaseScanJobTable["Insert"], "job_kind"> & { job_kind?: Phase6cScanJobKind };
+  Update: Omit<BaseScanJobTable["Update"], "job_kind"> & { job_kind?: Phase6cScanJobKind };
+  Relationships: BaseScanJobTable["Relationships"];
+};
+
 export type Phase6cDatabase = Omit<BaseDatabase, "public"> & {
   public: Omit<BaseDatabase["public"], "Tables" | "Functions"> & {
-    Tables: BaseDatabase["public"]["Tables"] & {
+    Tables: Omit<BaseDatabase["public"]["Tables"], "scan_jobs"> & {
+      scan_jobs: Phase6cScanJobTable;
       repository_scan_runs: RepositoryScanRunTable;
     };
     Functions: BaseDatabase["public"]["Functions"] & Phase6cFunctions;
