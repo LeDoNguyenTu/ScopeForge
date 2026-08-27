@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { validateRepositoryScanSuccess } from "@/lib/repository-scans/result-validation";
-import { HOSTED_PHASE3_SCANNER_DESCRIPTORS } from "@/packages/hosted-scanner-runner/profile";
+import { HOSTED_PHASE3_SCANNER_DESCRIPTORS } from "@/packages/hosted-scanner-runner/contract";
 
 const TASK_ID = "11111111-1111-4111-8111-111111111111";
 const ATTEMPT_ID = "22222222-2222-4222-8222-222222222222";
@@ -49,6 +49,7 @@ function terminal(result = hostedResult()) {
       canonicalRepositoryUrl: REPOSITORY_URL,
       resolvedCommitSha: "a".repeat(40),
       contentDigest: "b".repeat(64),
+      artifactDigest: "c".repeat(64),
       scannerProfileId: "phase3-hosted-static-v1",
       scannerProfileVersion: 1,
       resultDigest,
@@ -64,6 +65,7 @@ const expected = {
   canonicalRepositoryUrl: REPOSITORY_URL,
   resolvedCommitSha: "a".repeat(40),
   contentDigest: "b".repeat(64),
+  artifactDigest: "c".repeat(64),
   scannerProfileId: "phase3-hosted-static-v1" as const,
   scannerProfileVersion: 1 as const,
   retainedFileCount: 3,
@@ -74,6 +76,8 @@ describe("Phase 6C repository scan result validation", () => {
   it("accepts an exact successful worker result and returns the strictly validated hosted envelope", () => {
     const result = validateRepositoryScanSuccess(terminal(), expected);
     expect(result.terminal.taskId).toBe(TASK_ID);
+    expect(result.terminal.result?.kind === "phase3_repository_scan" ? result.terminal.result.artifactDigest : null)
+      .toBe(expected.artifactDigest);
     expect(result.envelope.repository.canonicalUrl).toBe(REPOSITORY_URL);
     expect(result.envelope.scan.scanners).toEqual([...HOSTED_PHASE3_SCANNER_DESCRIPTORS]);
     expect(result.envelope.scan.scannerErrorCount).toBe(0);
@@ -83,13 +87,14 @@ describe("Phase 6C repository scan result validation", () => {
     const cases: Array<[unknown, typeof expected]> = [
       [{ ...terminal(), attemptId: "44444444-4444-4444-8444-444444444444" }, expected],
       [terminal(), { ...expected, snapshotId: "44444444-4444-4444-8444-444444444444" }],
-      [terminal(), { ...expected, resolvedCommitSha: "c".repeat(40) }],
-      [terminal(), { ...expected, contentDigest: "d".repeat(64) }],
+      [terminal(), { ...expected, resolvedCommitSha: "d".repeat(40) }],
+      [terminal(), { ...expected, contentDigest: "e".repeat(64) }],
+      [terminal(), { ...expected, artifactDigest: "f".repeat(64) }],
       [terminal(hostedResult({ scan: { ...hostedResult().scan, scannerErrorCount: 1 } })), expected],
       [terminal(hostedResult({ scan: { ...hostedResult().scan, scanners: ["secrets@1.0.0"] } })), expected],
       [terminal(hostedResult({ inventory: { filesAnalyzed: 4, filesSkipped: 0, totalBytes: 128 } })), expected],
       [terminal(hostedResult({ inventory: { filesAnalyzed: 2, filesSkipped: 0, totalBytes: 129 } })), expected],
-      [{ ...terminal(), result: { ...terminal().result, resultDigest: "e".repeat(64) } }, expected],
+      [{ ...terminal(), result: { ...terminal().result, resultDigest: "0".repeat(64) } }, expected],
     ];
     for (const [value, expectation] of cases) {
       expect(() => validateRepositoryScanSuccess(value, expectation)).toThrow();
