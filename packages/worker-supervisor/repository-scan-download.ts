@@ -30,6 +30,11 @@ function abortError(): DOMException {
   return new DOMException("Repository scan artifact download was aborted.", "AbortError");
 }
 
+function isUint8Array(value: unknown): value is Uint8Array {
+  return ArrayBuffer.isView(value)
+    && Object.prototype.toString.call(value) === "[object Uint8Array]";
+}
+
 function validateInput(input: RepositoryScanArtifactDownloadInput): URL {
   if (input.signal.aborted) throw abortError();
   if (input.descriptor.method !== "GET") throw new Error("Repository scan artifact descriptor must use GET.");
@@ -114,7 +119,7 @@ export async function downloadRepositoryScanArtifact(
       }
       const { done, value } = await reader.read();
       if (done) break;
-      if (!(value instanceof Uint8Array)) {
+      if (!isUint8Array(value)) {
         throw new Error("Repository scan artifact stream returned an invalid chunk.");
       }
       observedBytes += value.byteLength;
