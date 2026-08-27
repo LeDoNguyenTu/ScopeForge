@@ -113,7 +113,7 @@ begin
      and a.stored_byte_count = s.stored_artifact_bytes
      and a.artifact_digest = s.artifact_digest
    order by s.created_at desc, s.id desc
-   for update of s
+   for update of s, a
    limit 1;
 
   if snapshot_record.id is null then
