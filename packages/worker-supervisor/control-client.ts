@@ -11,6 +11,12 @@ export interface WorkerSupervisorControlClient {
     attemptId: string;
     leaseToken: string;
   }): Promise<RepositoryScanStagingArtifact>;
+  repositoryScanFinalizeSuccess?(input: {
+    taskId: string;
+    attemptId: string;
+    leaseToken: string;
+    terminal: WorkerTerminalEnvelope;
+  }): Promise<{ outcome: "succeeded"; replayed: boolean }>;
   heartbeat(input: {
     taskId: string;
     attemptId: string;
