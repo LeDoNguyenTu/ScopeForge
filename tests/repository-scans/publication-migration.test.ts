@@ -8,6 +8,9 @@ const migrationPath = path.resolve(
 const identityHardeningPath = path.resolve(
   "supabase/migrations/20260827020600_phase_6c_publication_context_asset_identity.sql",
 );
+const eventAmbiguityHardeningPath = path.resolve(
+  "supabase/migrations/20260827020800_phase_6c_publication_event_ambiguity.sql",
+);
 
 describe("Phase 6C repository scan publication migration", () => {
   it("binds publication to the exact active worker lease, repository scan task, snapshot, job, and immutable result identity", async () => {
@@ -68,5 +71,14 @@ describe("Phase 6C repository scan publication migration", () => {
     expect(sql).toMatch(/attempt_record\.lease_expires_at <= access_now/i);
     expect(sql).toMatch(/revoke all on function public\.get_repository_scan_publication_context[\s\S]*from public, anon, authenticated, service_role/i);
     expect(sql).toMatch(/grant execute on function public\.get_repository_scan_publication_context[\s\S]*to service_role/i);
+  });
+
+  it("uses an unambiguous local event variable in canonical finding-event persistence", async () => {
+    const sql = await readFile(eventAmbiguityHardeningPath, "utf8");
+    expect(sql).toContain("next_event_type text");
+    expect(sql).toContain("next_event_type := 'finding.created'");
+    expect(sql).toContain("next_event_type := case");
+    expect(sql).toMatch(/values\s*\([\s\S]*next_event_type,[\s\S]*on conflict \(workspace_id, finding_id, scan_job_id, event_type\)/i);
+    expect(sql).not.toMatch(/\bevent_type text;/i);
   });
 });
