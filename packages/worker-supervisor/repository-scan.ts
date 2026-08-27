@@ -77,8 +77,7 @@ export function createRepositoryScanPreparer(
 ): RepositoryScanPreparer {
   const workRoot = safeWorkRoot(dependencies.workRoot);
   const stage = dependencies.stage ?? stageRepositoryScanSnapshot;
-
-  return Object.freeze({
+  const preparer: RepositoryScanPreparer = {
     async prepare({ task, artifact, signal }) {
       const input = repositoryScanTask(task);
       if (artifact.snapshotId !== input.snapshotId
@@ -123,6 +122,7 @@ export function createRepositoryScanPreparer(
             canonicalRepositoryUrl: input.canonicalRepositoryUrl,
             resolvedCommitSha: input.resolvedCommitSha,
             contentDigest: input.contentDigest,
+            artifactDigest: input.artifactDigest,
             scannerProfileId: input.scannerProfileId,
             scannerProfileVersion: input.scannerProfileVersion,
             retainedBytes: input.retainedBytes,
@@ -140,7 +140,8 @@ export function createRepositoryScanPreparer(
         throw error;
       }
     },
-  });
+  };
+  return Object.freeze(preparer);
 }
 
 function failedTerminal(
@@ -198,8 +199,7 @@ export function createRepositoryScanExecutor(
 ): WorkerExecutor {
   const sandbox = dependencies.sandbox ?? createPodmanSandbox();
   const now = dependencies.now ?? Date.now;
-
-  return Object.freeze({
+  const executor: WorkerExecutor = {
     async execute(value, signal) {
       const contract = preparedContract(value);
       if (signal.aborted) throw new DOMException("Repository scan execution was aborted.", "AbortError");
@@ -262,6 +262,7 @@ export function createRepositoryScanExecutor(
             canonicalRepositoryUrl: contract.input.canonicalRepositoryUrl,
             resolvedCommitSha: contract.input.resolvedCommitSha,
             contentDigest: contract.input.contentDigest,
+            artifactDigest: contract.input.artifactDigest,
             scannerProfileId: contract.input.scannerProfileId,
             scannerProfileVersion: contract.input.scannerProfileVersion,
             resultDigest,
@@ -277,5 +278,6 @@ export function createRepositoryScanExecutor(
         await rm(taskMetadataPath, { force: true }).catch(() => undefined);
       }
     },
-  });
+  };
+  return Object.freeze(executor);
 }
