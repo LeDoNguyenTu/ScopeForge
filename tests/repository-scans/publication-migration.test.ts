@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 const migrationPath = path.resolve(
   "supabase/migrations/20260827020500_phase_6c_repository_scan_publication.sql",
 );
+const identityHardeningPath = path.resolve(
+  "supabase/migrations/20260827020600_phase_6c_publication_context_asset_identity.sql",
+);
 
 describe("Phase 6C repository scan publication migration", () => {
   it("binds publication to the exact active worker lease, repository scan task, snapshot, job, and immutable result identity", async () => {
@@ -22,17 +25,28 @@ describe("Phase 6C repository scan publication migration", () => {
     expect(sql).toMatch(/target_result_digest !~ '\^\[a-f0-9\]\{64\}\$'/i);
   });
 
-  it("checks cancellation before inserting run/finding state and supports exact replay only", async () => {
+  it("checks cancellation before invoking canonical finding persistence or inserting the run", async () => {
     const sql = await readFile(migrationPath, "utf8");
-    const cancellation = sql.indexOf("cancel_requested_at is not null");
-    const runInsert = sql.indexOf("insert into public.repository_scan_runs");
+    const successFunction = sql.indexOf("create or replace function public.finalize_repository_scan_success");
+    const successSource = sql.slice(successFunction);
+    const cancellation = successSource.indexOf("job_record.cancel_requested_at is not null");
+    const ingest = successSource.indexOf("perform private.ingest_repository_scan_finding_batch");
+    const runInsert = successSource.indexOf("insert into public.repository_scan_runs");
     expect(cancellation).toBeGreaterThan(-1);
+    expect(ingest).toBeGreaterThan(cancellation);
     expect(runInsert).toBeGreaterThan(cancellation);
     expect(sql).toContain("REPOSITORY_SCAN_TERMINAL_CONFLICT");
     expect(sql).toContain("'replayed', true");
     expect(sql).toContain("'replayed', false");
     expect(sql).not.toContain("persist_phase3_import_result");
     expect(sql).not.toContain("phase3_import'::public.scan_job_kind");
+  });
+
+  it("accepts zero findings without any bulk lifecycle sweep", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toContain("jsonb_array_length(finding_rows) > 500");
+    expect(sql).not.toMatch(/update\s+public\.security_findings[\s\S]*not exists[\s\S]*finding_rows/i);
+    expect(sql).not.toMatch(/delete\s+from\s+public\.security_findings/i);
   });
 
   it("keeps the publication entrypoint service-role-only and canonical writes inside one security-definer transaction", async () => {
@@ -43,5 +57,16 @@ describe("Phase 6C repository scan publication migration", () => {
     expect(sql).toContain("insert into public.security_findings");
     expect(sql).toContain("insert into public.security_evidence");
     expect(sql).toContain("insert into public.security_finding_occurrences");
+  });
+
+  it("returns repository asset identity only through the exact lease-bound trusted publication context", async () => {
+    const sql = await readFile(identityHardeningPath, "utf8");
+    expect(sql).toContain("'assetId', scan_task.asset_id");
+    expect(sql).toMatch(/attempt_record\.worker_id <> target_worker_id/i);
+    expect(sql).toMatch(/attempt_record\.lease_token_hash <> calculated_hash/i);
+    expect(sql).toMatch(/attempt_record\.finished_at is not null/i);
+    expect(sql).toMatch(/attempt_record\.lease_expires_at <= access_now/i);
+    expect(sql).toMatch(/revoke all on function public\.get_repository_scan_publication_context[\s\S]*from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.get_repository_scan_publication_context[\s\S]*to service_role/i);
   });
 });
