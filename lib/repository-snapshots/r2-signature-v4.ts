@@ -88,21 +88,37 @@ function canonicalQuery(entries: ReadonlyArray<readonly [string, string]>): stri
     .join("&");
 }
 
-export function createPresignedR2PutUrl(input: {
+function createPresignedR2Url(input: {
   credentials: R2SigningCredentials;
+  method: "GET" | "PUT";
   objectKey: string;
   expiresInSeconds: number;
+  maxExpiresInSeconds: number;
+  signedHeaders: string;
+  canonicalHeaders: string;
   now: Date;
 }): string {
-  const { credentials, objectKey, expiresInSeconds, now } = input;
+  const {
+    credentials,
+    method,
+    objectKey,
+    expiresInSeconds,
+    maxExpiresInSeconds,
+    signedHeaders,
+    canonicalHeaders,
+    now,
+  } = input;
   assertRepositorySnapshotObjectKey(objectKey);
-  if (!Number.isInteger(expiresInSeconds) || expiresInSeconds < 1 || expiresInSeconds > 360) {
-    throw new Error("Repository snapshot upload expiry is invalid.");
+  if (
+    !Number.isInteger(expiresInSeconds)
+    || expiresInSeconds < 1
+    || expiresInSeconds > maxExpiresInSeconds
+  ) {
+    throw new Error(`Repository snapshot ${method === "GET" ? "download" : "upload"} expiry is invalid.`);
   }
   const { host, baseUrl } = endpoint(credentials);
   const { dateStamp, amzDate } = amzTimestamp(now);
   const scope = `${dateStamp}/auto/s3/aws4_request`;
-  const signedHeaders = "content-type;host;if-none-match";
   const queryEntries = [
     ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
     ["X-Amz-Credential", `${credentials.accessKeyId}/${scope}`],
@@ -111,17 +127,11 @@ export function createPresignedR2PutUrl(input: {
     ["X-Amz-SignedHeaders", signedHeaders],
   ] as const;
   const unsignedQuery = canonicalQuery(queryEntries);
-  const canonicalHeaders = [
-    "content-type:application/gzip",
-    `host:${host}`,
-    "if-none-match:*",
-    "",
-  ].join("\n");
   const canonicalRequest = [
-    "PUT",
+    method,
     canonicalObjectPath(objectKey),
     unsignedQuery,
-    canonicalHeaders,
+    canonicalHeaders.replace("{host}", host),
     signedHeaders,
     "UNSIGNED-PAYLOAD",
   ].join("\n");
@@ -134,6 +144,44 @@ export function createPresignedR2PutUrl(input: {
   const signature = signatureFor(credentials.secretAccessKey, dateStamp, stringToSign);
   const signedQuery = canonicalQuery([...queryEntries, ["X-Amz-Signature", signature]]);
   return `${baseUrl}${canonicalObjectPath(objectKey)}?${signedQuery}`;
+}
+
+export function createPresignedR2PutUrl(input: {
+  credentials: R2SigningCredentials;
+  objectKey: string;
+  expiresInSeconds: number;
+  now: Date;
+}): string {
+  return createPresignedR2Url({
+    ...input,
+    method: "PUT",
+    maxExpiresInSeconds: 360,
+    signedHeaders: "content-type;host;if-none-match",
+    canonicalHeaders: [
+      "content-type:application/gzip",
+      "host:{host}",
+      "if-none-match:*",
+      "",
+    ].join("\n"),
+  });
+}
+
+export function createPresignedR2GetUrl(input: {
+  credentials: R2SigningCredentials;
+  objectKey: string;
+  expiresInSeconds: number;
+  now: Date;
+}): string {
+  return createPresignedR2Url({
+    ...input,
+    method: "GET",
+    maxExpiresInSeconds: 120,
+    signedHeaders: "host",
+    canonicalHeaders: [
+      "host:{host}",
+      "",
+    ].join("\n"),
+  });
 }
 
 export function createSignedR2Request(input: {
