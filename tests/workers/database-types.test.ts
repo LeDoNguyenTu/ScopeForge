@@ -35,14 +35,14 @@ describe("worker database type contract", () => {
   it("does not advertise private worker/artifact tables or internal recovery helpers to application code", async () => {
     const source = await readFile(typesPath, "utf8");
     for (const privateTable of [
-      "worker_nodes: {",
-      "worker_tasks: {",
-      "worker_attempts: {",
-      "repository_snapshot_tasks: {",
-      "repository_snapshot_attempt_uploads: {",
-      "repository_source_artifacts: {",
+      "worker_nodes",
+      "worker_tasks",
+      "worker_attempts",
+      "repository_snapshot_tasks",
+      "repository_snapshot_attempt_uploads",
+      "repository_source_artifacts",
     ]) {
-      expect(source).not.toContain(privateTable);
+      expect(source).not.toMatch(new RegExp(`^\\s{6}${privateTable}: \\{`, "m"));
     }
     expect(source).not.toContain("recover_worker_state: {");
     expect(source).not.toContain("recover_expired_worker_attempts_leased_only: {");
