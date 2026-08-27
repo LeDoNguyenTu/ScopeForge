@@ -356,7 +356,7 @@ export interface WorkerControlRepository {
 export function createWorkerControlRepository(
   client: SupabaseClient<Phase6cDatabase>,
 ): WorkerControlRepository {
-  return Object.freeze({
+  return Object.freeze<WorkerControlRepository>({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
         target_credential_hash: input.credentialHash,
