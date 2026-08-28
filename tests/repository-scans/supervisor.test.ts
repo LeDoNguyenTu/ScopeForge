@@ -155,6 +155,35 @@ describe("Phase 6C supervisor preparation", () => {
     expect(result).toEqual({ status: "completed", outcome: "succeeded", replayed: false });
   });
 
+  it("rejects a successful Phase 6C terminal when the artifact digest does not match the claimed snapshot", async () => {
+    const repoControl = control();
+    const mismatched = {
+      ...success,
+      result: success.result?.kind === "phase3_repository_scan"
+        ? { ...success.result, artifactDigest: "f".repeat(64) }
+        : success.result,
+    } satisfies WorkerTerminalEnvelope;
+    const executor: WorkerExecutor = { execute: vi.fn(async () => mismatched) };
+
+    const result = await runWorkerOnce({
+      control: repoControl,
+      executor,
+      repositoryScanPreparer: preparer(),
+      heartbeatMs: 60_000,
+      now: () => Date.parse("2026-08-27T02:00:00.000Z"),
+    });
+
+    expect(repoControl.repositoryScanFinalizeSuccess).not.toHaveBeenCalled();
+    expect(repoControl.finalize).toHaveBeenCalledWith({
+      leaseToken: task.leaseToken,
+      terminal: expect.objectContaining({
+        outcome: "failed",
+        failureCode: "WORKER_OUTPUT_INVALID",
+      }),
+    });
+    expect(result).toEqual({ status: "completed", outcome: "failed", replayed: false });
+  });
+
   it("aborts staging on cancellation and uses only generic cancellation finalization", async () => {
     const executor: WorkerExecutor = { execute: vi.fn(async () => success) };
     const prepare = vi.fn(async ({ signal }: Parameters<RepositoryScanPreparer["prepare"]>[0]) => {
