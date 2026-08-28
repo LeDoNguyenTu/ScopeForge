@@ -101,6 +101,7 @@ function successfulOutputMatchesTask(
       && terminal.result.canonicalRepositoryUrl === task.input.canonicalRepositoryUrl
       && terminal.result.resolvedCommitSha === task.input.resolvedCommitSha
       && terminal.result.contentDigest === task.input.contentDigest
+      && terminal.result.artifactDigest === task.input.artifactDigest
       && terminal.result.scannerProfileId === task.input.scannerProfileId
       && terminal.result.scannerProfileVersion === task.input.scannerProfileVersion;
   }
