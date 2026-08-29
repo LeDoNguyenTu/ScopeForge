@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createRepositorySnapshotRepository } from "@/lib/repository-snapshots/repository";
+import { HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED } from "@/lib/repository-snapshots/runtime";
 import { requestRepositorySnapshot as enqueueRepositorySnapshot } from "@/lib/repository-snapshots/service";
 import { RepositorySnapshotError } from "@/lib/repository-snapshots/types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -77,6 +78,16 @@ export async function requestRepositorySnapshot(assetId: string): Promise<Reposi
     }
     if (membership.role !== "owner" && membership.role !== "admin") {
       return { ok: false, error: { code: "REPOSITORY_SNAPSHOT_ACCESS_DENIED", message: "Only workspace owners and admins can request hosted repository snapshots." } };
+    }
+
+    if (!HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED) {
+      return {
+        ok: false,
+        error: {
+          code: "REPOSITORY_SNAPSHOT_RUNTIME_UNAVAILABLE",
+          message: "Hosted repository acquisition remains disabled until the production acquisition worker and private artifact store pass their runtime acceptance gate.",
+        },
+      };
     }
 
     const admin = createAdminClient();
