@@ -6,6 +6,10 @@ const actionPath = path.resolve(
   process.cwd(),
   "app/dashboard/assets/[assetId]/snapshot-actions.ts",
 );
+const pagePath = path.resolve(
+  process.cwd(),
+  "app/dashboard/assets/[assetId]/page.tsx",
+);
 
 describe("Phase 6B repository snapshot action", () => {
   it("resolves membership for the selected asset workspace instead of the first membership", async () => {
@@ -48,5 +52,11 @@ describe("Phase 6B repository snapshot action", () => {
     const adminIndex = source.indexOf("const admin = createAdminClient()");
     expect(gateIndex).toBeGreaterThan(-1);
     expect(adminIndex).toBeGreaterThan(gateIndex);
+  });
+
+  it("wires the shared runtime capability into the snapshot panel", async () => {
+    const source = await readFile(pagePath, "utf8");
+    expect(source).toContain('from "@/lib/repository-snapshots/runtime"');
+    expect(source).toContain("runtimeAvailable={HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED}");
   });
 });
