@@ -1,132 +1,139 @@
 # ScopeForge Test Status
 
-## GitHub Actions and local execution constraint
+## GitHub Actions constraint
 
-GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use. Phase 6B implementation, merge, and reconciliation commits use `[skip ci]` and no workflow is to be triggered, rerun, or used as merge evidence.
+GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use, reruns, or dependency on workflow status as merge evidence.
 
-The current execution container cannot resolve `github.com` and no dependency-complete ScopeForge checkout is available. The merged Phase 6B head therefore has **not** executed:
+Repository implementation, test, migration, dependency, merge, and documentation commits continue to use `[skip ci]`. Verification is performed independently and tied to the exact candidate SHA.
 
-```text
-npm test
-npm run typecheck
-npm run build:cli
-node .scopeforge-build/packages/cli/index.js version
-npm run benchmark:scanner
-npm run build
-```
+## Phase 6B historical acceptance
 
-Do not describe those checks as green.
+Phase 6B repository acquisition merged through PR #38 before a dependency-complete external verifier was available for that exact merge candidate.
 
-## Phase 6B merge evidence
+Its original merge evidence therefore consisted of test-first repository contracts, targeted exact-head security/source review, live Supabase migration/ACL/RLS/function/index verification, clean security advisor results, generated-type comparison, and rollback-only production workflow smoke. That historical Phase 6B merge should not be retroactively described as having had a full green npm/Vitest/build run at merge time.
 
-Phase 6B merged through PR #38.
+The later acquisition public-runtime gate was implemented and fully verified after the external verifier became available. See the dedicated section below.
 
-- exact reviewed feature head: `6a999df6bbb849e5eb698dbc387f7ec2a82df6d6`
-- merge commit: `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`
-- PR was `mergeable: true` and `mergeable_state: clean` immediately before merge
-- exact-head review was recorded
+## Phase 6C exact-head acceptance
+
+Phase 6C isolated zero-egress repository scanning merged through PR #39.
+
+- exact verified feature head: `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b`
+- merge commit: `7a329dc2796a142102af2392ee461f205daa1b78`
+- PR merge used expected-head SHA protection
 - unresolved review threads: none
-- expected-head SHA protection was used for merge
+- PR comments/review submissions at merge time: none
 
-## Phase 6B executable repository contracts
+### Dependency integrity
 
-The merged tree contains test-first contracts for:
+The exact committed lockfile was generated from the unchanged manifest plus the previously committed complete lock through npm's resolver and independently checked before branch mutation.
 
-- closed `repository_snapshot_github_public_v1` worker input/output and fixed budgets
-- owner/admin repository snapshot enqueue and exact asset/workspace binding
-- body-free class-aware worker claim
-- exact lease/task/attempt binding
-- private attempt object-key handling and broker secrecy
-- GitHub-only URL construction and redirect policy
-- complete DNS public-address validation and pinned HTTPS options
-- immutable default-branch commit resolution
-- hostile gzip/tar parsing, checksums, numeric fields, PAX metadata, paths, duplicates, special entries, links, bombs, and bounds
-- deterministic manifest/content/artifact digests and tar.gz output
-- R2 SigV4 PUT/HEAD/DELETE boundaries
-- create-only R2 PUT using signed `If-None-Match: *`
-- server-side HEAD exact-size gate
-- dedicated publication and generic-finalizer rejection of repository success
-- exact replay and conflict behavior
-- cancellation-wins publication
-- immutable public provenance and private artifact separation
-- repository-only UX/read model/server action
-- bounded seven-day/orphan cleanup
-- database public type surface
-- permanent dependency/authority guards
+- byte length: 118,878
+- package entries: 235
+- SHA-256: `3bbc74fa07cf06b379058c741423974f30b46f5c4469694750e1b973fbccda7d`
+- Git blob: `881bbdeedb0ee7a7cb8c171ca93b14f6e528d33d`
+- Next: 15.5.24
+- PostCSS: 8.5.26
+- Sharp: 0.35.3
 
-These tests are source-controlled acceptance contracts, but they have not been executed by Vitest in the current environment.
+The Phase 6C branch commit that refreshed the lock changed only `package-lock.json` relative to the already security-reviewed head `11b356ec05feaa8cb8f43d81f51516686fb6f3a5`.
 
-## Production migration verification
+### Fresh exact-head verification on `d0b7c7a3...`
 
-ScopeForge Supabase project `tdgpibrepzcvdivztkta` contains:
+- `npm ci`: passed
+- `npm run typecheck`: passed
+- `npm test -- --run`: 227/227 test files, 952/952 tests passed
+- `npm run build:cli`: passed
+- `node .scopeforge-build/packages/cli/index.js version`: `ScopeForge 0.1.0`
+- `npm run benchmark:scanner`: 700 files, 0 findings, 0 errors, wall time 509 ms against 20,000 ms maximum
+- production `npm run build`: passed with `NODE_ENV=production`, the ScopeForge public Supabase production configuration, and `NEXT_PUBLIC_SITE_URL=https://scopeforge.dev`
+- `npm audit --json`: zero info, low, moderate, high, critical, and total vulnerabilities
 
-- `20260826221813 phase_6b_repository_snapshot_enum`
-- `20260826221849 phase_6b_repository_snapshot_schema`
-- `20260826224132 phase_6b_repository_snapshot_control`
-- `20260826224240 phase_6b_repository_snapshot_publication`
-- `20260826224409 phase_6b_repository_snapshot_cleanup`
-- `20260826224847 phase_6b_repository_snapshot_live_hardening`
+A combined verifier process hit its sandbox wall-time after completing the first six gates, so the production build and audit were rerun as separate clean exact-SHA materializations. Both passed. The timeout itself is not counted as build/audit evidence.
 
-All future Phase 6B database corrections must be forward migrations.
+## Phase 6C security acceptance
 
-Direct SQL verification confirmed:
+Static and executable review covered:
 
-- `repository_snapshot` exists in `scan_job_kind`
-- `repository_source_snapshots` has RLS enabled
-- authenticated member SELECT policy is present
-- anon has no table access
-- authenticated has SELECT only
-- service_role has zero direct privileges on the public snapshot table after hardening
-- intended Phase 6B public RPCs are `SECURITY DEFINER`
-- intended public RPCs pin `search_path = ''`
-- public/anon/authenticated cannot execute trusted worker/snapshot RPCs
-- service_role can execute only the intended public operation RPCs
-- the private v1 publication helper is not directly executable by anon/authenticated/service_role
-- private repository task/upload/artifact tables have no direct application/service-role DML grants
-- public snapshot provenance update/delete guards are live
-- Phase 6B foreign keys and covering indexes are live
-- the two `requested_by` covering indexes identified by the performance advisor are live
+- browser hosted-scan fail-closed runtime flag
+- worker credential and execution-class binding
+- exact lease/task/attempt/worker binding
+- private R2 artifact access with short-lived authorization
+- fixed HTTPS/R2 host policy and redirect refusal
+- exact artifact byte count and SHA-256 verification
+- path-safe bounded snapshot materialization
+- fixed rootless-Podman command/image/network/resource profile
+- cancellation and hard-deadline process termination paths
+- artifact digest provenance at supervisor and trusted publication layers
+- exact snapshot, repository URL, commit, content digest, and artifact digest publication binding
+- generic-finalizer rejection of repository-scan success
+- cancellation-wins publication semantics
+- service-role-only `SECURITY DEFINER` RPCs with empty `search_path`
+- Phase 6C follow-up migrations covering asset identity and event ambiguity
 
-## Review-driven defects fixed before merge
+No new merge-blocking security defect was found in the final static review.
 
-1. **Stale presigned PUT overwrite** - SigV4 now signs `If-None-Match: *` and the executor sends it, so a replay cannot overwrite an existing snapshot object.
-2. **Cleanup orphan race** - cleanup now uses monotonic attempt state: attempt finished or exact lease expired, with mark-time recheck.
-3. **Default service-role table authority** - forward live hardening revokes all direct service-role privileges on the public snapshot table.
-4. **Unreachable cancelled publication branch** - the public publication RPC is now a cancellation-first wrapper over a private non-executable v1 implementation.
-5. **Missing actor FK indexes** - public snapshot and private repository task `requested_by` foreign keys now have covering indexes.
-6. **Temporary RPC casts** - repository snapshot code uses the reconciled typed public RPC surface directly.
-7. **Authority-regression gaps** - permanent guards explicitly forbid worker threads, process/package-manager execution, scanner coordinator/inventory/filesystem authority, runtime observer/validator, model providers, browser object-store/broker access, Phase 5C-to-worker authority, and foundation-worker GitHub/R2 imports.
+## Production runtime acceptance still missing by design
 
-## Advisor state
+The Phase 6C code merge is not permission to enable hosted repository scanning.
 
-After forward hardening:
+Production runtime enablement still requires real Linux rootless-Podman/cgroup-v2 evidence for:
 
-- Supabase security advisor: **clean**
-- Supabase performance advisor: **no missing Phase 6B FK indexes**
-- remaining performance notices: INFO-level unused-index observations, expected because the project currently has no application data and index usage statistics are not meaningful yet
+- zero network access from the scanner container
+- read-only input/root filesystem boundaries
+- enforceable CPU, memory, process, scratch, input, output, and wall-time limits
+- cancellation/hard deadline killing the underlying container
+- fixed reviewed image and command
 
-Do not remove required FK/operational indexes merely because they are currently unused.
+Until that evidence exists, the public server action remains fail closed and hosted repository scanning must remain disabled.
 
-## Live generated type verification
+## Phase 6B acquisition public-runtime gate
 
-Live TypeScript generation independently confirmed:
+After Phase 6C merge, ScopeForge added a separate fail-closed capability for public repository acquisition so a Vercel control-plane deployment cannot enqueue work when the dedicated acquisition worker/private R2 runtime is absent.
 
-- `scan_job_kind` contains `repository_snapshot`
-- `repository_source_snapshots` is present in the public schema
-- all Phase 6B public RPCs and argument shapes are present
-- the private repository tables are not emitted
-- the private v1 publication helper is not emitted
+TDD evidence:
 
-The checked-in curated `lib/database.types.ts` remains intentionally smaller than a wholesale generated file while matching the required live Phase 6B public surface.
+- RED head: `8b878860174369b887aaeda5415fec445f83e7b5`
+- all six pre-existing focused assertions passed
+- exactly the new server gate, page wiring, and unavailable UI behaviors failed
 
-## Rollback-only production workflow smoke
+Final verified head:
 
-A synthetic workflow was exercised inside an explicit transaction and rolled back. It passed repository asset creation, owner/admin snapshot enqueue, repository worker registration, class-aware claim, canonical asset-derived identity, exact lease-bound artifact lookup, atomic publication, exact replay, conflicting replay rejection, cancelled-job publication with no snapshot, orphan candidate selection, and orphan mark/removal.
+`f1e67a07250f194f315d5be1081b780f62da4f26`
 
-Post-rollback verification confirmed zero users, workspaces, assets, scan jobs, repository snapshots, worker nodes/tasks/attempts, attempt uploads, and source artifact rows.
+Fresh verification:
 
-## Phase 6B acceptance statement
+- focused tests: 9/9 passed
+- `npm ci`: passed
+- `npm run typecheck`: passed
+- full suite: 227/227 test files, 955/955 tests passed
+- `npm run build:cli`: passed
+- CLI version: `ScopeForge 0.1.0`
+- scanner benchmark: 700 files, 0 errors, wall time 523 ms
+- production Next.js build: passed
+- `npm audit`: zero vulnerabilities at every severity
+- dependency lock SHA-256 remained `3bbc74fa07cf06b379058c741423974f30b46f5c4469694750e1b973fbccda7d`
 
-Phase 6B is merged based on exact-head targeted security/source/database review plus live database verification and rollback-only workflow smoke. This is deliberately **not** described as a full green CI/build result because the complete npm/Vitest/type/build suite could not run in the current environment.
+The gate merged through PR #41 as merge commit `07c6bc8580314b73c633a7b704e5f7557ceccb4d`.
 
-Phase 6C requires separate architectural threat-model/design approval before immutable snapshots are consumed by hosted scanner execution.
+`HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` remains `false`, is enforced before privileged enqueue, and is surfaced as a disabled owner/admin control in the UI. Existing snapshot history remains readable.
+
+## Deployment-readiness docs
+
+Deployment/environment reconciliation merged through PR #40 as `415428ebc510a7a8e890d3a03ebc4ffb8194252a`.
+
+This records the Vercel control-plane deployment boundary, server-only Supabase secret, planned worker/R2 separation, Cloudflare/Vercel DNS/TLS responsibilities, and the requirement to keep hosted repository worker features disabled until their runtime acceptance gates are proven.
+
+## Supabase state
+
+ScopeForge production project is `tdgpibrepzcvdivztkta`.
+
+Phase 6B and Phase 6C deployed migrations are immutable. Further changes use forward migrations only.
+
+Existing security review confirmed the intended RLS/ACL/private-table separation, service-role-only trusted RPC surfaces, empty `search_path` on trusted functions, and no direct browser authority over worker-private state. Do not remove operational/FK indexes solely because a young project reports them as unused.
+
+## Current verification statement
+
+The current repository has executable, exact-SHA evidence for the completed Phase 6C candidate and the subsequent public acquisition runtime gate. GitHub Actions were not used for that evidence.
+
+The next implementation architecture boundary, Phase 6D dedicated network-enabled worker execution, requires a separate approved threat model/design. Do not infer Phase 6D acceptance from Phase 6C's zero-egress proof or Phase 6B's GitHub acquisition networking.

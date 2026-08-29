@@ -1,88 +1,108 @@
 # ScopeForge Next Steps
 
-## Current boundary - Phase 6C isolated zero-egress scanner execution
+## Current boundary
 
-Phase 6B public GitHub repository acquisition and immutable private source snapshots is complete and merged through PR #38.
+Phase 6C isolated zero-egress Phase 3 scanning is complete and merged through PR #39.
 
-- reviewed feature head: `6a999df6bbb849e5eb698dbc387f7ec2a82df6d6`
-- merge commit: `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`
+- exact verified Phase 6C head: `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b`
+- Phase 6C merge commit: `7a329dc2796a142102af2392ee461f205daa1b78`
+- deployment-readiness docs merge: PR #40, merge commit `415428ebc510a7a8e890d3a03ebc4ffb8194252a`
+- repository acquisition public runtime gate: PR #41, merge commit `07c6bc8580314b73c633a7b704e5f7557ceccb4d`
 - ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
-- live schema reconciled through `20260826224847 phase_6b_repository_snapshot_live_hardening`
 
-Phase 6B established a closed snapshot producer. Phase 6C must consume those immutable snapshots without inheriting acquisition authority.
+Phase 6B repository acquisition and Phase 6C hosted repository scanning are both implemented as closed worker boundaries, but neither worker-backed operation is enabled in the public control plane until its production runtime acceptance gate is proven.
 
-## Phase 6B invariants to preserve
+## Phase 6C verification evidence
 
-- repository identity derives only from the stored canonical asset
-- default branch is resolved to an immutable commit SHA before archive download
-- acquisition networking is limited to GitHub API, one reviewed codeload redirect, and one attempt-specific R2 PUT
-- R2 PUT is create-only using signed `If-None-Match: *`
-- public snapshot provenance is immutable and member-readable only
-- service_role has no direct snapshot-table authority
-- publication is exact-lease and dedicated-RPC-only
-- cancellation wins before publication
-- private object keys and source artifacts do not reach browser code
-- Phase 5C hosted import remains data ingestion only
-- Phase 6A foundation workers remain zero-egress and free of GitHub/R2 authority
+The exact Phase 6C head was verified outside GitHub Actions with the deterministic dependency lock:
 
-## Phase 6C required properties
+- lock SHA-256: `3bbc74fa07cf06b379058c741423974f30b46f5c4469694750e1b973fbccda7d`
+- lock Git blob: `881bbdeedb0ee7a7cb8c171ca93b14f6e528d33d`
+- `npm ci` passed
+- `npm run typecheck` passed
+- 227 test files and 952 tests passed
+- `npm run build:cli` passed
+- CLI version check returned `ScopeForge 0.1.0`
+- scanner benchmark passed with 700 files and zero errors
+- production Next.js build passed with the ScopeForge public production configuration
+- `npm audit` reported zero vulnerabilities at every severity
 
-Phase 6C should consume the immutable Phase 6B snapshot as a private scanner input while preserving deterministic Phase 3 semantics.
+The subsequent Phase 6B acquisition runtime gate was independently verified on exact head `f1e67a07250f194f315d5be1081b780f62da4f26` with 227 test files and 955 tests, production build success, and zero audit vulnerabilities before PR #41 merged.
 
-1. Scanner execution receives only a broker-selected immutable snapshot and a closed scan profile.
-2. No GitHub/R2 acquisition credential, presigned PUT, arbitrary object key, URL, branch, SHA, scanner list, command, environment, or execution budget may come from the worker caller.
-3. The scanner executor has zero target/network egress.
-4. Repository code is data only. No package lifecycle script, build tool, package manager, Git hook, container definition, IaC tool, project command, dynamic target import, VM, or worker-spawned target execution is allowed.
-5. Snapshot materialization must be path-safe, bounded, isolated from the host filesystem, and verified against immutable provenance before scan use.
-6. CPU, memory, process, input, scratch, output, and wall-time limits must be enforceable by the concrete sandbox adapter, not just reported as advisory metrics.
-7. Cancellation and the supervisor hard deadline must terminate underlying sandbox resources.
-8. The Phase 3 scanner profile must be fixed and versioned. Callers cannot select individual scanners or weaken hostile-repository safety.
-9. Scanner outputs must pass the existing deterministic normalization/validation boundary before hosted findings can change.
-10. Absence from a scan must not automatically mean `verified_fixed`.
-11. Model/advisory output remains downstream and cannot independently change authoritative validation or lifecycle state.
-12. Phase 6C must not gain generic HTTP, runtime-observer, runtime-validator, GitHub acquisition, or R2 upload authority.
+## Runtime gates that must remain closed
 
-## Design work before implementation
+### Repository acquisition
 
-Before Phase 6C code:
+`HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` remains `false`.
 
-1. Threat-model snapshot consumption, sandbox escape, resource exhaustion, archive/path attacks, scanner parser attacks, stale/deleted snapshot races, cancellation races, output spoofing, and cross-workspace binding.
-2. Select the concrete isolation adapter and define exactly which limits it can enforce.
-3. Define a new closed execution class and immutable worker contract.
-4. Define server-side snapshot retrieval/materialization authority without exposing object keys or long-lived R2 credentials to the scanner executor.
-5. Define artifact integrity verification before scanning, including expected size/digest/provenance checks.
-6. Define Phase 3 scanner invocation as direct trusted library calls, not shell/package/project execution.
-7. Define terminal result schema, size bounds, deterministic serialization, and trusted persistence path.
-8. Define retry, cancellation, deadline, cleanup, and stale-snapshot semantics.
-9. Add permanent architecture guards before broad implementation.
-10. Use RED then minimal GREEN checkpoints for each authority boundary.
+Do not enable hosted repository acquisition until the separate acquisition worker and private artifact store are deployed and acceptance-tested. Existing immutable snapshot history may remain readable while acquisition is unavailable.
 
-## Verification constraint
+### Hosted repository scanning
 
-Do not use GitHub Actions. The monthly allowance is exhausted and no workflow should be triggered or rerun.
+`HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED` remains `false`.
 
-Continue using `[skip ci]` for implementation and documentation commits while that restriction remains active.
+Do not enable hosted repository scanning until a real Linux rootless-Podman/cgroup-v2 acceptance environment demonstrates all of the following:
 
-The current execution environment cannot resolve `github.com` and has no dependency-complete checkout. Do not claim these checks are green unless a runnable environment later executes them:
+- zero network access from the scanner container
+- read-only scanner input and root filesystem boundaries
+- enforceable CPU, memory, process, scratch, input, output, and wall-time limits
+- cancellation and hard deadlines terminate the underlying container
+- fixed reviewed image and command, with no caller-controlled image, command, environment, scanner selection, or network policy
+- immutable snapshot size/content/artifact digest verification before scanner use
 
-```text
-npm test
-npm run typecheck
-npm run build:cli
-node .scopeforge-build/packages/cli/index.js version
-npm run benchmark:scanner
-npm run build
-```
+Repository code remains data only. Package lifecycle scripts, project commands, hooks, build systems, nested container definitions, arbitrary dynamic imports, and target-provided execution are not scanner authority.
 
-## Later Phase 6 boundary
+## Production deployment
 
-Dedicated network-enabled runtime/active worker execution remains separately reviewed after zero-egress scanning is demonstrated. Phase 6B GitHub networking must not be reused as a shortcut for general worker egress.
+The next operational priority is the ScopeForge web control-plane deployment to Vercel and `scopeforge.dev` while both worker-backed repository features remain gated off.
+
+Production deployment requirements:
+
+- deploy the exact reviewed `main` tree
+- keep Cloudflare authoritative for DNS
+- keep Vercel application A/CNAME records DNS-only in Cloudflare
+- let Vercel manage application TLS
+- set `NEXT_PUBLIC_SUPABASE_URL` to the ScopeForge Supabase project
+- set the active ScopeForge `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- set `NEXT_PUBLIC_SITE_URL=https://scopeforge.dev`
+- set the ScopeForge server-only `SUPABASE_SECRET_KEY`
+- do not place Supabase secret/service credentials in browser-visible variables
+- R2 credentials are not required to enable the public web control plane while acquisition/scanning remain disabled
+- verify HTTPS, auth routes, dashboard behavior, runtime errors, and production logs before describing the launch as healthy
+
+Turnstile remains a separate production-hardening item until it is actually wired into the authentication implementation. Do not document a configured captcha as active merely because environment names exist in deployment guidance.
+
+## Phase 6D boundary
+
+Phase 6D dedicated network-enabled worker execution remains a separately reviewed architecture boundary. Do not treat Phase 6B GitHub networking as generic egress authority.
+
+Before implementation, Phase 6D requires its own threat model and approved design covering at minimum:
+
+- separate closed worker classes for passive runtime observation and bounded active CORS validation
+- preservation of the existing authorization snapshot plus immediate pre-network reauthorization model
+- verified target, DNS/IP, redirect, TLS, and request-shape policy
+- owner/admin consent for active validation
+- fixed profiles and budgets
+- queue quotas and backpressure
+- cancellation and hard-deadline termination
+- artifact/privacy boundaries
+- fleet operational controls
+- deterministic trusted persistence semantics
+
+No generic URL executor or caller-configurable networking primitive may be introduced.
+
+## GitHub Actions constraint
+
+Do not use, trigger, rerun, or depend on GitHub Actions while the user's monthly allowance remains exhausted.
+
+Continue using `[skip ci]` on implementation, test, migration, dependency, and documentation commits. Verification must be performed in an independent runnable environment and tied to the exact SHA being reviewed or merged.
 
 ## Resume protocol
 
-1. Read `SESSION_HANDOFF.md`, `CURRENT_STATE.md`, `TEST_STATUS.md`, and this file.
-2. Read `docs/ARCHITECTURE.md` and `docs/PHASES.md`.
-3. Re-check exact `main` and active branch heads plus production migration history.
-4. Never edit deployed Phase 6B migration history; use forward migrations only.
-5. Preserve create-only R2 upload, cancellation-first publication, RPC-only snapshot mutation, private-table isolation, and Phase 5C/6A authority separation.
-6. Begin Phase 6C with an explicit threat model and approved design before scanner execution implementation.
+1. Re-check exact `main` and any active branch before mutation.
+2. Read `CURRENT_STATE.md`, `TEST_STATUS.md`, this file, `docs/ARCHITECTURE.md`, and `docs/PHASES.md`.
+3. Keep the ScopeForge Supabase project `tdgpibrepzcvdivztkta` separate from every other project.
+4. Never rewrite deployed migrations. Use forward migrations only.
+5. Keep worker credentials, private R2 object keys, Supabase secret credentials, and lease credentials outside browser code.
+6. Preserve cancellation-first publication, exact lease binding, immutable snapshot provenance, artifact digest binding, and worker-class separation.
+7. Do not enable either hosted repository worker feature until its stated production acceptance evidence exists.

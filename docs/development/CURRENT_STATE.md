@@ -20,152 +20,117 @@ Authorization, deterministic evidence, explanation, remediation, and execution a
 - **Phase 5B Remediation, deterministic retest, and Security Story** - bounded human workflow and authoritative fresh-evidence retest semantics.
 - **Phase 5C Hosted Phase 3 finding import** - privacy-reduced local/CI import without hosted repository execution.
 - **Phase 6A Zero-egress worker foundation** - private PostgreSQL worker queue, scoped worker identity, exact leases, retries/recovery, cancellation-wins behavior, and provider-neutral supervision.
-- **Phase 6B Public GitHub repository acquisition and immutable source snapshots** - merged through PR #38. Exact reviewed feature head `6a999df6bbb849e5eb698dbc387f7ec2a82df6d6`; merge commit `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`.
+- **Phase 6B Public GitHub repository acquisition and immutable source snapshots** - merged through PR #38.
+- **Phase 6C Isolated zero-egress Phase 3 scanning over immutable snapshots** - merged through PR #39 from exact verified head `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b` as merge commit `7a329dc2796a142102af2392ee461f205daa1b78`.
+- **Deployment-readiness reconciliation** - merged through PR #40 as `415428ebc510a7a8e890d3a03ebc4ffb8194252a`.
+- **Phase 6B public acquisition runtime gate** - merged through PR #41 as `07c6bc8580314b73c633a7b704e5f7557ceccb4d`.
 
-## Phase 6B repository acquisition - complete
-
-Phase 6B creates private immutable source snapshots only. It does not execute repository code, run package managers or hooks, use `git clone`, fetch submodules/LFS, run Phase 3 scanners, create findings, or gain runtime-validation authority.
-
-### Acquisition authority
-
-The closed execution class is `repository_snapshot_github_public_v1`.
-
-Repository identity derives only from the stored canonical repository asset:
-
-`https://github.com/<owner>/<repo>`
-
-The browser and worker caller cannot choose arbitrary URLs, refs, branches, commit SHAs, headers, proxies, commands, package-manager configuration, execution budgets, or network policy.
-
-The only acquisition network authority is:
-
-- `api.github.com`
-- exactly one reviewed redirect to `codeload.github.com`
-- one attempt-specific presigned R2 `PUT`
-
-GitHub DNS resolution validates the complete resolved address set against the public-network policy and pins one validated address into the HTTPS socket while preserving the reviewed Host/SNI identity.
-
-Repository metadata must identify the exact expected public GitHub repository. The default branch is bounded, resolved to an immutable 40-hex commit SHA, and the archive request is pinned to that SHA.
-
-### Hostile archive boundary
-
-GitHub tar/gzip is parsed in-process without shell, tar, git, package-manager, VM, or worker-thread execution.
-
-The parser enforces:
-
-- gzip/tar streaming bounds
-- tar header checksum and strict numeric encoding
-- a single GitHub wrapper directory
-- absolute/traversal/NUL/backslash/invalid UTF-8 rejection
-- duplicate normalized path rejection
-- file-versus-descendant shadowing rejection
-- bounded PAX metadata
-- GitHub's initial `pax_global_header` only when its sole commit comment matches the already resolved SHA
-- symlink/hardlink skip without following/materialization
-- special device/FIFO/socket/unknown-entry rejection
-- retained file/byte/path/count limits
-- scratch-backed retained files instead of simultaneous full in-memory source/artifact copies
-
-Retained files are lexically normalized and written into a deterministic tar.gz with normalized mode/uid/gid/mtime, canonical manifest/content digest, and artifact digest.
-
-### R2 immutable artifact boundary
-
-Private object keys are opaque:
-
-`repository-source/<64-hex>.tar.gz`
-
-Long-lived R2 credentials remain server-only. The worker receives only an attempt-specific presigned HTTPS `PUT` descriptor, never the raw private object key through the broker response.
-
-The presigned SigV4 request is create-only: `If-None-Match: *` and the fixed content type are signed and sent by the executor. A still-valid or replayed bearer URL therefore cannot overwrite an already created immutable snapshot object.
-
-Successful publication requires a server-side signed R2 `HEAD` and exact object-size equality before the dedicated publication RPC is called.
-
-### Queue, publication, and cancellation authority
-
-Repository snapshot enqueue is owner/admin-only and derives workspace/asset/actor from trusted server state. The database enforces:
-
-- 5-minute per-asset cooldown
-- 20 snapshot requests per workspace per UTC day
-- one active repository snapshot job per workspace
-- class-aware worker claim
-- 20-minute absolute task deadline
-- attempt-specific object key
-- exact worker/task/attempt/lease binding
-- maximum three attempts with bounded retries
-- generic finalizer rejection of repository-success terminals
-- dedicated atomic repository publication
-- exact replay acceptance and conflicting replay rejection
-- cancellation-wins behavior
-
-A post-deployment review found that the original publication RPC validated `running` status before a later `cancelled` branch, making that cancelled-status branch unreachable. Forward migration `phase_6b_repository_snapshot_live_hardening` now keeps the original implementation private and non-executable and exposes a cancellation-first public wrapper. If cancellation was requested or the job is already cancelled, the wrapper routes through the exact-lease generic cancellation finalizer before any snapshot insert.
-
-### Snapshot provenance and cleanup
-
-`public.repository_source_snapshots` contains safe immutable provenance only. Workspace members may SELECT through RLS. Browser roles cannot mutate it, and `service_role` has no direct table privileges after live hardening. Publication is reachable only through the reviewed service-role RPC.
-
-Private acquisition state includes repository task identity, attempt upload object keys, and source artifact records. These tables have no direct `anon`, `authenticated`, or `service_role` DML authority.
-
-Snapshots retain their private artifact for seven days. Cleanup:
-
-- lists at most 100 candidates per run
-- expires published artifacts after seven days
-- considers an attempt upload orphaned only after 24 hours and only when its exact attempt is finished or its exact lease has expired
-- deletes the R2 object before marking database state
-- treats repeated/missing object deletion idempotently
-- rechecks orphan eligibility before removing the attempt-upload row
-- never mutates or deletes public immutable snapshot provenance
-- has no public browser cleanup endpoint
-
-## Production database state
+## Production database
 
 ScopeForge production Supabase project is:
 
 `tdgpibrepzcvdivztkta`
 
-Live Phase 6B migration history now includes:
+Do not confuse it with any other Supabase project. Deployed migrations are immutable and all future schema corrections must use forward migrations.
 
-- `20260826221813 phase_6b_repository_snapshot_enum`
-- `20260826221849 phase_6b_repository_snapshot_schema`
-- `20260826224132 phase_6b_repository_snapshot_control`
-- `20260826224240 phase_6b_repository_snapshot_publication`
-- `20260826224409 phase_6b_repository_snapshot_cleanup`
-- `20260826224847 phase_6b_repository_snapshot_live_hardening`
+Phase 6B repository snapshot authority remains separated from browser and generic service-role table mutation. Snapshot publication is dedicated-RPC-only, lease-bound, cancellation-first, and preserves immutable public provenance while keeping private object keys and artifact state outside browser-readable data.
 
-Because these migrations are live, further database fixes must be forward migrations. Do not rewrite deployed Phase 6B history.
+Phase 6C extends the worker boundary with repository-scan-specific queue/publication state and exact immutable snapshot provenance. Scanner success is accepted only when the trusted result context matches the selected snapshot, repository identity, resolved commit, content digest, artifact digest, task, attempt, worker, and live lease. Generic finalization cannot publish repository-scan success.
 
-Direct live verification confirmed:
+## Phase 6B repository acquisition boundary
 
-- `repository_snapshot` is present in `scan_job_kind`
-- `repository_source_snapshots` has RLS enabled with authenticated member SELECT policy
-- `anon` has no snapshot access
-- `authenticated` has SELECT only
-- `service_role` has zero direct privileges on the public snapshot table after hardening
-- intended Phase 6B public RPCs are `SECURITY DEFINER`, pin empty `search_path`, and are executable only by `service_role`
-- the private v1 publication helper is not executable by `anon`, `authenticated`, or `service_role`
-- private repository task/upload/artifact tables have no direct application/service-role DML grants
-- Phase 6B foreign keys have covering indexes, including `requested_by` indexes added by live hardening
-- Supabase security advisor is clean
-- performance advisor has no Phase 6B missing-FK-index notices; remaining notices are INFO-level unused-index observations expected on an empty database
-- live generated TypeScript types contain the Phase 6B public enum/table/RPC surface and no private schema
+The closed acquisition execution class is `repository_snapshot_github_public_v1`.
 
-A rollback-only production smoke successfully exercised repository snapshot enqueue, repository-class worker claim, canonical asset-derived GitHub identity, lease-bound artifact lookup, atomic publication, exact replay, conflicting replay rejection, cancellation-wins publication, and orphan cleanup. The transaction was rolled back and follow-up counts returned to zero.
+Repository identity derives only from the stored canonical repository asset. Callers cannot choose arbitrary URLs, branches, refs, commit SHAs, commands, package-manager configuration, execution budgets, or network policy.
 
-## Verification constraint
+Acquisition authority is limited to the reviewed GitHub API/codeload path and an attempt-specific private R2 upload. Archive parsing and normalization run without `git clone`, package execution, project hooks, submodule/LFS execution, or repository code execution. Public snapshot provenance is immutable and private artifacts are retained separately.
 
-GitHub Actions monthly allowance is exhausted and must not be used. Phase 6B implementation and closeout commits used `[skip ci]`.
+The public control plane now includes:
 
-The current execution container cannot resolve `github.com`, and no dependency-complete local checkout is available. Therefore these commands were not run for the merged Phase 6B head:
+`HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED = false`
 
-- `npm test`
+This gate is enforced server-side before privileged enqueue and reflected in the repository UI. A normal Vercel deployment therefore cannot enqueue repository snapshot tasks unless the separate acquisition worker/private artifact runtime is intentionally accepted and the capability is changed in reviewed code.
+
+## Phase 6C zero-egress scanner boundary
+
+Phase 6C consumes only a broker-selected immutable Phase 6B snapshot under a closed repository-scan execution class.
+
+Security invariants include:
+
+- no caller-selected snapshot, R2 object key, URL, branch, SHA, scanner list, command, image, environment, network policy, or execution budget
+- no GitHub or R2 acquisition authority in the scanner executor
+- repository source is data only
+- no package lifecycle scripts, build commands, hooks, target project commands, nested runtime execution, or caller-provided executable configuration
+- exact artifact byte count and SHA-256 verification before materialization
+- path-safe and bounded snapshot reading/materialization
+- fixed reviewed Phase 3 scanner profile
+- bounded scanner result contracts
+- artifact provenance checked by both supervisor and trusted publication paths
+- cancellation and hard deadlines terminate underlying sandbox work
+- repository success publication remains dedicated and exact-lease-bound
+
+The repository contains the concrete rootless-Podman command/runtime adapter with fixed image/command, `--network=none`, read-only boundaries, capability dropping, non-root execution, and resource-limit arguments. This code alone is not production runtime acceptance evidence.
+
+The public control plane keeps hosted scanning hard-disabled until real Linux rootless-Podman/cgroup-v2 acceptance is demonstrated. The server action rejects hosted scan requests before privileged enqueue while the runtime capability is false.
+
+## Exact Phase 6C verification
+
+The final Phase 6C dependency lock is deterministic:
+
+- SHA-256: `3bbc74fa07cf06b379058c741423974f30b46f5c4469694750e1b973fbccda7d`
+- Git blob: `881bbdeedb0ee7a7cb8c171ca93b14f6e528d33d`
+- 118,878 bytes
+- 235 package entries
+- Next 15.5.24
+- PostCSS 8.5.26
+- Sharp 0.35.3
+
+Fresh verification on exact Phase 6C head `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b` passed:
+
+- `npm ci`
 - `npm run typecheck`
+- 227 test files / 952 tests
 - `npm run build:cli`
-- `node .scopeforge-build/packages/cli/index.js version`
-- `npm run benchmark:scanner`
-- `npm run build`
+- CLI version `ScopeForge 0.1.0`
+- scanner benchmark over 700 files with zero errors
+- production Next.js build using ScopeForge public production configuration
+- `npm audit` with zero vulnerabilities at every severity
 
-Do not describe those checks as green. Phase 6B acceptance evidence consists of test-first repository contracts, targeted exact-head source/security review, exact changed-file inventory, live Supabase migration/ACL/RLS/function/index verification, clean security advisor, generated-type comparison, and rollback-only production workflow smoke.
+The subsequent acquisition runtime gate was separately verified on exact head `f1e67a07250f194f315d5be1081b780f62da4f26`:
+
+- focused gate tests 9/9
+- full suite 227 files / 955 tests
+- typecheck and CLI build/version
+- scanner benchmark
+- production Next.js build
+- zero-vulnerability npm audit
+
+## Production deployment state
+
+The web control plane is ready for Vercel deployment while worker-backed repository acquisition and hosted scanning remain unavailable.
+
+Deployment rules:
+
+- Vercel hosts the Next.js control plane.
+- Cloudflare remains authoritative DNS.
+- Vercel application records remain DNS-only in Cloudflare.
+- Vercel manages application TLS.
+- `NEXT_PUBLIC_SITE_URL` is `https://scopeforge.dev`.
+- public Supabase URL/publishable key may be exposed to the client as designed.
+- `SUPABASE_SECRET_KEY` is server-only and must never be placed in a `NEXT_PUBLIC_*` variable or committed.
+- R2 credentials remain worker/server-only and are not required to enable the public web control plane while repository worker capabilities are false.
+- Turnstile is not yet active application behavior merely because deployment documentation lists planned variables.
 
 ## Current boundary
 
-**Phase 6C isolated zero-egress Phase 3 scanning over immutable repository snapshots** is the next implementation boundary.
+The immediate operational task is production control-plane deployment and `scopeforge.dev` verification with the repository worker capability gates still false.
 
-Phase 6C may consume only an already published immutable private snapshot. It must not widen Phase 6B acquisition into generic HTTP authority, run repository/package lifecycle commands, recurse into remote submodules/LFS, or allow model/advisory output to independently change authoritative finding validation/security state.
+The next implementation architecture boundary is **Phase 6D dedicated network-enabled worker execution**. It remains design-gated. Existing passive runtime and bounded active CORS validation may move behind dedicated closed worker classes only after a separate threat model and approved design preserve the current authorization snapshot, immediate pre-network reauthorization, DNS/IP policy, request shapes, owner/admin active consent, fixed budgets, cancellation, deterministic persistence, privacy, quotas/backpressure, and fleet controls.
+
+Phase 6B GitHub networking is not generic egress authority. A generic URL/network worker executor is prohibited.
+
+## GitHub Actions constraint
+
+GitHub Actions monthly allowance remains exhausted and must not be used, triggered, rerun, or relied on as verification evidence.
+
+Continue using `[skip ci]` on repository commits while this constraint remains active. Verification must be executed independently and tied to the exact candidate SHA before merge or completion claims.
