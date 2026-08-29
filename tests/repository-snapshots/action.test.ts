@@ -39,4 +39,14 @@ describe("Phase 6B repository snapshot action", () => {
     expect(source).toContain('asset.kind !== "repository"');
     expect(source).toContain('membership.role !== "owner" && membership.role !== "admin"');
   });
+
+  it("fails closed before privileged enqueue while the acquisition runtime is unavailable", async () => {
+    const source = await readFile(actionPath, "utf8");
+    expect(source).toContain("HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED");
+    expect(source).toContain("REPOSITORY_SNAPSHOT_RUNTIME_UNAVAILABLE");
+    const gateIndex = source.indexOf("if (!HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED)");
+    const adminIndex = source.indexOf("const admin = createAdminClient()");
+    expect(gateIndex).toBeGreaterThan(-1);
+    expect(adminIndex).toBeGreaterThan(gateIndex);
+  });
 });
