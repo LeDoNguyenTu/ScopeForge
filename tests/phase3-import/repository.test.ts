@@ -24,12 +24,13 @@ describe("Phase 3 import repository", () => {
       order: vi.fn().mockReturnThis(),
       limit: vi.fn(async () => ({ data: [historyRow], error: null })),
     };
-    const client = { from: vi.fn(() => query) } as never;
+    const from = vi.fn(() => query);
+    const client = { from } as unknown as Parameters<typeof createPhase3ImportRepository>[0];
     const repository = createPhase3ImportRepository(client);
 
     const result = await repository.listRecentImports("workspace-1", "asset-1", 20);
 
-    expect(client.from).toHaveBeenCalledWith("security_phase3_import_runs");
+    expect(from).toHaveBeenCalledWith("security_phase3_import_runs");
     expect(query.select).toHaveBeenCalledWith(
       "id,workspace_id,asset_id,scan_job_id,run_ref,tool_version,scan_started_at,scan_duration_ms,scanner_error_count,files_analyzed,finding_count,created_at",
     );
@@ -48,7 +49,7 @@ describe("Phase 3 import repository", () => {
       order: vi.fn().mockReturnThis(),
       limit,
     };
-    const client = { from: vi.fn(() => query) } as never;
+    const client = { from: vi.fn(() => query) } as unknown as Parameters<typeof createPhase3ImportRepository>[0];
     const repository = createPhase3ImportRepository(client);
 
     await expect(repository.listRecentImports("workspace-1", "asset-1", 5000)).rejects.toThrow(

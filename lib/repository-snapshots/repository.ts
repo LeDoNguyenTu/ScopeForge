@@ -116,7 +116,7 @@ export interface RepositorySnapshotRepository {
 export function createRepositorySnapshotRepository(
   client: SupabaseClient<Database>,
 ): RepositorySnapshotRepository {
-  return Object.freeze({
+  const repository: RepositorySnapshotRepository = {
     async enqueue(input) {
       return parseEnqueue(await rpcData(client.rpc("enqueue_repository_snapshot_worker_task", {
         target_workspace_id: input.workspaceId,
@@ -160,5 +160,6 @@ export function createRepositorySnapshotRepository(
         target_server_observed_object_bytes: input.serverObservedObjectBytes,
       })));
     },
-  });
+  };
+  return Object.freeze(repository);
 }

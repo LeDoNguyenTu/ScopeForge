@@ -4,6 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import RepositorySnapshotPanel from "@/components/assets/RepositorySnapshotPanel";
 import { requestRepositorySnapshot } from "@/app/dashboard/assets/[assetId]/snapshot-actions";
 
+const refresh = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+}));
+
 vi.mock("@/app/dashboard/assets/[assetId]/snapshot-actions", () => ({
   requestRepositorySnapshot: vi.fn(),
 }));
@@ -21,6 +27,7 @@ const history = [{
 }];
 
 beforeEach(() => {
+  refresh.mockReset();
   vi.mocked(requestRepositorySnapshot).mockReset();
 });
 
@@ -32,7 +39,7 @@ describe("RepositorySnapshotPanel", () => {
     expect(screen.getByText(/current public github default branch/i)).toBeInTheDocument();
     expect(screen.getByText(/does not run package scripts/i)).toBeInTheDocument();
     expect(screen.getByText(/phase 6c/i)).toBeInTheDocument();
-    expect(screen.getByText("a".repeat(12))).toBeInTheDocument();
+    expect(screen.getByText(/aaaaaaaaaaaa on main/i)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /download/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/branch|ref|sha|url|budget/i)).not.toBeInTheDocument();
   });
@@ -41,7 +48,7 @@ describe("RepositorySnapshotPanel", () => {
     render(<RepositorySnapshotPanel assetId="asset-1" role="viewer" history={history} />);
     expect(screen.queryByRole("button", { name: /create private source snapshot/i })).not.toBeInTheDocument();
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
-    expect(screen.getByText("a".repeat(12))).toBeInTheDocument();
+    expect(screen.getByText(/aaaaaaaaaaaa on main/i)).toBeInTheDocument();
   });
 
   it("requests by asset id only and shows the safe result", async () => {

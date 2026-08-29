@@ -53,7 +53,7 @@ async function rpcData<T>(
 export function createRepositorySnapshotCleanupRepository(
   client: SupabaseClient<Database>,
 ): RepositorySnapshotCleanupRepository {
-  return Object.freeze({
+  const repository: RepositorySnapshotCleanupRepository = {
     async listCandidates(input) {
       const data = await rpcData(client.rpc("list_repository_snapshot_cleanup_candidates", {
         target_now: input.nowIso,
@@ -72,5 +72,6 @@ export function createRepositorySnapshotCleanupRepository(
         target_now: nowIso,
       }));
     },
-  });
+  };
+  return Object.freeze(repository);
 }

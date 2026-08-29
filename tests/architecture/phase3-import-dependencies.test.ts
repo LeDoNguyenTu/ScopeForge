@@ -19,7 +19,7 @@ async function collectSourceFiles(directory: string): Promise<string[]> {
 }
 
 describe("Phase 5C hosted Phase 3 import architecture", () => {
-  it("does not give trusted import modules runtime-network, filesystem-scan, process, VM, worker, socket, or repository-acquisition authority", async () => {
+  it("does not give trusted import modules runtime-network, filesystem-scan, process, VM, worker, socket, repository-acquisition, or Phase 6C sandbox authority", async () => {
     const files = await collectSourceFiles(importDir);
     for (const file of files) {
       const source = await readFile(file, "utf8");
@@ -27,7 +27,7 @@ describe("Phase 5C hosted Phase 3 import architecture", () => {
         /packages\/runtime-|lib\/runtime-|scanner-core\/(?:filesystem|inventory|coordinator)|node:(?:child_process|fs|net|dgram|tls|http|https|vm|worker_threads)|\b(?:spawn|execFile|execSync|fetch)\s*\(/,
       );
       expect(source, path.relative(root, file)).not.toMatch(
-        /worker-control|worker-supervisor|api\/internal\/workers|repository-acquisition-network|repository-snapshot|lib\/repository-snapshots/,
+        /worker-control|worker-supervisor|worker-sandbox|hosted-scanner-runner|api\/internal\/workers|repository-acquisition-network|repository-snapshot|lib\/repository-snapshots|lib\/repository-scans/,
       );
     }
   });

@@ -31,7 +31,7 @@ describe("Phase 6B repository snapshot control authority", () => {
     expect(sql).toContain("REPOSITORY_SNAPSHOT_ACTIVE_LIMIT");
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(sql).toContain("role::text in ('owner', 'admin')");
-    expect(sql).toContain("kind = 'repository'::public.asset_kind");
+    expect(sql).toMatch(/asset_record\.kind\s*<>\s*'repository'::public\.asset_kind/i);
     expect(sql).toContain("interval '5 minutes'");
     expect(sql).toContain("interval '20 minutes'");
     expect(sql).toContain("repository_snapshot_github_public_v1");

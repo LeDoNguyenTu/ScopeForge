@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { RepositorySnapshotObjectStore } from "@/lib/repository-snapshots/object-store";
 import {
   claimWorkerTask,
+  claimWorkerTaskForNode,
   finalizeWorkerAttempt,
   registerWorkerNode,
   type WorkerControlRepository,
@@ -13,32 +14,44 @@ function repository(overrides: Partial<WorkerControlRepository> = {}): WorkerCon
   return {
     register: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
-      executionClass: "foundation_no_egress_v1",
+      executionClass: "foundation_no_egress_v1" as const,
       softwareVersion: "0.1.0",
     })),
     registerRepositorySnapshot: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
-      executionClass: "repository_snapshot_github_public_v1",
+      executionClass: "repository_snapshot_github_public_v1" as const,
+      softwareVersion: "0.1.0",
+    })),
+    registerRepositoryScan: vi.fn(async () => ({
+      workerId: "11111111-1111-4111-8111-111111111111",
+      executionClass: "phase3_repository_scan_no_egress_v1" as const,
       softwareVersion: "0.1.0",
     })),
     disable: vi.fn(async () => ({ workerId: "11111111-1111-4111-8111-111111111111", disabledAt: "2026-08-26T00:00:00.000Z" })),
     authenticate: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
-      executionClass: "foundation_no_egress_v1",
+      executionClass: "foundation_no_egress_v1" as const,
       softwareVersion: "0.1.0",
     })),
     enqueueFoundationProbe: vi.fn(async () => ({
       scanJobId: "22222222-2222-4222-8222-222222222222",
       taskId: "33333333-3333-4333-8333-333333333333",
-      executionClass: "foundation_no_egress_v1",
+      executionClass: "foundation_no_egress_v1" as const,
       absoluteDeadlineAt: "2026-08-26T00:05:00.000Z",
     })),
     claim: vi.fn(async () => null),
+    claimRepositoryScan: vi.fn(async () => null),
     heartbeat: vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: "2026-08-26T00:01:30.000Z" })),
     finalize: vi.fn(async () => ({
       taskId: "33333333-3333-4333-8333-333333333333",
       attemptId: "44444444-4444-4444-8444-444444444444",
-      outcome: "succeeded",
+      outcome: "succeeded" as const,
+      replayed: false,
+    })),
+    finalizeRepositoryScanFailure: vi.fn(async () => ({
+      taskId: "33333333-3333-4333-8333-333333333333",
+      attemptId: "44444444-4444-4444-8444-444444444444",
+      outcome: "failed" as const,
       replayed: false,
     })),
     recover: vi.fn(async () => 0),
@@ -77,6 +90,42 @@ describe("worker control service", () => {
     expect(claim).toHaveBeenCalledWith({ workerId: "11111111-1111-4111-8111-111111111111" });
   });
 
+  it("routes authenticated Phase 6C nodes to the isolated claim without adding storage authority", async () => {
+    const claimRepositoryScan = vi.fn(async () => ({
+      taskId: "33333333-3333-4333-8333-333333333333",
+      attemptId: "44444444-4444-4444-8444-444444444444",
+      executionClass: "phase3_repository_scan_no_egress_v1" as const,
+      leaseToken: "b".repeat(64),
+      absoluteDeadlineAt: "2026-08-27T03:40:00.000Z",
+      budget: workerExecutionProfile("phase3_repository_scan_no_egress_v1").budget,
+      input: {
+        kind: "phase3_repository_scan" as const,
+        snapshotId: "55555555-5555-4555-8555-555555555555",
+        canonicalRepositoryUrl: "https://github.com/openai/openai-node",
+        resolvedCommitSha: "a".repeat(40),
+        contentDigest: "c".repeat(64),
+        artifactDigest: "d".repeat(64),
+        storedArtifactBytes: 1024,
+        retainedFileCount: 2,
+        retainedBytes: 900,
+        scannerProfileId: "phase3-hosted-static-v1" as const,
+        scannerProfileVersion: 1 as const,
+      },
+    }));
+    const repo = repository({ claimRepositoryScan });
+    const result = await claimWorkerTaskForNode({
+      workerId: "11111111-1111-4111-8111-111111111111",
+      executionClass: "phase3_repository_scan_no_egress_v1",
+      softwareVersion: "0.1.0",
+    }, { repository: repo });
+
+    expect(claimRepositoryScan).toHaveBeenCalledWith({
+      workerId: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(JSON.stringify(result)).not.toContain("repository-source/");
+    expect(JSON.stringify(result)).not.toContain("artifactUpload");
+  });
+
   it("replaces the private repository object key with one bounded presigned PUT descriptor", async () => {
     const artifactObjectKey = `repository-source/${"a".repeat(64)}.tar.gz`;
     const claim = vi.fn(async () => ({
@@ -101,6 +150,7 @@ describe("worker control service", () => {
     }));
     const store: RepositorySnapshotObjectStore = {
       createAttemptUpload,
+      createAttemptDownload: vi.fn(),
       headObject: vi.fn(),
       deleteObject: vi.fn(),
     };
@@ -204,6 +254,37 @@ describe("worker control service", () => {
       },
     }, { repository: repo })).rejects.toMatchObject({ code: "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED" });
     expect(repo.finalize).not.toHaveBeenCalled();
+  });
+
+  it("forces successful Phase 6C scans through dedicated atomic publication", async () => {
+    const repo = repository();
+    await expect(finalizeWorkerAttempt({
+      workerId: "11111111-1111-4111-8111-111111111111",
+      leaseToken: "b".repeat(64),
+      terminal: {
+        schemaVersion: 1,
+        taskId: "33333333-3333-4333-8333-333333333333",
+        attemptId: "44444444-4444-4444-8444-444444444444",
+        executionClass: "phase3_repository_scan_no_egress_v1",
+        outcome: "succeeded",
+        failureCode: null,
+        metrics: { wallTimeMs: 1, cpuTimeMs: 0, peakMemoryBytes: 0, inputBytes: 1, outputBytes: 1 },
+        result: {
+          kind: "phase3_repository_scan",
+          snapshotId: "55555555-5555-4555-8555-555555555555",
+          canonicalRepositoryUrl: "https://github.com/openai/openai-node",
+          resolvedCommitSha: "a".repeat(40),
+          contentDigest: "b".repeat(64),
+          artifactDigest: "d".repeat(64),
+          scannerProfileId: "phase3-hosted-static-v1",
+          scannerProfileVersion: 1,
+          resultDigest: "c".repeat(64),
+          hostedResult: { schemaVersion: 1 },
+        },
+      },
+    }, { repository: repo })).rejects.toMatchObject({ code: "REPOSITORY_SCAN_PUBLICATION_REQUIRED" });
+    expect(repo.finalize).not.toHaveBeenCalled();
+    expect(repo.finalizeRepositoryScanFailure).not.toHaveBeenCalled();
   });
 
   it("rejects unexpected terminal fields before persistence", async () => {

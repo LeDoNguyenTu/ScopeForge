@@ -6,10 +6,12 @@ import {
 } from "@/packages/worker-contracts";
 import type { WorkerSupervisorControlClient } from "./control-client";
 import type { WorkerExecutor, WorkerExecutorContract } from "./executor";
+import type { RepositoryScanPreparer } from "./repository-scan";
 
 export interface WorkerSupervisorDependencies {
   control: WorkerSupervisorControlClient;
   executor: WorkerExecutor;
+  repositoryScanPreparer?: RepositoryScanPreparer;
   heartbeatMs?: number;
   now?: () => number;
 }
@@ -17,6 +19,9 @@ export interface WorkerSupervisorDependencies {
 type StopReason = "cancelled" | "lost" | "budget" | null;
 
 function executorContract(task: WorkerTaskContract): WorkerExecutorContract {
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
+    throw new Error("Phase 6C tasks must be prepared before executor dispatch.");
+  }
   return Object.freeze({
     taskId: task.taskId,
     attemptId: task.attemptId,
@@ -89,6 +94,17 @@ function successfulOutputMatchesTask(
       && terminal.result?.kind === "repository_snapshot_github_public"
       && terminal.result.canonicalRepositoryUrl === task.input.canonicalRepositoryUrl;
   }
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
+    return task.input.kind === "phase3_repository_scan"
+      && terminal.result?.kind === "phase3_repository_scan"
+      && terminal.result.snapshotId === task.input.snapshotId
+      && terminal.result.canonicalRepositoryUrl === task.input.canonicalRepositoryUrl
+      && terminal.result.resolvedCommitSha === task.input.resolvedCommitSha
+      && terminal.result.contentDigest === task.input.contentDigest
+      && terminal.result.artifactDigest === task.input.artifactDigest
+      && terminal.result.scannerProfileId === task.input.scannerProfileId
+      && terminal.result.scannerProfileVersion === task.input.scannerProfileVersion;
+  }
   return false;
 }
 
@@ -153,6 +169,73 @@ function executeWithinSupervisorBoundary(
   });
 }
 
+async function executePreparedTask(
+  task: WorkerTaskContract,
+  executor: WorkerExecutor,
+  contract: WorkerExecutorContract,
+  signal: AbortSignal,
+): Promise<unknown> {
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
+    // Phase 6C owns a killable external sandbox. Do not detach on abort: the
+    // executor resolves/rejects only after Podman has stopped or cleanup fails
+    // closed, so staged source and lease finalization cannot race live hostile work.
+    return executor.execute(contract, signal);
+  }
+  return executeWithinSupervisorBoundary(executor, contract, signal);
+}
+
+async function preparedExecutorContract(
+  task: WorkerTaskContract,
+  dependencies: WorkerSupervisorDependencies,
+  signal: AbortSignal,
+): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
+  if (task.executionClass !== "phase3_repository_scan_no_egress_v1") {
+    return { contract: executorContract(task), cleanup: null };
+  }
+  if (task.input.kind !== "phase3_repository_scan") {
+    throw new Error("Phase 6C claim input is invalid.");
+  }
+  const artifactAccess = dependencies.control.repositoryScanArtifact;
+  const preparer = dependencies.repositoryScanPreparer;
+  if (!artifactAccess || !preparer) {
+    throw new Error("Phase 6C preparation authority is unavailable.");
+  }
+  const artifact = await artifactAccess({
+    taskId: task.taskId,
+    attemptId: task.attemptId,
+    leaseToken: task.leaseToken,
+  });
+  if (signal.aborted) {
+    throw new DOMException("Phase 6C preparation was aborted.", "AbortError");
+  }
+  const prepared = await preparer.prepare({ task, artifact, signal });
+  return { contract: prepared.contract, cleanup: prepared.cleanup };
+}
+
+async function finalizeThroughTrustedBoundary(
+  task: WorkerTaskContract,
+  terminal: WorkerTerminalEnvelope,
+  control: WorkerSupervisorControlClient,
+): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }> {
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1" && terminal.outcome === "succeeded") {
+    const finalizeSuccess = control.repositoryScanFinalizeSuccess;
+    if (!finalizeSuccess) {
+      throw new Error("Phase 6C success publication authority is unavailable.");
+    }
+    return finalizeSuccess({
+      taskId: task.taskId,
+      attemptId: task.attemptId,
+      leaseToken: task.leaseToken,
+      terminal,
+    });
+  }
+
+  return control.finalize({
+    leaseToken: task.leaseToken,
+    terminal,
+  });
+}
+
 export async function runWorkerOnce(
   dependencies: WorkerSupervisorDependencies,
 ): Promise<
@@ -201,10 +284,15 @@ export async function runWorkerOnce(
   }, heartbeatMs);
 
   let terminal: WorkerTerminalEnvelope;
+  let cleanup: (() => Promise<void>) | null = null;
+  let cleanupFailed = false;
   try {
-    const raw = await executeWithinSupervisorBoundary(
+    const prepared = await preparedExecutorContract(task, dependencies, abortController.signal);
+    cleanup = prepared.cleanup;
+    const raw = await executePreparedTask(
+      task,
       dependencies.executor,
-      executorContract(task),
+      prepared.contract,
       abortController.signal,
     );
     terminal = canonicalTerminal(task, raw);
@@ -217,6 +305,13 @@ export async function runWorkerOnce(
           ? failureTerminal(task, "WORKER_BUDGET_EXCEEDED")
           : failureTerminal(task, "WORKER_EXECUTION_FAILED");
   } finally {
+    if (cleanup) {
+      try {
+        await cleanup();
+      } catch {
+        cleanupFailed = true;
+      }
+    }
     clearTimeout(timeout);
     clearInterval(heartbeatTimer);
   }
@@ -227,12 +322,11 @@ export async function runWorkerOnce(
     terminal = failureTerminal(task, "WORKER_LOST");
   } else if (stopReason === "budget") {
     terminal = failureTerminal(task, "WORKER_BUDGET_EXCEEDED");
+  } else if (cleanupFailed) {
+    terminal = failureTerminal(task, "WORKER_EXECUTION_FAILED");
   }
 
-  const finalization = await dependencies.control.finalize({
-    leaseToken: task.leaseToken,
-    terminal,
-  });
+  const finalization = await finalizeThroughTrustedBoundary(task, terminal, dependencies.control);
 
   return Object.freeze({
     status: "completed" as const,

@@ -29,7 +29,7 @@ function validResult() {
     contentDigest: "b".repeat(64),
     artifactDigest: "c".repeat(64),
     compressedBytes: 12_345,
-    expandedBytes: 23_456,
+    expandedBytes: 45_000,
     retainedFileCount: 42,
     retainedBytes: 34_567,
     storedArtifactBytes: 45_678,

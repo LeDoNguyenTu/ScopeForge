@@ -20,7 +20,7 @@ function repository(overrides: Partial<RepositorySnapshotRepository> = {}): Repo
     enqueue: vi.fn(async () => ({
       scanJobId: "77777777-7777-4777-8777-777777777777",
       taskId: ids.taskId,
-      executionClass: "repository_snapshot_github_public_v1",
+      executionClass: "repository_snapshot_github_public_v1" as const,
       absoluteDeadlineAt: "2026-08-27T03:40:00.000Z",
     })),
     getAttemptArtifact: vi.fn(async () => ({
@@ -30,7 +30,7 @@ function repository(overrides: Partial<RepositorySnapshotRepository> = {}): Repo
     publish: vi.fn(async () => ({
       taskId: ids.taskId,
       attemptId: ids.attemptId,
-      outcome: "succeeded",
+      outcome: "succeeded" as const,
       replayed: false,
       snapshotId: "88888888-8888-4888-8888-888888888888",
     })),
@@ -41,10 +41,11 @@ function repository(overrides: Partial<RepositorySnapshotRepository> = {}): Repo
 function objectStore(overrides: Partial<RepositorySnapshotObjectStore> = {}): RepositorySnapshotObjectStore {
   return {
     createAttemptUpload: vi.fn(async () => ({
-      method: "PUT",
+      method: "PUT" as const,
       url: "https://scopeforge-artifacts.example.r2.cloudflarestorage.com/object?X-Amz-Signature=test",
       expiresAt: "2026-08-27T03:26:00.000Z",
     })),
+    createAttemptDownload: vi.fn(),
     headObject: vi.fn(async () => ({ exists: true, size: 1234 })),
     deleteObject: vi.fn(async () => undefined),
     ...overrides,

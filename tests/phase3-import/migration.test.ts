@@ -31,7 +31,7 @@ describe("Phase 5C hosted Phase 3 import migration", () => {
   it("keeps the manual database contract aligned with the Phase 5C enum, table and RPC", async () => {
     const types = await readFile(databaseTypesPath, "utf8");
 
-    expect(types).toContain('export type ScanJobKind = "phase2_blocked" | "passive_runtime" | "active_validation" | "phase3_import";');
+    expect(types).toMatch(/export type ScanJobKind = [^;]*"phase3_import"/);
     expect(types).toContain("export type SecurityPhase3ImportRunRow = {");
     expect(types).toContain("security_phase3_import_runs: {");
     expect(types).toContain("persist_phase3_import_result: {");

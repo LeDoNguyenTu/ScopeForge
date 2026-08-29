@@ -1,5 +1,6 @@
 import type {
   FoundationProbeInput,
+  RepositoryScanInput,
   RepositorySnapshotInput,
   WorkerAttemptMetrics,
   WorkerExecutionBudget,
@@ -70,9 +71,20 @@ export interface RepositorySnapshotWorkerPersistenceClaim {
   input: Omit<RepositorySnapshotInput, "artifactUpload">;
 }
 
+export interface RepositoryScanWorkerPersistenceClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "phase3_repository_scan_no_egress_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: RepositoryScanInput;
+}
+
 export type WorkerPersistenceClaimResult =
   | FoundationWorkerPersistenceClaim
   | RepositorySnapshotWorkerPersistenceClaim
+  | RepositoryScanWorkerPersistenceClaim
   | null;
 
 export type WorkerClaimResult = WorkerTaskContract | null;
@@ -143,6 +155,8 @@ export type WorkerControlErrorCode =
   | "WORKER_JOB_NOT_AVAILABLE"
   | "WORKER_JOB_STATE_CONFLICT"
   | "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED"
+  | "REPOSITORY_SCAN_PUBLICATION_REQUIRED"
+  | "REPOSITORY_SCAN_ARTIFACT_NOT_AVAILABLE"
   | "REPOSITORY_UNAVAILABLE"
   | "REPOSITORY_IDENTITY_CHANGED"
   | "REPOSITORY_NETWORK_POLICY_FAILED"

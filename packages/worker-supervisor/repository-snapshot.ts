@@ -262,7 +262,7 @@ export function createRepositorySnapshotExecutor(
   const now = dependencies.now ?? Date.now;
   const cpuUsage = dependencies.cpuUsage ?? (() => process.cpuUsage());
 
-  return Object.freeze({
+  return Object.freeze<WorkerExecutor>({
     async execute(contract, signal) {
       let inputBytes = 0;
       const startedAt = now();

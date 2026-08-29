@@ -1,3 +1,4 @@
+import { RepositoryScanError } from "@/lib/repository-scans/types";
 import { RepositorySnapshotError } from "@/lib/repository-snapshots/types";
 import { WorkerBrokerAuthError } from "./auth";
 import { WorkerControlError } from "./types";
@@ -14,6 +15,8 @@ function statusForControlError(code: WorkerControlError["code"]): number {
     case "WORKER_TERMINAL_CONFLICT":
     case "WORKER_JOB_STATE_CONFLICT":
     case "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED":
+    case "REPOSITORY_SCAN_PUBLICATION_REQUIRED":
+    case "REPOSITORY_SCAN_ARTIFACT_NOT_AVAILABLE":
       return 409;
     case "WORKER_CREDENTIAL_INVALID":
     case "WORKER_VERSION_INVALID":
@@ -54,6 +57,26 @@ function statusForRepositorySnapshotError(code: RepositorySnapshotError["code"])
   }
 }
 
+function statusForRepositoryScanError(code: RepositoryScanError["code"]): number {
+  switch (code) {
+    case "WORKER_DISABLED":
+      return 403;
+    case "REPOSITORY_SCAN_OUTPUT_INVALID":
+      return 400;
+    case "WORKER_LEASE_INVALID":
+    case "WORKER_JOB_STATE_CONFLICT":
+    case "REPOSITORY_SCAN_ARTIFACT_NOT_AVAILABLE":
+    case "REPOSITORY_SCAN_ARTIFACT_AUTHORIZATION_FAILED":
+    case "REPOSITORY_SCAN_PUBLICATION_REQUIRED":
+    case "REPOSITORY_SCAN_TERMINAL_CONFLICT":
+    case "REPOSITORY_SCAN_FINDING_ID_CONFLICT":
+    case "REPOSITORY_SCAN_EVIDENCE_ID_CONFLICT":
+      return 409;
+    default:
+      return 500;
+  }
+}
+
 export function workerJson(data: unknown, status = 200): Response {
   return Response.json(data, {
     status,
@@ -73,6 +96,9 @@ export function workerRouteError(error: unknown): Response {
   }
   if (error instanceof RepositorySnapshotError) {
     return workerJson({ error: { code: error.code } }, statusForRepositorySnapshotError(error.code));
+  }
+  if (error instanceof RepositoryScanError) {
+    return workerJson({ error: { code: error.code } }, statusForRepositoryScanError(error.code));
   }
   return workerJson({ error: { code: "WORKER_REQUEST_FAILED" } }, 500);
 }

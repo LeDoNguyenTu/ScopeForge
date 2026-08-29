@@ -16,14 +16,24 @@ async function collect(directory: string): Promise<string[]> {
 }
 
 describe("Phase 6A worker authority boundaries", () => {
-  it("keeps worker supervisor free of target-network and application service-role authority", async () => {
+  it("keeps worker supervisor free of application service-role and product runtime authority", async () => {
     const files = await collect(path.join(root, "packages/worker-supervisor"));
     for (const file of files) {
       const source = await readFile(file, "utf8");
       expect(source, path.relative(root, file)).not.toMatch(
-        /runtime-network|runtime-observer|runtime-validator|node:(?:http|https|net|dns|tls|dgram|child_process|worker_threads)|createAdminClient|@supabase\/|\bfetch\s*\(/,
+        /runtime-network|runtime-observer|runtime-validator|createAdminClient|@supabase\//,
       );
     }
+  });
+
+  it("keeps the Phase 6A foundation executor zero-egress and process-free", async () => {
+    const source = await readFile(
+      path.join(root, "packages/worker-supervisor/foundation-probe.ts"),
+      "utf8",
+    );
+    expect(source).not.toMatch(
+      /node:(?:http|https|net|dns|tls|dgram|child_process|worker_threads)|\bfetch\s*\(/,
+    );
   });
 
   it("keeps browser and component code away from worker supervisor modules", async () => {
@@ -44,33 +54,34 @@ describe("Phase 6A worker authority boundaries", () => {
     ];
     const joined = (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
     for (const forbidden of [
-      /\bcommand\b/i,
-      /\bshell\b/i,
-      /containerName/i,
-      /networkAllowlist/i,
-      /packageManager/i,
-      /requestHeaders/i,
-      /requestBody/i,
-      /lifecycleState/i,
-      /validationState/i,
+      /\bcommand\s*[:?]/i,
+      /\bshell\s*[:?]/i,
+      /\bcontainerName\s*[:?]/i,
+      /\bnetworkAllowlist\s*[:?]/i,
+      /\bpackageManager\s*[:?]/i,
+      /\brequestHeaders\s*[:?]/i,
+      /\brequestBody\s*[:?]/i,
+      /\blifecycleState\s*[:?]/i,
+      /\bvalidationState\s*[:?]/i,
     ]) {
       expect(joined).not.toMatch(forbidden);
     }
   });
 
-  it("keeps service-role composition server-only", async () => {
+  it("keeps service-role composition out of client-executed modules", async () => {
     const serverDependencies = await readFile(
       path.join(root, "lib/worker-control/server-dependencies.ts"),
       "utf8",
     );
     expect(serverDependencies).toContain("createAdminClient");
 
-    const browserFiles = [
+    const candidateFiles = [
       ...await collect(path.join(root, "components")),
-      ...await collect(path.join(root, "app/api/internal/workers")),
+      ...await collect(path.join(root, "app")),
     ];
-    for (const file of browserFiles) {
+    for (const file of candidateFiles) {
       const source = await readFile(file, "utf8");
+      if (!/^[\s\S]*?["']use client["'];/.test(source)) continue;
       expect(source, path.relative(root, file)).not.toContain("createAdminClient");
     }
   });

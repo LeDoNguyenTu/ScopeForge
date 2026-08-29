@@ -8,6 +8,7 @@ import ActiveValidationPanel, {
 import RepositoryImportPanel, {
   type RepositoryImportHistoryItem,
 } from "@/components/assets/RepositoryImportPanel";
+import RepositoryScanPanel from "@/components/assets/RepositoryScanPanel";
 import RepositorySnapshotPanel from "@/components/assets/RepositorySnapshotPanel";
 import RuntimeObservationPanel, {
   type RuntimeObservationPanelObservation,
@@ -15,6 +16,11 @@ import RuntimeObservationPanel, {
 import VerificationPanel from "@/components/assets/VerificationPanel";
 import type { Json } from "@/lib/database.types";
 import { createPhase3ImportRepository } from "@/lib/phase3-import/repository";
+import {
+  loadRepositoryScanReadModel,
+  type RepositoryScanHistoryItem,
+  type RepositoryScanJobSummary,
+} from "@/lib/repository-scans/read-model";
 import {
   listRepositorySnapshots,
   type RepositorySnapshotHistoryItem,
@@ -140,11 +146,14 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
 
   let repositoryImportHistory: RepositoryImportHistoryItem[] = [];
   let repositorySnapshotHistory: readonly RepositorySnapshotHistoryItem[] = [];
+  let repositoryScanHistory: readonly RepositoryScanHistoryItem[] = [];
+  let repositoryScanLatestJob: RepositoryScanJobSummary | null = null;
   if (asset.kind === "repository") {
     const importRepository = createPhase3ImportRepository(supabase);
-    const [importRows, snapshotRows] = await Promise.all([
+    const [importRows, snapshotRows, scanReadModel] = await Promise.all([
       importRepository.listRecentImports(workspace.id, asset.id, 20),
       listRepositorySnapshots(supabase, workspace.id, asset.id, 20),
+      loadRepositoryScanReadModel(supabase, workspace.id, asset.id, 10),
     ]);
     repositoryImportHistory = importRows.map((row) => ({
       id: row.id,
@@ -159,6 +168,8 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       createdAt: row.created_at,
     }));
     repositorySnapshotHistory = snapshotRows;
+    repositoryScanHistory = scanReadModel.history;
+    repositoryScanLatestJob = scanReadModel.latestJob;
   }
 
   const isVerified = asset.verification_status === "verified";
@@ -217,6 +228,12 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
               assetId={asset.id}
               role={role}
               history={repositorySnapshotHistory}
+            />
+          </section>
+          <section className="panel verificationSection">
+            <RepositoryScanPanel
+              latestJob={repositoryScanLatestJob}
+              history={repositoryScanHistory}
             />
           </section>
           <section className="panel verificationSection">

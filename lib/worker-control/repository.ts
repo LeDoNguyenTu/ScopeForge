@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Phase6cDatabase } from "@/lib/database.phase6c.types";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
 import type { WorkerExecutionBudget, WorkerExecutionClass } from "@/packages/worker-contracts";
 import {
@@ -25,9 +25,13 @@ import {
 const EXECUTION_CLASSES = new Set<WorkerExecutionClass>([
   "foundation_no_egress_v1",
   "repository_snapshot_github_public_v1",
+  "phase3_repository_scan_no_egress_v1",
 ]);
 const OBJECT_KEY_PATTERN = /^repository-source\/[a-f0-9]{64}[.]tar[.]gz$/;
 const OWNER_REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
+const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
 const KNOWN_CODES = [
   "WORKER_AUTHENTICATION_FAILED",
   "WORKER_DISABLED",
@@ -44,6 +48,8 @@ const KNOWN_CODES = [
   "WORKER_JOB_NOT_AVAILABLE",
   "WORKER_JOB_STATE_CONFLICT",
   "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED",
+  "REPOSITORY_SCAN_PUBLICATION_REQUIRED",
+  "REPOSITORY_SCAN_ARTIFACT_NOT_AVAILABLE",
   "REPOSITORY_UNAVAILABLE",
   "REPOSITORY_IDENTITY_CHANGED",
   "REPOSITORY_NETWORK_POLICY_FAILED",
@@ -63,16 +69,26 @@ function requiredString(value: unknown): string {
   return value;
 }
 
+function requiredUuid(value: unknown): string {
+  const result = requiredString(value);
+  if (!UUID_PATTERN.test(result)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  return result;
+}
+
+function boundedInteger(value: unknown, maximum: number): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0 || (value as number) > maximum) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return value as number;
+}
+
 function nullableString(value: unknown): string | null {
   if (value === null) return null;
   return requiredString(value);
 }
 
 function boundedCount(value: unknown): number {
-  if (!Number.isSafeInteger(value) || (value as number) < 0) {
-    throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  }
-  return value as number;
+  return boundedInteger(value, Number.MAX_SAFE_INTEGER);
 }
 
 function parseExecutionClass(value: unknown): WorkerExecutionClass {
@@ -159,6 +175,51 @@ function parseCanonicalRepositoryIdentity(input: Record<string, unknown>): {
   return { owner, repository, canonicalRepositoryUrl };
 }
 
+function parseRepositoryScanInput(input: Record<string, unknown>) {
+  if (input.kind !== "phase3_repository_scan") {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const canonicalRepositoryUrl = requiredString(input.canonicalRepositoryUrl);
+  let canonicalUrl: URL;
+  try {
+    canonicalUrl = new URL(canonicalRepositoryUrl);
+  } catch {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  if (canonicalUrl.protocol !== "https:"
+      || canonicalUrl.hostname !== "github.com"
+      || canonicalUrl.username !== ""
+      || canonicalUrl.password !== ""
+      || canonicalUrl.search !== ""
+      || canonicalUrl.hash !== ""
+      || canonicalUrl.pathname.split("/").filter(Boolean).length !== 2) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const resolvedCommitSha = requiredString(input.resolvedCommitSha);
+  const contentDigest = requiredString(input.contentDigest);
+  const artifactDigest = requiredString(input.artifactDigest);
+  if (!COMMIT_PATTERN.test(resolvedCommitSha)
+      || !DIGEST_PATTERN.test(contentDigest)
+      || !DIGEST_PATTERN.test(artifactDigest)
+      || input.scannerProfileId !== "phase3-hosted-static-v1"
+      || input.scannerProfileVersion !== 1) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    kind: "phase3_repository_scan" as const,
+    snapshotId: requiredUuid(input.snapshotId),
+    canonicalRepositoryUrl,
+    resolvedCommitSha,
+    contentDigest,
+    artifactDigest,
+    storedArtifactBytes: boundedInteger(input.storedArtifactBytes, 335_544_320),
+    retainedFileCount: boundedInteger(input.retainedFileCount, 20_000),
+    retainedBytes: boundedInteger(input.retainedBytes, 268_435_456),
+    scannerProfileId: "phase3-hosted-static-v1" as const,
+    scannerProfileVersion: 1 as const,
+  });
+}
+
 function parseClaim(value: unknown): WorkerPersistenceClaimResult {
   if (value === null) return null;
   if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
@@ -186,6 +247,14 @@ function parseClaim(value: unknown): WorkerPersistenceClaimResult {
         kind: "foundation_probe" as const,
         nonce: requiredString(value.input.nonce),
       }),
+    });
+  }
+
+  if (executionClass === "phase3_repository_scan_no_egress_v1") {
+    return Object.freeze({
+      ...common,
+      executionClass,
+      input: parseRepositoryScanInput(value.input),
     });
   }
 
@@ -271,20 +340,23 @@ function parseFleetSnapshot(value: unknown): WorkerFleetSnapshot {
 export interface WorkerControlRepository {
   register(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   registerRepositorySnapshot(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
+  registerRepositoryScan(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   disable(workerId: string): Promise<WorkerDisableResult>;
   authenticate(input: WorkerAuthenticationInput): Promise<WorkerNodeIdentity>;
   enqueueFoundationProbe(input: FoundationProbeEnqueueInput): Promise<FoundationProbeEnqueueResult>;
   claim(input: WorkerClaimInput): Promise<WorkerPersistenceClaimResult>;
+  claimRepositoryScan(input: WorkerClaimInput): Promise<WorkerPersistenceClaimResult>;
   heartbeat(input: WorkerLeaseIdentity): Promise<WorkerHeartbeatResult>;
   finalize(input: WorkerPersistenceFinalizationInput): Promise<WorkerFinalizationResult>;
+  finalizeRepositoryScanFailure(input: WorkerPersistenceFinalizationInput): Promise<WorkerFinalizationResult>;
   recover(nowIso: string): Promise<number>;
   fleetSnapshot(): Promise<WorkerFleetSnapshot>;
 }
 
 export function createWorkerControlRepository(
-  client: SupabaseClient<Database>,
+  client: SupabaseClient<Phase6cDatabase>,
 ): WorkerControlRepository {
-  return Object.freeze({
+  return Object.freeze<WorkerControlRepository>({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
         target_credential_hash: input.credentialHash,
@@ -293,6 +365,12 @@ export function createWorkerControlRepository(
     },
     async registerRepositorySnapshot(input) {
       return parseRegistration(await rpcData(client.rpc("register_repository_snapshot_worker_node", {
+        target_credential_hash: input.credentialHash,
+        target_software_version: input.softwareVersion,
+      })));
+    },
+    async registerRepositoryScan(input) {
+      return parseRegistration(await rpcData(client.rpc("register_repository_scan_worker_node", {
         target_credential_hash: input.credentialHash,
         target_software_version: input.softwareVersion,
       })));
@@ -316,6 +394,15 @@ export function createWorkerControlRepository(
     async claim(input) {
       return parseClaim(await rpcData(client.rpc("claim_worker_task", { target_worker_id: input.workerId })));
     },
+    async claimRepositoryScan(input) {
+      const claim = parseClaim(await rpcData(client.rpc("claim_repository_scan_worker_task", {
+        target_worker_id: input.workerId,
+      })));
+      if (claim !== null && claim.executionClass !== "phase3_repository_scan_no_egress_v1") {
+        throw new WorkerControlError("WORKER_CONTROL_FAILED");
+      }
+      return claim;
+    },
     async heartbeat(input) {
       return parseHeartbeat(await rpcData(client.rpc("heartbeat_worker_attempt", {
         target_worker_id: input.workerId,
@@ -326,6 +413,22 @@ export function createWorkerControlRepository(
     },
     async finalize(input) {
       return parseFinalization(await rpcData(client.rpc("finalize_worker_attempt", {
+        target_worker_id: input.workerId,
+        target_task_id: input.taskId,
+        target_attempt_id: input.attemptId,
+        target_lease_token: input.leaseToken,
+        target_terminal_outcome: input.terminalOutcome,
+        target_failure_code: input.failureCode,
+        target_terminal_payload_digest: input.terminalPayloadDigest,
+        target_wall_time_ms: input.wallTimeMs,
+        target_cpu_time_ms: input.cpuTimeMs,
+        target_peak_memory_bytes: input.peakMemoryBytes,
+        target_input_bytes: input.inputBytes,
+        target_output_bytes: input.outputBytes,
+      })));
+    },
+    async finalizeRepositoryScanFailure(input) {
+      return parseFinalization(await rpcData(client.rpc("finalize_repository_scan_worker_failure", {
         target_worker_id: input.workerId,
         target_task_id: input.taskId,
         target_attempt_id: input.attemptId,

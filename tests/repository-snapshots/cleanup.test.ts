@@ -22,6 +22,7 @@ function repository(candidates: Awaited<ReturnType<RepositorySnapshotCleanupRepo
 function objectStore(deleteObject = vi.fn(async () => undefined)): RepositorySnapshotObjectStore {
   return {
     createAttemptUpload: vi.fn(),
+    createAttemptDownload: vi.fn(),
     headObject: vi.fn(),
     deleteObject,
   };
@@ -104,7 +105,7 @@ describe("Phase 6B repository snapshot artifact cleanup", () => {
     expect(sql).toContain("target_limit between 1 and 100");
     expect(sql).toContain("grant execute on function public.list_repository_snapshot_cleanup_candidates");
     expect(sql).toContain("grant execute on function public.mark_repository_snapshot_artifact_deleted");
-    expect(sql).not.toMatch(/update\s+public[.]repository_source_snapshots/is);
-    expect(sql).not.toMatch(/delete\s+from\s+public[.]repository_source_snapshots/is);
+    expect(sql).not.toMatch(/update\s+public[.]repository_source_snapshots/i);
+    expect(sql).not.toMatch(/delete\s+from\s+public[.]repository_source_snapshots/i);
   });
 });
