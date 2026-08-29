@@ -11,6 +11,7 @@ interface RepositorySnapshotPanelProps {
   assetId: string;
   role: WorkspaceRole;
   history: readonly RepositorySnapshotHistoryItem[];
+  runtimeAvailable: boolean;
 }
 
 function bytesLabel(bytes: number): string {
@@ -23,6 +24,7 @@ export default function RepositorySnapshotPanel({
   assetId,
   role,
   history,
+  runtimeAvailable,
 }: RepositorySnapshotPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -31,6 +33,7 @@ export default function RepositorySnapshotPanel({
   const canRequest = role === "owner" || role === "admin";
 
   function requestSnapshot() {
+    if (!runtimeAvailable) return;
     setMessage(null);
     setErrorMessage(null);
     startTransition(async () => {
@@ -67,15 +70,22 @@ export default function RepositorySnapshotPanel({
             <div>
               <strong>Create a bounded source snapshot</strong>
               <p>The repository URL, default branch, immutable commit, execution profile, network policy, and storage location are derived by trusted ScopeForge services. There are no caller-configurable acquisition fields.</p>
+              {!runtimeAvailable && (
+                <p>The repository acquisition worker is not enabled in this deployment. Existing snapshot history remains available.</p>
+              )}
             </div>
           </div>
           <button
             className="primaryButton compact"
-            disabled={pending}
+            disabled={pending || !runtimeAvailable}
             onClick={requestSnapshot}
             type="button"
           >
-            <Archive size={14} /> {pending ? "Queueing snapshot..." : "Create private source snapshot"}
+            <Archive size={14} /> {pending
+              ? "Queueing snapshot..."
+              : runtimeAvailable
+                ? "Create private source snapshot"
+                : "Snapshot runtime unavailable"}
           </button>
         </div>
       ) : (
