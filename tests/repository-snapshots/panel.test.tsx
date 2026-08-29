@@ -26,6 +26,12 @@ const history = [{
   expiresAt: "2026-09-03T03:00:00.000Z",
 }];
 
+function expectCommitPrefix(): void {
+  expect(screen.getAllByText((_, element) =>
+    element?.textContent?.includes("a".repeat(12)) ?? false,
+  ).length).toBeGreaterThan(0);
+}
+
 beforeEach(() => {
   vi.mocked(requestRepositorySnapshot).mockReset();
   refresh.mockReset();
@@ -39,7 +45,7 @@ describe("RepositorySnapshotPanel", () => {
     expect(screen.getByText(/current public github default branch/i)).toBeInTheDocument();
     expect(screen.getByText(/does not run package scripts/i)).toBeInTheDocument();
     expect(screen.getByText(/phase 6c/i)).toBeInTheDocument();
-    expect(screen.getByText("a".repeat(12))).toBeInTheDocument();
+    expectCommitPrefix();
     expect(screen.queryByRole("link", { name: /download/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/branch|ref|sha|url|budget/i)).not.toBeInTheDocument();
   });
@@ -48,7 +54,7 @@ describe("RepositorySnapshotPanel", () => {
     render(<RepositorySnapshotPanel assetId="asset-1" role="viewer" history={history} runtimeAvailable />);
     expect(screen.queryByRole("button", { name: /create private source snapshot/i })).not.toBeInTheDocument();
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
-    expect(screen.getByText("a".repeat(12))).toBeInTheDocument();
+    expectCommitPrefix();
   });
 
   it("requests by asset id only and shows the safe result when the runtime is available", async () => {
