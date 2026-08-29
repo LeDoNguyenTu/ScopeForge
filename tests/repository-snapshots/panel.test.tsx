@@ -33,7 +33,7 @@ beforeEach(() => {
 
 describe("RepositorySnapshotPanel", () => {
   it("shows owner/admin request controls and safe provenance without download authority", () => {
-    render(<RepositorySnapshotPanel assetId="asset-1" role="owner" history={history} />);
+    render(<RepositorySnapshotPanel assetId="asset-1" role="owner" history={history} runtimeAvailable />);
 
     expect(screen.getByRole("button", { name: /create private source snapshot/i })).toBeInTheDocument();
     expect(screen.getByText(/current public github default branch/i)).toBeInTheDocument();
@@ -45,21 +45,29 @@ describe("RepositorySnapshotPanel", () => {
   });
 
   it("keeps member/viewer history read-only", () => {
-    render(<RepositorySnapshotPanel assetId="asset-1" role="viewer" history={history} />);
+    render(<RepositorySnapshotPanel assetId="asset-1" role="viewer" history={history} runtimeAvailable />);
     expect(screen.queryByRole("button", { name: /create private source snapshot/i })).not.toBeInTheDocument();
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
     expect(screen.getByText(/aaaaaaaaaaaa on main/i)).toBeInTheDocument();
   });
 
-  it("requests by asset id only and shows the safe result", async () => {
+  it("requests by asset id only and shows the safe result when the runtime is available", async () => {
     vi.mocked(requestRepositorySnapshot).mockResolvedValue({
       ok: true,
       data: { taskId: "task-1" },
     });
-    render(<RepositorySnapshotPanel assetId="asset-1" role="admin" history={[]} />);
+    render(<RepositorySnapshotPanel assetId="asset-1" role="admin" history={[]} runtimeAvailable />);
 
     fireEvent.click(screen.getByRole("button", { name: /create private source snapshot/i }));
     await waitFor(() => expect(requestRepositorySnapshot).toHaveBeenCalledWith("asset-1"));
     expect(await screen.findByText(/snapshot request queued/i)).toBeInTheDocument();
+  });
+
+  it("shows a disabled fail-closed control while the acquisition runtime is unavailable", () => {
+    render(<RepositorySnapshotPanel assetId="asset-1" role="owner" history={[]} runtimeAvailable={false} />);
+
+    expect(screen.getByRole("button", { name: /snapshot runtime unavailable/i })).toBeDisabled();
+    expect(screen.getByText(/acquisition worker is not enabled/i)).toBeInTheDocument();
+    expect(requestRepositorySnapshot).not.toHaveBeenCalled();
   });
 });
