@@ -4,6 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import RepositorySnapshotPanel from "@/components/assets/RepositorySnapshotPanel";
 import { requestRepositorySnapshot } from "@/app/dashboard/assets/[assetId]/snapshot-actions";
 
+const refresh = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+}));
+
 vi.mock("@/app/dashboard/assets/[assetId]/snapshot-actions", () => ({
   requestRepositorySnapshot: vi.fn(),
 }));
@@ -22,6 +28,7 @@ const history = [{
 
 beforeEach(() => {
   vi.mocked(requestRepositorySnapshot).mockReset();
+  refresh.mockReset();
 });
 
 describe("RepositorySnapshotPanel", () => {
