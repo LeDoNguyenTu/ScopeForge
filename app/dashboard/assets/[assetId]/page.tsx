@@ -19,6 +19,7 @@ import {
   listRepositorySnapshots,
   type RepositorySnapshotHistoryItem,
 } from "@/lib/repository-snapshots/read-model";
+import { HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED } from "@/lib/repository-snapshots/runtime";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
@@ -217,6 +218,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
               assetId={asset.id}
               role={role}
               history={repositorySnapshotHistory}
+              runtimeAvailable={HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED}
             />
           </section>
           <section className="panel verificationSection">
