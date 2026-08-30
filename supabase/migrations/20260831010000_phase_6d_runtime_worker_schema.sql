@@ -103,7 +103,7 @@ begin
     raise exception 'RUNTIME_WORKER_TASK_INVALID';
   end if;
 
-  if job_record.requested_by <> new.requested_by
+  if job_record.requested_by is distinct from new.requested_by
      or job_record.job_kind <> new.domain_job_kind
      or job_record.status <> 'queued'::public.scan_job_status
      or job_record.cancel_requested_at is not null then
