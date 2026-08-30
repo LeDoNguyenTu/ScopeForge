@@ -17,12 +17,19 @@ import {
   type WorkerNodeIdentity,
   type WorkerPersistenceClaimResult,
 } from "./types";
-import type { WorkerControlRepository } from "./repository";
+import type {
+  RuntimeWorkerControlRepository,
+  WorkerControlRepository,
+} from "./repository";
 
-export type { WorkerControlRepository } from "./repository";
+export type {
+  RuntimeWorkerControlRepository,
+  WorkerControlRepository,
+} from "./repository";
 
 export interface WorkerControlServiceDependencies {
   repository: WorkerControlRepository;
+  runtimeRepository?: RuntimeWorkerControlRepository;
   repositorySnapshotObjectStore?: () => RepositorySnapshotObjectStore;
   randomBytes?: (size: number) => Buffer;
   now?: () => Date;
@@ -52,6 +59,15 @@ function randomSecret(dependencies: WorkerControlServiceDependencies): string {
 
 function currentTime(dependencies: WorkerControlServiceDependencies): Date {
   return (dependencies.now ?? (() => new Date()))();
+}
+
+function requireRuntimeRepository(
+  dependencies: WorkerControlServiceDependencies,
+): RuntimeWorkerControlRepository {
+  if (!dependencies.runtimeRepository) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return dependencies.runtimeRepository;
 }
 
 async function registerWith(
@@ -85,9 +101,10 @@ async function registerRuntimeWith(
     credentialHash: sha256(secret),
     softwareVersion,
   };
+  const repository = requireRuntimeRepository(dependencies);
   const node = executionClass === "passive_runtime_observation_v1"
-    ? await dependencies.repository.registerPassiveRuntime(input)
-    : await dependencies.repository.registerActiveCors(input);
+    ? await repository.registerPassiveRuntime(input)
+    : await repository.registerActiveCors(input);
   if (node.executionClass !== executionClass) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
@@ -161,14 +178,14 @@ export async function enqueuePassiveRuntimeWorkerTask(
   input: RuntimeWorkerEnqueueInput,
   dependencies: WorkerControlServiceDependencies,
 ) {
-  return dependencies.repository.enqueuePassiveRuntime(input);
+  return requireRuntimeRepository(dependencies).enqueuePassiveRuntime(input);
 }
 
 export async function enqueueActiveCorsWorkerTask(
   input: RuntimeWorkerEnqueueInput,
   dependencies: WorkerControlServiceDependencies,
 ) {
-  return dependencies.repository.enqueueActiveCors(input);
+  return requireRuntimeRepository(dependencies).enqueueActiveCors(input);
 }
 
 function repositoryClaimExpiry(
@@ -255,7 +272,7 @@ export async function claimWorkerTaskForNode(
     worker.executionClass === "passive_runtime_observation_v1"
     || worker.executionClass === "active_cors_validation_v1"
   ) {
-    const runtimeClaim = await dependencies.repository.claimRuntime({ workerId: worker.workerId });
+    const runtimeClaim = await requireRuntimeRepository(dependencies).claimRuntime({ workerId: worker.workerId });
     if (runtimeClaim !== null && runtimeClaim.executionClass !== worker.executionClass) {
       throw new WorkerControlError("WORKER_CONTROL_FAILED");
     }
