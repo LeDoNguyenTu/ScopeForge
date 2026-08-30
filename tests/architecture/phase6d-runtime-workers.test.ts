@@ -92,8 +92,7 @@ describe("Phase 6D authority architecture", () => {
   });
 
   it("permanently keeps the general executor sandbox network-disabled", async () => {
-    const files = await sourcesUnder("packages/worker-supervisor");
-    const combined = files.map(({ code }) => code).join("\n");
-    expect(combined).toContain("--network=none");
+    const sandboxCommand = await source("packages/worker-sandbox/podman-command.ts");
+    expect(sandboxCommand).toContain("--network=none");
   });
 });
