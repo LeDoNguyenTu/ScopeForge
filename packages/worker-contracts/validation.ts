@@ -96,6 +96,14 @@ const PASSIVE_RUNTIME_RESULT_KEYS = [
   "observations",
 ] as const;
 const ACTIVE_CORS_RESULT_KEYS = ["kind", "requestCount", "observation"] as const;
+const ACTIVE_CORS_OBSERVATION_KEYS = [
+  "kind",
+  "url",
+  "status",
+  "allowedOrigin",
+  "credentialsAllowed",
+  "variesOnOrigin",
+] as const;
 const REPOSITORY_SKIP_KEYS = [
   "symlink",
   "hardlink",
@@ -528,13 +536,36 @@ function parseActiveCorsResult(value: unknown): ActiveCorsValidationResult {
   if (!isRecord(value.observation) || value.observation.kind !== "cors-policy") {
     throw new Error("Active CORS observation is invalid.");
   }
-  if (serializedBytes(value.observation) > MAX_ACTIVE_OBSERVATION_BYTES) {
+  const observation = value.observation;
+  assertExactKeys(observation, ACTIVE_CORS_OBSERVATION_KEYS, "Active CORS observation");
+  if (
+    typeof observation.url !== "string"
+    || observation.url.length === 0
+    || observation.url.length > 2_048
+    || !Number.isInteger(observation.status)
+    || (observation.status as number) < 100
+    || (observation.status as number) > 599
+    || (observation.allowedOrigin !== null && typeof observation.allowedOrigin !== "string")
+    || (typeof observation.allowedOrigin === "string" && observation.allowedOrigin.length > 2_048)
+    || typeof observation.credentialsAllowed !== "boolean"
+    || typeof observation.variesOnOrigin !== "boolean"
+  ) {
+    throw new Error("Active CORS observation is invalid.");
+  }
+  if (serializedBytes(observation) > MAX_ACTIVE_OBSERVATION_BYTES) {
     throw new Error("Active CORS observation exceeds the execution budget.");
   }
   return Object.freeze({
     kind: "active_cors_validation",
     requestCount: 1,
-    observation: Object.freeze({ ...value.observation }) as ActiveCorsValidationResult["observation"],
+    observation: Object.freeze({
+      kind: "cors-policy",
+      url: observation.url,
+      status: observation.status as number,
+      allowedOrigin: observation.allowedOrigin,
+      credentialsAllowed: observation.credentialsAllowed,
+      variesOnOrigin: observation.variesOnOrigin,
+    }),
   });
 }
 
