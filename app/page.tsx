@@ -10,6 +10,7 @@ import {
   Wrench,
 } from "lucide-react";
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
+import LandingBootGate from "@/components/landing/LandingBootGate";
 import PublicNav from "@/components/landing/PublicNav";
 
 const workflow = [
@@ -25,8 +26,10 @@ const workflow = [
 export default function Home() {
   return (
     <main className="forgeLanding commandLanding">
-      <PublicNav />
-      <CommandCenterLandingHero />
+      <LandingBootGate>
+        <PublicNav />
+        <CommandCenterLandingHero />
+      </LandingBootGate>
 
       <section id="platform" className="forgePlatform commandBelowFold">
         <div className="forgeSectionHeading">
