@@ -1,11 +1,19 @@
 import { workerExecutionProfile } from "./profiles";
 import type {
+  ActiveCorsValidationInput,
+  ActiveCorsValidationResult,
+  FoundationProbeInput,
   FoundationProbeResult,
+  PassiveRuntimeObservationInput,
+  PassiveRuntimeObservationResult,
+  RepositoryScanInput,
   RepositoryScanResult,
+  RepositorySnapshotInput,
   RepositorySnapshotResult,
   RepositorySnapshotSkipCounts,
   WorkerAttemptMetrics,
   WorkerExecutionClass,
+  WorkerTaskInput,
   WorkerTerminalEnvelope,
   WorkerTerminalExpectation,
   WorkerTerminalFailureCode,
@@ -30,6 +38,30 @@ const METRIC_KEYS = [
   "inputBytes",
   "outputBytes",
 ] as const;
+const FOUNDATION_INPUT_KEYS = ["kind", "nonce"] as const;
+const REPOSITORY_INPUT_KEYS = [
+  "kind",
+  "owner",
+  "repository",
+  "canonicalRepositoryUrl",
+  "artifactUpload",
+] as const;
+const REPOSITORY_UPLOAD_KEYS = ["method", "url", "expiresAt"] as const;
+const REPOSITORY_SCAN_INPUT_KEYS = [
+  "kind",
+  "snapshotId",
+  "canonicalRepositoryUrl",
+  "resolvedCommitSha",
+  "contentDigest",
+  "artifactDigest",
+  "storedArtifactBytes",
+  "retainedFileCount",
+  "retainedBytes",
+  "scannerProfileId",
+  "scannerProfileVersion",
+] as const;
+const PASSIVE_RUNTIME_INPUT_KEYS = ["kind", "domainJobId"] as const;
+const ACTIVE_CORS_INPUT_KEYS = ["kind", "domainJobId"] as const;
 const FOUNDATION_RESULT_KEYS = ["kind", "nonceDigest"] as const;
 const REPOSITORY_RESULT_KEYS = [
   "kind",
@@ -57,6 +89,13 @@ const REPOSITORY_SCAN_RESULT_KEYS = [
   "resultDigest",
   "hostedResult",
 ] as const;
+const PASSIVE_RUNTIME_RESULT_KEYS = [
+  "kind",
+  "requestCount",
+  "redirectCount",
+  "observations",
+] as const;
+const ACTIVE_CORS_RESULT_KEYS = ["kind", "requestCount", "observation"] as const;
 const REPOSITORY_SKIP_KEYS = [
   "symlink",
   "hardlink",
@@ -93,6 +132,29 @@ const REPOSITORY_SCAN_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
   "REPOSITORY_SCAN_SCANNER_FAILED",
   "REPOSITORY_SCAN_OUTPUT_INVALID",
 ]);
+const RUNTIME_WORKER_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
+  ...FOUNDATION_FAILURE_CODES,
+  "RUNTIME_WORKER_AUTHORIZATION_FAILED",
+  "RUNTIME_WORKER_CANCELLED",
+  "RUNTIME_WORKER_NETWORK_POLICY_FAILED",
+  "RUNTIME_WORKER_BUDGET_EXCEEDED",
+  "RUNTIME_WORKER_OUTPUT_INVALID",
+  "RUNTIME_WORKER_EXECUTION_FAILED",
+]);
+const PASSIVE_RUNTIME_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
+  ...RUNTIME_WORKER_FAILURE_CODES,
+  "PASSIVE_RUNTIME_REQUEST_TIMEOUT",
+  "PASSIVE_RUNTIME_TOTAL_TIMEOUT",
+  "PASSIVE_RUNTIME_NETWORK_ERROR",
+  "PASSIVE_RUNTIME_OBSERVATION_BUDGET",
+]);
+const ACTIVE_CORS_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
+  ...RUNTIME_WORKER_FAILURE_CODES,
+  "ACTIVE_CORS_REQUEST_TIMEOUT",
+  "ACTIVE_CORS_TOTAL_TIMEOUT",
+  "ACTIVE_CORS_NETWORK_ERROR",
+  "ACTIVE_CORS_OBSERVATION_BUDGET",
+]);
 
 const MAX_COMPRESSED_BYTES = 128 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 512 * 1024 * 1024;
@@ -101,6 +163,10 @@ const MAX_RETAINED_BYTES = 256 * 1024 * 1024;
 const MAX_STORED_ARTIFACT_BYTES = 320 * 1024 * 1024;
 const MAX_ARCHIVE_ENTRIES = 50_000;
 const MAX_DEFAULT_BRANCH_BYTES = 255;
+const MAX_PASSIVE_REQUESTS = 4;
+const MAX_PASSIVE_REDIRECTS = 3;
+const MAX_PASSIVE_OBSERVATION_BYTES = 65_536;
+const MAX_ACTIVE_OBSERVATION_BYTES = 32_768;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -133,6 +199,17 @@ function utf8Bytes(value: string): number {
   return new TextEncoder().encode(value).byteLength;
 }
 
+function serializedBytes(value: unknown): number {
+  return utf8Bytes(JSON.stringify(value));
+}
+
+function parseUuid(value: unknown, label: string): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return value;
+}
+
 function parseMetrics(
   value: unknown,
   executionClass: WorkerTerminalExpectation["executionClass"],
@@ -147,18 +224,6 @@ function parseMetrics(
     inputBytes: boundedInteger(value.inputBytes, budget.maxInputBytes, "inputBytes"),
     outputBytes: boundedInteger(value.outputBytes, budget.maxOutputBytes, "outputBytes"),
   });
-}
-
-function parseFoundationResult(value: unknown): FoundationProbeResult {
-  if (!isRecord(value)) throw new Error("Successful worker attempts require a result object.");
-  assertExactKeys(value, FOUNDATION_RESULT_KEYS, "Worker terminal result");
-  if (value.kind !== "foundation_probe") {
-    throw new Error("Worker terminal result kind is not supported for the execution class.");
-  }
-  if (typeof value.nonceDigest !== "string" || !SHA256_PATTERN.test(value.nonceDigest)) {
-    throw new Error("Worker terminal result nonce digest is invalid.");
-  }
-  return Object.freeze({ kind: "foundation_probe", nonceDigest: value.nonceDigest });
 }
 
 function parseCanonicalRepositoryUrl(value: unknown): string {
@@ -187,6 +252,139 @@ function parseCanonicalRepositoryUrl(value: unknown): string {
     throw new Error("Repository snapshot canonical URL is invalid.");
   }
   return `https://github.com/${segments[0]}/${segments[1]}`;
+}
+
+function parseFoundationInput(value: Record<string, unknown>): FoundationProbeInput {
+  assertExactKeys(value, FOUNDATION_INPUT_KEYS, "Worker task input");
+  if (value.kind !== "foundation_probe" || typeof value.nonce !== "string" || value.nonce.length === 0) {
+    throw new Error("Foundation worker task input is invalid.");
+  }
+  return Object.freeze({ kind: "foundation_probe", nonce: value.nonce });
+}
+
+function parseRepositoryInput(value: Record<string, unknown>): RepositorySnapshotInput {
+  assertExactKeys(value, REPOSITORY_INPUT_KEYS, "Worker task input");
+  if (value.kind !== "repository_snapshot_github_public") {
+    throw new Error("Repository snapshot worker task input is invalid.");
+  }
+  if (typeof value.owner !== "string" || value.owner.length === 0 || value.owner.length > 100) {
+    throw new Error("Repository snapshot owner is invalid.");
+  }
+  if (typeof value.repository !== "string" || value.repository.length === 0 || value.repository.length > 100) {
+    throw new Error("Repository snapshot repository is invalid.");
+  }
+  if (!isRecord(value.artifactUpload)) {
+    throw new Error("Repository snapshot upload descriptor is invalid.");
+  }
+  assertExactKeys(value.artifactUpload, REPOSITORY_UPLOAD_KEYS, "Repository snapshot upload descriptor");
+  if (value.artifactUpload.method !== "PUT" || typeof value.artifactUpload.url !== "string") {
+    throw new Error("Repository snapshot upload descriptor is invalid.");
+  }
+  if (
+    typeof value.artifactUpload.expiresAt !== "string"
+    || !Number.isFinite(Date.parse(value.artifactUpload.expiresAt))
+  ) {
+    throw new Error("Repository snapshot upload descriptor expiry is invalid.");
+  }
+  return Object.freeze({
+    kind: "repository_snapshot_github_public",
+    owner: value.owner,
+    repository: value.repository,
+    canonicalRepositoryUrl: parseCanonicalRepositoryUrl(value.canonicalRepositoryUrl),
+    artifactUpload: Object.freeze({
+      method: "PUT",
+      url: value.artifactUpload.url,
+      expiresAt: value.artifactUpload.expiresAt,
+    }),
+  });
+}
+
+function parseRepositoryScanInput(value: Record<string, unknown>): RepositoryScanInput {
+  assertExactKeys(value, REPOSITORY_SCAN_INPUT_KEYS, "Worker task input");
+  if (value.kind !== "phase3_repository_scan") {
+    throw new Error("Repository scan worker task input is invalid.");
+  }
+  if (typeof value.resolvedCommitSha !== "string" || !COMMIT_SHA_PATTERN.test(value.resolvedCommitSha)) {
+    throw new Error("Repository scan commit SHA is invalid.");
+  }
+  if (typeof value.contentDigest !== "string" || !SHA256_PATTERN.test(value.contentDigest)) {
+    throw new Error("Repository scan content digest is invalid.");
+  }
+  if (typeof value.artifactDigest !== "string" || !SHA256_PATTERN.test(value.artifactDigest)) {
+    throw new Error("Repository scan artifact digest is invalid.");
+  }
+  if (value.scannerProfileId !== "phase3-hosted-static-v1" || value.scannerProfileVersion !== 1) {
+    throw new Error("Repository scan scanner profile is invalid.");
+  }
+  return Object.freeze({
+    kind: "phase3_repository_scan",
+    snapshotId: parseUuid(value.snapshotId, "Repository scan snapshot identifier"),
+    canonicalRepositoryUrl: parseCanonicalRepositoryUrl(value.canonicalRepositoryUrl),
+    resolvedCommitSha: value.resolvedCommitSha,
+    contentDigest: value.contentDigest,
+    artifactDigest: value.artifactDigest,
+    storedArtifactBytes: boundedInteger(value.storedArtifactBytes, MAX_STORED_ARTIFACT_BYTES, "storedArtifactBytes"),
+    retainedFileCount: boundedInteger(value.retainedFileCount, MAX_RETAINED_FILES, "retainedFileCount"),
+    retainedBytes: boundedInteger(value.retainedBytes, MAX_RETAINED_BYTES, "retainedBytes"),
+    scannerProfileId: "phase3-hosted-static-v1",
+    scannerProfileVersion: 1,
+  });
+}
+
+function parsePassiveRuntimeInput(value: Record<string, unknown>): PassiveRuntimeObservationInput {
+  assertExactKeys(value, PASSIVE_RUNTIME_INPUT_KEYS, "Worker task input");
+  if (value.kind !== "passive_runtime_observation") {
+    throw new Error("Passive runtime worker task input is invalid.");
+  }
+  return Object.freeze({
+    kind: "passive_runtime_observation",
+    domainJobId: parseUuid(value.domainJobId, "Passive runtime domain job identifier"),
+  });
+}
+
+function parseActiveCorsInput(value: Record<string, unknown>): ActiveCorsValidationInput {
+  assertExactKeys(value, ACTIVE_CORS_INPUT_KEYS, "Worker task input");
+  if (value.kind !== "active_cors_validation") {
+    throw new Error("Active CORS worker task input is invalid.");
+  }
+  return Object.freeze({
+    kind: "active_cors_validation",
+    domainJobId: parseUuid(value.domainJobId, "Active CORS domain job identifier"),
+  });
+}
+
+export function validateWorkerTaskInput(
+  value: unknown,
+  executionClass: WorkerExecutionClass,
+): WorkerTaskInput {
+  if (!isRecord(value)) throw new Error("Worker task input must be an object.");
+  switch (executionClass) {
+    case "foundation_no_egress_v1":
+      return parseFoundationInput(value);
+    case "repository_snapshot_github_public_v1":
+      return parseRepositoryInput(value);
+    case "phase3_repository_scan_no_egress_v1":
+      return parseRepositoryScanInput(value);
+    case "passive_runtime_observation_v1":
+      return parsePassiveRuntimeInput(value);
+    case "active_cors_validation_v1":
+      return parseActiveCorsInput(value);
+  }
+
+  const unreachable: never = executionClass;
+  throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
+}
+
+function parseFoundationResult(value: unknown): FoundationProbeResult {
+  if (!isRecord(value)) throw new Error("Successful worker attempts require a result object.");
+  assertExactKeys(value, FOUNDATION_RESULT_KEYS, "Worker terminal result");
+  if (value.kind !== "foundation_probe") {
+    throw new Error("Worker terminal result kind is not supported for the execution class.");
+  }
+  if (typeof value.nonceDigest !== "string" || !SHA256_PATTERN.test(value.nonceDigest)) {
+    throw new Error("Worker terminal result nonce digest is invalid.");
+  }
+  return Object.freeze({ kind: "foundation_probe", nonceDigest: value.nonceDigest });
 }
 
 function parseSkipCounts(value: unknown): RepositorySnapshotSkipCounts {
@@ -296,6 +494,50 @@ function parseRepositoryScanResult(value: unknown): RepositoryScanResult {
   });
 }
 
+function parsePassiveRuntimeResult(value: unknown): PassiveRuntimeObservationResult {
+  if (!isRecord(value)) throw new Error("Successful worker attempts require a result object.");
+  assertExactKeys(value, PASSIVE_RUNTIME_RESULT_KEYS, "Worker terminal result");
+  if (value.kind !== "passive_runtime_observation") {
+    throw new Error("Worker terminal result kind is not supported for the execution class.");
+  }
+  const requestCount = boundedInteger(value.requestCount, MAX_PASSIVE_REQUESTS, "requestCount");
+  const redirectCount = boundedInteger(value.redirectCount, MAX_PASSIVE_REDIRECTS, "redirectCount");
+  if (redirectCount > requestCount) {
+    throw new Error("Passive runtime redirect count cannot exceed request count.");
+  }
+  if (!Array.isArray(value.observations) || value.observations.some((observation) => !isRecord(observation))) {
+    throw new Error("Passive runtime observations are invalid.");
+  }
+  if (serializedBytes(value.observations) > MAX_PASSIVE_OBSERVATION_BYTES) {
+    throw new Error("Passive runtime observations exceed the execution budget.");
+  }
+  return Object.freeze({
+    kind: "passive_runtime_observation",
+    requestCount,
+    redirectCount,
+    observations: Object.freeze(value.observations.map((observation) => Object.freeze({ ...observation }))) as PassiveRuntimeObservationResult["observations"],
+  });
+}
+
+function parseActiveCorsResult(value: unknown): ActiveCorsValidationResult {
+  if (!isRecord(value)) throw new Error("Successful worker attempts require a result object.");
+  assertExactKeys(value, ACTIVE_CORS_RESULT_KEYS, "Worker terminal result");
+  if (value.kind !== "active_cors_validation" || value.requestCount !== 1) {
+    throw new Error("Active CORS terminal result must contain exactly one request.");
+  }
+  if (!isRecord(value.observation) || value.observation.kind !== "cors-policy") {
+    throw new Error("Active CORS observation is invalid.");
+  }
+  if (serializedBytes(value.observation) > MAX_ACTIVE_OBSERVATION_BYTES) {
+    throw new Error("Active CORS observation exceeds the execution budget.");
+  }
+  return Object.freeze({
+    kind: "active_cors_validation",
+    requestCount: 1,
+    observation: Object.freeze({ ...value.observation }) as ActiveCorsValidationResult["observation"],
+  });
+}
+
 function parseResult(
   value: unknown,
   outcome: WorkerTerminalOutcome,
@@ -312,8 +554,14 @@ function parseResult(
       return parseRepositoryResult(value);
     case "phase3_repository_scan_no_egress_v1":
       return parseRepositoryScanResult(value);
+    case "passive_runtime_observation_v1":
+      return parsePassiveRuntimeResult(value);
+    case "active_cors_validation_v1":
+      return parseActiveCorsResult(value);
   }
-  throw new Error("Worker terminal execution class is not supported.");
+
+  const unreachable: never = executionClass;
+  throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
 }
 
 function failureCodesFor(executionClass: WorkerExecutionClass): Set<WorkerTerminalFailureCode> {
@@ -324,7 +572,14 @@ function failureCodesFor(executionClass: WorkerExecutionClass): Set<WorkerTermin
       return REPOSITORY_FAILURE_CODES;
     case "phase3_repository_scan_no_egress_v1":
       return REPOSITORY_SCAN_FAILURE_CODES;
+    case "passive_runtime_observation_v1":
+      return PASSIVE_RUNTIME_FAILURE_CODES;
+    case "active_cors_validation_v1":
+      return ACTIVE_CORS_FAILURE_CODES;
   }
+
+  const unreachable: never = executionClass;
+  throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
 }
 
 export function validateWorkerTerminalEnvelope(
