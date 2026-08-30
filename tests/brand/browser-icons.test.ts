@@ -1,24 +1,51 @@
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import manifest from "@/app/manifest";
+import {
+  SCOPEFORGE_ICON_PATH,
+  scopeForgeIconMetadata,
+} from "@/lib/brand/browser-icons";
 
 describe("ScopeForge browser icons", () => {
   it("uses a dedicated versioned Forge Aperture icon URL for Safari tab identity", () => {
-    const layout = readFileSync("app/layout.tsx", "utf8");
-
-    expect(layout).toContain("/scopeforge-mark-v2.svg");
-    expect(layout).toContain('type: "image/svg+xml"');
-    expect(layout).toContain("apple:");
-    expect(existsSync("public/scopeforge-mark-v2.svg")).toBe(true);
+    expect(SCOPEFORGE_ICON_PATH).toBe("/scopeforge-mark-v2.svg");
+    expect(scopeForgeIconMetadata.icon).toEqual([
+      {
+        url: SCOPEFORGE_ICON_PATH,
+        type: "image/svg+xml",
+        sizes: "any",
+      },
+    ]);
+    expect(scopeForgeIconMetadata.shortcut).toEqual([
+      {
+        url: SCOPEFORGE_ICON_PATH,
+        type: "image/svg+xml",
+      },
+    ]);
+    expect(scopeForgeIconMetadata.apple).toEqual([
+      {
+        url: SCOPEFORGE_ICON_PATH,
+        type: "image/svg+xml",
+        sizes: "180x180",
+      },
+    ]);
   });
 
   it("publishes installable any and maskable manifest icon entries", () => {
-    expect(existsSync("app/manifest.ts")).toBe(true);
-    if (!existsSync("app/manifest.ts")) return;
-
-    const manifest = readFileSync("app/manifest.ts", "utf8");
-    expect(manifest).toContain("ScopeForge");
-    expect(manifest.match(/scopeforge-mark-v2\.svg/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(manifest).toContain('purpose: "any"');
-    expect(manifest).toContain('purpose: "maskable"');
+    const value = manifest();
+    expect(value.name).toBe("ScopeForge");
+    expect(value.icons).toEqual([
+      {
+        src: SCOPEFORGE_ICON_PATH,
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
+      {
+        src: SCOPEFORGE_ICON_PATH,
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "maskable",
+      },
+    ]);
   });
 });
