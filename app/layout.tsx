@@ -16,9 +16,26 @@ export const metadata: Metadata = {
   description: "Open-source application security for discovering vulnerabilities, understanding what they could lead to, and preparing before they become incidents.",
   applicationName: "ScopeForge",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg"
+    icon: [
+      {
+        url: "/scopeforge-mark-v2.svg",
+        type: "image/svg+xml",
+        sizes: "any"
+      }
+    ],
+    shortcut: [
+      {
+        url: "/scopeforge-mark-v2.svg",
+        type: "image/svg+xml"
+      }
+    ],
+    apple: [
+      {
+        url: "/scopeforge-mark-v2.svg",
+        type: "image/svg+xml",
+        sizes: "180x180"
+      }
+    ]
   }
 };
 
