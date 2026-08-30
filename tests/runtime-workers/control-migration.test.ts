@@ -93,6 +93,8 @@ describe("Phase 6D runtime worker control migration", () => {
     expect(prepareSql).toMatch(/attempt_record\.lease_expires_at <= lookup_now/i);
     expect(prepareSql).toMatch(/task_record\.absolute_deadline_at <= lookup_now/i);
     expect(prepareSql).toMatch(/task_record\.state <> 'leased'/i);
+    expect(prepareSql).toMatch(/job_record\.status <> 'queued'::public\.scan_job_status/i);
+    expect(prepareSql).toMatch(/job_record\.cancel_requested_at is not null/i);
     expect(prepareSql).toContain("'domainJobId'");
     expect(prepareSql).toContain("'workspaceId'");
     expect(prepareSql).toContain("'assetId'");
