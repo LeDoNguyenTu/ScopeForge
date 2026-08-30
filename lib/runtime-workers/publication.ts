@@ -165,29 +165,6 @@ async function finalizeCancellation(
   });
 }
 
-async function finalizeExpiredSuccess(
-  input: PublishRuntimeWorkerTerminalInput,
-  context: RuntimeWorkerFinalizationContext,
-  terminal: WorkerTerminalEnvelope,
-  terminalDigest: string,
-  dependencies: RuntimeWorkerPublicationDependencies,
-) {
-  return dependencies.finalize({
-    workerId: input.workerId,
-    taskId: input.taskId,
-    attemptId: input.attemptId,
-    leaseToken: input.leaseToken,
-    executionClass: context.executionClass,
-    terminalDigest,
-    outcome: "failed",
-    failureCode: "RUNTIME_WORKER_BUDGET_EXCEEDED",
-    requestCount: 0,
-    redirectCount: 0,
-    findingCount: 0,
-    metrics: terminal.metrics,
-  });
-}
-
 export async function publishRuntimeWorkerTerminal(
   input: PublishRuntimeWorkerTerminalInput,
   dependencies: RuntimeWorkerPublicationDependencies,
@@ -242,7 +219,7 @@ export async function publishRuntimeWorkerTerminal(
     fail("RUNTIME_WORKER_TASK_INVALID");
   }
   if (leaseExpiresAt <= observedAt.getTime()) {
-    return finalizeExpiredSuccess(input, context, terminal, terminalDigest, dependencies);
+    fail("RUNTIME_WORKER_AUTHORIZATION_FAILED");
   }
 
   const ref = assetRef(context.assetId);
