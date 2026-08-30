@@ -10,6 +10,7 @@ import "./forge-dashboard-v2.css";
 import "./exact-command-center.css";
 import "./command-center-v4.css";
 import "./command-center-boot.css";
+import "./command-center-v4-polish.css";
 import "./assets.css";
 import "./community.css";
 
