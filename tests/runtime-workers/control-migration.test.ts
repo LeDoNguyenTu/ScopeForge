@@ -53,6 +53,22 @@ describe("Phase 6D runtime worker control migration", () => {
     }
   });
 
+  it("hard-locks Phase 6D runtime work to one claim attempt", async () => {
+    const sql = await readControlSql();
+    const passive = functionSql(sql, "enqueue_passive_runtime_worker_task");
+    const active = functionSql(sql, "enqueue_active_cors_worker_task");
+    const claimSql = functionSql(sql, "claim_runtime_worker_task");
+
+    for (const body of [passive, active]) {
+      expect(body).toMatch(/attempt_count,\s*max_attempts,/i);
+      expect(body).toMatch(/request_now,\s*0,\s*1,\s*request_now \+ interval '(?:30|20) seconds'/i);
+    }
+    expect(claimSql).toMatch(/t\.state = 'queued'/i);
+    expect(claimSql).toMatch(/t\.attempt_count < t\.max_attempts/i);
+    expect(claimSql).toMatch(/and state = 'queued'\s*and attempt_count = 0\s*and max_attempts = 1/i);
+    expect(claimSql).not.toMatch(/t\.state = 'retry_wait'/i);
+  });
+
   it("claims only Phase 6D classes and leaves the domain job queued for preparation reauthorization", async () => {
     const sql = await readControlSql();
     const claimSql = functionSql(sql, "claim_runtime_worker_task");
