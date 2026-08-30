@@ -11,13 +11,14 @@ describe("ScopeForge browser icons", () => {
     expect(existsSync("public/scopeforge-mark-v2.svg")).toBe(true);
   });
 
-  it("publishes a web app manifest that uses the dedicated ScopeForge icon", () => {
+  it("publishes installable any and maskable manifest icon entries", () => {
     expect(existsSync("app/manifest.ts")).toBe(true);
     if (!existsSync("app/manifest.ts")) return;
 
     const manifest = readFileSync("app/manifest.ts", "utf8");
     expect(manifest).toContain("ScopeForge");
-    expect(manifest).toContain("/scopeforge-mark-v2.svg");
-    expect(manifest).toContain('purpose: "any maskable"');
+    expect(manifest.match(/scopeforge-mark-v2\.svg/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(manifest).toContain('purpose: "any"');
+    expect(manifest).toContain('purpose: "maskable"');
   });
 });
