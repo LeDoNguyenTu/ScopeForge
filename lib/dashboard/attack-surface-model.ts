@@ -68,6 +68,12 @@ const severityRank: Readonly<Record<SecuritySeverity, number>> = Object.freeze({
   critical: 4,
 });
 
+const stateRank: Readonly<Record<AttackSurfaceNodeState, number>> = Object.freeze({
+  healthy: 0,
+  pending: 1,
+  risk: 2,
+});
+
 const visualAngles = [-152, -118, -82, -46, -10, 28, 65, 101, 137, 173] as const;
 const visualRadii = [0.82, 0.74, 0.86, 0.78, 0.9, 0.75, 0.84, 0.77, 0.88, 0.8] as const;
 
@@ -115,10 +121,9 @@ export function buildAttackSurfaceModel({
     assetFindings.sort(stableFindingOrder);
   }
 
-  const candidates = sortedAssets.map((asset, index): AttackSurfaceNode => {
+  const candidates = sortedAssets.map((asset): AttackSurfaceNode => {
     const assetFindings = findingsByAsset.get(asset.id) ?? [];
     const highest = assetFindings[0] ?? null;
-    const visualIndex = index % visualAngles.length;
 
     return Object.freeze({
       id: asset.id,
@@ -129,10 +134,27 @@ export function buildAttackSurfaceModel({
       state: stateForAsset(asset, assetFindings),
       severity: highest?.severity ?? null,
       findingCount: assetFindings.length,
-      angle: visualAngles[visualIndex],
-      radius: visualRadii[visualIndex],
+      angle: 0,
+      radius: 0,
     });
   });
+
+  const candidateOrder = new Map(candidates.map((node, index) => [node.id, index]));
+  const visualNodes = [...candidates]
+    .sort((a, b) => {
+      const stateDelta = stateRank[b.state] - stateRank[a.state];
+      if (stateDelta !== 0) return stateDelta;
+      const severityDelta = severityRank[b.severity ?? "info"] - severityRank[a.severity ?? "info"];
+      if (severityDelta !== 0) return severityDelta;
+      if (b.findingCount !== a.findingCount) return b.findingCount - a.findingCount;
+      return (candidateOrder.get(a.id) ?? 0) - (candidateOrder.get(b.id) ?? 0);
+    })
+    .slice(0, visualAngles.length)
+    .map((node, index) => Object.freeze({
+      ...node,
+      angle: visualAngles[index],
+      radius: visualRadii[index],
+    }));
 
   const priorityNode = [...candidates]
     .filter((node) => node.severity !== null)
@@ -163,7 +185,7 @@ export function buildAttackSurfaceModel({
   });
 
   return Object.freeze({
-    nodes: Object.freeze(candidates.slice(0, 10)),
+    nodes: Object.freeze(visualNodes),
     metrics,
     priority: priorityNode && priorityFinding
       ? Object.freeze({
