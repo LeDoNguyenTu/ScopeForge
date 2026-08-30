@@ -96,13 +96,15 @@ function parseFinalize(value: unknown): { outcome: "succeeded" | "failed" | "can
 }
 
 function mapRpcError(message: string): WorkerControlError {
+  if (message.includes("RUNTIME_WORKER_BUDGET_EXCEEDED")) {
+    return new WorkerControlError("WORKER_BUDGET_EXCEEDED");
+  }
   for (const code of [
     "WORKER_LEASE_INVALID",
     "WORKER_TERMINAL_CONFLICT",
     "WORKER_JOB_STATE_CONFLICT",
     "RUNTIME_WORKER_TASK_INVALID",
     "RUNTIME_WORKER_CLASS_MISMATCH",
-    "RUNTIME_WORKER_BUDGET_EXCEEDED",
   ] as const) {
     if (message.includes(code)) return new WorkerControlError(code);
   }
