@@ -6,9 +6,11 @@ import type { WorkerControlServiceDependencies } from "./service";
 
 export function createWorkerControlServerDependencies(): WorkerControlServiceDependencies {
   const admin = createAdminClient<Phase6dDatabase>();
+  const repository = createWorkerControlRepository(admin);
   let repositorySnapshotObjectStore: ReturnType<typeof createRepositorySnapshotObjectStore> | undefined;
   return Object.freeze({
-    repository: createWorkerControlRepository(admin),
+    repository,
+    runtimeRepository: repository,
     repositorySnapshotObjectStore: () => {
       repositorySnapshotObjectStore ??= createRepositorySnapshotObjectStore();
       return repositorySnapshotObjectStore;
