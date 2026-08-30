@@ -4,6 +4,8 @@ import { buildRuntimeWorkerPodmanCreateCommand } from "@/packages/runtime-worker
 const input = {
   taskId: "11111111-1111-4111-8111-111111111111",
   attemptId: "22222222-2222-4222-8222-222222222222",
+  executionClass: "passive_runtime_observation_v1" as const,
+  mediatorSessionNonce: "c".repeat(64),
   podmanBinary: "/usr/bin/podman",
   image: `ghcr.io/scopeforge/runtime-worker@sha256:${"a".repeat(64)}`,
   mediatorSocketPath: `/run/scopeforge/runtime-mediator/${"b".repeat(64)}.sock`,
@@ -29,6 +31,13 @@ describe("Phase 6D runtime worker Podman command", () => {
     expect(mounts).toEqual([
       `--mount=type=bind,src=${input.mediatorSocketPath},dst=/run/scopeforge/mediator.sock`,
     ]);
+    expect(command.args.slice(-9)).toEqual([
+      "/app/runtime-worker-entry.js",
+      "--task-id", input.taskId,
+      "--attempt-id", input.attemptId,
+      "--execution-class", input.executionClass,
+      "--session-nonce", input.mediatorSessionNonce,
+    ]);
   });
 
   it("rejects task-controlled socket paths and argument injection", () => {
@@ -44,6 +53,14 @@ describe("Phase 6D runtime worker Podman command", () => {
     expect(() => buildRuntimeWorkerPodmanCreateCommand({
       ...input,
       image: "alpine:latest --privileged",
+    })).toThrow();
+    expect(() => buildRuntimeWorkerPodmanCreateCommand({
+      ...input,
+      mediatorSessionNonce: "bad --privileged",
+    })).toThrow();
+    expect(() => buildRuntimeWorkerPodmanCreateCommand({
+      ...input,
+      executionClass: "foundation_no_egress_v1" as never,
     })).toThrow();
   });
 });
