@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 const migrationPath = path.resolve(
   "supabase/migrations/20260831010120_phase_6d_runtime_worker_recovery.sql",
 );
+const leasedRecoveryMigrationPath = path.resolve(
+  "supabase/migrations/20260826110130_phase_6a_worker_recovery.sql",
+);
 
 describe("Phase 6D runtime worker recovery migration", () => {
   it("dead-letters expired unleased Phase 6D tasks without creating retry authority", async () => {
@@ -16,6 +19,14 @@ describe("Phase 6D runtime worker recovery migration", () => {
     expect(sql).toMatch(/set state = 'dead_letter'/i);
     expect(sql).not.toMatch(/set state = 'retry_wait'/i);
     expect(sql).not.toMatch(/attempt_count\s*=\s*attempt_count\s*\+/i);
+  });
+
+  it("proves max-attempts one cannot enter generic lease retry scheduling", async () => {
+    const sql = await readFile(leasedRecoveryMigrationPath, "utf8");
+    expect(sql).toMatch(/elsif task_record\.attempt_count < task_record\.max_attempts then/i);
+    expect(sql).toMatch(/set state = 'retry_wait'/i);
+    expect(sql).toMatch(/else\s+update private\.worker_tasks\s+set state = 'dead_letter'/i);
+    expect(sql).toContain("WORKER_ATTEMPTS_EXHAUSTED");
   });
 
   it("blocks a domain job that expired before preparation instead of leaving it queued", async () => {
