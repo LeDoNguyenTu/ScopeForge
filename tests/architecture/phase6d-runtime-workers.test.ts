@@ -86,8 +86,9 @@ describe("Phase 6D authority architecture", () => {
   });
 
   it("does not expose a generic URL, fetch, HTTP, or proxy execution class in public worker contracts", async () => {
-    const code = await source("packages/worker-contracts/index.ts");
+    const code = await source("packages/worker-contracts/types.ts");
     const executionUnion = code.match(/export type WorkerExecutionClass\s*=([\s\S]*?);/)?.[1] ?? "";
+    expect(executionUnion.length).toBeGreaterThan(0);
     expect(executionUnion).not.toMatch(/generic|url|fetch|http|proxy/i);
   });
 
