@@ -8,6 +8,7 @@ import "./forge-immersive.css";
 import "./forge-dashboard.css";
 import "./forge-dashboard-v2.css";
 import "./exact-command-center.css";
+import "./command-center-v4.css";
 import "./assets.css";
 import "./community.css";
 
