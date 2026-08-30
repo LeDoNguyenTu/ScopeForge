@@ -1,0 +1,172 @@
+.immersiveAppShell {
+  min-height: 100vh;
+  color: var(--forge-text);
+  background:
+    radial-gradient(circle at 72% 36%, rgba(79,224,193,.07), transparent 28rem),
+    radial-gradient(circle at 88% 72%, rgba(255,105,49,.04), transparent 24rem),
+    #05080b;
+}
+
+.immersiveDashboardHeader {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 18px clamp(18px, 5vw, 76px) 0;
+  pointer-events: none;
+}
+
+.immersiveDashboardNav {
+  width: min(1180px, 100%);
+  min-height: 68px;
+  margin: 0 auto;
+  padding: 0 16px 0 20px;
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) auto minmax(220px, 1fr);
+  align-items: center;
+  gap: 24px;
+  border: 1px solid rgba(153,177,187,.17);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(10,15,19,.88), rgba(6,10,13,.78));
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.035),
+    0 22px 70px rgba(0,0,0,.28),
+    0 0 54px rgba(79,224,193,.025);
+  backdrop-filter: blur(22px) saturate(125%);
+  pointer-events: auto;
+}
+
+.immersiveDashboardBrand {
+  justify-self: start;
+  color: #eef4f4;
+}
+
+.immersiveDashboardLinks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.immersiveDashboardLinks a {
+  min-height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #85949d;
+  font-size: 11px;
+  font-weight: 620;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.immersiveDashboardLinks a:hover {
+  color: #e7efef;
+  border-color: rgba(133,160,171,.12);
+  background: rgba(255,255,255,.025);
+}
+
+.immersiveDashboardIdentity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.immersiveWorkspaceIdentity {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  line-height: 1.2;
+}
+
+.immersiveWorkspaceIdentity span {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cad5d9;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.immersiveWorkspaceIdentity small {
+  margin-top: 3px;
+  color: #60717b;
+  font: 700 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.immersiveUserIdentity,
+.immersiveSignOut {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.immersiveUserIdentity {
+  border: 1px solid rgba(79,224,193,.18);
+  color: #b9e7dc;
+  background: rgba(79,224,193,.055);
+  font: 750 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.immersiveSignOut {
+  border: 1px solid rgba(142,166,176,.13);
+  color: #75848e;
+  background: rgba(255,255,255,.02);
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.immersiveSignOut:hover {
+  color: #dce5e8;
+  border-color: rgba(142,166,176,.25);
+  background: rgba(255,255,255,.045);
+}
+
+.immersiveDashboardLinks a:focus-visible,
+.immersiveDashboardBrand:focus-visible,
+.immersiveSignOut:focus-visible {
+  outline: 2px solid var(--forge-cyan);
+  outline-offset: 3px;
+}
+
+.immersiveAppMain {
+  min-height: 100vh;
+}
+
+.immersiveContent {
+  width: min(1400px, 100%);
+  margin: 0 auto;
+  padding: 20px clamp(18px, 4vw, 64px) 54px;
+}
+
+@media (max-width: 860px) {
+  .immersiveDashboardHeader { padding: 12px 14px 0; }
+  .immersiveDashboardNav {
+    min-height: 58px;
+    padding: 0 12px 0 14px;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    border-radius: 19px;
+  }
+  .immersiveDashboardLinks { display: none; }
+  .immersiveWorkspaceIdentity { display: none; }
+  .immersiveContent { padding: 14px 14px 40px; }
+}
+
+@media (max-width: 480px) {
+  .immersiveDashboardHeader { padding-inline: 10px; }
+  .immersiveDashboardNav { min-height: 54px; }
+  .immersiveUserIdentity { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .immersiveDashboardLinks a,
+  .immersiveSignOut { transition-duration: .01ms !important; }
+}

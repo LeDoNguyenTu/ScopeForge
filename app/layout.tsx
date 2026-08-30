@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { scopeForgeIconMetadata } from "@/lib/brand/browser-icons";
 import "./globals.css";
 import "./forge.css";
 import "./forge-landing.css";
 import "./forge-shell.css";
+import "./forge-immersive.css";
 import "./forge-dashboard.css";
+import "./forge-dashboard-v2.css";
 import "./assets.css";
 import "./community.css";
 
@@ -15,11 +18,7 @@ export const metadata: Metadata = {
   },
   description: "Open-source application security for discovering vulnerabilities, understanding what they could lead to, and preparing before they become incidents.",
   applicationName: "ScopeForge",
-  icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg"
-  }
+  icons: scopeForgeIconMetadata
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

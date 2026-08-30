@@ -2,9 +2,33 @@ import Link from "next/link";
 import { LogOut, Radar, Settings } from "lucide-react";
 import { signOut } from "@/app/actions";
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
+import ImmersiveDashboardNav from "@/components/ImmersiveDashboardNav";
 import SideNav from "@/components/SideNav";
 
-export default function AppShell({ children, displayName, workspaceName, role }: { children: React.ReactNode; displayName: string; workspaceName: string; role: string }) {
+export default function AppShell({
+  children,
+  displayName,
+  workspaceName,
+  role,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  displayName: string;
+  workspaceName: string;
+  role: string;
+  variant?: "default" | "immersive";
+}) {
+  if (variant === "immersive") {
+    return (
+      <div className="immersiveAppShell">
+        <ImmersiveDashboardNav displayName={displayName} workspaceName={workspaceName} role={role} />
+        <main className="immersiveAppMain">
+          <div className="immersiveContent">{children}</div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="appGrid forgeAppGrid">
       <aside className="sidebar forgeSidebar">
