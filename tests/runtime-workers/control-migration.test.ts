@@ -6,6 +6,15 @@ const migrationPath = path.resolve(
   "supabase/migrations/20260831010100_phase_6d_runtime_worker_control.sql",
 );
 
+function functionSql(sql: string, name: string): string {
+  const match = sql.match(new RegExp(
+    `create or replace function public\\.${name}\\([\\s\\S]*?\\n\\$\\$;`,
+    "i",
+  ));
+  expect(match).not.toBeNull();
+  return match?.[0] ?? "";
+}
+
 describe("Phase 6D runtime worker control migration", () => {
   it("registers only the two fixed Phase 6D worker classes", async () => {
     const sql = await readFile(migrationPath, "utf8");
@@ -15,22 +24,27 @@ describe("Phase 6D runtime worker control migration", () => {
     expect(sql).toContain("'active_cors_validation_v1'");
   });
 
-  it("enqueues only existing queued Phase 4 jobs with the exact class pairing", async () => {
+  it("enqueues only live queued Phase 4 jobs with the exact class pairing", async () => {
     const sql = await readFile(migrationPath, "utf8");
-    expect(sql).toMatch(/create or replace function public\.enqueue_passive_runtime_worker_task\(/i);
-    expect(sql).toMatch(/create or replace function public\.enqueue_active_cors_worker_task\(/i);
-    expect(sql).toMatch(/job_record\.job_kind <> 'passive_runtime'::public\.scan_job_kind/i);
-    expect(sql).toMatch(/job_record\.job_kind <> 'active_validation'::public\.scan_job_kind/i);
-    expect(sql).toMatch(/job_record\.status <> 'queued'::public\.scan_job_status/i);
-    expect(sql).toMatch(/job_record\.cancel_requested_at is not null/i);
-    expect(sql).toContain("private.runtime_worker_tasks");
+    const passive = functionSql(sql, "enqueue_passive_runtime_worker_task");
+    const active = functionSql(sql, "enqueue_active_cors_worker_task");
+
+    expect(passive).toMatch(/job_record\.job_kind <> 'passive_runtime'::public\.scan_job_kind/i);
+    expect(active).toMatch(/job_record\.job_kind <> 'active_validation'::public\.scan_job_kind/i);
+    for (const body of [passive, active]) {
+      expect(body).toMatch(/job_record\.status <> 'queued'::public\.scan_job_status/i);
+      expect(body).toMatch(/job_record\.cancel_requested_at is not null/i);
+      expect(body).toMatch(/job_record\.requested_by is distinct from target_actor_id/i);
+      expect(body).toContain("private.runtime_worker_tasks");
+      expect(body).toMatch(/active_task\.absolute_deadline_at > request_now/i);
+      expect(body).toMatch(/active_job\.cancel_requested_at is null/i);
+      expect(body).toMatch(/active_job\.status = 'queued'::public\.scan_job_status/i);
+    }
   });
 
   it("claims only Phase 6D classes and leaves the domain job queued for preparation reauthorization", async () => {
     const sql = await readFile(migrationPath, "utf8");
-    const claimMatch = sql.match(/create or replace function public\.claim_runtime_worker_task\([\s\S]*?\n\$\$;/i);
-    expect(claimMatch).not.toBeNull();
-    const claimSql = claimMatch?.[0] ?? "";
+    const claimSql = functionSql(sql, "claim_runtime_worker_task");
     expect(claimSql).toMatch(/execution_class in \(\s*'passive_runtime_observation_v1',\s*'active_cors_validation_v1'\s*\)/i);
     expect(claimSql).toMatch(/j\.status = 'queued'::public\.scan_job_status/i);
     expect(claimSql).toMatch(/j\.cancel_requested_at is null/i);
@@ -47,18 +61,18 @@ describe("Phase 6D runtime worker control migration", () => {
 
   it("provides an exact-lease preparation context without target or request data", async () => {
     const sql = await readFile(migrationPath, "utf8");
-    expect(sql).toMatch(/create or replace function public\.get_runtime_worker_preparation_context\(/i);
-    expect(sql).toMatch(/lease_token_hash <> calculated_hash/i);
-    expect(sql).toMatch(/attempt_record\.lease_expires_at <= lookup_now/i);
-    expect(sql).toMatch(/task_record\.absolute_deadline_at <= lookup_now/i);
-    expect(sql).toMatch(/task_record\.state <> 'leased'/i);
-    expect(sql).toContain("'domainJobId'");
-    expect(sql).toContain("'workspaceId'");
-    expect(sql).toContain("'assetId'");
-    expect(sql).toContain("'domainJobKind'");
-    expect(sql).toContain("'absoluteDeadlineAt'");
+    const prepareSql = functionSql(sql, "get_runtime_worker_preparation_context");
+    expect(prepareSql).toMatch(/lease_token_hash <> calculated_hash/i);
+    expect(prepareSql).toMatch(/attempt_record\.lease_expires_at <= lookup_now/i);
+    expect(prepareSql).toMatch(/task_record\.absolute_deadline_at <= lookup_now/i);
+    expect(prepareSql).toMatch(/task_record\.state <> 'leased'/i);
+    expect(prepareSql).toContain("'domainJobId'");
+    expect(prepareSql).toContain("'workspaceId'");
+    expect(prepareSql).toContain("'assetId'");
+    expect(prepareSql).toContain("'domainJobKind'");
+    expect(prepareSql).toContain("'absoluteDeadlineAt'");
     for (const forbidden of ["canonicalUrl", "hostname", "ip", "method", "headers", "body", "origin", "userAgent"]) {
-      expect(sql).not.toContain(`'${forbidden}'`);
+      expect(prepareSql).not.toContain(`'${forbidden}'`);
     }
   });
 
