@@ -179,11 +179,28 @@ export interface WorkerFleetTaskCounts {
   cancelled: number;
 }
 
+export interface RuntimeWorkerFleetClassHealth<
+  TExecutionClass extends "passive_runtime_observation_v1" | "active_cors_validation_v1",
+> {
+  executionClass: TExecutionClass;
+  enabledNodeCount: number;
+  leasedCount: number;
+  capacity: number;
+  available: boolean;
+  saturated: boolean;
+}
+
+export interface RuntimeWorkerFleetHealth {
+  passiveRuntime: RuntimeWorkerFleetClassHealth<"passive_runtime_observation_v1">;
+  activeCors: RuntimeWorkerFleetClassHealth<"active_cors_validation_v1">;
+}
+
 export interface WorkerFleetSnapshot {
   generatedAt: string;
   nodes: readonly WorkerFleetNodeSnapshot[];
   taskCounts: WorkerFleetTaskCounts;
   activeLeaseCount: number;
+  runtimeClasses: RuntimeWorkerFleetHealth;
 }
 
 export type WorkerControlErrorCode =
