@@ -37,6 +37,8 @@ Phase 6B repository snapshot authority remains separated from browser and generi
 
 Phase 6C extends the worker boundary with repository-scan-specific queue/publication state and exact immutable snapshot provenance. Scanner success is accepted only when the trusted result context matches the selected snapshot, repository identity, resolved commit, content digest, artifact digest, task, attempt, worker, and live lease. Generic finalization cannot publish repository-scan success.
 
+The production Supabase security advisor was rechecked after deployment and reported zero security lints.
+
 ## Phase 6B repository acquisition boundary
 
 The closed acquisition execution class is `repository_snapshot_github_public_v1`.
@@ -73,6 +75,12 @@ The repository contains the concrete rootless-Podman command/runtime adapter wit
 
 The public control plane keeps hosted scanning hard-disabled until real Linux rootless-Podman/cgroup-v2 acceptance is demonstrated. The server action rejects hosted scan requests before privileged enqueue while the runtime capability is false.
 
+The production environment also keeps:
+
+`HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED = false`
+
+R2 credentials are therefore not required by the deployed web control plane.
+
 ## Exact Phase 6C verification
 
 The final Phase 6C dependency lock is deterministic:
@@ -107,23 +115,71 @@ The subsequent acquisition runtime gate was separately verified on exact head `f
 
 ## Production deployment state
 
-The web control plane is ready for Vercel deployment while worker-backed repository acquisition and hosted scanning remain unavailable.
+The ScopeForge web control plane is live in production while worker-backed repository acquisition and hosted scanning remain unavailable.
 
-Deployment rules:
+Exact production facts after deployment:
 
-- Vercel hosts the Next.js control plane.
-- Cloudflare remains authoritative DNS.
-- Vercel application records remain DNS-only in Cloudflare.
-- Vercel manages application TLS.
+- Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
+- Vercel project: `scopeforge` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
+- framework: Next.js
+- production deployment: `dpl_4WxejTKX2kADGNXha8bgRmmoAFYm`
+- deployed Git commit: `04c91ce720ca20795dd841a7c72be15417f63042` from `main`
+- deployment state: `READY`
+- custom domain: `scopeforge.dev`
+- Vercel domain ownership: verified
+- Vercel domain configuration: `configuredBy = A`, `misconfigured = false`
+- Cloudflare remains authoritative DNS
+- apex application records are DNS-only and resolve to Vercel's current rank-1 addresses `216.198.79.1` and `64.29.17.1`
+- Vercel manages TLS; certificate `cert_Pz3Y2QMpaNUTAMkEAZNdiIYk` is auto-renewing for `scopeforge.dev`
+- `https://scopeforge.dev/` returns 200 with the ScopeForge landing page
+- `https://scopeforge.dev/auth/sign-in` returns 200
+- unauthenticated `/dashboard` resolves to the sign-in flow
+- HSTS is served by Vercel
+- production runtime error inspection reported no runtime errors after deployment
+- deployment cleanup found exactly one deployment and preserved it because it is the current production deployment; no preview deployment deletion was necessary
+
+Production environment rules remain:
+
 - `NEXT_PUBLIC_SITE_URL` is `https://scopeforge.dev`.
 - public Supabase URL/publishable key may be exposed to the client as designed.
 - `SUPABASE_SECRET_KEY` is server-only and must never be placed in a `NEXT_PUBLIC_*` variable or committed.
-- R2 credentials remain worker/server-only and are not required to enable the public web control plane while repository worker capabilities are false.
-- Turnstile is not yet active application behavior merely because deployment documentation lists planned variables.
+- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED = false`.
+- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED = false`.
+- R2 remains unnecessary while both hosted repository runtime capabilities are false.
+- Turnstile is not wired into active application behavior and must not be described as active.
+
+## Repository branch cleanup
+
+The pre-deployment cleanup applied the generic ancestry rule to every non-main branch after rechecking open PRs.
+
+- branches before cleanup: 48
+- open PRs before cleanup: 0
+- branches deleted: 14
+- branches remaining immediately after cleanup: 34
+- tags deleted: 0
+
+The 14 deleted refs were all proven fully contained in `main` with `ahead_by = 0`:
+
+- `docs/phase-5b-completion-handoff`
+- `docs/phase-5b-post-merge-handoff`
+- `docs/phase-5b-production-reconciled`
+- `docs/phase-6a-worker-foundation-design`
+- `docs/phase-6b-repository-acquisition-design`
+- `docs/phase-6c-closeout`
+- `docs/phase-6c-deployment-readiness`
+- `feat/phase-5b-remediation-retest-security-story`
+- `feat/phase-5c-hosted-phase3-import`
+- `feat/phase-6b-repository-acquisition`
+- `feat/phase-6c-zero-egress-scanning`
+- `fix/phase-6b-snapshot-runtime-gate-main`
+- `phase-1-foundation`
+- `phase-2-asset-control`
+
+All 33 other non-main branches were preserved because comparison showed `ahead_by > 0`; `main` was also preserved. No branch with unknown comparison state, divergent/unmerged work, or an open PR was deleted.
 
 ## Current boundary
 
-The immediate operational task is production control-plane deployment and `scopeforge.dev` verification with the repository worker capability gates still false.
+Production control-plane deployment and `scopeforge.dev` verification are complete with both repository worker capability gates still false.
 
 The next implementation architecture boundary is **Phase 6D dedicated network-enabled worker execution**. It remains design-gated. Existing passive runtime and bounded active CORS validation may move behind dedicated closed worker classes only after a separate threat model and approved design preserve the current authorization snapshot, immediate pre-network reauthorization, DNS/IP policy, request shapes, owner/admin active consent, fixed budgets, cancellation, deterministic persistence, privacy, quotas/backpressure, and fleet controls.
 
