@@ -215,8 +215,17 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
     let lineColorBuffer: WebGLBuffer | null = null;
     let pointPositionBuffer: WebGLBuffer | null = null;
     let pointColorBuffer: WebGLBuffer | null = null;
+    let resizeObserver: ResizeObserver | null = null;
     let frame = 0;
     let disposed = false;
+
+    const releaseResources = () => {
+      if (linePositionBuffer) gl!.deleteBuffer(linePositionBuffer);
+      if (lineColorBuffer) gl!.deleteBuffer(lineColorBuffer);
+      if (pointPositionBuffer) gl!.deleteBuffer(pointPositionBuffer);
+      if (pointColorBuffer) gl!.deleteBuffer(pointColorBuffer);
+      if (program) gl!.deleteProgram(program);
+    };
 
     try {
       program = createProgram(gl);
@@ -229,7 +238,7 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
       }
     } catch {
       setRendererState("fallback");
-      if (program) gl.deleteProgram(program);
+      releaseResources();
       return;
     }
 
@@ -239,7 +248,7 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
     const pointSizeLocation = gl.getUniformLocation(program, "uPointSize");
     if (positionLocation < 0 || colorLocation < 0 || !parallaxLocation || !pointSizeLocation) {
       setRendererState("fallback");
-      gl.deleteProgram(program);
+      releaseResources();
       return;
     }
 
@@ -275,7 +284,6 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
 
     const draw = (now: number) => {
       if (disposed) return;
-      resize();
       gl!.clearColor(0, 0, 0, 0);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
       const drift = reducedMotion ? 0 : Math.sin(now * 0.00018) * 0.018;
@@ -326,6 +334,12 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
       }
     };
 
+    resize();
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(canvas);
+    }
+
     setRendererState("webgl");
     draw(performance.now());
     document.addEventListener("visibilitychange", onVisibility);
@@ -334,13 +348,10 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
     return () => {
       disposed = true;
       window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", resize);
-      if (linePositionBuffer) gl!.deleteBuffer(linePositionBuffer);
-      if (lineColorBuffer) gl!.deleteBuffer(lineColorBuffer);
-      if (pointPositionBuffer) gl!.deleteBuffer(pointPositionBuffer);
-      if (pointColorBuffer) gl!.deleteBuffer(pointColorBuffer);
-      if (program) gl!.deleteProgram(program);
+      releaseResources();
     };
   }, [geometry, model.nodes.length]);
 
