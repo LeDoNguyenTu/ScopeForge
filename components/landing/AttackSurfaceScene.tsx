@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import AttackSurfaceFallback from "@/components/landing/AttackSurfaceFallback";
 import { useLandingBoot } from "@/components/landing/LandingBootGate";
+import { ATTACK_SURFACE_PAUSE_EVENT } from "@/components/landing/SceneMonitoringToggle";
 import { QUALITY_PROFILES } from "@/components/landing/attack-surface/constants";
 import { selectAttackSurfaceQuality } from "@/components/landing/attack-surface/quality";
 import { createSceneProgress, type BootMilestone } from "@/components/landing/attack-surface/progress";
@@ -36,6 +37,7 @@ export default function AttackSurfaceScene() {
     let raf = 0;
     let pageVisible = typeof document === "undefined" ? true : !document.hidden;
     let inViewport = true;
+    let userPaused = false;
     const progress = createSceneProgress();
 
     const publish = (milestone: BootMilestone) => {
@@ -43,17 +45,17 @@ export default function AttackSurfaceScene() {
     };
 
     const requestFrame = () => {
-      if (cancelled || raf || !pageVisible || !inViewport || !controller) return;
+      if (cancelled || raf || !pageVisible || !inViewport || userPaused || !controller) return;
       raf = window.requestAnimationFrame((time) => {
         raf = 0;
-        if (cancelled || !controller || !pageVisible || !inViewport) return;
+        if (cancelled || !controller || !pageVisible || !inViewport || userPaused) return;
         controller.render(time);
         requestFrame();
       });
     };
 
     const syncVisibility = () => {
-      const active = pageVisible && inViewport;
+      const active = pageVisible && inViewport && !userPaused;
       controller?.setVisible(active);
       if (active) requestFrame();
       else if (raf) {
@@ -67,6 +69,12 @@ export default function AttackSurfaceScene() {
       syncVisibility();
     };
 
+    const onScenePause = (event: Event) => {
+      const detail = (event as CustomEvent<{ paused?: boolean }>).detail;
+      userPaused = Boolean(detail?.paused);
+      syncVisibility();
+    };
+
     const onPointerMove = (event: PointerEvent) => {
       if (!controller) return;
       const bounds = container.getBoundingClientRect();
@@ -76,6 +84,8 @@ export default function AttackSurfaceScene() {
     };
 
     const onPointerLeave = () => controller?.setPointer(0, 0);
+
+    window.addEventListener(ATTACK_SURFACE_PAUSE_EVENT, onScenePause);
 
     const start = async () => {
       try {
@@ -121,7 +131,6 @@ export default function AttackSurfaceScene() {
         } else {
           const onWindowResize = () => resize(container.clientWidth || window.innerWidth, container.clientHeight || window.innerHeight * 0.72);
           window.addEventListener("resize", onWindowResize, { passive: true });
-          // Assign a cleanup-compatible shim when ResizeObserver is absent.
           resizeObserver = { disconnect: () => window.removeEventListener("resize", onWindowResize) } as ResizeObserver;
         }
 
@@ -139,7 +148,7 @@ export default function AttackSurfaceScene() {
         container.addEventListener("pointerleave", onPointerLeave, { passive: true });
 
         setRendererState("webgl");
-        requestFrame();
+        syncVisibility();
         controller.firstFrame.then(() => {
           if (cancelled) return;
           publish("first-frame");
@@ -160,6 +169,7 @@ export default function AttackSurfaceScene() {
       if (raf) window.cancelAnimationFrame(raf);
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
+      window.removeEventListener(ATTACK_SURFACE_PAUSE_EVENT, onScenePause);
       document.removeEventListener("visibilitychange", onDocumentVisibility);
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerleave", onPointerLeave);
