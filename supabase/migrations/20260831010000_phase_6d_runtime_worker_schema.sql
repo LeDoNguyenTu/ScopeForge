@@ -132,7 +132,7 @@ create or replace function private.guard_runtime_worker_task_update()
 returns trigger
 language plpgsql
 set search_path = ''
-as $$;
+as $$
 begin
   raise exception 'Runtime worker task bindings are immutable';
 end;
