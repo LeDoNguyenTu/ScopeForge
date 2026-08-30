@@ -449,16 +449,11 @@ export interface WorkerControlRepository {
   register(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   registerRepositorySnapshot(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   registerRepositoryScan(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
-  registerPassiveRuntime(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
-  registerActiveCors(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   disable(workerId: string): Promise<WorkerDisableResult>;
   authenticate(input: WorkerAuthenticationInput): Promise<WorkerNodeIdentity>;
   enqueueFoundationProbe(input: FoundationProbeEnqueueInput): Promise<FoundationProbeEnqueueResult>;
-  enqueuePassiveRuntime(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
-  enqueueActiveCors(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
   claim(input: WorkerClaimInput): Promise<WorkerPersistenceClaimResult>;
   claimRepositoryScan(input: WorkerClaimInput): Promise<WorkerPersistenceClaimResult>;
-  claimRuntime(input: WorkerClaimInput): Promise<RuntimeWorkerPersistenceClaimResult>;
   heartbeat(input: WorkerLeaseIdentity): Promise<WorkerHeartbeatResult>;
   finalize(input: WorkerPersistenceFinalizationInput): Promise<WorkerFinalizationResult>;
   finalizeRepositoryScanFailure(input: WorkerPersistenceFinalizationInput): Promise<WorkerFinalizationResult>;
@@ -466,10 +461,20 @@ export interface WorkerControlRepository {
   fleetSnapshot(): Promise<WorkerFleetSnapshot>;
 }
 
+export interface RuntimeWorkerControlRepository {
+  registerPassiveRuntime(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
+  registerActiveCors(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
+  enqueuePassiveRuntime(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
+  enqueueActiveCors(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
+  claimRuntime(input: WorkerClaimInput): Promise<RuntimeWorkerPersistenceClaimResult>;
+}
+
+export type CompleteWorkerControlRepository = WorkerControlRepository & RuntimeWorkerControlRepository;
+
 export function createWorkerControlRepository(
   client: SupabaseClient<Phase6dDatabase>,
-): WorkerControlRepository {
-  return Object.freeze<WorkerControlRepository>({
+): CompleteWorkerControlRepository {
+  return Object.freeze<CompleteWorkerControlRepository>({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
         target_credential_hash: input.credentialHash,
