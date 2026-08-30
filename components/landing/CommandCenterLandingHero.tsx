@@ -9,7 +9,7 @@ import {
   Radar,
   ShieldCheck,
 } from "lucide-react";
-import CommandCenterSurface from "@/components/landing/CommandCenterSurface";
+import AttackSurfaceScene from "@/components/landing/AttackSurfaceScene";
 
 const metricCards = [
   { icon: Box, value: "14,892", label: "Verified assets", trend: "↑ 12% this week", tone: "teal" },
@@ -36,7 +36,7 @@ export default function CommandCenterLandingHero() {
       </div>
 
       <div className="commandHeroScene commandHeroSceneV4" data-testid="command-scene">
-        <CommandCenterSurface />
+        <AttackSurfaceScene />
       </div>
 
       <div className="commandMetricArea commandMetricAreaV4" data-testid="command-metrics">
