@@ -79,7 +79,7 @@ function terminal(executionClass: "passive_runtime_observation_v1" | "active_cor
             kind: "cors-policy" as const,
             url: "https://example.com/",
             status: 200,
-            allowedOrigin: "*",
+            allowedOrigin: "https://scopeforge.invalid",
             credentialsAllowed: true,
             variesOnOrigin: false,
           },
@@ -99,6 +99,7 @@ function dependencies(executionClass: "passive_runtime_observation_v1" | "active
       workspaceId,
       assetId,
       cancelRequested: cancelled,
+      leaseExpiresAt: "2026-08-31T01:00:30.000Z",
       finishedAt: null,
       priorOutcome: null,
       priorTerminalDigest: null,
@@ -163,6 +164,34 @@ describe("Phase 6D trusted publication", () => {
     expect(result.outcome).toBe("cancelled");
   });
 
+  it("fails an expired late success without persisting observations or findings", async () => {
+    const deps = dependencies("passive_runtime_observation_v1");
+    deps.getContext = vi.fn(async () => ({
+      taskId,
+      attemptId,
+      executionClass: "passive_runtime_observation_v1",
+      domainJobId,
+      workspaceId,
+      assetId,
+      cancelRequested: false,
+      leaseExpiresAt: "2026-08-31T00:59:59.000Z",
+      finishedAt: null,
+      priorOutcome: null,
+      priorTerminalDigest: null,
+    }));
+
+    const result = await publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("passive_runtime_observation_v1") }, deps);
+    expect(deps.persistPassive).not.toHaveBeenCalled();
+    expect(deps.finalize).toHaveBeenCalledWith(expect.objectContaining({
+      outcome: "failed",
+      failureCode: "RUNTIME_WORKER_BUDGET_EXCEEDED",
+      requestCount: 0,
+      redirectCount: 0,
+      findingCount: 0,
+    }));
+    expect(result.outcome).toBe("failed");
+  });
+
   it("does not persist malformed or cross-class success output", async () => {
     const deps = dependencies("passive_runtime_observation_v1");
     const malformed = {
@@ -190,6 +219,7 @@ describe("Phase 6D trusted publication", () => {
       workspaceId,
       assetId,
       cancelRequested: false,
+      leaseExpiresAt: "2026-08-31T01:00:30.000Z",
       finishedAt: observedAt.toISOString(),
       priorOutcome: accepted.outcome,
       priorTerminalDigest: finalizeInput?.terminalDigest ?? null,
@@ -205,6 +235,7 @@ describe("Phase 6D trusted publication", () => {
       workspaceId,
       assetId,
       cancelRequested: false,
+      leaseExpiresAt: "2026-08-31T01:00:30.000Z",
       finishedAt: observedAt.toISOString(),
       priorOutcome: "succeeded" as const,
       priorTerminalDigest: "f".repeat(64),
