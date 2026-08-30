@@ -10,7 +10,12 @@ export const metadata: Metadata = {
     template: "%s | ScopeForge"
   },
   description: "Open-source application security for discovering vulnerabilities, understanding what they could lead to, and preparing before they become incidents.",
-  applicationName: "ScopeForge"
+  applicationName: "ScopeForge",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
