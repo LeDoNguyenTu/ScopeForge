@@ -52,6 +52,7 @@ const OWNER_REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
+const GLOBAL_ACTIVE_LEASE_CAP = 4;
 const KNOWN_CODES = [
   "WORKER_AUTHENTICATION_FAILED",
   "WORKER_DISABLED",
@@ -442,6 +443,7 @@ function parseRuntimeFleetClass<TExecutionClass extends RuntimeWorkerExecutionCl
   value: unknown,
   expectedExecutionClass: TExecutionClass,
   expectedCapacity: number,
+  activeLeaseCount: number,
 ) {
   const expectedKeys = [
     "executionClass",
@@ -459,7 +461,7 @@ function parseRuntimeFleetClass<TExecutionClass extends RuntimeWorkerExecutionCl
   }
   const enabledNodeCount = boundedCount(value.enabledNodeCount);
   const leasedCount = boundedCount(value.leasedCount);
-  const saturated = leasedCount >= expectedCapacity;
+  const saturated = leasedCount >= expectedCapacity || activeLeaseCount >= GLOBAL_ACTIVE_LEASE_CAP;
   const available = enabledNodeCount > 0 && !saturated;
   if (value.available !== available || value.saturated !== saturated) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
@@ -474,7 +476,10 @@ function parseRuntimeFleetClass<TExecutionClass extends RuntimeWorkerExecutionCl
   });
 }
 
-function parseRuntimeFleetHealth(value: unknown): WorkerFleetSnapshot["runtimeClasses"] {
+function parseRuntimeFleetHealth(
+  value: unknown,
+  activeLeaseCount: number,
+): WorkerFleetSnapshot["runtimeClasses"] {
   if (!isRecord(value) || !hasExactKeys(value, ["passiveRuntime", "activeCors"])) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
@@ -483,11 +488,13 @@ function parseRuntimeFleetHealth(value: unknown): WorkerFleetSnapshot["runtimeCl
       value.passiveRuntime,
       "passive_runtime_observation_v1",
       2,
+      activeLeaseCount,
     ),
     activeCors: parseRuntimeFleetClass(
       value.activeCors,
       "active_cors_validation_v1",
       1,
+      activeLeaseCount,
     ),
   });
 }
@@ -496,12 +503,13 @@ function parseFleetSnapshot(value: unknown): WorkerFleetSnapshot {
   if (!isRecord(value) || !Array.isArray(value.nodes) || value.nodes.length > 100) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
+  const activeLeaseCount = boundedCount(value.activeLeaseCount);
   return Object.freeze({
     generatedAt: requiredString(value.generatedAt),
     nodes: Object.freeze(value.nodes.map(parseFleetNode)),
     taskCounts: parseFleetTaskCounts(value.taskCounts),
-    activeLeaseCount: boundedCount(value.activeLeaseCount),
-    runtimeClasses: parseRuntimeFleetHealth(value.runtimeClasses),
+    activeLeaseCount,
+    runtimeClasses: parseRuntimeFleetHealth(value.runtimeClasses, activeLeaseCount),
   });
 }
 
