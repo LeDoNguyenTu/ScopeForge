@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:cli && node .scopeforge-build/packages/cli/index.js version && npm run benchmark:scanner && npm audit --audit-level=info && NODE_ENV=production next build",
+    "build": "NODE_ENV=test npx vitest run && npm run typecheck && npm run build:cli && node .scopeforge-build/packages/cli/index.js version && npm run benchmark:scanner && npm audit --audit-level=info && NODE_ENV=production next build",
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
     "benchmark:scanner": "node benchmarks/scanner-medium.mjs",
