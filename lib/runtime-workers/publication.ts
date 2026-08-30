@@ -34,6 +34,7 @@ export interface RuntimeWorkerFinalizationContext {
   workspaceId: string;
   assetId: string;
   cancelRequested: boolean;
+  leaseExpiresAt: string;
   finishedAt: string | null;
   priorOutcome: RuntimeWorkerOutcome | null;
   priorTerminalDigest: string | null;
@@ -97,6 +98,18 @@ function fail(code: "RUNTIME_WORKER_TASK_INVALID" | "RUNTIME_WORKER_AUTHORIZATIO
   throw new RuntimeWorkerError(code);
 }
 
+function observationBudget(job: ScanJobRow): number {
+  const budget = job.budget;
+  if (typeof budget !== "object" || budget === null || Array.isArray(budget)) {
+    fail("RUNTIME_WORKER_TASK_INVALID");
+  }
+  const maximum = (budget as Record<string, unknown>).maxObservationBytes;
+  if (!Number.isInteger(maximum) || (maximum as number) <= 0) {
+    fail("RUNTIME_WORKER_TASK_INVALID");
+  }
+  return maximum as number;
+}
+
 function terminalCounts(terminal: WorkerTerminalEnvelope): {
   requestCount: number;
   redirectCount: number;
@@ -114,17 +127,6 @@ function terminalCounts(terminal: WorkerTerminalEnvelope): {
     return { requestCount: terminal.result.requestCount, redirectCount: 0 };
   }
   return { requestCount: 0, redirectCount: 0 };
-}
-
-async function cancelledNow(
-  context: RuntimeWorkerFinalizationContext,
-  dependencies: RuntimeWorkerPublicationDependencies,
-): Promise<boolean> {
-  if (context.cancelRequested) return true;
-  const job = context.executionClass === "passive_runtime_observation_v1"
-    ? await dependencies.loadPassiveJob(context.domainJobId)
-    : await dependencies.loadActiveJob(context.domainJobId);
-  return !job || job.cancel_requested_at !== null || job.status !== "running";
 }
 
 function replayResult(
@@ -156,6 +158,29 @@ async function finalizeCancellation(
     terminalDigest,
     outcome: "cancelled",
     failureCode: null,
+    requestCount: 0,
+    redirectCount: 0,
+    findingCount: 0,
+    metrics: terminal.metrics,
+  });
+}
+
+async function finalizeExpiredSuccess(
+  input: PublishRuntimeWorkerTerminalInput,
+  context: RuntimeWorkerFinalizationContext,
+  terminal: WorkerTerminalEnvelope,
+  terminalDigest: string,
+  dependencies: RuntimeWorkerPublicationDependencies,
+) {
+  return dependencies.finalize({
+    workerId: input.workerId,
+    taskId: input.taskId,
+    attemptId: input.attemptId,
+    leaseToken: input.leaseToken,
+    executionClass: context.executionClass,
+    terminalDigest,
+    outcome: "failed",
+    failureCode: "RUNTIME_WORKER_BUDGET_EXCEEDED",
     requestCount: 0,
     redirectCount: 0,
     findingCount: 0,
@@ -207,11 +232,19 @@ export async function publishRuntimeWorkerTerminal(
     });
   }
 
-  if (await cancelledNow(context, dependencies)) {
+  if (context.cancelRequested) {
     return finalizeCancellation(input, context, terminal, terminalDigest, dependencies);
   }
 
   const observedAt = (dependencies.now ?? (() => new Date()))();
+  const leaseExpiresAt = Date.parse(context.leaseExpiresAt);
+  if (!Number.isFinite(leaseExpiresAt)) {
+    fail("RUNTIME_WORKER_TASK_INVALID");
+  }
+  if (leaseExpiresAt <= observedAt.getTime()) {
+    return finalizeExpiredSuccess(input, context, terminal, terminalDigest, dependencies);
+  }
+
   const ref = assetRef(context.assetId);
   let findingCount = 0;
 
@@ -220,7 +253,9 @@ export async function publishRuntimeWorkerTerminal(
       fail("RUNTIME_WORKER_TASK_INVALID");
     }
     const job = await dependencies.loadPassiveJob(context.domainJobId);
-    if (!job || job.status !== "running" || job.cancel_requested_at !== null) {
+    if (!job) fail("RUNTIME_WORKER_TASK_INVALID");
+    if (job.status !== "running") fail("RUNTIME_WORKER_TASK_INVALID");
+    if (job.cancel_requested_at !== null) {
       return finalizeCancellation(input, context, terminal, terminalDigest, dependencies);
     }
     const matches = evaluateRuntimeRules({ observations: terminal.result.observations, now: observedAt });
@@ -233,7 +268,7 @@ export async function publishRuntimeWorkerTerminal(
         observations: terminal.result.observations,
         findings,
         evidence,
-        maximumBytes: Number((job.budget as Record<string, unknown>).maxObservationBytes),
+        maximumBytes: observationBudget(job),
         observedAt,
       });
     } catch (error) {
@@ -248,7 +283,9 @@ export async function publishRuntimeWorkerTerminal(
       fail("RUNTIME_WORKER_TASK_INVALID");
     }
     const job = await dependencies.loadActiveJob(context.domainJobId);
-    if (!job || job.status !== "running" || job.cancel_requested_at !== null) {
+    if (!job) fail("RUNTIME_WORKER_TASK_INVALID");
+    if (job.status !== "running") fail("RUNTIME_WORKER_TASK_INVALID");
+    if (job.cancel_requested_at !== null) {
       return finalizeCancellation(input, context, terminal, terminalDigest, dependencies);
     }
     const matches = evaluateCorsPolicyRules({ observation: terminal.result.observation });
@@ -261,7 +298,7 @@ export async function publishRuntimeWorkerTerminal(
         observation: terminal.result.observation,
         findings,
         evidence,
-        maximumBytes: Number((job.budget as Record<string, unknown>).maxObservationBytes),
+        maximumBytes: observationBudget(job),
         observedAt,
       });
     } catch (error) {
