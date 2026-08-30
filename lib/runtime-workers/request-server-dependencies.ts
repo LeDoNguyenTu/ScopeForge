@@ -55,7 +55,7 @@ function parseWorkerTask(
   return Object.freeze({
     scanJobId: value.scanJobId,
     taskId: value.taskId,
-    executionClass: value.executionClass,
+    executionClass: expectedClass,
     absoluteDeadlineAt: value.absoluteDeadlineAt,
   });
 }
