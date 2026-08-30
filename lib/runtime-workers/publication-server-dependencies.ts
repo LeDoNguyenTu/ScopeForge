@@ -12,7 +12,7 @@ export function createRuntimeWorkerPublicationServerDependencies(): RuntimeWorke
   const active = createActiveValidationRepository(admin);
   const finalization = createRuntimeWorkerFinalizationRepository(controlAdmin);
 
-  return Object.freeze({
+  const dependencies: RuntimeWorkerPublicationDependencies = {
     getContext: finalization.getContext,
     loadPassiveJob: passive.load,
     loadActiveJob: active.load,
@@ -37,5 +37,7 @@ export function createRuntimeWorkerPublicationServerDependencies(): RuntimeWorke
       );
     },
     finalize: finalization.finalize,
-  });
+  };
+
+  return Object.freeze(dependencies);
 }
