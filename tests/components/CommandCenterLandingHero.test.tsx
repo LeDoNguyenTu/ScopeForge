@@ -33,7 +33,7 @@ describe("CommandCenterLandingHero", () => {
     expect(screen.getAllByText("92")).toHaveLength(2);
     expect(screen.getByText("Attack Surface Overview")).toBeInTheDocument();
     expect(screen.getByText("Top risk path")).toBeInTheDocument();
-    expect(screen.getByText("Pause monitoring")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Pause animation/i })).toBeInTheDocument();
   });
 
   it("exposes bounded layout regions instead of page-level floating blocks", () => {
