@@ -219,8 +219,7 @@ begin
   end if;
 
   if attempt_record.finished_at is not null then
-    if attempt_record.terminal_payload_digest = target_terminal_digest
-       and attempt_record.outcome = target_outcome then
+    if attempt_record.terminal_payload_digest = target_terminal_digest then
       return jsonb_build_object(
         'outcome', attempt_record.outcome,
         'replayed', true
