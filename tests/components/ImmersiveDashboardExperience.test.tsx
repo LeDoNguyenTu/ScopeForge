@@ -59,7 +59,9 @@ describe("ImmersiveDashboardExperience", () => {
     expect(screen.getAllByText("75%")).toHaveLength(2);
     expect(screen.getByText("Highest priority evidence")).toBeInTheDocument();
     expect(screen.getByText("Missing security header")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Review findings/i })).toHaveAttribute("href", "/dashboard/findings");
+    const reviewLinks = screen.getAllByRole("link", { name: /Review findings/i });
+    expect(reviewLinks).toHaveLength(2);
+    expect(reviewLinks.every((link) => link.getAttribute("href") === "/dashboard/findings")).toBe(true);
   });
 
   it("does not present concept-only telemetry as real workspace facts", () => {
