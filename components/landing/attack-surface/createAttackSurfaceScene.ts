@@ -79,10 +79,15 @@ void main() {
   p.z += 5.15;
   float perspective = 2.55 / max(2.0, p.z);
   vec2 projected = vec2(p.x * perspective / max(0.72, uAspect), p.y * perspective);
-  gl_Position = vec4(projected, 0.0, 1.0);
+  float depth = clamp((p.z - 1.75) / 7.2, 0.0, 1.0) * 2.0 - 1.0;
+  gl_Position = vec4(projected, depth, 1.0);
 
   float shimmer = aExtra >= 3.0 ? sin(uTime * 0.0011 + aExtra * 1.71) * 0.5 + 0.5 : 0.35;
-  vPulse = 0.88 + shimmer * 0.12;
+  float radius = length(aPosition.xz);
+  float scanPosition = mod(uTime * 0.00034, 3.85);
+  float scan = exp(-abs(radius - scanPosition) * 7.0);
+  float returnScan = exp(-abs(radius - (3.85 - scanPosition)) * 8.5) * 0.35;
+  vPulse = 0.82 + shimmer * 0.13 + scan * 0.68 + returnScan;
   vColor = aColor;
 }
 `;
@@ -93,7 +98,8 @@ uniform float uAlpha;
 varying vec3 vColor;
 varying float vPulse;
 void main() {
-  gl_FragColor = vec4(vColor * vPulse, uAlpha);
+  vec3 lit = vColor * vPulse;
+  gl_FragColor = vec4(lit, uAlpha * clamp(vPulse, 0.72, 1.35));
 }
 `;
 
@@ -136,7 +142,8 @@ void main() {
   p.z += 5.15;
   float perspective = 2.55 / max(2.0, p.z);
   vec2 projected = vec2(p.x * perspective / max(0.72, uAspect), p.y * perspective);
-  gl_Position = vec4(projected, 0.0, 1.0);
+  float depth = clamp((p.z - 1.75) / 7.2, 0.0, 1.0) * 2.0 - 1.0;
+  gl_Position = vec4(projected, depth, 1.0);
   gl_PointSize = uPointSize * clamp(5.5 / p.z, 0.7, 1.6);
   vColor = aColor;
 }
@@ -149,11 +156,11 @@ varying vec3 vColor;
 void main() {
   vec2 q = gl_PointCoord - vec2(0.5);
   float distanceToCenter = length(q);
-  float core = 1.0 - smoothstep(0.05, 0.24, distanceToCenter);
+  float core = 1.0 - smoothstep(0.05, 0.22, distanceToCenter);
   float glow = 1.0 - smoothstep(0.12, 0.5, distanceToCenter);
-  float alpha = (core + glow * 0.6) * uAlpha;
+  float alpha = (core + glow * 0.62) * uAlpha;
   if (alpha <= 0.01) discard;
-  gl_FragColor = vec4(vColor * (1.0 + core * 0.7), alpha);
+  gl_FragColor = vec4(vColor * (1.0 + core * 0.8 + glow * 0.12), alpha);
 }
 `;
 
@@ -243,7 +250,7 @@ export function createAttackSurfaceScene(options: CreateAttackSurfaceSceneOption
   const gl = canvas.getContext("webgl", {
     alpha: true,
     antialias: quality !== "mobile",
-    depth: false,
+    depth: true,
     premultipliedAlpha: false,
     powerPreference: "high-performance",
   });
@@ -277,7 +284,8 @@ export function createAttackSurfaceScene(options: CreateAttackSurfaceSceneOption
   onMilestone?.("materials");
 
   gl.clearColor(0, 0, 0, 0);
-  gl.disable(gl.DEPTH_TEST);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
   gl.enable(gl.BLEND);
 
   let targetPointer: PointerState = { x: 0, y: 0 };
@@ -329,39 +337,49 @@ export function createAttackSurfaceScene(options: CreateAttackSurfaceSceneOption
     const parallax = getParallaxStrength(quality);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     if (surfaceBuffers.count > 0) {
       gl.useProgram(geometryProgram.program);
       bindBuffers(gl, geometryProgram, surfaceBuffers);
+      gl.depthMask(false);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      setSharedUniforms(gl, geometryProgram, timeMs, currentPointer, aspect, parallax, quality === "high" ? 0.14 : 0.09);
+      setSharedUniforms(gl, geometryProgram, timeMs, currentPointer, aspect, parallax, quality === "high" ? 0.13 : 0.08);
       gl.drawArrays(gl.TRIANGLES, 0, surfaceBuffers.count);
+      gl.depthMask(true);
     }
 
     gl.useProgram(geometryProgram.program);
     bindBuffers(gl, geometryProgram, lineBuffers);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    setSharedUniforms(gl, geometryProgram, timeMs, currentPointer, aspect, parallax, 0.18);
+    gl.depthMask(false);
+    gl.depthFunc(gl.LEQUAL);
+    setSharedUniforms(gl, geometryProgram, timeMs, currentPointer, aspect, parallax, 0.14);
     gl.drawArrays(gl.LINES, 0, lineBuffers.count);
-    setSharedUniforms(gl, geometryProgram, timeMs, currentPointer, aspect, parallax, quality === "mobile" ? 0.62 : 0.78);
+    gl.depthMask(true);
+    setSharedUniforms(gl, geometryProgram, timeMs, currentPointer, aspect, parallax, quality === "mobile" ? 0.62 : 0.8);
     gl.drawArrays(gl.LINES, 0, lineBuffers.count);
 
     gl.useProgram(pointProgram.program);
     bindBuffers(gl, pointProgram, particleBuffers);
-    gl.uniform1f(pointProgram.pointSize ?? null, quality === "mobile" ? 4.2 : 5.3);
+    gl.depthMask(false);
+    gl.uniform1f(pointProgram.pointSize ?? null, quality === "mobile" ? 4.2 : 5.4);
     gl.uniform1f(pointProgram.drift ?? null, quality === "reduced" ? 0 : 1);
-    setSharedUniforms(gl, pointProgram, timeMs, currentPointer, aspect, parallax, quality === "mobile" ? 0.48 : 0.58);
+    setSharedUniforms(gl, pointProgram, timeMs, currentPointer, aspect, parallax, quality === "mobile" ? 0.44 : 0.56);
     gl.drawArrays(gl.POINTS, 0, particleBuffers.count);
 
     const activePulsePoints = updatePulseBuffers(timeMs);
     if (activePulsePoints > 0) {
       bindBuffers(gl, pointProgram, pulseBuffers);
-      gl.uniform1f(pointProgram.pointSize ?? null, quality === "mobile" ? 8.0 : 10.5);
       gl.uniform1f(pointProgram.drift ?? null, 0);
-      setSharedUniforms(gl, pointProgram, timeMs, currentPointer, aspect, parallax, 0.9);
+      gl.uniform1f(pointProgram.pointSize ?? null, quality === "mobile" ? 13.0 : 17.0);
+      setSharedUniforms(gl, pointProgram, timeMs, currentPointer, aspect, parallax, 0.2);
+      gl.drawArrays(gl.POINTS, 0, activePulsePoints);
+      gl.uniform1f(pointProgram.pointSize ?? null, quality === "mobile" ? 7.4 : 10.0);
+      setSharedUniforms(gl, pointProgram, timeMs, currentPointer, aspect, parallax, 0.94);
       gl.drawArrays(gl.POINTS, 0, activePulsePoints);
     }
+    gl.depthMask(true);
 
     if (!firstFrameDone) {
       firstFrameDone = true;
@@ -395,8 +413,6 @@ export function createAttackSurfaceScene(options: CreateAttackSurfaceSceneOption
     gl.deleteProgram(pointProgram.program);
   };
 
-  // Keep a tiny deterministic read of the animation helper in this module so particle motion
-  // policy remains part of the controller contract without allocating during render.
   void particleDrift(geometry.particleSeeds[0] ?? 0, 0, quality);
 
   return {
