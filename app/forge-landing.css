@@ -1,0 +1,242 @@
+.forgeLanding {
+  min-height: 100vh;
+  overflow: hidden;
+  color: var(--forge-text);
+  background:
+    radial-gradient(circle at 76% 21%, rgba(79,224,193,.07), transparent 31rem),
+    radial-gradient(circle at 15% 8%, rgba(85,199,223,.035), transparent 25rem),
+    linear-gradient(180deg, var(--forge-bg-deep), var(--forge-bg) 58%, #080c10);
+}
+
+.forgeHero {
+  position: relative;
+  width: min(1480px, 100%);
+  min-height: 900px;
+  margin: 0 auto;
+  padding: 156px 54px 76px;
+  display: grid;
+  grid-template-columns: minmax(0, .82fr) minmax(520px, 1.18fr);
+  align-items: center;
+  gap: 20px;
+}
+
+.forgeHeroBackdrop {
+  position: absolute;
+  inset: 84px 14px 28px;
+  pointer-events: none;
+  border-radius: 38px;
+  background-image:
+    linear-gradient(rgba(120,148,159,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120,148,159,.035) 1px, transparent 1px);
+  background-size: 11.111% 12.5%;
+  mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,.7) 11%, #000 60%, transparent 100%);
+}
+
+.forgeHeroBackdrop::before,
+.forgeHeroBackdrop::after {
+  content: "";
+  position: absolute;
+  background: rgba(135,162,173,.09);
+}
+.forgeHeroBackdrop::before { width: 1px; top: 0; bottom: 0; left: 53%; }
+.forgeHeroBackdrop::after { height: 1px; left: 0; right: 0; top: 62%; }
+
+.forgeHeroCopy {
+  position: relative;
+  z-index: 5;
+  max-width: 680px;
+  padding-right: 22px;
+}
+
+.forgeEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--forge-teal);
+  font: 760 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.forgeHero h1 {
+  margin: 19px 0 23px;
+  max-width: 690px;
+  font-size: clamp(52px, 5.35vw, 84px);
+  font-weight: 470;
+  line-height: .94;
+  letter-spacing: -.055em;
+}
+
+.forgeHero h1 span {
+  color: transparent;
+  background: linear-gradient(105deg, #9cc8bd 0%, var(--forge-teal) 54%, #739b94 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+.forgeHeroLead {
+  max-width: 570px;
+  margin: 0;
+  color: #9aa6af;
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+.forgeHeroActions { margin-top: 30px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.forgePrimaryAction,
+.forgeSecondaryAction {
+  min-height: 48px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 720;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.forgePrimaryAction {
+  color: #04110d;
+  border: 1px solid var(--forge-teal);
+  background: linear-gradient(135deg, #74efd0, var(--forge-teal));
+  box-shadow: 0 12px 40px rgba(79,224,193,.11);
+}
+.forgeSecondaryAction { color: #cbd4da; border: 1px solid var(--forge-line-strong); background: rgba(255,255,255,.018); }
+.forgePrimaryAction:hover,
+.forgeSecondaryAction:hover { transform: translateY(-2px); }
+.forgeSecondaryAction:hover { border-color: rgba(79,224,193,.3); background: rgba(79,224,193,.035); }
+.forgePrimaryAction:focus-visible,
+.forgeSecondaryAction:focus-visible,
+.forgeSecurityIntro > a:focus-visible { outline: 2px solid var(--forge-cyan); outline-offset: 3px; }
+
+.forgeAuthorizationNote {
+  margin: 19px 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #66747f;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.forgeAuthorizationNote svg { color: var(--forge-teal); }
+
+.forgeHeroVisual {
+  position: relative;
+  z-index: 3;
+  width: 112%;
+  margin-left: -5%;
+}
+.forgeVisualTag {
+  position: absolute;
+  z-index: 5;
+  top: 18px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  font: 700 8px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #61707a;
+}
+.forgeVisualTag span { display: inline-flex; align-items: center; gap: 6px; color: #7d928c; }
+.forgeVisualTag i { width: 6px; height: 6px; border-radius: 50%; background: var(--forge-teal); box-shadow: 0 0 13px rgba(79,224,193,.62); }
+
+.forgePlatform,
+.forgeSecurityModel {
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.forgePlatform { padding: 92px 0 110px; }
+.forgeSectionHeading { max-width: 730px; margin-bottom: 34px; }
+.forgeSectionHeading h2,
+.forgeSecurityIntro h2 { margin: 13px 0 14px; font-size: clamp(34px, 4vw, 56px); line-height: 1.02; font-weight: 520; letter-spacing: -.05em; }
+.forgeSectionHeading > p,
+.forgeSecurityIntro > p { margin: 0; color: #84919b; font-size: 13px; line-height: 1.7; }
+
+.forgeWorkflowGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+.forgeWorkflowCard {
+  position: relative;
+  min-height: 240px;
+  padding: 16px 15px;
+  border: 1px solid rgba(142,165,176,.13);
+  border-radius: 18px;
+  background: linear-gradient(155deg, rgba(15,22,28,.85), rgba(8,12,16,.76));
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+.forgeWorkflowCard:hover { transform: translateY(-3px); border-color: rgba(79,224,193,.23); background: linear-gradient(155deg, rgba(19,30,36,.9), rgba(8,12,16,.82)); }
+.forgeWorkflowTop { display: flex; align-items: center; justify-content: space-between; color: #61707a; }
+.forgeWorkflowTop > span { font: 700 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.forgeWorkflowTop svg { color: var(--forge-teal); }
+.forgeWorkflowCard h3 { margin: 74px 0 8px; font-size: 14px; }
+.forgeWorkflowCard p { margin: 0; color: #77848e; font-size: 10.5px; line-height: 1.55; }
+
+.forgeSecurityModel {
+  margin-bottom: 100px;
+  padding: 64px;
+  display: grid;
+  grid-template-columns: .82fr 1.18fr;
+  gap: 72px;
+  align-items: start;
+  border: 1px solid rgba(140,165,175,.15);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 8% 0, rgba(79,224,193,.07), transparent 24rem),
+    linear-gradient(145deg, rgba(15,23,29,.88), rgba(7,11,15,.91));
+  box-shadow: inset 0 1px rgba(255,255,255,.02), 0 35px 90px rgba(0,0,0,.18);
+}
+.forgeSecurityIntro > a { margin-top: 24px; display: inline-flex; align-items: center; gap: 7px; color: #c7d0d6; font-size: 11px; font-weight: 700; }
+.forgeSecurityIntro > a:hover { color: var(--forge-teal); }
+.forgeSecurityCards { display: grid; gap: 9px; }
+.forgeSecurityCards article { min-height: 130px; padding: 18px 19px; display: grid; grid-template-columns: 27px 1fr; column-gap: 10px; align-content: start; border: 1px solid rgba(140,165,175,.12); border-radius: 16px; background: rgba(7,11,14,.55); }
+.forgeSecurityCards svg { color: var(--forge-teal); margin-top: 1px; }
+.forgeSecurityCards strong { color: #dce3e7; font-size: 12px; }
+.forgeSecurityCards p { grid-column: 2; margin: 7px 0 0; color: #75838d; font-size: 10.5px; line-height: 1.55; }
+
+@media (max-width: 1180px) {
+  .forgeHero { grid-template-columns: .92fr 1.08fr; padding-left: 32px; padding-right: 32px; }
+  .forgeHeroVisual { width: 106%; margin-left: -2%; }
+  .forgeWorkflowGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .forgeWorkflowCard { min-height: 190px; }
+  .forgeWorkflowCard h3 { margin-top: 45px; }
+}
+
+@media (max-width: 900px) {
+  .forgeHero { min-height: auto; padding: 126px 24px 70px; grid-template-columns: 1fr; gap: 38px; }
+  .forgeHeroCopy { max-width: 760px; padding-right: 0; }
+  .forgeHeroVisual { width: 100%; margin: 0; }
+  .forgeHero h1 { max-width: 760px; font-size: clamp(50px, 9vw, 78px); }
+  .forgeWorkflowGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .forgeSecurityModel { padding: 42px; grid-template-columns: 1fr; gap: 38px; }
+}
+
+@media (max-width: 600px) {
+  .forgeHero { padding: 102px 16px 54px; gap: 28px; }
+  .forgeHeroBackdrop { inset: 70px 7px 10px; }
+  .forgeHero h1 { margin-top: 15px; font-size: clamp(43px, 13vw, 62px); line-height: .96; }
+  .forgeHeroLead { font-size: 13.5px; line-height: 1.66; }
+  .forgeHeroActions { align-items: stretch; }
+  .forgePrimaryAction, .forgeSecondaryAction { flex: 1 1 100%; }
+  .forgeAuthorizationNote { align-items: flex-start; }
+  .forgePlatform, .forgeSecurityModel { width: calc(100% - 28px); }
+  .forgePlatform { padding: 68px 0 74px; }
+  .forgeWorkflowGrid { grid-template-columns: 1fr; }
+  .forgeWorkflowCard { min-height: 145px; }
+  .forgeWorkflowCard h3 { margin-top: 28px; }
+  .forgeSecurityModel { padding: 28px 20px; border-radius: 24px; margin-bottom: 54px; }
+  .forgeSectionHeading h2, .forgeSecurityIntro h2 { font-size: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forgePrimaryAction,
+  .forgeSecondaryAction,
+  .forgeWorkflowCard { transition-duration: .01ms !important; }
+}
