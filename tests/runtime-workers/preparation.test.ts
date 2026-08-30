@@ -128,7 +128,7 @@ describe("Phase 6D runtime worker preparation", () => {
       domainJobId: jobId,
       expiresAt: "2026-08-31T00:00:30.000Z",
       target: {
-        assetRef: `asset:${assetId}`,
+        assetRef: assetId,
         kind: "web_application",
         canonicalUrl: "https://example.com",
         hostname: "example.com",
@@ -167,7 +167,7 @@ describe("Phase 6D runtime worker preparation", () => {
 
   it.each([
     ["canonical target", asset({ canonical_target: "https://changed.example.com", hostname: "changed.example.com" })],
-    ["asset kind", asset({ kind: "api", authorization_state: undefined } as never)],
+    ["asset kind", asset({ kind: "api" })],
     ["verification timestamp", asset({ verified_at: "2026-08-31T00:00:02.000Z" })],
     ["unverified asset", asset({ verification_status: "unverified", verified_at: null })],
   ])("blocks passive preparation when current %s no longer matches authorization", async (_label, changedAsset) => {
