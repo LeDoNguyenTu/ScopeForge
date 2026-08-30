@@ -24,6 +24,7 @@ Authorization, deterministic evidence, explanation, remediation, and execution a
 - **Phase 6C Isolated zero-egress Phase 3 scanning over immutable snapshots** - merged through PR #39 from exact verified head `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b` as merge commit `7a329dc2796a142102af2392ee461f205daa1b78`.
 - **Deployment-readiness reconciliation** - merged through PR #40 as `415428ebc510a7a8e890d3a03ebc4ffb8194252a`.
 - **Phase 6B public acquisition runtime gate** - merged through PR #41 as `07c6bc8580314b73c633a7b704e5f7557ceccb4d`.
+- **Living Attack Surface WebGL dashboard v2 and browser identity refresh** - merged through PR #45 as production main commit `cde3a9437671d2151e1d4af120549d94b59d2ac3`.
 
 ## Production database
 
@@ -37,7 +38,7 @@ Phase 6B repository snapshot authority remains separated from browser and generi
 
 Phase 6C extends the worker boundary with repository-scan-specific queue/publication state and exact immutable snapshot provenance. Scanner success is accepted only when the trusted result context matches the selected snapshot, repository identity, resolved commit, content digest, artifact digest, task, attempt, worker, and live lease. Generic finalization cannot publish repository-scan success.
 
-The production Supabase security advisor was rechecked after deployment and reported zero security lints.
+The production Supabase security advisor was rechecked after the WebGL dashboard production deployment and reported zero security lints.
 
 ## Phase 6B repository acquisition boundary
 
@@ -113,30 +114,51 @@ The subsequent acquisition runtime gate was separately verified on exact head `f
 - production Next.js build
 - zero-vulnerability npm audit
 
+## Living Attack Surface WebGL v2 verification
+
+The reviewed UI release preserved the existing application-security authority boundaries and added no database migrations, RLS changes, hosted worker/runtime changes, network execution changes, or package dependencies.
+
+Fresh final acceptance before merge passed:
+
+- 234 test files / 977 tests
+- `npm run typecheck`
+- CLI build and version `ScopeForge 0.1.0`
+- scanner benchmark over 700 files with zero errors, 728 ms wall time against a 20,000 ms budget
+- `npm audit --audit-level=info` with zero vulnerabilities
+- Next.js 15.5.24 production compilation and type validation
+
+The bounded attack-surface model prioritizes risk-bearing assets when more than ten assets exist so a high-risk asset cannot be hidden merely because it was registered later. The raw-WebGL renderer has a DOM/CSS fallback, reduced-motion handling, visibility-aware animation, bounded device pixel ratio, and resize-driven canvas sizing to avoid per-frame layout reads on mobile Safari.
+
 ## Production deployment state
 
 The ScopeForge web control plane is live in production while worker-backed repository acquisition and hosted scanning remain unavailable.
 
-Exact production facts after deployment:
+Exact production facts after the WebGL dashboard release:
 
 - Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
 - Vercel project: `scopeforge` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
 - framework: Next.js
-- production deployment: `dpl_4WxejTKX2kADGNXha8bgRmmoAFYm`
-- deployed Git commit: `04c91ce720ca20795dd841a7c72be15417f63042` from `main`
+- production deployment: `dpl_5s99Nz3Qo5VntVD7d9aPRMF9Edfq`
+- deployed Git commit: `cde3a9437671d2151e1d4af120549d94b59d2ac3` from `main`
 - deployment state: `READY`
 - custom domain: `scopeforge.dev`
-- Vercel domain ownership: verified
-- Vercel domain configuration: `configuredBy = A`, `misconfigured = false`
+- current production deployment has `scopeforge.dev` as an alias with no alias error
 - Cloudflare remains authoritative DNS
-- apex application records are DNS-only and resolve to Vercel's current rank-1 addresses `216.198.79.1` and `64.29.17.1`
-- Vercel manages TLS; certificate `cert_Pz3Y2QMpaNUTAMkEAZNdiIYk` is auto-renewing for `scopeforge.dev`
+- apex application records remain DNS-only and point at Vercel
+- Vercel manages TLS and serves HSTS
 - `https://scopeforge.dev/` returns 200 with the ScopeForge landing page
 - `https://scopeforge.dev/auth/sign-in` returns 200
-- unauthenticated `/dashboard` resolves to the sign-in flow
-- HSTS is served by Vercel
-- production runtime error inspection reported no runtime errors after deployment
-- deployment cleanup found exactly one deployment and preserved it because it is the current production deployment; no preview deployment deletion was necessary
+- `https://scopeforge.dev/auth/sign-up` returns 200
+- unauthenticated `/dashboard` resolves to the sign-in surface
+- production runtime error inspection reported no runtime errors in the post-deployment verification window
+- production Supabase security advisor reported zero security lints
+
+Production browser identity is now explicit and cache-busted:
+
+- `/scopeforge-mark-v2.svg` returns 200 as `image/svg+xml`
+- `/manifest.webmanifest` returns 200 and references the same ScopeForge mark for `any` and `maskable` purposes
+- page metadata includes `shortcut icon`, `icon`, and `apple-touch-icon` references to `/scopeforge-mark-v2.svg`
+- the obsolete special `/icon.svg` route now returns 404, preventing it from competing with the current browser identity
 
 Production environment rules remain:
 
@@ -147,6 +169,10 @@ Production environment rules remain:
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED = false`.
 - R2 remains unnecessary while both hosted repository runtime capabilities are false.
 - Turnstile is not wired into active application behavior and must not be described as active.
+
+Preview deployments created during isolated acceptance were not deleted because the currently available Vercel connector exposes no deployment-delete action. The merged production deployment is not affected by those previews. The merged feature branch also remains because the available GitHub connector exposes no safe branch-delete action. Neither limitation changes production state.
+
+A temporary Floot production-operations endpoint remains pending cleanup because the Floot project reached its daily build-action cap during final operations. Stored credentials must be retained. The helper should be deleted after the Floot quota resets; it is not part of the ScopeForge production Vercel application.
 
 ## Repository branch cleanup
 
@@ -179,7 +205,7 @@ All 33 other non-main branches were preserved because comparison showed `ahead_b
 
 ## Current boundary
 
-Production control-plane deployment and `scopeforge.dev` verification are complete with both repository worker capability gates still false.
+Production control-plane deployment, `scopeforge.dev`, the Living Attack Surface WebGL dashboard, and the browser identity refresh are complete with both repository worker capability gates still false.
 
 The next implementation architecture boundary is **Phase 6D dedicated network-enabled worker execution**. It remains design-gated. Existing passive runtime and bounded active CORS validation may move behind dedicated closed worker classes only after a separate threat model and approved design preserve the current authorization snapshot, immediate pre-network reauthorization, DNS/IP policy, request shapes, owner/admin active consent, fixed budgets, cancellation, deterministic persistence, privacy, quotas/backpressure, and fleet controls.
 
