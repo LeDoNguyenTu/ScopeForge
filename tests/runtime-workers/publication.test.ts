@@ -164,7 +164,7 @@ describe("Phase 6D trusted publication", () => {
     expect(result.outcome).toBe("cancelled");
   });
 
-  it("fails an expired late success without persisting observations or findings", async () => {
+  it("rejects an expired late success without persisting observations or findings", async () => {
     const deps = dependencies("passive_runtime_observation_v1");
     deps.getContext = vi.fn(async () => ({
       taskId,
@@ -180,16 +180,11 @@ describe("Phase 6D trusted publication", () => {
       priorTerminalDigest: null,
     }));
 
-    const result = await publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("passive_runtime_observation_v1") }, deps);
+    await expect(publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("passive_runtime_observation_v1") }, deps)).rejects.toMatchObject({
+      code: "RUNTIME_WORKER_AUTHORIZATION_FAILED",
+    });
     expect(deps.persistPassive).not.toHaveBeenCalled();
-    expect(deps.finalize).toHaveBeenCalledWith(expect.objectContaining({
-      outcome: "failed",
-      failureCode: "RUNTIME_WORKER_BUDGET_EXCEEDED",
-      requestCount: 0,
-      redirectCount: 0,
-      findingCount: 0,
-    }));
-    expect(result.outcome).toBe("failed");
+    expect(deps.finalize).not.toHaveBeenCalled();
   });
 
   it("does not persist malformed or cross-class success output", async () => {
