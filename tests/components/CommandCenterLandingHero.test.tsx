@@ -36,6 +36,16 @@ describe("CommandCenterLandingHero", () => {
     expect(screen.getByText("Pause monitoring")).toBeInTheDocument();
   });
 
+  it("exposes bounded layout regions instead of page-level floating blocks", () => {
+    render(<CommandCenterLandingHero />);
+
+    expect(screen.getByTestId("command-copy")).toBeInTheDocument();
+    expect(screen.getByTestId("command-scene")).toBeInTheDocument();
+    expect(screen.getByTestId("command-metrics")).toBeInTheDocument();
+    expect(screen.getByTestId("command-overview")).toBeInTheDocument();
+    expect(screen.getByTestId("command-runtime")).toBeInTheDocument();
+  });
+
   it("labels all public metrics as illustrative instead of live workspace data", () => {
     render(<CommandCenterLandingHero />);
     expect(screen.getByText(/Illustrative platform telemetry/i)).toBeInTheDocument();
