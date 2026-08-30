@@ -4,6 +4,7 @@ import "./globals.css";
 import "./forge.css";
 import "./forge-landing.css";
 import "./forge-shell.css";
+import "./forge-immersive.css";
 import "./forge-dashboard.css";
 import "./assets.css";
 import "./community.css";
