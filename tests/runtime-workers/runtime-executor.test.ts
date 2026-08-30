@@ -73,6 +73,25 @@ describe("Phase 6D runtime container executor", () => {
     expect(JSON.stringify(terminal)).not.toContain(mediatorSocketPath);
   });
 
+  it("preserves mediator cancellation as the closed runtime-cancelled terminal", async () => {
+    const executor = createRuntimeWorkerExecutor({
+      podmanBinary: "/usr/bin/podman",
+      runtimeImage: `ghcr.io/scopeforge/runtime-worker@sha256:${"a".repeat(64)}`,
+      sandbox: {
+        execute: vi.fn(async () => ({
+          output: JSON.stringify({ status: "cancelled", requestCount: 1, redirectCount: 0 }),
+        })),
+      },
+      now: () => 10,
+    });
+
+    await expect(executor.execute(contract, new AbortController().signal)).resolves.toMatchObject({
+      outcome: "cancelled",
+      failureCode: "RUNTIME_WORKER_CANCELLED",
+      result: null,
+    });
+  });
+
   it("maps malformed container output to the closed output-invalid terminal", async () => {
     const executor = createRuntimeWorkerExecutor({
       podmanBinary: "/usr/bin/podman",
