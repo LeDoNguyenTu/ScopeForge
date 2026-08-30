@@ -16,12 +16,14 @@ import { READY_STORAGE_KEY, SCENE_VERSION } from "@/components/landing/attack-su
 type LandingBootContextValue = Readonly<{
   reportProgress: (progress: number, stage: string) => void;
   markReady: () => void;
+  releaseFallback: () => void;
   isCold: boolean;
 }>;
 
 const LandingBootContext = createContext<LandingBootContextValue>({
   reportProgress: () => undefined,
   markReady: () => undefined,
+  releaseFallback: () => undefined,
   isCold: false,
 });
 
@@ -53,6 +55,7 @@ export default function LandingBootGate({ children }: { children: ReactNode }) {
 
     const timeout = window.setTimeout(() => {
       if (!readyRef.current) {
+        readyRef.current = true;
         setStage("Continuing with optimized visual mode");
         setBootVisible(false);
       }
@@ -78,11 +81,19 @@ export default function LandingBootGate({ children }: { children: ReactNode }) {
     setBootVisible(false);
   }, []);
 
+  const releaseFallback = useCallback(() => {
+    readyRef.current = true;
+    setProgress(100);
+    setStage("Optimized fallback ready");
+    setBootVisible(false);
+  }, []);
+
   const contextValue = useMemo<LandingBootContextValue>(() => ({
     reportProgress,
     markReady,
+    releaseFallback,
     isCold,
-  }), [isCold, markReady, reportProgress]);
+  }), [isCold, markReady, releaseFallback, reportProgress]);
 
   return (
     <LandingBootContext.Provider value={contextValue}>
