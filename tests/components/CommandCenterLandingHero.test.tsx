@@ -30,7 +30,7 @@ describe("CommandCenterLandingHero", () => {
     expect(screen.getByText("14,892")).toBeInTheDocument();
     expect(screen.getByText("3,271")).toBeInTheDocument();
     expect(screen.getByText("523")).toBeInTheDocument();
-    expect(screen.getByText("92")).toBeInTheDocument();
+    expect(screen.getAllByText("92")).toHaveLength(2);
     expect(screen.getByText("Attack Surface Overview")).toBeInTheDocument();
     expect(screen.getByText("Top risk path")).toBeInTheDocument();
     expect(screen.getByText("Pause monitoring")).toBeInTheDocument();
