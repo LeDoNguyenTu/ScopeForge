@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  createRuntimeMediatorSessionRegistry,
   validateRuntimeMediatorResult,
   validateRuntimeMediatorRunRequest,
 } from "@/packages/runtime-worker-mediator";
+import { createRuntimeMediatorSessionRegistry } from "@/packages/runtime-worker-mediator/session-registry";
 
 const taskId = "11111111-1111-4111-8111-111111111111";
 const attemptId = "22222222-2222-4222-8222-222222222222";
