@@ -92,8 +92,10 @@ describe("Phase 6D authority architecture", () => {
     expect(executionUnion).not.toMatch(/generic|url|fetch|http|proxy/i);
   });
 
-  it("permanently keeps the general executor sandbox network-disabled", async () => {
-    const sandboxCommand = await source("packages/worker-sandbox/podman-command.ts");
-    expect(sandboxCommand).toContain("--network=none");
+  it("permanently keeps both scanner and runtime executor sandboxes network-disabled", async () => {
+    const scannerSandbox = await source("packages/worker-sandbox/podman-command.ts");
+    const runtimeSandbox = await source("packages/runtime-worker-sandbox/podman-command.ts");
+    expect(scannerSandbox).toContain("--network=none");
+    expect(runtimeSandbox).toContain("--network=none");
   });
 });
