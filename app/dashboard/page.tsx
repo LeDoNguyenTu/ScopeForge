@@ -36,6 +36,7 @@ export default async function DashboardPage() {
   const verifiedAssets = (assets ?? []).filter((asset) => asset.verification_status === "verified");
   const firstNeedsProof = (assets ?? []).find((asset) => asset.verification_status !== "verified");
   const openWorkCount = openFindingCount ?? 0;
+  const verificationPercent = totalAssets === 0 ? 0 : Math.round((verifiedAssets.length / totalAssets) * 100);
 
   const nextHref = totalAssets === 0
     ? "/dashboard/assets/new"
@@ -68,40 +69,68 @@ export default async function DashboardPage() {
 
   return (
     <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
-      <section className="pageHeader">
-        <div><span className="sectionEyebrow">Security workspace</span><h1>Know what you own. Test only what you control.</h1><p>ScopeForge combines verified scope, bounded runtime testing and a workspace-scoped finding ledger so security results stay attributable, reviewable and auditable.</p></div>
-        <div className="healthBadge"><CircleCheck size={16} /> Runtime ledger active</div>
+      <section className="pageHeader forgeDashboardHeader">
+        <div>
+          <span className="sectionEyebrow">Security workspace</span>
+          <h1>Know what you own. Test only what you control.</h1>
+          <p>ScopeForge combines verified scope, bounded runtime testing and a workspace-scoped finding ledger so security results stay attributable, reviewable and auditable.</p>
+        </div>
+        <div className="healthBadge forgeHealthBadge"><CircleCheck size={16} /> Evidence ledger ready</div>
       </section>
 
-      <section className="grid4">
-        <article className="statCard"><div><span>Workspace isolation</span><ShieldCheck size={18} /></div><strong>RLS</strong><small>Member-scoped data boundary</small></article>
-        <article className="statCard"><div><span>Registered assets</span><Boxes size={18} /></div><strong>{totalAssets}</strong><small>Trial limit: 10</small></article>
-        <article className="statCard"><div><span>Verified assets</span><CircleCheck size={18} /></div><strong>{verifiedAssets.length}</strong><small>Proof of control confirmed</small></article>
-        <article className="statCard"><div><span>Open findings</span><Bug size={18} /></div><strong>{openWorkCount}</strong><small>Canonical records requiring review</small></article>
+      <section className="grid4 forgeStatBand">
+        <article className="statCard forgeStatCard"><div><span>Workspace isolation</span><ShieldCheck size={18} /></div><strong>RLS</strong><small>Member-scoped data boundary</small></article>
+        <article className="statCard forgeStatCard"><div><span>Registered assets</span><Boxes size={18} /></div><strong>{totalAssets}</strong><small>Trial limit: 10</small></article>
+        <article className="statCard forgeStatCard"><div><span>Verified assets</span><CircleCheck size={18} /></div><strong>{verifiedAssets.length}</strong><small>Proof of control confirmed</small></article>
+        <article className="statCard forgeStatCard"><div><span>Open findings</span><Bug size={18} /></div><strong>{openWorkCount}</strong><small>Canonical records requiring review</small></article>
       </section>
 
-      <section className="nextAction">
-        <div><span className="sectionEyebrow">Next action</span><h2>{nextTitle}</h2><p>{nextCopy}</p></div>
-        <Link className="primaryButton compact" href={nextHref}>{nextActionLabel} <ArrowRight size={15} /></Link>
+      <section className="dashboardHeroGrid">
+        <article className="attackOverviewCard">
+          <div className="attackOverviewHeader">
+            <div><span>Attack surface overview</span><h2>Verified scope at a glance</h2></div>
+            <span className="attackOverviewLive"><i /> Real workspace data</span>
+          </div>
+          <div className="attackOverviewBody">
+            <div className="scopeCoverageRing" style={{ background: `conic-gradient(var(--forge-teal) ${verificationPercent}%, rgba(104,126,137,.12) 0)` }}>
+              <div><strong>{verificationPercent}%</strong><span>verified</span></div>
+            </div>
+            <div className="scopeOverviewDetails">
+              <div className="scopeOverviewRow"><span>Authorized assets</span><strong>{totalAssets}</strong></div>
+              <div className="scopeOverviewRow"><span>Proof confirmed</span><strong>{verifiedAssets.length}</strong></div>
+              <div className="scopeOverviewRow"><span>Evidence requiring review</span><strong>{openWorkCount}</strong></div>
+              <div className="scopeNodeRail" aria-label={`${totalAssets} registered assets, ${verifiedAssets.length} verified`}>
+                {(assets ?? []).slice(0, 10).map((asset) => <i key={asset.id} className={asset.verification_status === "verified" ? "scopeNodeVerified" : "scopeNodePending"} />)}
+                {totalAssets === 0 ? <span>No assets registered yet</span> : null}
+              </div>
+            </div>
+          </div>
+          <div className="attackOverviewFoot"><ShieldCheck size={15} /><span>Remote testing authority remains bound to verified targets and reviewed server-side request profiles.</span></div>
+        </article>
+
+        <section className="nextAction forgeCommandCard">
+          <div><span className="sectionEyebrow">Next action</span><h2>{nextTitle}</h2><p>{nextCopy}</p></div>
+          <Link className="forgeCommandAction" href={nextHref}>{nextActionLabel} <ArrowRight size={15} /></Link>
+        </section>
       </section>
 
-      <section className="dashboardGrid" id="phase-roadmap">
-        <article className="panel">
-          <div className="panelTitle"><div><span>Product roadmap</span><h2>From scope to verified risk</h2></div><span className="statusDot">Phase 5A</span></div>
+      <section className="dashboardGrid forgeDashboardGrid" id="phase-roadmap">
+        <article className="panel forgePanel">
+          <div className="panelTitle"><div><span>Product controls</span><h2>From scope to verified risk</h2></div><span className="statusDot forgeStatusDot">Evidence first</span></div>
           <div className="moduleList">
-            {modules.map(([title, copy, phase, Icon]) => <div className="moduleRow" key={title}><span className="moduleIcon"><Icon size={17} /></span><div><strong>{title}</strong><p>{copy}</p></div><span className="modulePhase">{phase}</span></div>)}
+            {modules.map(([title, copy, phase, Icon]) => <div className="moduleRow forgeModuleRow" key={title}><span className="moduleIcon"><Icon size={17} /></span><div><strong>{title}</strong><p>{copy}</p></div><span className="modulePhase">{phase}</span></div>)}
           </div>
         </article>
-        <article className="panel">
+        <article className="panel forgePanel">
           <div className="panelTitle"><div><span>Execution controls</span><h2>Authorization before network authority</h2></div></div>
-          <div className="checkList">
+          <div className="checkList forgeCheckList">
             <div><CircleCheck size={16} /><span>Workspace-scoped asset inventory and proof of control</span></div>
             <div><CircleCheck size={16} /><span>Bounded passive runtime observations</span></div>
             <div><CircleCheck size={16} /><span>Explicit owner/admin consent for active CORS validation</span></div>
             <div><CircleCheck size={16} /><span>Atomic canonical finding and evidence persistence</span></div>
             <div><CircleCheck size={16} /><span>Append-only occurrence and lifecycle history</span></div>
           </div>
-          <div className="guardrail"><ShieldCheck size={17} /><p><strong>Authorization stays enforced.</strong> Runtime jobs remain bound to verified targets, fixed budgets and trusted server-side request plans rather than arbitrary browser-supplied network parameters.</p></div>
+          <div className="guardrail forgeGuardrail"><ShieldCheck size={17} /><p><strong>Authorization stays enforced.</strong> Runtime jobs remain bound to verified targets, fixed budgets and trusted server-side request plans rather than arbitrary browser-supplied network parameters.</p></div>
         </article>
       </section>
     </AppShell>
