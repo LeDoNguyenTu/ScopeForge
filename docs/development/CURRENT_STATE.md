@@ -24,7 +24,7 @@ Authorization, deterministic evidence, explanation, remediation, and execution a
 - **Phase 6C Isolated zero-egress Phase 3 scanning over immutable snapshots** - merged through PR #39 from exact verified head `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b` as merge commit `7a329dc2796a142102af2392ee461f205daa1b78`.
 - **Deployment-readiness reconciliation** - merged through PR #40 as `415428ebc510a7a8e890d3a03ebc4ffb8194252a`.
 - **Phase 6B public acquisition runtime gate** - merged through PR #41 as `07c6bc8580314b73c633a7b704e5f7557ceccb4d`.
-- **Living Attack Surface WebGL dashboard v2 and browser identity refresh** - merged through PR #45 as production main commit `cde3a9437671d2151e1d4af120549d94b59d2ac3`.
+- **Living Attack Surface WebGL dashboard v2 and browser identity refresh** - merged through PR #45 as application release commit `cde3a9437671d2151e1d4af120549d94b59d2ac3`.
 
 ## Production database
 
@@ -133,16 +133,16 @@ The bounded attack-surface model prioritizes risk-bearing assets when more than 
 
 The ScopeForge web control plane is live in production while worker-backed repository acquisition and hosted scanning remain unavailable.
 
-Exact production facts after the WebGL dashboard release:
+Stable production facts after the WebGL dashboard release:
 
 - Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
 - Vercel project: `scopeforge` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
 - framework: Next.js
-- production deployment: `dpl_5s99Nz3Qo5VntVD7d9aPRMF9Edfq`
-- deployed Git commit: `cde3a9437671d2151e1d4af120549d94b59d2ac3` from `main`
-- deployment state: `READY`
+- WebGL application release commit: `cde3a9437671d2151e1d4af120549d94b59d2ac3`
+- production tracks `main`; later docs-only reconciliation commits may advance the production deployment SHA without changing application code
+- production deployment state was verified `READY` after both the application release and subsequent docs-only reconciliation
 - custom domain: `scopeforge.dev`
-- current production deployment has `scopeforge.dev` as an alias with no alias error
+- the active production deployment has `scopeforge.dev` as an alias with no alias error
 - Cloudflare remains authoritative DNS
 - apex application records remain DNS-only and point at Vercel
 - Vercel manages TLS and serves HSTS
