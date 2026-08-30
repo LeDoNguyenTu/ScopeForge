@@ -34,4 +34,10 @@ describe("Phase 6D publication migration", () => {
     expect(sql).toContain("terminal_payload_digest = target_terminal_digest");
     expect(sql).toContain("replayed', true");
   });
+
+  it("replays an identical terminal digest using the stored effective outcome after cancellation override", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toMatch(/if attempt_record\.terminal_payload_digest = target_terminal_digest then\s+return jsonb_build_object\(\s*'outcome', attempt_record\.outcome,\s*'replayed', true\s*\);/i);
+    expect(sql).not.toContain("and attempt_record.outcome = target_outcome");
+  });
 });
