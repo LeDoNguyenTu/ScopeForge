@@ -1,7 +1,21 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import ScopeForgeMark from "@/components/brand/ScopeForgeMark";
+
+function getGreeting(hour: number) {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function ScopeForgeBootScreen({ progress, stage }: { progress: number; stage: string }) {
   const boundedProgress = Math.max(0, Math.min(100, Math.round(progress)));
+  const [greeting, setGreeting] = useState("Welcome to ScopeForge");
+
+  useEffect(() => {
+    setGreeting(`${getGreeting(new Date().getHours())} - welcome to ScopeForge`);
+  }, []);
 
   return (
     <div className="scopeForgeBoot" role="status" aria-live="polite" aria-label="ScopeForge initialization">
@@ -11,7 +25,7 @@ export default function ScopeForgeBootScreen({ progress, stage }: { progress: nu
           <span className="scopeForgeBootOrbit" />
           <ScopeForgeMark size={58} decorative />
         </div>
-        <p className="scopeForgeBootGreeting">Welcome to ScopeForge</p>
+        <p className="scopeForgeBootGreeting">{greeting}</p>
         <h1>Preparing living attack surface</h1>
         <div className="scopeForgeBootProgressRow">
           <output>{boundedProgress}%</output>
@@ -27,7 +41,7 @@ export default function ScopeForgeBootScreen({ progress, stage }: { progress: nu
         >
           <span style={{ width: `${boundedProgress}%` }} />
         </div>
-        <p className="scopeForgeBootNote">Authorized security workspace initialization</p>
+        <p className="scopeForgeBootNote">Preparing authorized security workspace visuals</p>
       </div>
     </div>
   );
