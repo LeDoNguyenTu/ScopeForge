@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { createWorkerControlRepository, type WorkerControlRepository } from "@/lib/worker-control/repository";
+import {
+  createWorkerControlRepository,
+  type RuntimeWorkerControlRepository,
+  type WorkerControlRepository,
+} from "@/lib/worker-control/repository";
 import {
   claimWorkerTaskForNode,
   registerActiveCorsWorkerNode,
@@ -102,20 +106,23 @@ describe("Phase 6D worker control paths", () => {
       budget: workerExecutionProfile("active_cors_validation_v1").budget,
       input: { kind: "active_cors_validation" as const, domainJobId },
     }));
-    const repository = {
+    const runtimeRepository = {
       registerPassiveRuntime,
       registerActiveCors,
+      enqueuePassiveRuntime: vi.fn(),
+      enqueueActiveCors: vi.fn(),
       claimRuntime,
-    } as unknown as WorkerControlRepository;
+    } as RuntimeWorkerControlRepository;
+    const repository = {} as WorkerControlRepository;
     const randomBytes = () => Buffer.alloc(32, 7);
 
     const passive = await registerPassiveRuntimeWorkerNode(
       { softwareVersion: "0.1.0" },
-      { repository, randomBytes },
+      { repository, runtimeRepository, randomBytes },
     );
     const active = await registerActiveCorsWorkerNode(
       { softwareVersion: "0.1.0" },
-      { repository, randomBytes },
+      { repository, runtimeRepository, randomBytes },
     );
 
     const expectedHash = createHash("sha256").update(Buffer.alloc(32, 7).toString("hex"), "utf8").digest("hex");
@@ -128,7 +135,7 @@ describe("Phase 6D worker control paths", () => {
       workerId,
       executionClass: "active_cors_validation_v1",
       softwareVersion: "0.1.0",
-    }, { repository })).resolves.toMatchObject({
+    }, { repository, runtimeRepository })).resolves.toMatchObject({
       executionClass: "active_cors_validation_v1",
       input: { kind: "active_cors_validation", domainJobId },
     });
