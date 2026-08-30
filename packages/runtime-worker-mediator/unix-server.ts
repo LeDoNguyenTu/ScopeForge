@@ -91,7 +91,7 @@ export function createRuntimeMediatorUnixServer(
         resolve();
       });
     });
-    await chmod(socketPath, 0o600);
+    await chmod(socketPath, 0o666);
     server = nextServer;
   }
 
