@@ -25,6 +25,7 @@ describe("CommandCenterSurface", () => {
     const { container } = render(<CommandCenterSurface />);
 
     expect(screen.getByTestId("command-center-surface")).toBeInTheDocument();
+    expect(screen.getByTestId("command-center-surface")).toHaveAttribute("data-scene-depth", "3d");
     expect(container.querySelector("canvas")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("WEB APPLICATION")).toBeInTheDocument();
     expect(screen.getByText("DATA STORE")).toBeInTheDocument();
