@@ -53,14 +53,14 @@ export function createRuntimeMediatorSessionRegistry<TProfile>(
   options: RuntimeMediatorSessionRegistryOptions = {},
 ) {
   const sessions = new Map<string, SessionRecord<TProfile>>();
-  const attempts = new Map<string, string>();
+  const boundAttempts = new Set<string>();
   const usedSessions = new Set<string>();
   const randomBytes = options.randomBytes ?? nodeRandomBytes;
 
   function register(input: RuntimeMediatorSessionRegistration<TProfile>): RuntimeMediatorSessionIdentity {
     const expiresAtMs = assertRegistration(input);
     const bindingKey = attemptKey(input);
-    if (attempts.has(bindingKey)) {
+    if (boundAttempts.has(bindingKey)) {
       throw new RuntimeMediatorProtocolError("MEDIATOR_SESSION_INVALID");
     }
 
@@ -77,7 +77,7 @@ export function createRuntimeMediatorSessionRegistry<TProfile>(
     });
     const key = sessionKey(identity);
     sessions.set(key, Object.freeze({ identity, expiresAtMs, profile: input.profile }));
-    attempts.set(bindingKey, key);
+    boundAttempts.add(bindingKey);
     return identity;
   }
 
@@ -94,13 +94,11 @@ export function createRuntimeMediatorSessionRegistry<TProfile>(
     }
     if (!Number.isFinite(now.getTime()) || record.expiresAtMs <= now.getTime()) {
       sessions.delete(key);
-      attempts.delete(attemptKey(record.identity));
       usedSessions.add(key);
       throw new RuntimeMediatorProtocolError("MEDIATOR_SESSION_EXPIRED");
     }
 
     sessions.delete(key);
-    attempts.delete(attemptKey(record.identity));
     usedSessions.add(key);
     return record.profile;
   }
