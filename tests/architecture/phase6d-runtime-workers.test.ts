@@ -66,18 +66,22 @@ describe("Phase 6D authority architecture", () => {
     expect(offenders.map(({ file }) => file)).toEqual([]);
   });
 
-  it("keeps Phase 6B acquisition and Phase 6C zero-egress scanning independent from Phase 6D networking", async () => {
+  it("keeps Phase 6B acquisition and snapshot transport independent from the Phase 6D mediator", async () => {
     const sixB = [
       ...await sourcesUnder("packages/repository-acquisition-network"),
       ...await sourcesUnder("packages/repository-snapshot"),
+      ...await sourcesUnder("packages/repository-snapshot-network"),
     ];
+    expect(sixB.filter(({ code }) => MEDIATOR_IMPORT.test(code)).map(({ file }) => file)).toEqual([]);
+  });
+
+  it("keeps Phase 6C zero-egress scanning independent from Phase 6D networking", async () => {
     const sixC = [
       ...await sourcesUnder("packages/hosted-scanner-runner"),
       ...await sourcesUnder("packages/scanner-core"),
       ...await sourcesUnder("packages/scanner-jsts"),
       ...await sourcesUnder("packages/scanner-iac"),
     ];
-    expect(sixB.filter(({ code }) => MEDIATOR_IMPORT.test(code)).map(({ file }) => file)).toEqual([]);
     expect(sixC.filter(({ code }) => MEDIATOR_IMPORT.test(code) || RUNTIME_NETWORK_IMPORT.test(code)).map(({ file }) => file)).toEqual([]);
   });
 
