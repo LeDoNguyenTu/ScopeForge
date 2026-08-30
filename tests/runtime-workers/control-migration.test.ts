@@ -35,7 +35,7 @@ describe("Phase 6D runtime worker control migration", () => {
     expect(sql).toContain("'active_cors_validation_v1'");
   });
 
-  it("enqueues only live queued Phase 4 jobs with the exact class pairing", async () => {
+  it("enqueues only live Phase 4 jobs with the exact class pairing", async () => {
     const sql = await readControlSql();
     const passive = functionSql(sql, "enqueue_passive_runtime_worker_task");
     const active = functionSql(sql, "enqueue_active_cors_worker_task");
@@ -49,7 +49,7 @@ describe("Phase 6D runtime worker control migration", () => {
       expect(body).toContain("private.runtime_worker_tasks");
       expect(body).toMatch(/active_task\.absolute_deadline_at > request_now/i);
       expect(body).toMatch(/active_job\.cancel_requested_at is null/i);
-      expect(body).toMatch(/active_job\.status = 'queued'::public\.scan_job_status/i);
+      expect(body).toMatch(/active_job\.status in \('queued'::public\.scan_job_status, 'running'::public\.scan_job_status\)/i);
     }
   });
 
