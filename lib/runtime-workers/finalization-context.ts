@@ -78,6 +78,7 @@ function parseContext(value: unknown): RuntimeWorkerFinalizationContext {
     workspaceId: uuid(value.workspaceId),
     assetId: uuid(value.assetId),
     cancelRequested: value.cancelRequested,
+    leaseExpiresAt,
     finishedAt: nullableIso(value.finishedAt),
     priorOutcome,
     priorTerminalDigest,
