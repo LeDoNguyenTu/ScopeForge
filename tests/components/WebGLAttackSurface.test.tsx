@@ -46,6 +46,8 @@ const model: AttackSurfaceModel = {
 };
 
 beforeEach(() => {
+  vi.restoreAllMocks();
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({
@@ -91,7 +93,6 @@ describe("WebGLAttackSurface", () => {
   });
 
   it("retains the DOM topology when WebGL is unavailable", () => {
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     const { container } = render(<WebGLAttackSurface model={model} />);
 
     expect(screen.getByText("Customer portal")).toBeInTheDocument();
