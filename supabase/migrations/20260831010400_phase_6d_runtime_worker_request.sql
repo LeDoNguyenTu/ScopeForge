@@ -24,7 +24,7 @@ begin
      or target_asset_kind not in ('web_application'::public.asset_kind, 'api'::public.asset_kind)
      or target_verified_at is null
      or jsonb_typeof(target_budget) is distinct from 'object'
-     or pg_column_size(target_budget) > 2048 then
+     or target_budget is distinct from '{"maxRequests":4,"maxRedirects":3,"perRequestTimeoutMs":5000,"totalTimeoutMs":15000,"maxObservationBytes":65536}'::jsonb then
     raise exception 'RUNTIME_WORKER_TASK_INVALID';
   end if;
 
@@ -148,14 +148,14 @@ $$;
 
 revoke all on function public.request_passive_runtime_worker_job(
   uuid, uuid, uuid, text, public.asset_kind, timestamptz, jsonb
-) from public, anon, authenticated;
+) from public, anon, authenticated, service_role;
 grant execute on function public.request_passive_runtime_worker_job(
   uuid, uuid, uuid, text, public.asset_kind, timestamptz, jsonb
 ) to service_role;
 
 revoke all on function public.request_active_cors_worker_job(
   uuid, uuid, uuid, text, public.asset_kind, timestamptz, text, integer, timestamptz, jsonb
-) from public, anon, authenticated;
+) from public, anon, authenticated, service_role;
 grant execute on function public.request_active_cors_worker_job(
   uuid, uuid, uuid, text, public.asset_kind, timestamptz, text, integer, timestamptz, jsonb
 ) to service_role;
