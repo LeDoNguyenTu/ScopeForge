@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./forge.css";
+import "./forge-landing.css";
 import "./assets.css";
 import "./community.css";
 
