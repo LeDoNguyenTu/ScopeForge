@@ -7,20 +7,36 @@ import {
 import type { WorkerSupervisorControlClient } from "./control-client";
 import type { WorkerExecutor, WorkerExecutorContract } from "./executor";
 import type { RepositoryScanPreparer } from "./repository-scan";
+import type { RuntimeNetworkPreparer } from "./runtime-network";
 
 export interface WorkerSupervisorDependencies {
   control: WorkerSupervisorControlClient;
   executor: WorkerExecutor;
   repositoryScanPreparer?: RepositoryScanPreparer;
+  runtimeNetworkPreparer?: RuntimeNetworkPreparer;
   heartbeatMs?: number;
   now?: () => number;
 }
 
 type StopReason = "cancelled" | "lost" | "budget" | null;
 
+type RuntimeExecutionClass =
+  | "passive_runtime_observation_v1"
+  | "active_cors_validation_v1";
+
+function isRuntimeExecutionClass(
+  executionClass: WorkerTaskContract["executionClass"],
+): executionClass is RuntimeExecutionClass {
+  return executionClass === "passive_runtime_observation_v1"
+    || executionClass === "active_cors_validation_v1";
+}
+
 function executorContract(task: WorkerTaskContract): WorkerExecutorContract {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
     throw new Error("Phase 6C tasks must be prepared before executor dispatch.");
+  }
+  if (isRuntimeExecutionClass(task.executionClass)) {
+    throw new Error("Phase 6D tasks must be prepared before executor dispatch.");
   }
   return Object.freeze({
     taskId: task.taskId,
@@ -105,6 +121,14 @@ function successfulOutputMatchesTask(
       && terminal.result.scannerProfileId === task.input.scannerProfileId
       && terminal.result.scannerProfileVersion === task.input.scannerProfileVersion;
   }
+  if (task.executionClass === "passive_runtime_observation_v1") {
+    return task.input.kind === "passive_runtime_observation"
+      && terminal.result?.kind === "passive_runtime_observation";
+  }
+  if (task.executionClass === "active_cors_validation_v1") {
+    return task.input.kind === "active_cors_validation"
+      && terminal.result?.kind === "active_cors_validation";
+  }
   return false;
 }
 
@@ -175,23 +199,21 @@ async function executePreparedTask(
   contract: WorkerExecutorContract,
   signal: AbortSignal,
 ): Promise<unknown> {
-  if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
-    // Phase 6C owns a killable external sandbox. Do not detach on abort: the
-    // executor resolves/rejects only after Podman has stopped or cleanup fails
-    // closed, so staged source and lease finalization cannot race live hostile work.
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1"
+      || isRuntimeExecutionClass(task.executionClass)) {
+    // Phase 6C and Phase 6D own killable external sandboxes. Do not detach on
+    // abort: the executor resolves/rejects only after hostile work has stopped,
+    // so cleanup and trusted finalization cannot race a still-running process.
     return executor.execute(contract, signal);
   }
   return executeWithinSupervisorBoundary(executor, contract, signal);
 }
 
-async function preparedExecutorContract(
+async function prepareRepositoryScanTask(
   task: WorkerTaskContract,
   dependencies: WorkerSupervisorDependencies,
   signal: AbortSignal,
 ): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
-  if (task.executionClass !== "phase3_repository_scan_no_egress_v1") {
-    return { contract: executorContract(task), cleanup: null };
-  }
   if (task.input.kind !== "phase3_repository_scan") {
     throw new Error("Phase 6C claim input is invalid.");
   }
@@ -212,11 +234,70 @@ async function preparedExecutorContract(
   return { contract: prepared.contract, cleanup: prepared.cleanup };
 }
 
+async function prepareRuntimeTask(
+  task: WorkerTaskContract,
+  dependencies: WorkerSupervisorDependencies,
+  signal: AbortSignal,
+): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
+  const inputMatchesClass =
+    (task.executionClass === "passive_runtime_observation_v1"
+      && task.input.kind === "passive_runtime_observation")
+    || (task.executionClass === "active_cors_validation_v1"
+      && task.input.kind === "active_cors_validation");
+  if (!inputMatchesClass) {
+    throw new Error("Phase 6D claim input is invalid.");
+  }
+
+  const prepare = dependencies.control.runtimePrepare;
+  const preparer = dependencies.runtimeNetworkPreparer;
+  if (!prepare || !preparer) {
+    throw new Error("Phase 6D preparation authority is unavailable.");
+  }
+
+  const preparedProfile = await prepare({
+    taskId: task.taskId,
+    attemptId: task.attemptId,
+    leaseToken: task.leaseToken,
+  });
+  if (signal.aborted) {
+    throw new DOMException("Phase 6D preparation was aborted.", "AbortError");
+  }
+  const prepared = await preparer.prepare({ task, prepared: preparedProfile, signal });
+  return { contract: prepared.contract, cleanup: prepared.cleanup };
+}
+
+async function preparedExecutorContract(
+  task: WorkerTaskContract,
+  dependencies: WorkerSupervisorDependencies,
+  signal: AbortSignal,
+): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
+  if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
+    return prepareRepositoryScanTask(task, dependencies, signal);
+  }
+  if (isRuntimeExecutionClass(task.executionClass)) {
+    return prepareRuntimeTask(task, dependencies, signal);
+  }
+  return { contract: executorContract(task), cleanup: null };
+}
+
 async function finalizeThroughTrustedBoundary(
   task: WorkerTaskContract,
   terminal: WorkerTerminalEnvelope,
   control: WorkerSupervisorControlClient,
 ): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }> {
+  if (isRuntimeExecutionClass(task.executionClass)) {
+    const finalizeRuntime = control.runtimeFinalize;
+    if (!finalizeRuntime) {
+      throw new Error("Phase 6D finalization authority is unavailable.");
+    }
+    return finalizeRuntime({
+      taskId: task.taskId,
+      attemptId: task.attemptId,
+      leaseToken: task.leaseToken,
+      terminal,
+    });
+  }
+
   if (task.executionClass === "phase3_repository_scan_no_egress_v1" && terminal.outcome === "succeeded") {
     const finalizeSuccess = control.repositoryScanFinalizeSuccess;
     if (!finalizeSuccess) {
