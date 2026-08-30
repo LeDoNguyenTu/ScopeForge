@@ -56,7 +56,7 @@ describe("ImmersiveDashboardExperience", () => {
     expect(screen.getByText("Verified assets")).toBeInTheDocument();
     expect(screen.getByText("Open findings")).toBeInTheDocument();
     expect(screen.getByText("Verification coverage")).toBeInTheDocument();
-    expect(screen.getByText("75%")).toBeInTheDocument();
+    expect(screen.getAllByText("75%")).toHaveLength(2);
     expect(screen.getByText("Highest priority evidence")).toBeInTheDocument();
     expect(screen.getByText("Missing security header")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Review findings/i })).toHaveAttribute("href", "/dashboard/findings");
