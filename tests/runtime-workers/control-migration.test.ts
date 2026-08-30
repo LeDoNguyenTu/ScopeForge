@@ -5,19 +5,30 @@ import { describe, expect, it } from "vitest";
 const migrationPath = path.resolve(
   "supabase/migrations/20260831010100_phase_6d_runtime_worker_control.sql",
 );
+const hardeningMigrationPath = path.resolve(
+  "supabase/migrations/20260831010110_phase_6d_runtime_worker_control_hardening.sql",
+);
+
+async function readControlSql(): Promise<string> {
+  const [base, hardening] = await Promise.all([
+    readFile(migrationPath, "utf8"),
+    readFile(hardeningMigrationPath, "utf8"),
+  ]);
+  return `${base}\n${hardening}`;
+}
 
 function functionSql(sql: string, name: string): string {
-  const match = sql.match(new RegExp(
+  const matches = Array.from(sql.matchAll(new RegExp(
     `create or replace function public\\.${name}\\([\\s\\S]*?\\n\\$\\$;`,
-    "i",
-  ));
-  expect(match).not.toBeNull();
-  return match?.[0] ?? "";
+    "gi",
+  )));
+  expect(matches.length).toBeGreaterThan(0);
+  return matches.at(-1)?.[0] ?? "";
 }
 
 describe("Phase 6D runtime worker control migration", () => {
   it("registers only the two fixed Phase 6D worker classes", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await readControlSql();
     expect(sql).toMatch(/create or replace function public\.register_passive_runtime_worker_node\(\s*target_credential_hash text,\s*target_software_version text\s*\)/i);
     expect(sql).toMatch(/create or replace function public\.register_active_cors_worker_node\(\s*target_credential_hash text,\s*target_software_version text\s*\)/i);
     expect(sql).toContain("'passive_runtime_observation_v1'");
@@ -25,7 +36,7 @@ describe("Phase 6D runtime worker control migration", () => {
   });
 
   it("enqueues only live queued Phase 4 jobs with the exact class pairing", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await readControlSql();
     const passive = functionSql(sql, "enqueue_passive_runtime_worker_task");
     const active = functionSql(sql, "enqueue_active_cors_worker_task");
 
@@ -43,7 +54,7 @@ describe("Phase 6D runtime worker control migration", () => {
   });
 
   it("claims only Phase 6D classes and leaves the domain job queued for preparation reauthorization", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await readControlSql();
     const claimSql = functionSql(sql, "claim_runtime_worker_task");
     expect(claimSql).toMatch(/execution_class in \(\s*'passive_runtime_observation_v1',\s*'active_cors_validation_v1'\s*\)/i);
     expect(claimSql).toMatch(/j\.status = 'queued'::public\.scan_job_status/i);
@@ -60,7 +71,7 @@ describe("Phase 6D runtime worker control migration", () => {
   });
 
   it("provides an exact-lease preparation context without target or request data", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await readControlSql();
     const prepareSql = functionSql(sql, "get_runtime_worker_preparation_context");
     expect(prepareSql).toMatch(/lease_token_hash <> calculated_hash/i);
     expect(prepareSql).toMatch(/attempt_record\.lease_expires_at <= lookup_now/i);
@@ -77,7 +88,7 @@ describe("Phase 6D runtime worker control migration", () => {
   });
 
   it("keeps all Phase 6D control RPCs service-role-only with empty search paths", async () => {
-    const sql = await readFile(migrationPath, "utf8");
+    const sql = await readControlSql();
     const compact = sql.replace(/\s+/g, " ");
     const signatures = [
       "public.register_passive_runtime_worker_node(text, text)",
