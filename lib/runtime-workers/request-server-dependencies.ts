@@ -24,6 +24,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function sameInstant(left: string | null, right: string): boolean {
+  if (!left) return false;
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime === rightTime;
+}
+
 function parseWorkerTask(
   value: unknown,
   expectedClass: RuntimeWorkerEnqueueResult["executionClass"],
@@ -78,14 +85,15 @@ function assertQueuedJob(
     || job.cancel_requested_at !== null
     || job.authorization_canonical_target !== input.canonicalTarget
     || job.authorization_asset_kind !== input.assetKind
-    || job.authorization_verified_at !== input.verifiedAt
+    || !sameInstant(job.authorization_verified_at, input.verifiedAt)
   ) {
     throw new RuntimeWorkerError("RUNTIME_WORKER_TASK_INVALID");
   }
 }
 
 export function createRuntimeWorkerRequestServerDependencies(): RuntimeWorkerRequestDependencies {
-  const admin = createAdminClient<Phase6dDatabase>();
+  const admin = createAdminClient();
+  const controlAdmin = createAdminClient<Phase6dDatabase>();
 
   async function loadAsset(assetId: string, workspaceId: string): Promise<AssetRow | null> {
     const { data, error } = await admin
@@ -95,7 +103,7 @@ export function createRuntimeWorkerRequestServerDependencies(): RuntimeWorkerReq
       .eq("workspace_id", workspaceId)
       .maybeSingle();
     if (error) throw new RuntimeWorkerError("RUNTIME_WORKER_AUTHORIZATION_FAILED");
-    return data as AssetRow | null;
+    return data;
   }
 
   async function loadQueuedJob(scanJobId: string): Promise<ScanJobRow | null> {
@@ -105,11 +113,11 @@ export function createRuntimeWorkerRequestServerDependencies(): RuntimeWorkerReq
       .eq("id", scanJobId)
       .maybeSingle();
     if (error) throw new RuntimeWorkerError("RUNTIME_WORKER_TASK_INVALID");
-    return data as ScanJobRow | null;
+    return data;
   }
 
   async function queuePassive(input: EnqueueRuntimeObservationJobInput) {
-    const { data, error } = await admin.rpc("request_passive_runtime_worker_job", {
+    const { data, error } = await controlAdmin.rpc("request_passive_runtime_worker_job", {
       target_workspace_id: input.workspaceId,
       target_asset_id: input.assetId,
       target_actor_id: input.requestedBy,
@@ -126,7 +134,7 @@ export function createRuntimeWorkerRequestServerDependencies(): RuntimeWorkerReq
   }
 
   async function queueActive(input: EnqueueActiveValidationJobInput) {
-    const { data, error } = await admin.rpc("request_active_cors_worker_job", {
+    const { data, error } = await controlAdmin.rpc("request_active_cors_worker_job", {
       target_workspace_id: input.workspaceId,
       target_asset_id: input.assetId,
       target_actor_id: input.requestedBy,
@@ -145,7 +153,7 @@ export function createRuntimeWorkerRequestServerDependencies(): RuntimeWorkerReq
     if (
       job.validation_profile_id !== input.profileId
       || job.validation_profile_version !== input.profileVersion
-      || job.authorization_granted_at !== input.authorizationGrantedAt
+      || !sameInstant(job.authorization_granted_at, input.authorizationGrantedAt)
     ) {
       throw new RuntimeWorkerError("RUNTIME_WORKER_TASK_INVALID");
     }
