@@ -107,6 +107,24 @@ describe("buildAttackSurfaceModel", () => {
     expect(model.metrics.registeredAssets).toBe(12);
   });
 
+  it("keeps risk-bearing assets visible when the bounded topology has more than ten assets", () => {
+    const assets = Array.from({ length: 12 }, (_, index) => asset({
+      id: `asset-${index}`,
+      name: `Asset ${index}`,
+      created_at: `2026-08-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
+    }));
+
+    const model = buildAttackSurfaceModel({
+      assets,
+      findings: [finding({ asset_id: "asset-11", severity: "critical", title: "Critical newest risk" })],
+    });
+
+    expect(model.nodes).toHaveLength(10);
+    expect(model.nodes.some((node) => node.id === "asset-11")).toBe(true);
+    expect(model.nodes.find((node) => node.id === "asset-11")?.state).toBe("risk");
+    expect(model.priority?.assetId).toBe("asset-11");
+  });
+
   it("returns a truthful empty model", () => {
     const model = buildAttackSurfaceModel({ assets: [], findings: [] });
     expect(model.nodes).toEqual([]);
