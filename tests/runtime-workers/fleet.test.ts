@@ -70,6 +70,27 @@ describe("Phase 6D runtime fleet health", () => {
     expect(JSON.stringify(snapshot.runtimeClasses)).not.toMatch(/target|url|host|header|body|cookie|response|resolver|exception/i);
   });
 
+  it("treats the fleet-wide lease ceiling as saturation for both runtime classes", async () => {
+    const data = baseSnapshot();
+    data.activeLeaseCount = 4;
+    data.runtimeClasses.passiveRuntime.available = false;
+    data.runtimeClasses.passiveRuntime.saturated = true;
+    data.runtimeClasses.activeCors.available = false;
+    data.runtimeClasses.activeCors.saturated = true;
+
+    const repository = createWorkerControlRepository(clientFor(data));
+    const snapshot = await repository.fleetSnapshot();
+
+    expect(snapshot.runtimeClasses.passiveRuntime).toMatchObject({
+      available: false,
+      saturated: true,
+    });
+    expect(snapshot.runtimeClasses.activeCors).toMatchObject({
+      available: false,
+      saturated: true,
+    });
+  });
+
   it("rejects unexpected data smuggled into the runtime fleet summary", async () => {
     const unsafe = baseSnapshot();
     const data = {
