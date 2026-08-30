@@ -94,9 +94,11 @@ function stateForAsset(
 export function buildAttackSurfaceModel({
   assets,
   findings,
+  openFindingCount,
 }: {
   assets: readonly AttackSurfaceAssetInput[];
   findings: readonly AttackSurfaceFindingInput[];
+  openFindingCount?: number;
 }): AttackSurfaceModel {
   const sortedAssets = [...assets].sort(stableAssetOrder);
   const assetIds = new Set(sortedAssets.map((asset) => asset.id));
@@ -147,10 +149,13 @@ export function buildAttackSurfaceModel({
 
   const registeredAssets = sortedAssets.length;
   const verifiedAssets = sortedAssets.filter((asset) => asset.verification_status === "verified").length;
+  const sampledFindingCount = findings.filter((finding) => assetIds.has(finding.asset_id)).length;
   const metrics: AttackSurfaceMetrics = Object.freeze({
     registeredAssets,
     verifiedAssets,
-    openFindings: findings.filter((finding) => assetIds.has(finding.asset_id)).length,
+    openFindings: typeof openFindingCount === "number"
+      ? Math.max(0, Math.trunc(openFindingCount))
+      : sampledFindingCount,
     verificationPercent: registeredAssets === 0
       ? 0
       : Math.round((verifiedAssets / registeredAssets) * 100),
