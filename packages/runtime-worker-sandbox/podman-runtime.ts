@@ -44,9 +44,9 @@ function fixedEnvironment(): NodeJS.ProcessEnv {
 }
 
 function createDriver(): CommandDriver {
-  return Object.freeze({
+  const driver: CommandDriver = {
     exec(file, args, options) {
-      return new Promise((resolve, reject) => {
+      return new Promise<CommandResult>((resolve, reject) => {
         execFile(file, [...args], {
           encoding: "utf8",
           timeout: options.timeoutMs,
@@ -65,7 +65,8 @@ function createDriver(): CommandDriver {
         });
       });
     },
-  });
+  };
+  return Object.freeze(driver);
 }
 
 function requireSuccess(result: CommandResult, operation: string): void {
