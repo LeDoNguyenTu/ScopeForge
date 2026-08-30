@@ -1,5 +1,5 @@
 import type { Phase6cDatabase } from "./database.phase6c.types";
-import type { Json } from "./database.types";
+import type { AssetKind, Json } from "./database.types";
 
 type Phase6dFunctions = {
   register_passive_runtime_worker_node: {
@@ -16,6 +16,33 @@ type Phase6dFunctions = {
   };
   enqueue_active_cors_worker_task: {
     Args: { target_workspace_id: string; target_scan_job_id: string; target_actor_id: string };
+    Returns: Json;
+  };
+  request_passive_runtime_worker_job: {
+    Args: {
+      target_workspace_id: string;
+      target_asset_id: string;
+      target_actor_id: string;
+      target_canonical_target: string;
+      target_asset_kind: AssetKind;
+      target_verified_at: string;
+      target_budget: Json;
+    };
+    Returns: Json;
+  };
+  request_active_cors_worker_job: {
+    Args: {
+      target_workspace_id: string;
+      target_asset_id: string;
+      target_actor_id: string;
+      target_canonical_target: string;
+      target_asset_kind: AssetKind;
+      target_verified_at: string;
+      target_profile_id: string;
+      target_profile_version: number;
+      target_authorization_granted_at: string;
+      target_budget: Json;
+    };
     Returns: Json;
   };
   claim_runtime_worker_task: {

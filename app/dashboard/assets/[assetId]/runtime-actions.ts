@@ -4,13 +4,11 @@ import { revalidatePath } from "next/cache";
 import type { Database, ScanJobStatus } from "@/lib/database.types";
 import { RuntimeAuthorizationError } from "@/lib/runtime-observations/authorization";
 import { createRuntimeObservationServerDependencies } from "@/lib/runtime-observations/server-dependencies";
-import {
-  enqueueRuntimeObservation,
-  executeRuntimeObservation,
-  requestRuntimeObservationCancellation,
-} from "@/lib/runtime-observations/service";
+import { requestRuntimeObservationCancellation } from "@/lib/runtime-observations/service";
+import { RuntimeWorkerError } from "@/lib/runtime-workers/errors";
+import { requestPassiveRuntimeWorker } from "@/lib/runtime-workers/request";
+import { createRuntimeWorkerRequestServerDependencies } from "@/lib/runtime-workers/request-server-dependencies";
 import { getDashboardContext } from "@/lib/workspaces/current";
-import { RUNTIME_OBSERVATION_MAX_BUDGET } from "@/packages/runtime-observer";
 
 type ScanJobRow = Database["public"]["Tables"]["scan_jobs"]["Row"];
 
@@ -46,6 +44,14 @@ function failure(error: unknown): RuntimeObservationActionResult<never> {
   if (error instanceof RuntimeAuthorizationError) {
     return { ok: false, error: { code: error.code, message: error.reason } };
   }
+  if (error instanceof RuntimeWorkerError) {
+    const message = error.code === "RUNTIME_WORKER_UNAVAILABLE"
+      ? "Hosted passive observation workers are not available yet."
+      : error.code === "RUNTIME_WORKER_BUSY"
+        ? "Another runtime network task is already active for this workspace."
+        : "The passive observation could not be queued safely.";
+    return { ok: false, error: { code: error.code, message } };
+  }
   return {
     ok: false,
     error: {
@@ -60,22 +66,18 @@ export async function runPassiveRuntimeObservation(
 ): Promise<RuntimeObservationActionResult<{ job: RuntimeObservationJobActionSummary }>> {
   try {
     const { user, workspace, role } = await getDashboardContext();
-    const dependencies = createRuntimeObservationServerDependencies();
-    const queued = await enqueueRuntimeObservation(
+    const result = await requestPassiveRuntimeWorker(
       {
         actorId: user.id,
         workspaceId: workspace.id,
         role,
         assetId,
-        budget: RUNTIME_OBSERVATION_MAX_BUDGET,
       },
-      dependencies,
+      createRuntimeWorkerRequestServerDependencies(),
     );
-    const result = await executeRuntimeObservation(queued.job.id, dependencies);
-    const job = result.job ?? queued.job;
 
     revalidatePath(`/dashboard/assets/${assetId}`);
-    return { ok: true, data: { job: summarizeJob(job) } };
+    return { ok: true, data: { job: summarizeJob(result.job) } };
   } catch (error) {
     return failure(error);
   }
