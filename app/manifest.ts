@@ -14,7 +14,13 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/scopeforge-mark-v2.svg",
         sizes: "any",
         type: "image/svg+xml",
-        purpose: "any maskable"
+        purpose: "any"
+      },
+      {
+        src: "/scopeforge-mark-v2.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "maskable"
       }
     ]
   };
