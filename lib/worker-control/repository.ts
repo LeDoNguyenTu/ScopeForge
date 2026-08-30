@@ -115,6 +115,11 @@ function boundedCount(value: unknown): number {
   return boundedInteger(value, Number.MAX_SAFE_INTEGER);
 }
 
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(value);
+  return actual.length === keys.length && keys.every((key) => actual.includes(key));
+}
+
 function parsePersistenceExecutionClass(value: unknown): WorkerPersistenceExecutionClass {
   if (typeof value !== "string" || !PERSISTENCE_EXECUTION_CLASSES.has(value as WorkerPersistenceExecutionClass)) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
@@ -433,6 +438,60 @@ function parseFleetTaskCounts(value: unknown): WorkerFleetTaskCounts {
   });
 }
 
+function parseRuntimeFleetClass<TExecutionClass extends RuntimeWorkerExecutionClass>(
+  value: unknown,
+  expectedExecutionClass: TExecutionClass,
+  expectedCapacity: number,
+) {
+  const expectedKeys = [
+    "executionClass",
+    "enabledNodeCount",
+    "leasedCount",
+    "capacity",
+    "available",
+    "saturated",
+  ] as const;
+  if (!isRecord(value) || !hasExactKeys(value, expectedKeys)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  if (value.executionClass !== expectedExecutionClass || value.capacity !== expectedCapacity) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const enabledNodeCount = boundedCount(value.enabledNodeCount);
+  const leasedCount = boundedCount(value.leasedCount);
+  const saturated = leasedCount >= expectedCapacity;
+  const available = enabledNodeCount > 0 && !saturated;
+  if (value.available !== available || value.saturated !== saturated) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    executionClass: expectedExecutionClass,
+    enabledNodeCount,
+    leasedCount,
+    capacity: expectedCapacity,
+    available,
+    saturated,
+  });
+}
+
+function parseRuntimeFleetHealth(value: unknown): WorkerFleetSnapshot["runtimeClasses"] {
+  if (!isRecord(value) || !hasExactKeys(value, ["passiveRuntime", "activeCors"])) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    passiveRuntime: parseRuntimeFleetClass(
+      value.passiveRuntime,
+      "passive_runtime_observation_v1",
+      2,
+    ),
+    activeCors: parseRuntimeFleetClass(
+      value.activeCors,
+      "active_cors_validation_v1",
+      1,
+    ),
+  });
+}
+
 function parseFleetSnapshot(value: unknown): WorkerFleetSnapshot {
   if (!isRecord(value) || !Array.isArray(value.nodes) || value.nodes.length > 100) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
@@ -442,6 +501,7 @@ function parseFleetSnapshot(value: unknown): WorkerFleetSnapshot {
     nodes: Object.freeze(value.nodes.map(parseFleetNode)),
     taskCounts: parseFleetTaskCounts(value.taskCounts),
     activeLeaseCount: boundedCount(value.activeLeaseCount),
+    runtimeClasses: parseRuntimeFleetHealth(value.runtimeClasses),
   });
 }
 
