@@ -1,0 +1,627 @@
+.commandLanding {
+  --command-v4-max: 1440px;
+  --command-v4-gap: clamp(24px, 2.8vw, 48px);
+}
+
+/* Public navigation: functional product destinations, not decorative controls. */
+.commandLanding .commandPublicHeader {
+  padding-inline: max(22px, env(safe-area-inset-left)) max(22px, env(safe-area-inset-right));
+}
+
+.commandLanding .commandPublicNav {
+  width: min(1180px, calc(100vw - 44px));
+  min-height: 70px;
+  padding-inline: 28px 18px;
+}
+
+.commandLanding .commandPublicLinks {
+  gap: clamp(20px, 2.4vw, 36px);
+}
+
+.commandLanding .commandPublicLinks a {
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+}
+
+.commandLanding .commandRequestAccess {
+  min-height: 44px;
+  padding-inline: 20px;
+}
+
+/*
+ * V4 uses bounded grid areas. Old v3 positioning remains in the previous
+ * stylesheet only as a fallback for stale HTML and is explicitly neutralized
+ * here for the v4 markup.
+ */
+.commandHero.commandHeroV4 {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(420px, 0.88fr) minmax(540px, 1.12fr);
+  grid-template-rows: auto auto minmax(168px, auto) 62px;
+  grid-template-areas:
+    "copy scene"
+    "metrics scene"
+    "overview scene"
+    "overview runtime";
+  column-gap: var(--command-v4-gap);
+  row-gap: 14px;
+  width: min(var(--command-v4-max), calc(100vw - 64px));
+  height: auto;
+  min-height: min(780px, calc(100svh - 104px));
+  margin: 10px auto 0;
+  padding: clamp(38px, 5vh, 62px) clamp(10px, 1vw, 18px) 26px;
+  overflow: clip;
+}
+
+.commandHeroV4,
+.commandHeroV4 * {
+  box-sizing: border-box;
+}
+
+.commandHeroV4 > * {
+  min-width: 0;
+}
+
+.commandHeroV4 .commandHeroGrid {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.commandHeroV4 .commandHeroCopyV4 {
+  grid-area: copy;
+  position: relative;
+  z-index: 8;
+  inset: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  width: auto;
+  max-width: 600px;
+  align-self: start;
+  padding-left: clamp(12px, 1.6vw, 26px);
+}
+
+.commandHeroV4 .commandHeroEyebrow {
+  margin-bottom: 14px;
+  font-size: clamp(0.7rem, 0.72vw, 0.78rem);
+}
+
+.commandHeroV4 .commandHeroCopy h1 {
+  width: auto;
+  max-width: 590px;
+  font-size: clamp(3rem, 4vw, 4.15rem);
+  line-height: 1.015;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.commandHeroV4 .commandHeroLead {
+  width: min(430px, 100%);
+  max-width: none;
+  margin-top: 20px;
+  font-size: clamp(0.84rem, 0.9vw, 0.94rem);
+  line-height: 1.64;
+}
+
+.commandHeroV4 .commandHeroActions {
+  margin-top: 24px;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.commandHeroV4 .commandHeroPrimary,
+.commandHeroV4 .commandHeroSecondary {
+  min-height: 50px;
+}
+
+.commandHeroV4 .commandHeroSceneV4 {
+  grid-area: scene;
+  position: relative;
+  z-index: 4;
+  inset: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 590px;
+  max-height: 690px;
+  align-self: stretch;
+  overflow: hidden;
+  border-radius: 28px;
+  contain: layout paint;
+}
+
+.commandHeroV4 .commandHeroSceneV4::before {
+  content: "";
+  position: absolute;
+  inset: 5% 2% 3%;
+  border-radius: 42%;
+  background:
+    radial-gradient(circle at 53% 45%, rgba(71, 225, 200, 0.12), transparent 30%),
+    radial-gradient(circle at 75% 62%, rgba(64, 159, 173, 0.08), transparent 33%);
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.commandHeroV4 .commandSurface {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  transform: none;
+  transform-origin: center;
+  overflow: hidden;
+}
+
+.commandHeroV4 .commandSurfaceCanvas,
+.commandHeroV4 .commandSurfaceFallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.commandHeroV4 .commandSurfaceLabel {
+  max-width: min(156px, 28%);
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.commandHeroV4 .commandSurfaceLabelWeb {
+  left: 3%;
+  top: 43%;
+}
+
+.commandHeroV4 .commandSurfaceLabelSandbox {
+  left: 60%;
+  top: 4%;
+}
+
+.commandHeroV4 .commandSurfaceLabelThird {
+  right: 1%;
+  top: 25%;
+}
+
+.commandHeroV4 .commandSurfaceLabelData {
+  right: 0;
+  top: 55%;
+}
+
+.commandHeroV4 .commandSurfaceLabelIdentity {
+  left: 49%;
+  bottom: 5%;
+}
+
+.commandHeroV4 .commandMetricAreaV4 {
+  grid-area: metrics;
+  position: relative;
+  z-index: 10;
+  inset: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  width: auto;
+  align-self: end;
+  padding-left: clamp(12px, 1.6vw, 26px);
+}
+
+.commandHeroV4 .commandIllustrativeLabel {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 0.6rem;
+  letter-spacing: 0.13em;
+}
+
+.commandHeroV4 .commandMetricGridV4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+.commandHeroV4 .commandMetricCardV4 {
+  min-width: 0;
+  min-height: 86px;
+  height: 100%;
+  padding: 13px 12px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.commandHeroV4 .commandMetricCardV4 > div {
+  min-width: 0;
+}
+
+.commandHeroV4 .commandMetricCardV4 strong {
+  font-size: clamp(1.28rem, 1.55vw, 1.7rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.commandHeroV4 .commandMetricCardV4 span:not(.commandMetricIcon) {
+  margin-top: 4px;
+  font-size: clamp(0.62rem, 0.68vw, 0.72rem);
+  white-space: normal;
+}
+
+.commandHeroV4 .commandMetricCardV4 small {
+  margin-top: 5px;
+  font-size: clamp(0.54rem, 0.58vw, 0.62rem);
+}
+
+.commandHeroV4 .commandOverviewPanelV4 {
+  grid-area: overview;
+  position: relative;
+  z-index: 10;
+  inset: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  width: auto;
+  min-width: 0;
+  min-height: 164px;
+  margin-left: clamp(12px, 1.6vw, 26px);
+  overflow: hidden;
+  align-self: stretch;
+}
+
+.commandHeroV4 .commandOverviewBody {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.commandHeroV4 .commandOverviewBody > * {
+  min-width: 0;
+}
+
+.commandHeroV4 .commandExposureRing span {
+  font-size: clamp(1.65rem, 2vw, 2.05rem);
+}
+
+.commandHeroV4 .commandOverviewList strong {
+  font-size: 0.7rem;
+}
+
+.commandHeroV4 .commandRiskPath strong {
+  overflow-wrap: anywhere;
+}
+
+.commandHeroV4 .commandRuntimeBarV4 {
+  grid-area: runtime;
+  position: relative;
+  z-index: 11;
+  inset: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 58px;
+  align-self: end;
+  overflow: hidden;
+}
+
+.commandHeroV4 .commandRuntimeBarV4 > span {
+  min-width: 0;
+}
+
+.commandHeroV4 .commandRuntimeBarV4 strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tablet is deliberate rather than a side effect of wrapping. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .commandLanding .commandPublicNav {
+    width: min(940px, calc(100vw - 36px));
+  }
+
+  .commandHero.commandHeroV4 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(440px, 52vw) auto auto;
+    grid-template-areas:
+      "copy copy"
+      "metrics metrics"
+      "scene scene"
+      "runtime runtime"
+      "overview overview";
+    width: min(940px, calc(100vw - 40px));
+    min-height: 0;
+    padding-top: 42px;
+    row-gap: 18px;
+    overflow: visible;
+  }
+
+  .commandHeroV4 .commandHeroCopyV4,
+  .commandHeroV4 .commandMetricAreaV4,
+  .commandHeroV4 .commandOverviewPanelV4 {
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .commandHeroV4 .commandHeroCopyV4 {
+    max-width: 720px;
+  }
+
+  .commandHeroV4 .commandHeroCopy h1 {
+    max-width: 720px;
+    font-size: clamp(3.35rem, 7vw, 4.5rem);
+  }
+
+  .commandHeroV4 .commandHeroLead {
+    width: min(600px, 100%);
+  }
+
+  .commandHeroV4 .commandHeroSceneV4 {
+    min-height: 440px;
+    max-height: none;
+  }
+
+  .commandHeroV4 .commandMetricGridV4 {
+    gap: 10px;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 {
+    max-width: none;
+  }
+}
+
+/* Mobile is its own composition. No desktop scene offsets survive here. */
+@media (max-width: 767px) {
+  .commandLanding .commandPublicHeader {
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  }
+
+  .commandLanding .commandPublicNav {
+    width: 100%;
+    min-height: 70px;
+    padding: 0 12px 0 18px;
+    border-radius: 26px;
+  }
+
+  .commandLanding .commandPublicBrand .scopeforgeWordmarkText {
+    font-size: 0.96rem;
+    letter-spacing: 0.015em;
+    text-transform: none;
+  }
+
+  .commandHero.commandHeroV4 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      "copy"
+      "metrics"
+      "scene"
+      "runtime"
+      "overview";
+    width: min(680px, calc(100vw - max(32px, env(safe-area-inset-left) + env(safe-area-inset-right) + 20px)));
+    height: auto;
+    min-height: 0;
+    margin: 0 auto;
+    padding: 44px 0 28px;
+    row-gap: 18px;
+    overflow: visible;
+  }
+
+  .commandHeroV4 .commandHeroGrid {
+    inset-inline: calc(-1 * max(16px, env(safe-area-inset-left))) calc(-1 * max(16px, env(safe-area-inset-right)));
+  }
+
+  .commandHeroV4 .commandHeroCopyV4,
+  .commandHeroV4 .commandMetricAreaV4,
+  .commandHeroV4 .commandOverviewPanelV4 {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .commandHeroV4 .commandHeroEyebrow {
+    margin-bottom: 20px;
+    font-size: 0.72rem;
+  }
+
+  .commandHeroV4 .commandHeroCopy h1 {
+    max-width: 100%;
+    font-size: clamp(3rem, 13.4vw, 4.25rem);
+    line-height: 1.01;
+    letter-spacing: -0.055em;
+    text-wrap: pretty;
+  }
+
+  .commandHeroV4 .commandHeroLead {
+    width: 100%;
+    margin-top: 26px;
+    font-size: clamp(0.98rem, 4vw, 1.08rem);
+    line-height: 1.65;
+  }
+
+  .commandHeroV4 .commandHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  .commandHeroV4 .commandHeroPrimary,
+  .commandHeroV4 .commandHeroSecondary {
+    width: 100%;
+    min-height: 60px;
+    padding-inline: 20px;
+    font-size: 0.94rem;
+  }
+
+  .commandHeroV4 .commandMetricGridV4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .commandHeroV4 .commandIllustrativeLabel {
+    margin-bottom: 10px;
+    font-size: 0.64rem;
+  }
+
+  .commandHeroV4 .commandMetricCardV4 {
+    min-height: 112px;
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .commandHeroV4 .commandMetricCardV4 strong {
+    font-size: clamp(1.5rem, 6.4vw, 1.9rem);
+  }
+
+  .commandHeroV4 .commandMetricCardV4 span:not(.commandMetricIcon) {
+    font-size: 0.74rem;
+    line-height: 1.25;
+  }
+
+  .commandHeroV4 .commandMetricCardV4 small {
+    font-size: 0.66rem;
+  }
+
+  .commandHeroV4 .commandHeroSceneV4 {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 1 / 0.9;
+    border-radius: 24px;
+  }
+
+  .commandHeroV4 .commandSurface {
+    inset: 0;
+  }
+
+  .commandHeroV4 .commandSurfaceLabel {
+    max-width: 31%;
+  }
+
+  .commandHeroV4 .commandSurfaceLabel strong {
+    font-size: 0.57rem;
+  }
+
+  .commandHeroV4 .commandSurfaceLabel span {
+    font-size: 0.54rem;
+  }
+
+  .commandHeroV4 .commandSurfaceLabelSandbox {
+    left: 57%;
+    top: 7%;
+  }
+
+  .commandHeroV4 .commandSurfaceLabelThird {
+    right: 2%;
+    top: 34%;
+  }
+
+  .commandHeroV4 .commandSurfaceLabelWeb {
+    left: 3%;
+    top: 50%;
+  }
+
+  .commandHeroV4 .commandSurfaceLabelData {
+    right: 2%;
+    top: 70%;
+  }
+
+  .commandHeroV4 .commandSurfaceLabelIdentity {
+    left: 43%;
+    bottom: 3%;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    min-height: 64px;
+    padding: 0 8px;
+    border-radius: 16px;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 > span {
+    padding-inline: 8px;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 button {
+    display: none;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 small {
+    font-size: 0.55rem;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 strong {
+    font-size: 0.68rem;
+  }
+
+  .commandHeroV4 .commandOverviewPanelV4 {
+    display: block;
+    min-height: 0;
+    border-radius: 18px;
+  }
+
+  .commandHeroV4 .commandOverviewBody {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .commandHeroV4 .commandExposureGauge,
+  .commandHeroV4 .commandOverviewList,
+  .commandHeroV4 .commandRiskPath {
+    width: 100%;
+  }
+
+  .commandHeroV4 .commandExposureRing span {
+    font-size: 2rem;
+  }
+
+  .commandBelowFold {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .commandLanding .commandPublicBrand .scopeforgeWordmarkText {
+    font-size: 0.88rem;
+  }
+
+  .commandHero.commandHeroV4 {
+    width: calc(100vw - 28px);
+    padding-top: 38px;
+  }
+
+  .commandHeroV4 .commandHeroCopy h1 {
+    font-size: clamp(2.82rem, 13.8vw, 3.72rem);
+  }
+
+  .commandHeroV4 .commandMetricGridV4 {
+    gap: 8px;
+  }
+
+  .commandHeroV4 .commandMetricCardV4 {
+    min-height: 106px;
+    padding: 14px 12px;
+  }
+
+  .commandHeroV4 .commandHeroSceneV4 {
+    aspect-ratio: 1 / 0.96;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commandHeroV4 .commandSurfaceCoreRing {
+    animation: none !important;
+  }
+}
