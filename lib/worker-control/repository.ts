@@ -22,7 +22,12 @@ import {
   type WorkerRegistrationResult,
 } from "./types";
 
-const EXECUTION_CLASSES = new Set<WorkerExecutionClass>([
+type WorkerPersistenceExecutionClass =
+  | "foundation_no_egress_v1"
+  | "repository_snapshot_github_public_v1"
+  | "phase3_repository_scan_no_egress_v1";
+
+const EXECUTION_CLASSES = new Set<WorkerPersistenceExecutionClass>([
   "foundation_no_egress_v1",
   "repository_snapshot_github_public_v1",
   "phase3_repository_scan_no_egress_v1",
@@ -91,11 +96,11 @@ function boundedCount(value: unknown): number {
   return boundedInteger(value, Number.MAX_SAFE_INTEGER);
 }
 
-function parseExecutionClass(value: unknown): WorkerExecutionClass {
-  if (typeof value !== "string" || !EXECUTION_CLASSES.has(value as WorkerExecutionClass)) {
+function parseExecutionClass(value: unknown): WorkerPersistenceExecutionClass {
+  if (typeof value !== "string" || !EXECUTION_CLASSES.has(value as WorkerPersistenceExecutionClass)) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
-  return value as WorkerExecutionClass;
+  return value as WorkerPersistenceExecutionClass;
 }
 
 function mapRpcError(message: string): WorkerControlError {
