@@ -1,0 +1,114 @@
+.forgeDashboardHeader {
+  margin-bottom: 22px;
+  padding: 6px 2px 0;
+}
+.forgeDashboardHeader h1 { max-width: 850px; margin-top: 10px; font-size: clamp(30px, 3.2vw, 47px); font-weight: 520; line-height: 1.02; letter-spacing: -.05em; }
+.forgeDashboardHeader p { max-width: 820px; color: #7e8c96; }
+.forgeHealthBadge { border-color: rgba(79,224,193,.14); background: rgba(79,224,193,.035); color: #9fd8c9; }
+
+.forgeStatBand { gap: 9px; }
+.forgeStatCard {
+  min-height: 118px;
+  border-color: rgba(142,165,176,.12);
+  background: linear-gradient(145deg, rgba(15,23,29,.83), rgba(8,12,16,.78));
+  box-shadow: inset 0 1px rgba(255,255,255,.018);
+}
+.forgeStatCard > div svg { color: #61707a; }
+.forgeStatCard strong { color: #e6ecef; font-size: 31px; font-weight: 560; }
+
+.dashboardHeroGrid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, .55fr);
+  gap: 10px;
+}
+
+.attackOverviewCard,
+.forgeCommandCard,
+.forgePanel {
+  border: 1px solid rgba(142,165,176,.13);
+  background:
+    radial-gradient(circle at 90% 0, rgba(79,224,193,.045), transparent 18rem),
+    linear-gradient(145deg, rgba(14,22,28,.91), rgba(7,11,15,.9));
+  box-shadow: inset 0 1px rgba(255,255,255,.018), 0 24px 65px rgba(0,0,0,.12);
+}
+
+.attackOverviewCard { min-height: 315px; padding: 20px; border-radius: 19px; overflow: hidden; position: relative; }
+.attackOverviewCard::after { content: ""; position: absolute; inset: auto -12% -70% 35%; height: 170%; pointer-events: none; background-image: linear-gradient(rgba(120,148,159,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(120,148,159,.035) 1px, transparent 1px); background-size: 34px 34px; transform: perspective(500px) rotateX(64deg); mask-image: linear-gradient(to top, #000, transparent 76%); }
+.attackOverviewHeader { position: relative; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.attackOverviewHeader span, .panelTitle span { color: #65747f; font-size: 10px; }
+.attackOverviewHeader h2 { margin: 5px 0 0; color: #dfe6ea; font-size: 18px; letter-spacing: -.03em; }
+.attackOverviewLive { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font: 700 8px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; text-transform: uppercase; }
+.attackOverviewLive i { width: 6px; height: 6px; border-radius: 50%; background: var(--forge-teal); box-shadow: 0 0 13px rgba(79,224,193,.6); }
+
+.attackOverviewBody { position: relative; z-index: 2; margin-top: 27px; display: grid; grid-template-columns: 160px 1fr; gap: 28px; align-items: center; }
+.scopeCoverageRing { width: 148px; height: 148px; display: grid; place-items: center; border-radius: 50%; position: relative; box-shadow: 0 0 52px rgba(79,224,193,.055); }
+.scopeCoverageRing::after { content: ""; position: absolute; inset: 10px; border-radius: 50%; background: radial-gradient(circle, #101820, #091014 74%); border: 1px solid rgba(142,165,176,.1); }
+.scopeCoverageRing > div { position: relative; z-index: 1; display: grid; justify-items: center; }
+.scopeCoverageRing strong { color: #f0f5f6; font-size: 30px; line-height: 1; letter-spacing: -.05em; font-weight: 560; }
+.scopeCoverageRing span { margin-top: 5px; color: #6f7d87; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+
+.scopeOverviewDetails { min-width: 0; display: grid; gap: 10px; }
+.scopeOverviewRow { min-height: 31px; display: flex; justify-content: space-between; gap: 15px; align-items: center; border-bottom: 1px solid rgba(142,165,176,.08); color: #788690; font-size: 10px; }
+.scopeOverviewRow strong { color: #d5dde1; font-size: 11px; }
+.scopeNodeRail { min-height: 37px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.scopeNodeRail i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid rgba(255,255,255,.16); }
+.scopeNodeVerified { background: var(--forge-teal); box-shadow: 0 0 11px rgba(79,224,193,.32); }
+.scopeNodePending { background: var(--forge-ember); box-shadow: 0 0 11px rgba(255,138,61,.26); }
+.scopeNodeRail span { color: #5f6d77; font-size: 9px; }
+.attackOverviewFoot { position: relative; z-index: 2; margin-top: 17px; padding-top: 13px; display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid rgba(142,165,176,.08); color: #6f7c86; font-size: 9px; line-height: 1.5; }
+.attackOverviewFoot svg { flex: 0 0 auto; color: var(--forge-teal); }
+
+.forgeCommandCard {
+  min-height: 315px;
+  margin: 0;
+  padding: 22px;
+  border-radius: 19px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+}
+.forgeCommandCard h2 { margin: 10px 0 9px; color: #e2e8eb; font-size: clamp(24px, 2.5vw, 34px); line-height: 1.04; letter-spacing: -.045em; }
+.forgeCommandCard p { margin: 0; color: #7c8993; font-size: 11px; line-height: 1.65; }
+.forgeCommandAction { min-height: 43px; width: 100%; margin-top: 24px; padding: 0 14px; display: inline-flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid rgba(79,224,193,.24); border-radius: 12px; color: #dce7e3; background: linear-gradient(100deg, rgba(79,224,193,.085), rgba(79,224,193,.025)); font-size: 11px; font-weight: 720; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+.forgeCommandAction:hover { transform: translateY(-1px); border-color: rgba(79,224,193,.42); background: linear-gradient(100deg, rgba(79,224,193,.12), rgba(79,224,193,.04)); }
+.forgeCommandAction:focus-visible { outline: 2px solid var(--forge-cyan); outline-offset: 3px; }
+
+.forgeDashboardGrid { margin-top: 10px; gap: 10px; }
+.forgePanel { border-radius: 19px; }
+.forgeStatusDot { border-color: rgba(79,224,193,.13); background: rgba(79,224,193,.035); color: #90c7b9 !important; }
+.forgeModuleRow { border-color: rgba(142,165,176,.08); background: rgba(7,11,15,.38); }
+.forgeModuleRow .moduleIcon { color: var(--forge-teal); background: rgba(79,224,193,.055); }
+.forgeCheckList > div svg { color: var(--forge-teal); }
+.forgeGuardrail { border-color: rgba(79,224,193,.13); background: rgba(79,224,193,.028); }
+
+@media (max-width: 1100px) {
+  .dashboardHeroGrid { grid-template-columns: 1fr 1fr; }
+  .attackOverviewBody { grid-template-columns: 132px 1fr; gap: 18px; }
+  .scopeCoverageRing { width: 126px; height: 126px; }
+}
+
+@media (max-width: 820px) {
+  .forgeDashboardHeader { display: grid; }
+  .forgeHealthBadge { justify-self: start; }
+  .forgeStatBand { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboardHeroGrid, .forgeDashboardGrid { grid-template-columns: 1fr; }
+  .forgeCommandCard { min-height: 240px; }
+}
+
+@media (max-width: 520px) {
+  .forgeDashboardHeader h1 { font-size: 31px; }
+  .forgeStatBand { grid-template-columns: 1fr; }
+  .forgeStatCard { min-height: 105px; }
+  .attackOverviewCard { padding: 16px; }
+  .attackOverviewHeader { display: grid; }
+  .attackOverviewBody { grid-template-columns: 1fr; justify-items: center; }
+  .scopeOverviewDetails { width: 100%; }
+  .scopeCoverageRing { width: 132px; height: 132px; }
+  .forgeCommandCard { padding: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forgeCommandAction { transition-duration: .01ms !important; }
+}

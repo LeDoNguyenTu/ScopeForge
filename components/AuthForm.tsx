@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowRight, LockKeyhole } from "lucide-react";
+import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
@@ -46,7 +47,7 @@ export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
   return (
     <div className="authCard">
-      <div className="authBrand"><span className="brandMark"><ShieldCheck size={18} /></span><span>ScopeForge</span></div>
+      <div className="authBrand"><ScopeForgeWordmark /></div>
       <div className="authHeading">
         <span className="authIcon"><LockKeyhole size={18} /></span>
         <h1>{signUp ? "Create your workspace" : "Welcome back"}</h1>

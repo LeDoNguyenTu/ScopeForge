@@ -1,0 +1,125 @@
+.forgeAppGrid {
+  background:
+    radial-gradient(circle at 82% 5%, rgba(79,224,193,.045), transparent 26rem),
+    var(--forge-bg);
+}
+
+.forgeSidebar {
+  border-right-color: rgba(144,168,179,.13);
+  background:
+    radial-gradient(circle at 50% -10%, rgba(79,224,193,.07), transparent 17rem),
+    linear-gradient(180deg, rgba(8,12,16,.985), rgba(5,8,11,.985));
+  box-shadow: inset -1px 0 rgba(255,255,255,.01);
+}
+
+.forgeSideBrand {
+  min-height: 52px;
+  padding: 6px 9px 17px;
+  border-bottom: 1px solid rgba(142,164,174,.08);
+}
+
+.forgeWorkspaceChip {
+  margin-top: 14px;
+  border-color: rgba(140,165,175,.13);
+  background: linear-gradient(145deg, rgba(17,26,33,.9), rgba(8,13,17,.86));
+  box-shadow: inset 0 1px rgba(255,255,255,.018);
+}
+
+.forgeWorkspaceChip > span {
+  color: var(--forge-teal);
+  background: rgba(79,224,193,.07);
+  border: 1px solid rgba(79,224,193,.12);
+}
+
+.forgeSidebar .sideLink {
+  position: relative;
+  border: 1px solid transparent;
+  transition: color .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.forgeSidebar .sideLink:hover {
+  color: #dce4e8;
+  background: rgba(255,255,255,.025);
+  border-color: rgba(139,164,175,.07);
+}
+
+.forgeSidebar .sideLink.active {
+  color: var(--forge-text);
+  background: linear-gradient(90deg, rgba(79,224,193,.075), rgba(79,224,193,.018));
+  border-color: rgba(79,224,193,.11);
+  box-shadow: inset 2px 0 var(--forge-teal), 0 0 22px rgba(79,224,193,.025);
+}
+
+.forgeSidebar .sideLink:focus-visible,
+.forgeSidebar .signOutButton:focus-visible,
+.forgeSideBrand:focus-visible {
+  outline: 2px solid var(--forge-cyan);
+  outline-offset: 2px;
+}
+
+.forgeSideFoot {
+  border-top-color: rgba(142,164,174,.09);
+}
+
+.forgeSideFoot .userMini > span {
+  color: #06110e;
+  background: linear-gradient(135deg, var(--forge-teal), var(--forge-cyan));
+  box-shadow: 0 0 24px rgba(79,224,193,.08);
+}
+
+.forgeTopbar {
+  height: 82px;
+  padding: 12px 24px;
+  border-bottom: 0;
+  background: linear-gradient(180deg, rgba(7,10,13,.94), rgba(7,10,13,.62), transparent);
+  backdrop-filter: none;
+}
+
+.topbarDock {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 15px 0 17px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(142,166,176,.13);
+  border-radius: 17px;
+  background: rgba(10,15,19,.77);
+  box-shadow: inset 0 1px rgba(255,255,255,.02), 0 17px 45px rgba(0,0,0,.15);
+  backdrop-filter: blur(18px) saturate(120%);
+}
+
+.topbarWorkspace {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.topbarWorkspace span { color: #64727d !important; }
+.topbarWorkspace strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #dce4e8; }
+
+.forgeBoundaryPill {
+  border-color: rgba(79,224,193,.14);
+  background: rgba(79,224,193,.035);
+  color: #9ad5c5;
+}
+.forgeBoundaryPill i { background: var(--forge-teal); box-shadow: 0 0 13px rgba(79,224,193,.62); }
+
+.forgeAppMain { background: transparent; }
+.forgeContent { padding-top: 22px; }
+
+@media (max-width: 900px) {
+  .forgeTopbar { height: 76px; padding: 10px 16px; }
+  .topbarDock { min-height: 54px; }
+  .forgeContent { padding: 22px 20px 30px; }
+}
+
+@media (max-width: 600px) {
+  .forgeTopbar { padding: 9px 10px; }
+  .topbarDock { min-height: 50px; padding: 0 11px; border-radius: 14px; }
+  .topbarWorkspace > span { display: none; }
+  .forgeBoundaryPill { max-width: 48%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .forgeContent { padding: 18px 14px 28px; }
+}
