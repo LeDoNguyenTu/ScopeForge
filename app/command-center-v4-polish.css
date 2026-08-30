@@ -1,0 +1,208 @@
+.commandHeroV4 .commandHeroSceneV4 {
+  background:
+    radial-gradient(circle at 50% 44%, rgba(54, 207, 185, 0.055), transparent 34%),
+    linear-gradient(180deg, rgba(5, 10, 13, 0.06), rgba(5, 10, 13, 0.28));
+}
+
+.commandHeroV4 .commandSurfaceV4::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 9% 10% 8%;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(74, 239, 208, 0.08), transparent 28%),
+    radial-gradient(circle at 58% 54%, transparent 43%, rgba(64, 205, 190, 0.035) 54%, transparent 67%);
+  filter: blur(16px);
+  mix-blend-mode: screen;
+}
+
+.commandHeroV4 .commandSurfaceLabel {
+  min-width: 0;
+  width: max-content;
+  max-width: 150px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(4, 10, 13, 0.76), rgba(4, 10, 13, 0.06));
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.commandHeroV4 .commandSurfaceLabel::before {
+  left: -7px;
+}
+
+.commandHeroV4 .commandSurfaceLabelWeb,
+.commandHeroV4 .commandSurfaceLabelSandbox,
+.commandHeroV4 .commandSurfaceLabelThird,
+.commandHeroV4 .commandSurfaceLabelData,
+.commandHeroV4 .commandSurfaceLabelIdentity {
+  right: auto;
+  bottom: auto;
+}
+
+.commandHeroV4 .commandSurfaceLabelWeb { left: 2.5%; top: 43%; }
+.commandHeroV4 .commandSurfaceLabelSandbox { left: 60%; top: 4%; }
+.commandHeroV4 .commandSurfaceLabelThird { left: auto; right: 1%; top: 24%; }
+.commandHeroV4 .commandSurfaceLabelData { left: auto; right: 1%; top: 57%; }
+.commandHeroV4 .commandSurfaceLabelIdentity { left: 48%; top: auto; bottom: 4%; }
+
+.commandHeroV4 .commandRuntimeBarV4 {
+  grid-template-columns: minmax(105px, 1.15fr) minmax(78px, 0.82fr) minmax(78px, 0.82fr) minmax(145px, 1.35fr);
+  padding-inline: 10px;
+}
+
+.commandHeroV4 .commandRuntimeBarV4 > span {
+  padding-inline: 9px;
+}
+
+.commandHeroV4 .commandRuntimeBarV4 button {
+  width: 100%;
+  min-width: 0;
+  padding: 0 11px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.commandHeroV4 .commandRuntimeBarV4 button:hover,
+.commandHeroV4 .commandRuntimeBarV4 button:focus-visible {
+  color: rgba(240, 248, 247, 0.94);
+  border-color: rgba(91, 226, 202, 0.28);
+  background: rgba(23, 37, 39, 0.92);
+  outline: none;
+}
+
+.commandHeroV4 .commandRuntimeBarV4 button[aria-pressed="true"] {
+  color: rgba(255, 178, 112, 0.92);
+  border-color: rgba(255, 140, 73, 0.24);
+  background: rgba(47, 25, 18, 0.72);
+}
+
+.commandHeroV4 .commandMetricCardV4,
+.commandHeroV4 .commandOverviewPanelV4,
+.commandHeroV4 .commandRuntimeBarV4 {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.028),
+    0 12px 32px rgba(0, 0, 0, 0.11);
+}
+
+.commandHeroV4 .commandMetricCardV4 strong,
+.commandHeroV4 .commandExposureRing span,
+.commandHeroV4 .commandOverviewList strong,
+.commandHeroV4 .commandRuntimeBarV4 strong {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1280px) {
+  .commandHeroV4 .commandHeroSceneV4 {
+    min-height: 620px;
+  }
+
+  .commandHeroV4 .commandSurfaceV4 {
+    transform: scale(1.055) translateY(-0.5%);
+    transform-origin: center center;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .commandHeroV4 .commandSurfaceV4 {
+    transform: scale(0.98);
+    transform-origin: center;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(150px, 1.15fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .commandHeroV4 .commandHeroSceneV4 {
+    min-height: clamp(350px, 92vw, 430px);
+    aspect-ratio: auto;
+    border-radius: 22px;
+  }
+
+  .commandHeroV4 .commandHeroSceneV4::before {
+    inset: 8% 1% 5%;
+    filter: blur(13px);
+  }
+
+  .commandHeroV4 .commandSurfaceV4 {
+    transform: scale(1.06) translateY(-1%);
+    transform-origin: center;
+  }
+
+  .commandHeroV4 .commandSurfaceV4::after {
+    inset: 10% 3% 7%;
+    filter: blur(12px);
+  }
+
+  .commandHeroV4 .commandSurfaceLabel {
+    max-width: 112px;
+    padding: 4px 5px;
+    background: rgba(4, 10, 13, 0.66);
+  }
+
+  .commandHeroV4 .commandSurfaceLabelWeb { left: 2%; top: 47%; }
+  .commandHeroV4 .commandSurfaceLabelSandbox { left: 55%; top: 6%; }
+  .commandHeroV4 .commandSurfaceLabelThird { right: 1%; top: 31%; }
+  .commandHeroV4 .commandSurfaceLabelData { right: 1%; top: 66%; }
+  .commandHeroV4 .commandSurfaceLabelIdentity { left: 39%; bottom: 2%; }
+
+  .commandHeroV4 .commandRuntimeBarV4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-inline: 7px;
+  }
+
+  .commandHeroV4 .commandRuntimeBarV4 button {
+    display: none;
+  }
+
+  .commandHeroV4 .commandOverviewHeading {
+    gap: 12px;
+  }
+
+  .commandHeroV4 .commandOverviewHeading > span {
+    font-size: 0.82rem;
+  }
+
+  .commandHeroV4 .commandOverviewHeading small {
+    flex: 0 0 auto;
+  }
+
+  .commandHeroV4 .commandOverviewList > div {
+    font-size: 0.68rem;
+  }
+
+  .commandHeroV4 .commandRiskPath > span,
+  .commandHeroV4 .commandRiskPath > strong,
+  .commandHeroV4 .commandRiskPath > div small,
+  .commandHeroV4 .commandRiskPath a {
+    font-size: 0.66rem;
+  }
+
+  .commandHeroV4 .commandRiskPath > strong {
+    white-space: normal;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 390px) {
+  .commandHeroV4 .commandHeroSceneV4 {
+    min-height: 345px;
+  }
+
+  .commandHeroV4 .commandSurfaceLabel {
+    max-width: 102px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commandHeroV4 .commandSurfaceV4 {
+    transform: none;
+  }
+}
