@@ -20,10 +20,10 @@ const metricCards = [
 
 export default function CommandCenterLandingHero() {
   return (
-    <section className="commandHero" aria-labelledby="command-hero-title">
+    <section className="commandHero commandHeroV4" aria-labelledby="command-hero-title">
       <div className="commandHeroGrid" aria-hidden="true" />
 
-      <div className="commandHeroCopy">
+      <div className="commandHeroCopy commandHeroCopyV4" data-testid="command-copy">
         <span className="commandHeroEyebrow">LIVING ATTACK SURFACE</span>
         <h1 id="command-hero-title">Understand the risk before it becomes <span>an incident.</span></h1>
         <p className="commandHeroLead">
@@ -35,15 +35,15 @@ export default function CommandCenterLandingHero() {
         </div>
       </div>
 
-      <div className="commandHeroScene">
+      <div className="commandHeroScene commandHeroSceneV4" data-testid="command-scene">
         <CommandCenterSurface />
       </div>
 
-      <div className="commandMetricArea">
+      <div className="commandMetricArea commandMetricAreaV4" data-testid="command-metrics">
         <span className="commandIllustrativeLabel">Illustrative platform telemetry</span>
-        <div className="commandMetricGrid">
+        <div className="commandMetricGrid commandMetricGridV4">
           {metricCards.map(({ icon: Icon, value, label, trend, tone }) => (
-            <article className="commandMetricCard" key={label}>
+            <article className="commandMetricCard commandMetricCardV4" key={label}>
               <span className={`commandMetricIcon commandMetricIcon-${tone}`}><Icon size={16} /></span>
               <div>
                 <strong>{value}</strong>
@@ -53,35 +53,35 @@ export default function CommandCenterLandingHero() {
             </article>
           ))}
         </div>
-
-        <article className="commandOverviewPanel">
-          <div className="commandOverviewHeading">
-            <span>Attack Surface Overview</span>
-            <small><i /> Live illustration</small>
-          </div>
-          <div className="commandOverviewBody">
-            <div className="commandExposureGauge">
-              <div className="commandExposureRing"><span>92</span><small>/ 100</small></div>
-              <p>Exposure score</p>
-              <em>Medium risk</em>
-            </div>
-            <div className="commandOverviewList">
-              <div><span><i className="commandDot commandDotTeal" /> Internet facing</span><strong>7,218</strong></div>
-              <div><span><i className="commandDot commandDotCyan" /> Cloud assets</span><strong>3,901</strong></div>
-              <div><span><i className="commandDot commandDotAmber" /> Identities</span><strong>1,126</strong></div>
-              <div><span><i className="commandDot commandDotRisk" /> Third parties</span><strong>647</strong></div>
-            </div>
-            <div className="commandRiskPath">
-              <span>Top risk path</span>
-              <strong>Internet → Web App → IAM → Data Store <em>Critical</em></strong>
-              <div><small>Likely impact <b>High</b></small><small>Exploitability <b>High</b></small></div>
-              <Link href="/auth/sign-up">Investigate path <ArrowRight size={13} /></Link>
-            </div>
-          </div>
-        </article>
       </div>
 
-      <div className="commandRuntimeBar" aria-label="Illustrative runtime status">
+      <article className="commandOverviewPanel commandOverviewPanelV4" data-testid="command-overview">
+        <div className="commandOverviewHeading">
+          <span>Attack Surface Overview</span>
+          <small><i /> Live illustration</small>
+        </div>
+        <div className="commandOverviewBody">
+          <div className="commandExposureGauge">
+            <div className="commandExposureRing"><span>92</span><small>/ 100</small></div>
+            <p>Exposure score</p>
+            <em>Medium risk</em>
+          </div>
+          <div className="commandOverviewList">
+            <div><span><i className="commandDot commandDotTeal" /> Internet facing</span><strong>7,218</strong></div>
+            <div><span><i className="commandDot commandDotCyan" /> Cloud assets</span><strong>3,901</strong></div>
+            <div><span><i className="commandDot commandDotAmber" /> Identities</span><strong>1,126</strong></div>
+            <div><span><i className="commandDot commandDotRisk" /> Third parties</span><strong>647</strong></div>
+          </div>
+          <div className="commandRiskPath">
+            <span>Top risk path</span>
+            <strong>Internet → Web App → IAM → Data Store <em>Critical</em></strong>
+            <div><small>Likely impact <b>High</b></small><small>Exploitability <b>High</b></small></div>
+            <Link href="/auth/sign-up">Investigate path <ArrowRight size={13} /></Link>
+          </div>
+        </div>
+      </article>
+
+      <div className="commandRuntimeBar commandRuntimeBarV4" data-testid="command-runtime" aria-label="Illustrative runtime status">
         <span><i className="commandRuntimePulse" /><small>Runtime</small><strong>24:07:18:42</strong></span>
         <span><Radar size={15} /><small>Sensors</small><strong>182</strong></span>
         <span><Bug size={15} /><small>Coverage</small><strong>98%</strong></span>
