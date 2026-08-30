@@ -60,7 +60,7 @@ begin
        )
        and active_task.state in ('queued', 'leased', 'retry_wait')
        and active_task.absolute_deadline_at > request_now
-       and active_job.status = 'queued'::public.scan_job_status
+       and active_job.status in ('queued'::public.scan_job_status, 'running'::public.scan_job_status)
        and active_job.cancel_requested_at is null
   ) then
     raise exception 'RUNTIME_WORKER_ACTIVE_LIMIT';
@@ -194,7 +194,7 @@ begin
        )
        and active_task.state in ('queued', 'leased', 'retry_wait')
        and active_task.absolute_deadline_at > request_now
-       and active_job.status = 'queued'::public.scan_job_status
+       and active_job.status in ('queued'::public.scan_job_status, 'running'::public.scan_job_status)
        and active_job.cancel_requested_at is null
   ) then
     raise exception 'RUNTIME_WORKER_ACTIVE_LIMIT';
