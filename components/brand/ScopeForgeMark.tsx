@@ -2,12 +2,14 @@ export default function ScopeForgeMark({
   size = 34,
   className,
   title,
+  decorative = false,
 }: {
   size?: number;
   className?: string;
   title?: string;
+  decorative?: boolean;
 }) {
-  const labelled = Boolean(title);
+  const labelled = Boolean(title) && !decorative;
 
   return (
     <svg

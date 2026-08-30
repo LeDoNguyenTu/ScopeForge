@@ -1,33 +1,38 @@
 import Link from "next/link";
-import { Github, Menu } from "lucide-react";
+import { ArrowRight, ChevronDown, Menu } from "lucide-react";
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
-
-const communityUrl = "https://github.com/LeDoNguyenTu/ScopeForge";
 
 export default function PublicNav() {
   return (
-    <header className="forgePublicHeader">
-      <nav className="forgePublicNav" aria-label="Public navigation">
-        <Link className="forgePublicBrand" href="/" aria-label="ScopeForge home">
+    <header className="forgePublicHeader commandPublicHeader">
+      <nav className="forgePublicNav commandPublicNav" aria-label="Public navigation">
+        <Link className="forgePublicBrand commandPublicBrand" href="/" aria-label="ScopeForge home">
           <ScopeForgeWordmark />
         </Link>
 
-        <div className="forgePublicLinks">
-          <a href="#platform">Platform</a>
-          <a href="#security-model">Security model</a>
-          <a href={communityUrl} target="_blank" rel="noreferrer"><Github size={15} /> Community</a>
-          <Link href="/auth/sign-in">Sign in</Link>
-          <Link className="forgeNavCta" href="/auth/sign-up">Create account</Link>
+        <div className="forgePublicLinks commandPublicLinks">
+          <a href="#platform">Platform <ChevronDown size={12} /></a>
+          <a href="#platform">Use Cases <ChevronDown size={12} /></a>
+          <a href="#security-model">Resources <ChevronDown size={12} /></a>
+          <a href="#platform">Pricing</a>
+          <a href="#security-model">Company <ChevronDown size={12} /></a>
         </div>
 
-        <details className="forgeMobileMenu">
-          <summary aria-label="Open navigation menu"><Menu size={18} /></summary>
-          <div className="forgeMobileMenuPanel">
+        <div className="commandPublicAuth">
+          <Link href="/auth/sign-in">Sign in</Link>
+          <Link className="commandRequestAccess" href="/auth/sign-up">Request access <ArrowRight size={14} /></Link>
+        </div>
+
+        <details className="forgeMobileMenu commandMobileMenu">
+          <summary aria-label="Open navigation menu"><Menu size={20} /></summary>
+          <div className="forgeMobileMenuPanel commandMobileMenuPanel">
             <a href="#platform">Platform</a>
-            <a href="#security-model">Security model</a>
-            <a href={communityUrl} target="_blank" rel="noreferrer"><Github size={15} /> Community</a>
+            <a href="#platform">Use Cases</a>
+            <a href="#security-model">Resources</a>
+            <a href="#platform">Pricing</a>
+            <a href="#security-model">Company</a>
             <Link href="/auth/sign-in">Sign in</Link>
-            <Link className="forgeNavCta" href="/auth/sign-up">Create account</Link>
+            <Link className="commandRequestAccess" href="/auth/sign-up">Request access <ArrowRight size={14} /></Link>
           </div>
         </details>
       </nav>

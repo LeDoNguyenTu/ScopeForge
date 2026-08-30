@@ -1,20 +1,15 @@
-import Link from "next/link";
 import {
-  ArrowRight,
   BookOpenCheck,
   Boxes,
   Bug,
   CircleCheck,
-  Github,
   GitBranch,
   Network,
   ScanSearch,
   ShieldCheck,
-  Sparkles,
   Wrench,
 } from "lucide-react";
-import LandingMetricStrip from "@/components/landing/LandingMetricStrip";
-import LivingAttackSurface from "@/components/landing/LivingAttackSurface";
+import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
 import PublicNav from "@/components/landing/PublicNav";
 
 const workflow = [
@@ -29,30 +24,11 @@ const workflow = [
 
 export default function Home() {
   return (
-    <main className="forgeLanding">
+    <main className="forgeLanding commandLanding">
       <PublicNav />
+      <CommandCenterLandingHero />
 
-      <section className="forgeHero">
-        <div className="forgeHeroBackdrop" aria-hidden="true" />
-        <div className="forgeHeroCopy">
-          <div className="forgeEyebrow"><Sparkles size={14} /> Open-source application security</div>
-          <h1>Understand the risk before it becomes <span>an incident.</span></h1>
-          <p className="forgeHeroLead">ScopeForge helps developers discover security weaknesses, prove what is in scope, understand what the evidence could lead to, fix the root cause and verify that the risk is gone.</p>
-          <div className="forgeHeroActions">
-            <Link className="forgePrimaryAction" href="/auth/sign-up">Start a workspace <ArrowRight size={16} /></Link>
-            <a className="forgeSecondaryAction" href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer"><Github size={16} /> Explore the project</a>
-          </div>
-          <div className="forgeAuthorizationNote"><ShieldCheck size={15} /><span>For systems you own or are explicitly authorized to assess.</span></div>
-          <LandingMetricStrip />
-        </div>
-
-        <div className="forgeHeroVisual">
-          <div className="forgeVisualTag"><span><i /> Authorized scope</span><small>Living attack surface</small></div>
-          <LivingAttackSurface />
-        </div>
-      </section>
-
-      <section id="platform" className="forgePlatform">
+      <section id="platform" className="forgePlatform commandBelowFold">
         <div className="forgeSectionHeading">
           <span className="forgeEyebrow"><Network size={14} /> One evidence-first workflow</span>
           <h2>Security work should end with proof, not another alert.</h2>
@@ -69,12 +45,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="security-model" className="forgeSecurityModel">
+      <section id="security-model" className="forgeSecurityModel commandBelowFold">
         <div className="forgeSecurityIntro">
           <span className="forgeEyebrow"><ShieldCheck size={14} /> Security model</span>
           <h2>Authority stays narrower than capability.</h2>
           <p>ScopeForge is designed so a powerful scanner does not automatically become permission to scan anything. Remote behavior stays attached to verified targets, closed request shapes and explicit authorization.</p>
-          <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer">Read the open-source project <ArrowRight size={14} /></a>
+          <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer">Read the open-source project</a>
         </div>
         <div className="forgeSecurityCards">
           <article><ShieldCheck size={18} /><strong>Scope first</strong><p>Workspace assets and proof of control establish the boundary before remote security workflows can run.</p></article>
