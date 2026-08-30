@@ -5,11 +5,11 @@ import {
   Bug,
   CirclePlay,
   GitBranch,
-  Pause,
   Radar,
   ShieldCheck,
 } from "lucide-react";
 import AttackSurfaceScene from "@/components/landing/AttackSurfaceScene";
+import SceneMonitoringToggle from "@/components/landing/SceneMonitoringToggle";
 
 const metricCards = [
   { icon: Box, value: "14,892", label: "Verified assets", trend: "↑ 12% this week", tone: "teal" },
@@ -85,7 +85,7 @@ export default function CommandCenterLandingHero() {
         <span><i className="commandRuntimePulse" /><small>Runtime</small><strong>24:07:18:42</strong></span>
         <span><Radar size={15} /><small>Sensors</small><strong>182</strong></span>
         <span><Bug size={15} /><small>Coverage</small><strong>98%</strong></span>
-        <button type="button"><Pause size={14} /> Pause monitoring</button>
+        <SceneMonitoringToggle />
       </div>
     </section>
   );
