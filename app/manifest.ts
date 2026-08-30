@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { scopeForgeManifestIcons } from "@/lib/brand/browser-icons";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -9,19 +10,6 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#070a0d",
     theme_color: "#070a0d",
-    icons: [
-      {
-        src: "/scopeforge-mark-v2.svg",
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "any"
-      },
-      {
-        src: "/scopeforge-mark-v2.svg",
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "maskable"
-      }
-    ]
+    icons: scopeForgeManifestIcons
   };
 }
