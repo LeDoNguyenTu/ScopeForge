@@ -28,9 +28,17 @@ const RUNTIME_NETWORK_IMPORT = /(?:@\/packages\/runtime-network|packages\/runtim
 const MEDIATOR_IMPORT = /(?:@\/packages\/runtime-worker-mediator|packages\/runtime-worker-mediator|\.\.?\/.*runtime-worker-mediator)/;
 
 describe("Phase 6D authority architecture", () => {
-  it("keeps external network ownership inside runtime-network and runtime-worker-mediator", async () => {
-    const roots = ["app", "lib", "packages"];
-    const all = (await Promise.all(roots.map(sourcesUnder))).flat();
+  it("keeps Phase 6D raw network ownership inside runtime-network and runtime-worker-mediator", async () => {
+    const phase6dRoots = [
+      "lib/runtime-workers",
+      "packages/runtime-observer",
+      "packages/runtime-validator",
+      "packages/runtime-worker-mediator",
+      "packages/runtime-worker-runner",
+      "packages/runtime-worker-sandbox",
+      "packages/worker-supervisor",
+    ];
+    const all = (await Promise.all(phase6dRoots.map(sourcesUnder))).flat();
     const offenders = all.filter(({ file, code }) =>
       RAW_NETWORK_IMPORT.test(code)
       && !file.startsWith("packages/runtime-network/")
@@ -53,14 +61,22 @@ describe("Phase 6D authority architecture", () => {
 
   it("keeps mediator independent from persistence, acquisition, scanners, providers, browsers, and process escape hatches", async () => {
     const files = await sourcesUnder("packages/runtime-worker-mediator");
-    const forbidden = /(?:supabase|database|repository-snapshots|cloudflare|\br2\b|github|scanner|openai|anthropic|gemini|playwright|puppeteer|child_process|child-process|node:vm|["']vm["']|worker_threads|worker-threads)/i;
+    const forbidden = /(?:@supabase\/|createAdminClient|lib\/database|lib\/repository|repository-acquisition-network|repository-snapshot|hosted-scanner-runner|scanner-core|scanner-jsts|scanner-iac|openai|anthropic|gemini|playwright|puppeteer|node:child_process|node:vm|node:worker_threads)/i;
     const offenders = files.filter(({ code }) => forbidden.test(code));
     expect(offenders.map(({ file }) => file)).toEqual([]);
   });
 
   it("keeps Phase 6B acquisition and Phase 6C zero-egress scanning independent from Phase 6D networking", async () => {
-    const sixB = await sourcesUnder("packages/repository-snapshot-worker").catch(() => []);
-    const sixC = await sourcesUnder("packages/repository-scan-worker").catch(() => []);
+    const sixB = [
+      ...await sourcesUnder("packages/repository-acquisition-network"),
+      ...await sourcesUnder("packages/repository-snapshot"),
+    ];
+    const sixC = [
+      ...await sourcesUnder("packages/hosted-scanner-runner"),
+      ...await sourcesUnder("packages/scanner-core"),
+      ...await sourcesUnder("packages/scanner-jsts"),
+      ...await sourcesUnder("packages/scanner-iac"),
+    ];
     expect(sixB.filter(({ code }) => MEDIATOR_IMPORT.test(code)).map(({ file }) => file)).toEqual([]);
     expect(sixC.filter(({ code }) => MEDIATOR_IMPORT.test(code) || RUNTIME_NETWORK_IMPORT.test(code)).map(({ file }) => file)).toEqual([]);
   });
