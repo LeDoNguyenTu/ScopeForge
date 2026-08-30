@@ -54,6 +54,17 @@ describe("buildAttackSurfaceModel", () => {
     });
   });
 
+  it("uses the exact finding count even when topology findings are a bounded sample", () => {
+    const model = buildAttackSurfaceModel({
+      assets: [asset()],
+      findings: [finding()],
+      openFindingCount: 27,
+    });
+
+    expect(model.metrics.openFindings).toBe(27);
+    expect(model.nodes[0]?.findingCount).toBe(1);
+  });
+
   it("uses the highest real severity and title for the priority asset", () => {
     const model = buildAttackSurfaceModel({
       assets: [asset()],
