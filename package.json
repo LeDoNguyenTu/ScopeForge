@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_ENV=test vitest run tests/landing/attack-surface-quality.test.ts tests/landing/public-navigation.test.tsx tests/components/CommandCenterLandingHero.test.tsx tests/landing/attack-surface-progress.test.ts tests/landing/boot-gate.test.tsx tests/landing/attack-surface-scene-contract.test.ts tests/landing/attack-surface-animation.test.ts tests/components/AttackSurfaceScene.test.tsx tests/components/SceneMonitoringToggle.test.tsx && NODE_ENV=production next build",
+    "build": "NODE_ENV=test vitest run && tsc --noEmit && tsc -p tsconfig.cli.json && node .scopeforge-build/packages/cli/index.js version && node benchmarks/scanner-medium.mjs && npm audit --audit-level=info && NODE_ENV=production next build",
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
     "benchmark:scanner": "node benchmarks/scanner-medium.mjs",
