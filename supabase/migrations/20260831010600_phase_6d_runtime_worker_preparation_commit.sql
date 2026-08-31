@@ -49,20 +49,6 @@ begin
     'hex'
   );
 
-  select * into attempt_record
-    from private.worker_attempts
-   where id = target_attempt_id
-     and task_id = target_task_id
-   for update;
-
-  if attempt_record.id is null
-     or attempt_record.worker_id <> target_worker_id
-     or attempt_record.lease_token_hash <> calculated_hash
-     or attempt_record.finished_at is not null
-     or attempt_record.lease_expires_at <= commit_now then
-    raise exception 'WORKER_LEASE_INVALID';
-  end if;
-
   select * into worker_record
     from private.worker_nodes
    where id = target_worker_id
@@ -88,6 +74,20 @@ begin
      or task_record.attempt_count <> 1
      or task_record.max_attempts <> 1
      or task_record.absolute_deadline_at <= commit_now then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  select * into attempt_record
+    from private.worker_attempts
+   where id = target_attempt_id
+     and task_id = target_task_id
+   for update;
+
+  if attempt_record.id is null
+     or attempt_record.worker_id <> target_worker_id
+     or attempt_record.lease_token_hash <> calculated_hash
+     or attempt_record.finished_at is not null
+     or attempt_record.lease_expires_at <= commit_now then
     raise exception 'WORKER_LEASE_INVALID';
   end if;
 
