@@ -34,6 +34,21 @@ describe("Phase 6D atomic success publication migration", () => {
       expect(persist).toBeGreaterThan(context);
       expect(successFinalize).toBeGreaterThan(persist);
     });
+
+    it(`${name} rechecks the lease with a post-lock wall clock before persistence`, async () => {
+      const sql = await readFile(migrationPath, "utf8");
+      const body = functionBody(sql, name);
+      const context = body.indexOf("get_runtime_worker_finalization_context");
+      const cancellation = body.indexOf("(context_record->>'cancelRequested')::boolean");
+      const clock = body.indexOf("publish_now := clock_timestamp();");
+      const leaseCheck = body.indexOf("(context_record->>'leaseExpiresAt')::timestamptz <= publish_now");
+      const persist = body.indexOf(persistence);
+
+      expect(clock).toBeGreaterThan(context);
+      expect(clock).toBeGreaterThan(cancellation);
+      expect(leaseCheck).toBeGreaterThan(clock);
+      expect(persist).toBeGreaterThan(leaseCheck);
+    });
   }
 
   it("handles replay and cancellation before any success persistence", async () => {
@@ -48,6 +63,7 @@ describe("Phase 6D atomic success publication migration", () => {
         : "persist_active_validation_result");
       expect(body.indexOf("context_record->>'finishedAt' is not null")).toBeLessThan(persistence);
       expect(body.indexOf("(context_record->>'cancelRequested')::boolean")).toBeLessThan(persistence);
+      expect(body.indexOf("'cancelled'")).toBeLessThan(persistence);
       expect(body.indexOf("finalize_runtime_worker_attempt")).toBeLessThan(persistence);
     }
   });
