@@ -25,6 +25,7 @@ describe("Phase 6D runtime worker Podman command", () => {
     expect(command.args).toContain("--pids-limit=1");
     expect(command.args).toContain("--memory=256m");
     expect(command.args).toContain("--unsetenv-all");
+    expect(command.args).toContain("--tmpfs=/tmp:rw,size=16777216,mode=0700,nosuid,nodev,noexec");
     expect(joined).not.toMatch(/--privileged|--device|docker[.]sock|podman[.]sock|\/var\/run/);
 
     const mounts = command.args.filter((arg) => arg.startsWith("--mount="));
@@ -38,6 +39,16 @@ describe("Phase 6D runtime worker Podman command", () => {
       "--execution-class", input.executionClass,
       "--session-nonce", input.mediatorSessionNonce,
     ]);
+  });
+
+  it("enforces the smaller active CORS scratch budget at the container boundary", () => {
+    const command = buildRuntimeWorkerPodmanCreateCommand({
+      ...input,
+      executionClass: "active_cors_validation_v1",
+    });
+
+    expect(command.args).toContain("--tmpfs=/tmp:rw,size=8388608,mode=0700,nosuid,nodev,noexec");
+    expect(command.args).not.toContain("--tmpfs=/tmp:rw,size=16777216,mode=0700,nosuid,nodev,noexec");
   });
 
   it("rejects task-controlled socket paths and argument injection", () => {
