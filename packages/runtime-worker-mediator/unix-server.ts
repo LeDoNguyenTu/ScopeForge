@@ -66,7 +66,7 @@ export function createRuntimeMediatorUnixServer(
           return;
         }
         if (values.length === 0) return;
-        if (values.length !== 1) {
+        if (values.length !== 1 || decoder.hasPendingData()) {
           socket.destroy();
           return;
         }
