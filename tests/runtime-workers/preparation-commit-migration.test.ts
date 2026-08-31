@@ -1,0 +1,66 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+const migrationPath = path.resolve(
+  process.cwd(),
+  "supabase/migrations/20260831010600_phase_6d_runtime_worker_preparation_commit.sql",
+);
+
+describe("Phase 6D atomic preparation commit migration", () => {
+  it("keeps the commit RPC service-role only and search-path hardened", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql.match(/security definer/g)?.length).toBe(1);
+    expect(sql.match(/set search_path = ''/g)?.length).toBe(1);
+    expect(sql).toContain("revoke all on function public.commit_runtime_worker_preparation");
+    expect(sql).toContain("grant execute on function public.commit_runtime_worker_preparation");
+    expect(sql).toContain("to service_role");
+    expect(sql).not.toMatch(/to\s+(anon|authenticated)/i);
+  });
+
+  it("relocks the lease, task, domain job, and asset before the running transition", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toContain("from private.worker_attempts");
+    expect(sql).toContain("from private.worker_nodes");
+    expect(sql).toContain("from private.worker_tasks");
+    expect(sql).toContain("from private.runtime_worker_tasks");
+    expect(sql).toContain("from public.scan_jobs");
+    expect(sql).toContain("from public.assets");
+    expect(sql.match(/for update/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(sql).toContain("attempt_record.lease_expires_at <= commit_now");
+    expect(sql).toContain("task_record.absolute_deadline_at <= commit_now");
+    expect(sql).toContain("task_record.max_attempts <> 1");
+    expect(sql).toContain("attempt_record.finished_at is not null");
+  });
+
+  it("compares the exact reauthorized asset and job snapshot before execution starts", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    for (const field of [
+      "target_expected_asset_canonical_target",
+      "target_expected_asset_kind",
+      "target_expected_asset_hostname",
+      "target_expected_asset_verified_at",
+      "target_expected_job_authorization_canonical_target",
+      "target_expected_job_authorization_asset_kind",
+      "target_expected_job_authorization_verified_at",
+      "target_expected_job_validation_profile_id",
+      "target_expected_job_validation_profile_version",
+      "target_expected_job_authorization_granted_at",
+      "target_expected_job_budget",
+    ]) {
+      expect(sql).toContain(field);
+    }
+    expect(sql).toContain("asset_record.verification_status::text <> 'verified'");
+    expect(sql).toContain("job_record.cancel_requested_at is not null");
+    expect(sql).toContain("job_record.budget is distinct from target_expected_job_budget");
+  });
+
+  it("performs the queued-to-running transition only after all checks and returns no target authority", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toMatch(/update public\.scan_jobs[\s\S]*set status = 'running'::public\.scan_job_status[\s\S]*and status = 'queued'::public\.scan_job_status[\s\S]*and cancel_requested_at is null/i);
+    expect(sql).toContain("'status', 'running'");
+    expect(sql).not.toContain("'canonicalTarget'");
+    expect(sql).not.toContain("'hostname'");
+    expect(sql).not.toContain("'leaseToken'");
+  });
+});
