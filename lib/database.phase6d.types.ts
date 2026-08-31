@@ -58,6 +58,26 @@ type Phase6dFunctions = {
     };
     Returns: Json;
   };
+  commit_runtime_worker_preparation: {
+    Args: {
+      target_worker_id: string;
+      target_task_id: string;
+      target_attempt_id: string;
+      target_lease_token: string;
+      target_expected_asset_canonical_target: string;
+      target_expected_asset_kind: string;
+      target_expected_asset_hostname: string;
+      target_expected_asset_verified_at: string;
+      target_expected_job_authorization_canonical_target: string;
+      target_expected_job_authorization_asset_kind: string;
+      target_expected_job_authorization_verified_at: string;
+      target_expected_job_validation_profile_id: string | null;
+      target_expected_job_validation_profile_version: number | null;
+      target_expected_job_authorization_granted_at: string | null;
+      target_expected_job_budget: Json;
+    };
+    Returns: Json;
+  };
   get_runtime_worker_finalization_context: {
     Args: {
       target_worker_id: string;
