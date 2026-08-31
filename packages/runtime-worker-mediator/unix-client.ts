@@ -136,6 +136,13 @@ export function createRuntimeMediatorFrameDecoder(
     payloadBytes = 0;
   }
 
+  function hasPendingData(): boolean {
+    return headerBytes !== 0
+      || expectedPayloadBytes !== null
+      || payload !== null
+      || payloadBytes !== 0;
+  }
+
   function push(chunk: Buffer): unknown[] {
     if (!Buffer.isBuffer(chunk)) wireInvalid();
     const values: unknown[] = [];
@@ -176,7 +183,7 @@ export function createRuntimeMediatorFrameDecoder(
     return values;
   }
 
-  return Object.freeze({ push });
+  return Object.freeze({ push, hasPendingData });
 }
 
 export function runRuntimeMediatorUnixRequest(
@@ -206,7 +213,9 @@ export function runRuntimeMediatorUnixRequest(
       try {
         const values = decoder.push(chunk);
         if (values.length === 0) return;
-        if (values.length !== 1 || settled) return fail(new RuntimeMediatorProtocolError("MEDIATOR_REQUEST_INVALID"));
+        if (values.length !== 1 || decoder.hasPendingData() || settled) {
+          return fail(new RuntimeMediatorProtocolError("MEDIATOR_REQUEST_INVALID"));
+        }
         const response = validateRuntimeMediatorWireResponse(values[0], validated.session.executionClass);
         settled = true;
         socket.end();
