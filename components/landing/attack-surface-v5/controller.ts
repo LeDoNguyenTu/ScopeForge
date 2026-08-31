@@ -9,6 +9,35 @@ import { getAttackSurfaceV5QualitySettings } from "./quality";
 
 export type AttackSurfaceV5Variant = "desktop" | "mobile";
 
+export type AttackSurfaceV5CameraPreset = Readonly<{
+  fov: number;
+  position: readonly [number, number, number];
+  target: readonly [number, number, number];
+  surfaceScale: number;
+  surfaceY: number;
+}>;
+
+const CAMERA_PRESETS: Readonly<Record<AttackSurfaceV5Variant, AttackSurfaceV5CameraPreset>> = Object.freeze({
+  desktop: Object.freeze({
+    fov: 40,
+    position: Object.freeze([0.85, 8.35, 18.15] as const),
+    target: Object.freeze([0.35, 0.05, 0] as const),
+    surfaceScale: 0.9,
+    surfaceY: -0.08,
+  }),
+  mobile: Object.freeze({
+    fov: 49,
+    position: Object.freeze([0, 14.4, 20.4] as const),
+    target: Object.freeze([0, 0.18, 0] as const),
+    surfaceScale: 0.73,
+    surfaceY: -0.28,
+  }),
+});
+
+export function getAttackSurfaceV5CameraPreset(variant: AttackSurfaceV5Variant): AttackSurfaceV5CameraPreset {
+  return CAMERA_PRESETS[variant];
+}
+
 export type AttackSurfaceV5Controller = Readonly<{
   resize(width: number, height: number, dpr: number): void;
   setPointer(x: number, y: number): void;
@@ -31,9 +60,9 @@ export function disposeAttackSurfaceV5Object(root: THREE.Object3D): void {
   const materials = new Set<THREE.Material>();
 
   root.traverse((object) => {
-    const mesh = object as THREE.Mesh;
-    if (mesh.geometry) geometries.add(mesh.geometry);
-    const material = mesh.material;
+    const renderable = object as THREE.Mesh;
+    if (renderable.geometry) geometries.add(renderable.geometry);
+    const material = renderable.material;
     if (Array.isArray(material)) material.forEach((entry) => materials.add(entry));
     else if (material) materials.add(material);
   });
@@ -43,19 +72,16 @@ export function disposeAttackSurfaceV5Object(root: THREE.Object3D): void {
 }
 
 function configureCamera(camera: THREE.PerspectiveCamera, variant: AttackSurfaceV5Variant): void {
-  if (variant === "mobile") {
-    camera.fov = 44;
-    camera.position.set(0, 9.2, 14.4);
-  } else {
-    camera.fov = 39;
-    camera.position.set(0.25, 7.8, 12.6);
-  }
-  camera.lookAt(0, 0.3, 0);
+  const preset = getAttackSurfaceV5CameraPreset(variant);
+  camera.fov = preset.fov;
+  camera.position.set(preset.position[0], preset.position[1], preset.position[2]);
+  camera.lookAt(preset.target[0], preset.target[1], preset.target[2]);
   camera.updateProjectionMatrix();
 }
 
 export function createAttackSurfaceV5Controller(options: CreateAttackSurfaceV5ControllerOptions): AttackSurfaceV5Controller {
   const variant = options.variant ?? "desktop";
+  const preset = getAttackSurfaceV5CameraPreset(variant);
   const settings = getAttackSurfaceV5QualitySettings(options.quality);
   const renderer = new THREE.WebGLRenderer({
     canvas: options.canvas,
@@ -64,19 +90,19 @@ export function createAttackSurfaceV5Controller(options: CreateAttackSurfaceV5Co
     powerPreference: "high-performance",
     premultipliedAlpha: true,
   });
-  renderer.setClearColor(0x020708, 0);
+  renderer.setClearColor(0x05070a, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = options.quality === "cinematic" ? 1.15 : 1.05;
+  renderer.toneMappingExposure = options.quality === "cinematic" ? 1.22 : options.quality === "balanced" ? 1.12 : 1.02;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(39, 1, 0.1, 80);
+  const camera = new THREE.PerspectiveCamera(preset.fov, 1, 0.1, 100);
   configureCamera(camera, variant);
   createV5Lighting(scene);
 
   const surface = createAttackSurfaceV5Group(options.model, options.quality);
-  surface.scale.setScalar(variant === "mobile" ? 0.86 : 0.94);
-  surface.position.y = variant === "mobile" ? -0.25 : 0;
+  surface.scale.setScalar(preset.surfaceScale);
+  surface.position.y = preset.surfaceY;
   scene.add(surface);
 
   let composer: AttackSurfaceV5Composer | null = createV5Composer(renderer, scene, camera, options.quality);
