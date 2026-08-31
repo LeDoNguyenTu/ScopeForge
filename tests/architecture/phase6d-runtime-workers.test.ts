@@ -112,4 +112,19 @@ describe("Phase 6D authority architecture", () => {
     expect(finalizationRepository).toContain("publish_passive_runtime_worker_success");
     expect(finalizationRepository).toContain("publish_active_cors_worker_success");
   });
+
+  it("keeps supervisor cancellation connected to both in-flight runtime transports", async () => {
+    const supervisor = await source("packages/worker-supervisor/runtime-network.ts");
+    const passive = await source("packages/runtime-worker-mediator/passive.ts");
+    const activeCors = await source("packages/runtime-worker-mediator/active-cors.ts");
+    const observer = await source("packages/runtime-observer/observe.ts");
+    const validator = await source("packages/runtime-validator/validate.ts");
+
+    expect(supervisor).toContain("passive: { isCancelled: () => signal.aborted, signal }");
+    expect(supervisor).toContain("activeCors: { isCancelled: () => signal.aborted, signal }");
+    expect(passive).toContain("...(dependencies.signal ? { signal: dependencies.signal } : {})");
+    expect(activeCors).toContain("...(dependencies.signal ? { signal: dependencies.signal } : {})");
+    expect(observer).toContain("...(signal ? { signal } : {})");
+    expect(validator).toContain("transport(plan, signal ? { signal } : undefined)");
+  });
 });
