@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/print-lock-delta.mjs",
+    "prebuild": "NODE_ENV=test npx vitest run tests/components/AttackSurfaceSceneV5.test.tsx",
     "build": "next build",
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
