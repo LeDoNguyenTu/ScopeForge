@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "prebuild": "NODE_ENV=test npx vitest run tests/components/attack-surface-v5-quality.test.ts tests/components/attack-surface-v5-geometry.test.ts",
+    "prebuild": "NODE_ENV=test npx vitest run tests/components/attack-surface-v5-quality.test.ts tests/components/attack-surface-v5-geometry.test.ts tests/components/attack-surface-v5-animation.test.ts",
     "build": "NEXT_PUBLIC_SUPABASE_URL=https://acceptance.invalid NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_scopeforge_visual_review NODE_ENV=production next build",
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
