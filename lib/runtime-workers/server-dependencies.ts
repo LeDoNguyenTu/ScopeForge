@@ -39,35 +39,11 @@ export function createRuntimeWorkerPreparationServerDependencies(): RuntimeWorke
     return data;
   }
 
-  async function markRunning(
-    job: ScanJobRow,
-    jobKind: "passive_runtime" | "active_validation",
-  ): Promise<ScanJobRow> {
-    if (job.status !== "queued" || job.job_kind !== jobKind || job.cancel_requested_at !== null) {
-      throw new Error("Runtime worker job is not executable.");
-    }
-    const { data, error } = await admin
-      .from("scan_jobs")
-      .update({ status: "running", started_at: new Date().toISOString() })
-      .eq("id", job.id)
-      .eq("workspace_id", job.workspace_id)
-      .eq("asset_id", job.asset_id)
-      .eq("job_kind", jobKind)
-      .eq("status", "queued")
-      .is("cancel_requested_at", null)
-      .select("*")
-      .maybeSingle();
-    if (error) throw new Error("Unable to start runtime worker domain job.");
-    if (!data) throw new Error("Runtime worker job transition conflict.");
-    return data;
-  }
-
   return Object.freeze({
     getPreparationContext: contextRepository.getPreparationContext,
     loadAsset,
     loadPassiveJob: (jobId: string, workspaceId: string) => loadJob(jobId, workspaceId, "passive_runtime"),
     loadActiveJob: (jobId: string, workspaceId: string) => loadJob(jobId, workspaceId, "active_validation"),
-    markPassiveRunning: (job: ScanJobRow) => markRunning(job, "passive_runtime"),
-    markActiveRunning: (job: ScanJobRow) => markRunning(job, "active_validation"),
+    commitPreparation: contextRepository.commitPreparation,
   });
 }
