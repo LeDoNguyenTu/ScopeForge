@@ -45,17 +45,24 @@ function abortingRequest(signal: AbortSignal | undefined): Promise<never> {
 describe("Phase 6D in-flight network cancellation", () => {
   it("propagates the supervisor signal through the passive transport and classifies abort as cancelled", async () => {
     const controller = new AbortController();
+    let markTransportStarted!: () => void;
+    const transportStarted = new Promise<void>((resolve) => {
+      markTransportStarted = resolve;
+    });
     const transport = vi.fn((input: {
       url: URL;
       timeoutMs: number;
       signal?: AbortSignal;
-    }) => abortingRequest(input.signal));
+    }) => {
+      markTransportStarted();
+      return abortingRequest(input.signal);
+    });
 
     const pending = observeRuntimeTarget(passiveTarget, RUNTIME_OBSERVATION_MAX_BUDGET, {
       transport,
       signal: controller.signal,
     });
-    await Promise.resolve();
+    await transportStarted;
     controller.abort();
 
     await expect(pending).resolves.toMatchObject({
@@ -68,16 +75,23 @@ describe("Phase 6D in-flight network cancellation", () => {
 
   it("propagates the supervisor signal through active CORS transport and classifies abort as cancelled", async () => {
     const controller = new AbortController();
+    let markTransportStarted!: () => void;
+    const transportStarted = new Promise<void>((resolve) => {
+      markTransportStarted = resolve;
+    });
     const transport = vi.fn((
       _plan: TrustedRuntimeRequestPlan,
       options?: Readonly<{ signal?: AbortSignal }>,
-    ) => abortingRequest(options?.signal));
+    ) => {
+      markTransportStarted();
+      return abortingRequest(options?.signal);
+    });
 
     const pending = validateCorsOriginPolicy(activeTarget, ACTIVE_VALIDATION_MAX_BUDGET, {
       transport,
       signal: controller.signal,
     });
-    await Promise.resolve();
+    await transportStarted;
     controller.abort();
 
     await expect(pending).resolves.toEqual({

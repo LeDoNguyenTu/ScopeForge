@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Database } from "@/lib/database.types";
 import { publishRuntimeWorkerTerminal } from "@/lib/runtime-workers/publication";
-import type { RuntimeWorkerPublicationDependencies } from "@/lib/runtime-workers/publication";
+import type {
+  RuntimeWorkerFinalizationContext,
+  RuntimeWorkerPublicationDependencies,
+} from "@/lib/runtime-workers/publication";
 import { RUNTIME_OBSERVATION_MAX_BUDGET } from "@/packages/runtime-observer";
 import { ACTIVE_VALIDATION_MAX_BUDGET, CORS_ORIGIN_POLICY_PROFILE } from "@/packages/runtime-validator";
 
@@ -16,6 +19,26 @@ const assetId = "66666666-6666-4666-8666-666666666666";
 const actorId = "77777777-7777-4777-8777-777777777777";
 const leaseToken = "a".repeat(64);
 const observedAt = new Date("2026-08-31T01:00:00.000Z");
+
+function finalizationContext(
+  executionClass: RuntimeWorkerFinalizationContext["executionClass"],
+  overrides: Partial<RuntimeWorkerFinalizationContext> = {},
+): RuntimeWorkerFinalizationContext {
+  return {
+    taskId,
+    attemptId,
+    executionClass,
+    domainJobId,
+    workspaceId,
+    assetId,
+    cancelRequested: false,
+    leaseExpiresAt: "2026-08-31T01:00:30.000Z",
+    finishedAt: null,
+    priorOutcome: null,
+    priorTerminalDigest: null,
+    ...overrides,
+  };
+}
 
 function job(kind: "passive_runtime" | "active_validation", overrides: Partial<ScanJobRow> = {}): ScanJobRow {
   return {
@@ -89,18 +112,8 @@ function terminal(executionClass: "passive_runtime_observation_v1" | "active_cor
 
 function dependencies(executionClass: "passive_runtime_observation_v1" | "active_cors_validation_v1", cancelled = false): RuntimeWorkerPublicationDependencies {
   return {
-    getContext: vi.fn(async () => ({
-      taskId,
-      attemptId,
-      executionClass,
-      domainJobId,
-      workspaceId,
-      assetId,
+    getContext: vi.fn(async () => finalizationContext(executionClass, {
       cancelRequested: cancelled,
-      leaseExpiresAt: "2026-08-31T01:00:30.000Z",
-      finishedAt: null,
-      priorOutcome: null,
-      priorTerminalDigest: null,
     })),
     loadPassiveJob: vi.fn(async () => executionClass === "passive_runtime_observation_v1" ? job("passive_runtime", cancelled ? { cancel_requested_at: observedAt.toISOString() } : {}) : null),
     loadActiveJob: vi.fn(async () => executionClass === "active_cors_validation_v1" ? job("active_validation", cancelled ? { cancel_requested_at: observedAt.toISOString() } : {}) : null),
@@ -168,18 +181,8 @@ describe("Phase 6D trusted publication", () => {
 
   it("rejects an expired late success without publishing observations or findings", async () => {
     const deps = dependencies("passive_runtime_observation_v1");
-    deps.getContext = vi.fn(async () => ({
-      taskId,
-      attemptId,
-      executionClass: "passive_runtime_observation_v1",
-      domainJobId,
-      workspaceId,
-      assetId,
-      cancelRequested: false,
+    deps.getContext = vi.fn(async () => finalizationContext("passive_runtime_observation_v1", {
       leaseExpiresAt: "2026-08-31T00:59:59.000Z",
-      finishedAt: null,
-      priorOutcome: null,
-      priorTerminalDigest: null,
     }));
 
     await expect(publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("passive_runtime_observation_v1") }, deps)).rejects.toMatchObject({
@@ -210,15 +213,7 @@ describe("Phase 6D trusted publication", () => {
     expect(finalizationInput?.terminalDigest).toMatch(/^[a-f0-9]{64}$/);
 
     const replay = dependencies("passive_runtime_observation_v1");
-    replay.getContext = vi.fn(async () => ({
-      taskId,
-      attemptId,
-      executionClass: "passive_runtime_observation_v1",
-      domainJobId,
-      workspaceId,
-      assetId,
-      cancelRequested: false,
-      leaseExpiresAt: "2026-08-31T01:00:30.000Z",
+    replay.getContext = vi.fn(async () => finalizationContext("passive_runtime_observation_v1", {
       finishedAt: observedAt.toISOString(),
       priorOutcome: accepted.outcome,
       priorTerminalDigest: finalizationInput?.terminalDigest ?? null,
@@ -226,17 +221,9 @@ describe("Phase 6D trusted publication", () => {
     await expect(publishRuntimeWorkerTerminal({ ...identity, terminal: value }, replay)).resolves.toEqual({ outcome: "succeeded", replayed: true });
     expect(replay.publishPassiveSuccess).not.toHaveBeenCalled();
 
-    replay.getContext = vi.fn(async () => ({
-      taskId,
-      attemptId,
-      executionClass: "passive_runtime_observation_v1",
-      domainJobId,
-      workspaceId,
-      assetId,
-      cancelRequested: false,
-      leaseExpiresAt: "2026-08-31T01:00:30.000Z",
+    replay.getContext = vi.fn(async () => finalizationContext("passive_runtime_observation_v1", {
       finishedAt: observedAt.toISOString(),
-      priorOutcome: "succeeded" as const,
+      priorOutcome: "succeeded",
       priorTerminalDigest: "f".repeat(64),
     }));
     await expect(publishRuntimeWorkerTerminal({ ...identity, terminal: value }, replay)).rejects.toThrow();

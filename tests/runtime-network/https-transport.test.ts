@@ -204,7 +204,12 @@ describe("trusted runtime HTTPS transport", () => {
 
   it("propagates cancellation to an in-flight pinned HTTPS requester", async () => {
     const resolver = { resolve: vi.fn(async () => ["1.1.1.1"]) };
+    let markRequesterStarted!: () => void;
+    const requesterStarted = new Promise<void>((resolve) => {
+      markRequesterStarted = resolve;
+    });
     const requester = vi.fn((options: Parameters<RuntimeRequester>[0]) => new Promise<RuntimeNetworkResponse>((_resolve, reject) => {
+      markRequesterStarted();
       const signal = options.signal;
       if (!signal) {
         reject(new Error("missing cancellation signal"));
@@ -220,7 +225,7 @@ describe("trusted runtime HTTPS transport", () => {
       passivePlan("https://example.com/app", 5_000),
       { resolver, requester, signal: controller.signal },
     );
-    await Promise.resolve();
+    await requesterStarted;
     controller.abort();
 
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });

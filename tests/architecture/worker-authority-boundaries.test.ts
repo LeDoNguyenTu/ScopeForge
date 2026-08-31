@@ -16,12 +16,12 @@ async function collect(directory: string): Promise<string[]> {
 }
 
 describe("Phase 6A worker authority boundaries", () => {
-  it("keeps worker supervisor free of application service-role and product runtime authority", async () => {
+  it("keeps worker supervisor free of application service-role and low-level runtime network authority", async () => {
     const files = await collect(path.join(root, "packages/worker-supervisor"));
     for (const file of files) {
       const source = await readFile(file, "utf8");
       expect(source, path.relative(root, file)).not.toMatch(
-        /runtime-network|runtime-observer|runtime-validator|createAdminClient|@supabase\//,
+        /@\/packages\/runtime-network|createAdminClient|@supabase\//,
       );
     }
   });

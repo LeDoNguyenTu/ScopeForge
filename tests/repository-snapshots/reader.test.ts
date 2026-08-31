@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   materializeRepositorySnapshotBundle,
+  removeMaterializedRepositorySnapshot,
   writeRepositorySnapshotBundle,
 } from "@/packages/repository-snapshot";
 import type {
@@ -34,6 +35,7 @@ async function sourceFile(directory: string, repositoryPath: string, text: strin
 describe("Phase 6C immutable snapshot reader", () => {
   it("reverifies artifact, manifest, and every file before exposing a read-only source tree", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "scopeforge-reader-test-"));
+    let materializedSourceDirectory: string | null = null;
     try {
       const sourceWork = path.join(directory, "writer");
       const readerWork = path.join(directory, "reader");
@@ -72,6 +74,7 @@ describe("Phase 6C immutable snapshot reader", () => {
         },
         signal: new AbortController().signal,
       });
+      materializedSourceDirectory = materialized.sourceDirectory;
 
       expect(await readFile(path.join(materialized.sourceDirectory, "src/index.ts"), "utf8"))
         .toBe("export const answer = 42;\n");
@@ -84,7 +87,13 @@ describe("Phase 6C immutable snapshot reader", () => {
         .rejects.toMatchObject({ code: "ENOENT" });
       expect(materialized.manifest.contentDigest).toBe(bundle.contentDigest);
       expect(materialized.manifest.files.map((file) => file.path)).toEqual(["README.md", "src/index.ts"]);
+      await removeMaterializedRepositorySnapshot(materialized.sourceDirectory);
+      materializedSourceDirectory = null;
+      await expect(stat(materialized.sourceDirectory)).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
+      if (materializedSourceDirectory !== null) {
+        await removeMaterializedRepositorySnapshot(materializedSourceDirectory);
+      }
       await rm(directory, { recursive: true, force: true });
     }
   });

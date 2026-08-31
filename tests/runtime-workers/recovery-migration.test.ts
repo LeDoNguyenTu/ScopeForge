@@ -52,10 +52,10 @@ describe("Phase 6D runtime worker recovery migration", () => {
     expect(sql).toContain("private.recover_expired_unleased_worker_tasks(target_now)");
     expect(sql).toContain("private.recover_expired_runtime_worker_tasks(target_now)");
     expect(sql).toContain("private.reconcile_dead_letter_runtime_worker_jobs(target_now)");
-    expect(sql).toMatch(/revoke all on function private\.recover_expired_runtime_worker_tasks\(timestamptz\) from public, anon, authenticated, service_role/i);
-    expect(sql).toMatch(/revoke all on function private\.reconcile_dead_letter_runtime_worker_jobs\(timestamptz\) from public, anon, authenticated, service_role/i);
-    expect(sql).toMatch(/revoke all on function public\.recover_worker_state\(timestamptz\) from public, anon, authenticated, service_role/i);
-    expect(sql).toMatch(/grant execute on function public\.recover_worker_state\(timestamptz\) to service_role/i);
+    expect(sql).toMatch(/revoke all on function private\.recover_expired_runtime_worker_tasks\(timestamptz\)\s+from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/revoke all on function private\.reconcile_dead_letter_runtime_worker_jobs\(timestamptz\)\s+from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/revoke all on function public\.recover_worker_state\(timestamptz\)\s+from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.recover_worker_state\(timestamptz\)\s+to service_role/i);
     const functionCount = (sql.match(/create or replace function (?:private|public)\./g) ?? []).length;
     const searchPathCount = (sql.match(/set search_path = ''/g) ?? []).length;
     expect(searchPathCount).toBe(functionCount);

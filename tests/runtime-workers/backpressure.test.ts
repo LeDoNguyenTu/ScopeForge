@@ -21,7 +21,8 @@ function functionSql(sql: string, schema: "public" | "private", name: string): s
 describe("Phase 6D worker backpressure", () => {
   it("keeps one live Phase 6D task per workspace across both network classes", async () => {
     const sql = await readFile(enqueueHardeningPath, "utf8");
-    expect(sql).toMatch(/pg_advisory_xact_lock\(hashtextextended\('scopeforge-runtime-worker-workspace-v1:' \|\| target_workspace_id::text, 0\)\)/i);
+    const workspaceLocks = sql.match(/pg_advisory_xact_lock\(\s*hashtextextended\(\s*'scopeforge-runtime-worker-workspace:' \|\| target_workspace_id::text,\s*0\s*\)\s*\)/gi) ?? [];
+    expect(workspaceLocks).toHaveLength(2);
     expect(sql).toMatch(/active_task\.execution_class in \(\s*'passive_runtime_observation_v1',\s*'active_cors_validation_v1'\s*\)/i);
     expect(sql).toMatch(/active_task\.state in \('queued', 'leased', 'retry_wait'\)/i);
   });
@@ -55,8 +56,8 @@ describe("Phase 6D worker backpressure", () => {
     expect(recover).toContain("private.recover_cancelled_runtime_worker_tasks(target_now)");
     expect(recover).toContain("public.recover_expired_worker_attempts_leased_only(target_now)");
     expect(recover).toContain("private.recover_expired_runtime_worker_tasks(target_now)");
-    expect(sql).toMatch(/revoke all on function private\.recover_cancelled_runtime_worker_tasks\(timestamptz\) from public, anon, authenticated, service_role/i);
-    expect(sql).toMatch(/grant execute on function public\.recover_worker_state\(timestamptz\) to service_role/i);
+    expect(sql).toMatch(/revoke all on function private\.recover_cancelled_runtime_worker_tasks\(timestamptz\)\s+from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.recover_worker_state\(timestamptz\)\s+to service_role/i);
   });
 
   it("keeps every new definer function on an empty search path", async () => {

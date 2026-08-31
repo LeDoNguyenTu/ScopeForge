@@ -24,7 +24,7 @@ async function sourcesUnder(relative: string): Promise<Array<{ file: string; cod
 }
 
 const RAW_NETWORK_IMPORT = /from\s+["'](?:node:)?(?:http|https|net|tls|dns|dgram|undici)["']|require\(\s*["'](?:node:)?(?:http|https|net|tls|dns|dgram|undici)["']\s*\)/;
-const RUNTIME_NETWORK_IMPORT = /(?:@\/packages\/runtime-network|packages\/runtime-network|\.\.?\/.*runtime-network)/;
+const RUNTIME_NETWORK_IMPORT = /(?:@\/packages\/runtime-network|(?:^|["'])packages\/runtime-network|\.\.?\/.*\/runtime-network)/;
 const MEDIATOR_IMPORT = /(?:@\/packages\/runtime-worker-mediator|packages\/runtime-worker-mediator|\.\.?\/.*runtime-worker-mediator)/;
 
 describe("Phase 6D authority architecture", () => {
@@ -114,14 +114,20 @@ describe("Phase 6D authority architecture", () => {
   });
 
   it("keeps supervisor cancellation connected to both in-flight runtime transports", async () => {
-    const supervisor = await source("packages/worker-supervisor/runtime-network.ts");
+    const runtimeNetwork = await source("packages/worker-supervisor/runtime-network.ts");
+    const supervisor = await source("packages/worker-supervisor/supervisor.ts");
     const passive = await source("packages/runtime-worker-mediator/passive.ts");
     const activeCors = await source("packages/runtime-worker-mediator/active-cors.ts");
     const observer = await source("packages/runtime-observer/observe.ts");
     const validator = await source("packages/runtime-validator/validate.ts");
 
-    expect(supervisor).toContain("passive: { isCancelled: () => signal.aborted, signal }");
-    expect(supervisor).toContain("activeCors: { isCancelled: () => signal.aborted, signal }");
+    expect(supervisor).toContain("const authoritativeRuntimeCancellationProbe = async (): Promise<boolean>");
+    expect(supervisor).toContain("return await performHeartbeat();");
+    expect(supervisor).toContain("authoritativeRuntimeCancellationProbe,");
+    expect(runtimeNetwork).toContain("isCancelled: () => Promise<boolean>;");
+    expect(runtimeNetwork).toContain("const authoritativeCancellation = async () => signal.aborted || await isCancelled();");
+    expect(runtimeNetwork).toContain("passive: { isCancelled: authoritativeCancellation, signal }");
+    expect(runtimeNetwork).toContain("activeCors: { isCancelled: authoritativeCancellation, signal }");
     expect(passive).toContain("...(dependencies.signal ? { signal: dependencies.signal } : {})");
     expect(activeCors).toContain("...(dependencies.signal ? { signal: dependencies.signal } : {})");
     expect(observer).toContain("...(signal ? { signal } : {})");

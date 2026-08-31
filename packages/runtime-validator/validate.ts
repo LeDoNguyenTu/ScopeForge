@@ -37,6 +37,13 @@ function observationBytes(value: unknown): number {
 const defaultTransport: RuntimeValidationTransport = (plan, options) =>
   requestPinnedHttps(plan, options?.signal ? { signal: options.signal } : {});
 
+function errorHasName(error: unknown, name: string): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "name" in error
+    && (error as { name?: unknown }).name === name;
+}
+
 export async function validateCorsOriginPolicy(
   target: AuthorizedValidationTarget,
   budgetInput: ActiveValidationBudget,
@@ -80,10 +87,10 @@ export async function validateCorsOriginPolicy(
   try {
     response = await transport(plan, signal ? { signal } : undefined);
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError" && await cancellationRequested()) {
+    if (errorHasName(error, "AbortError") && await cancellationRequested()) {
       return frozenResult({ status: "cancelled", requestCount: 0 });
     }
-    if (error instanceof Error && error.name === "TimeoutError") {
+    if (errorHasName(error, "TimeoutError")) {
       return frozenResult({
         status: "failed",
         requestCount: 0,

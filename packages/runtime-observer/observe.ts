@@ -103,6 +103,13 @@ function failed(
   });
 }
 
+function errorHasName(error: unknown, name: string): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "name" in error
+    && (error as { name?: unknown }).name === name;
+}
+
 export async function observeRuntimeTarget(
   target: AuthorizedRuntimeTarget,
   budgetInput: RuntimeObservationBudget,
@@ -150,10 +157,10 @@ export async function observeRuntimeTarget(
       });
       requestCount += 1;
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError" && await cancellationRequested()) {
+      if (errorHasName(error, "AbortError") && await cancellationRequested()) {
         return result({ status: "cancelled", observations, requestCount, redirectCount });
       }
-      if (error instanceof Error && error.name === "TimeoutError") {
+      if (errorHasName(error, "TimeoutError")) {
         return failed(
           observations,
           requestCount,

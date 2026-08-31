@@ -4,6 +4,7 @@ import {
   ACTIVE_VALIDATION_MAX_BUDGET,
   CORS_ORIGIN_POLICY_PROFILE,
 } from "@/packages/runtime-validator";
+import type { RuntimeValidationTransport } from "@/packages/runtime-validator/validate";
 
 const profile = {
   executionClass: "active_cors_validation_v1" as const,
@@ -27,7 +28,7 @@ const response = {
 
 describe("runtime mediator active CORS execution", () => {
   it("preserves the exact one-request built-in CORS plan", async () => {
-    const transport = vi.fn(async () => response);
+    const transport = vi.fn(async (_plan: Parameters<RuntimeValidationTransport>[0]) => response);
     const result = await executeActiveCorsProfile(profile, { transport });
 
     expect(transport).toHaveBeenCalledTimes(1);

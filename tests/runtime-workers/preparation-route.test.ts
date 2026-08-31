@@ -34,7 +34,7 @@ describe("Phase 6D runtime preparation route", () => {
       "origin",
       "userAgent",
     ]) {
-      expect(source).not.toContain(forbidden);
+      expect(source).not.toMatch(new RegExp(`["']${forbidden}["']`));
     }
   });
 

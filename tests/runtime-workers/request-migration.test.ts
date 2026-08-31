@@ -20,10 +20,10 @@ describe("Phase 6D hosted request transaction", () => {
     expect(sql).toContain("set search_path = ''");
     expect(sql).toMatch(/revoke all on function public\.request_passive_runtime_worker_job[\s\S]+from public, anon, authenticated, service_role;/i);
     expect(sql).toMatch(/revoke all on function public\.request_active_cors_worker_job[\s\S]+from public, anon, authenticated, service_role;/i);
-    expect(sql).toMatch(/grant execute on function public\.request_passive_runtime_worker_job[^;]+to service_role/is);
-    expect(sql).toMatch(/grant execute on function public\.request_active_cors_worker_job[^;]+to service_role/is);
-    expect(sql).not.toMatch(/grant execute[^;]+to authenticated/is);
-    expect(sql).not.toMatch(/grant execute[^;]+to anon/is);
+    expect(sql).toMatch(/grant execute on function public\.request_passive_runtime_worker_job[^;]+to service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.request_active_cors_worker_job[^;]+to service_role/i);
+    expect(sql).not.toMatch(/grant execute[^;]+to authenticated/i);
+    expect(sql).not.toMatch(/grant execute[^;]+to anon/i);
   });
 
   it("pins both runtime classes to the built-in canonical budgets", async () => {
