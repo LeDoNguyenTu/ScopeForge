@@ -238,6 +238,7 @@ async function prepareRuntimeTask(
   task: WorkerTaskContract,
   dependencies: WorkerSupervisorDependencies,
   signal: AbortSignal,
+  isCancelled: () => Promise<boolean>,
 ): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
   const inputMatchesClass =
     (task.executionClass === "passive_runtime_observation_v1"
@@ -262,7 +263,12 @@ async function prepareRuntimeTask(
   if (signal.aborted) {
     throw new DOMException("Phase 6D preparation was aborted.", "AbortError");
   }
-  const prepared = await preparer.prepare({ task, prepared: preparedProfile, signal });
+  const prepared = await preparer.prepare({
+    task,
+    prepared: preparedProfile,
+    signal,
+    isCancelled,
+  });
   return { contract: prepared.contract, cleanup: prepared.cleanup };
 }
 
@@ -270,12 +276,13 @@ async function preparedExecutorContract(
   task: WorkerTaskContract,
   dependencies: WorkerSupervisorDependencies,
   signal: AbortSignal,
+  runtimeIsCancelled: () => Promise<boolean>,
 ): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
     return prepareRepositoryScanTask(task, dependencies, signal);
   }
   if (isRuntimeExecutionClass(task.executionClass)) {
-    return prepareRuntimeTask(task, dependencies, signal);
+    return prepareRuntimeTask(task, dependencies, signal, runtimeIsCancelled);
   }
   return { contract: executorContract(task), cleanup: null };
 }
@@ -331,7 +338,7 @@ export async function runWorkerOnce(
   const now = dependencies.now ?? Date.now;
   let stopReason: StopReason = null;
   let consecutiveHeartbeatFailures = 0;
-  let heartbeatInFlight = false;
+  let heartbeatInFlight: Promise<boolean> | null = null;
 
   const timeout = setTimeout(() => {
     if (!abortController.signal.aborted) {
@@ -340,10 +347,10 @@ export async function runWorkerOnce(
     }
   }, executionTimeoutMs(task, now));
 
-  const heartbeatTimer = setInterval(() => {
-    if (heartbeatInFlight || abortController.signal.aborted) return;
-    heartbeatInFlight = true;
-    void dependencies.control.heartbeat({
+  const performHeartbeat = (): Promise<boolean> => {
+    if (heartbeatInFlight) return heartbeatInFlight;
+
+    const pending = dependencies.control.heartbeat({
       taskId: task.taskId,
       attemptId: task.attemptId,
       leaseToken: task.leaseToken,
@@ -353,14 +360,40 @@ export async function runWorkerOnce(
         stopReason = "cancelled";
         abortController.abort();
       }
-    }).catch(() => {
+      return heartbeat.cancelRequested;
+    }).catch((error: unknown) => {
       consecutiveHeartbeatFailures += 1;
+      throw error;
+    }).finally(() => {
+      if (heartbeatInFlight === pending) heartbeatInFlight = null;
+    });
+
+    heartbeatInFlight = pending;
+    return pending;
+  };
+
+  const authoritativeRuntimeCancellationProbe = async (): Promise<boolean> => {
+    if (stopReason === "cancelled") return true;
+    if (abortController.signal.aborted) return false;
+
+    try {
+      return await performHeartbeat();
+    } catch (error) {
+      if (!abortController.signal.aborted) {
+        stopReason = "lost";
+        abortController.abort();
+      }
+      throw error;
+    }
+  };
+
+  const heartbeatTimer = setInterval(() => {
+    if (abortController.signal.aborted) return;
+    void performHeartbeat().catch(() => {
       if (consecutiveHeartbeatFailures >= 2 && !abortController.signal.aborted) {
         stopReason = "lost";
         abortController.abort();
       }
-    }).finally(() => {
-      heartbeatInFlight = false;
     });
   }, heartbeatMs);
 
@@ -368,7 +401,12 @@ export async function runWorkerOnce(
   let cleanup: (() => Promise<void>) | null = null;
   let cleanupFailed = false;
   try {
-    const prepared = await preparedExecutorContract(task, dependencies, abortController.signal);
+    const prepared = await preparedExecutorContract(
+      task,
+      dependencies,
+      abortController.signal,
+      authoritativeRuntimeCancellationProbe,
+    );
     cleanup = prepared.cleanup;
     const raw = await executePreparedTask(
       task,
