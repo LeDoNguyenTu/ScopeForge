@@ -101,7 +101,7 @@ export function buildRuntimeWorkerPodmanCreateCommand(
       "--user=65532:65532",
       "--unsetenv-all",
       `--tmpfs=/tmp:rw,size=${scratchLimit},mode=0700,nosuid,nodev,noexec`,
-      `--mount=type=bind,src=${mediatorSocketPath},dst=${RUNTIME_MEDIATOR_CONTAINER_SOCKET_PATH}`,
+      `--mount=type=bind,src=${mediatorSocketPath},dst=${RUNTIME_MEDIATOR_CONTAINER_SOCKET_PATH},ro`,
       "--entrypoint=/usr/local/bin/node",
       image,
       "/app/runtime-worker-entry.js",

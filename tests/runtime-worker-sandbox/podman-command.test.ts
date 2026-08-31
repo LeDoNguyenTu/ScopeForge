@@ -31,7 +31,7 @@ describe("Phase 6D runtime worker Podman command", () => {
 
     const mounts = command.args.filter((arg) => arg.startsWith("--mount="));
     expect(mounts).toEqual([
-      `--mount=type=bind,src=${input.mediatorSocketPath},dst=/run/scopeforge/mediator.sock`,
+      `--mount=type=bind,src=${input.mediatorSocketPath},dst=/run/scopeforge/mediator.sock,ro`,
     ]);
     expect(command.args.slice(-9)).toEqual([
       "/app/runtime-worker-entry.js",

@@ -167,7 +167,7 @@ Prove:
 Explicit host questions discovered during source review:
 
 1. Verify the measured `--pids-limit=8` cgroup task/thread ceiling against the real fixed worker entry. The initial Task 15 sweep found normal Node 22 usage of 7, consistent degradation at 6, and chose one task of headroom. This remains a resource-exhaustion boundary, not process-spawn authority for the executor.
-2. Test whether the single mediator socket bind can be made explicitly read-only while still allowing the executor to connect. If yes, tighten the command and add regression coverage. If not, document the host/runtime reason and maintain the smallest possible writable host surface.
+2. Reverify the single mediator socket's explicit read-only bind on the final image. Task 15 proved it remains connectable under rootless Podman, and the production command plus regression coverage now require `,ro`.
 3. Verify abort/cancellation cannot return from the Podman executor until the hostile process and in-flight mediator HTTPS operation are actually stopped. Phase 6D intentionally waits for killable sandbox termination before cleanup/finalization rather than detaching.
 4. Exercise the hardened socket-root ownership and cleanup paths under the same rootless account used by the production worker.
 

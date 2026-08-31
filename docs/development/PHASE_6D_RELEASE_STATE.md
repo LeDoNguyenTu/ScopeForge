@@ -156,7 +156,7 @@ A dedicated Linux rootless-Podman/cgroup-v2 host must still prove, on the exact 
 - memory, process, CPU, wall-time, scratch, input, and output ceilings are enforced
 - mediator failure never creates a direct-network fallback
 - the measured `--pids-limit=8` cgroup task/thread ceiling is verified against the actual Node runtime; it is not described as a literal one-process limit, and the executor still receives no general process-spawn authority from ScopeForge
-- the mediator socket mount is tested for the narrowest usable read/write mode on the real host
+- the mediator socket is bind-mounted read-only, the narrowest mode proven connectable on the real host
 - socket-root ownership checks and startup failure cleanup behave as expected under rootless Podman
 
 Record OS, Podman version, rootless state, cgroup version, immutable image digest, exact git SHA, and raw acceptance evidence.
