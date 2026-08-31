@@ -105,7 +105,7 @@ export function createRuntimeNetworkPreparer(
   const now = dependencies.now ?? (() => new Date());
 
   return Object.freeze({
-    async prepare({ task, prepared, signal }) {
+    async prepare({ task, prepared, signal }: RuntimeNetworkPrepareInput) {
       const claimed = runtimeTaskInput(task);
       if (prepared.taskId !== task.taskId
           || prepared.attemptId !== task.attemptId
