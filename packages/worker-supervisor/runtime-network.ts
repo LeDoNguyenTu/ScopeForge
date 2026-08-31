@@ -280,7 +280,7 @@ export function createRuntimeWorkerExecutor(
   const now = dependencies.now ?? Date.now;
 
   return Object.freeze({
-    async execute(value, signal) {
+    async execute(value: WorkerExecutorContract, signal: AbortSignal) {
       const contract = preparedRuntimeContract(value);
       const startedAt = now();
       let sandboxOutput: string;
