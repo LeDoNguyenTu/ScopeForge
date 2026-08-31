@@ -17,6 +17,13 @@ import type {
 type AssetRow = Database["public"]["Tables"]["assets"]["Row"];
 type ScanJobRow = Database["public"]["Tables"]["scan_jobs"]["Row"];
 
+export interface RuntimeWorkerPreparationCommitInput {
+  identity: RuntimeWorkerPreparationIdentity;
+  context: RuntimeWorkerPreparationContext;
+  job: ScanJobRow;
+  asset: AssetRow;
+}
+
 export interface RuntimeWorkerPreparationDependencies {
   getPreparationContext(
     input: RuntimeWorkerPreparationIdentity,
@@ -24,8 +31,7 @@ export interface RuntimeWorkerPreparationDependencies {
   loadAsset(assetId: string, workspaceId: string): Promise<AssetRow | null>;
   loadPassiveJob(jobId: string, workspaceId: string): Promise<ScanJobRow | null>;
   loadActiveJob(jobId: string, workspaceId: string): Promise<ScanJobRow | null>;
-  markPassiveRunning(job: ScanJobRow): Promise<ScanJobRow>;
-  markActiveRunning(job: ScanJobRow): Promise<ScanJobRow>;
+  commitPreparation(input: RuntimeWorkerPreparationCommitInput): Promise<void>;
   now?: () => Date;
 }
 
@@ -73,6 +79,30 @@ function authorizationFailure(error: unknown): never {
   throw error;
 }
 
+function committedAsset(asset: AssetRow | null): AssetRow {
+  if (!asset) throw new RuntimeWorkerError("RUNTIME_WORKER_AUTHORIZATION_FAILED");
+  return asset;
+}
+
+async function commitAuthorizedPreparation(
+  identity: RuntimeWorkerPreparationIdentity,
+  context: RuntimeWorkerPreparationContext,
+  job: ScanJobRow,
+  asset: AssetRow | null,
+  dependencies: RuntimeWorkerPreparationDependencies,
+): Promise<void> {
+  try {
+    await dependencies.commitPreparation({
+      identity,
+      context,
+      job,
+      asset: committedAsset(asset),
+    });
+  } catch {
+    throw new RuntimeWorkerError("RUNTIME_WORKER_AUTHORIZATION_FAILED");
+  }
+}
+
 export async function prepareRuntimeWorkerExecution(
   input: RuntimeWorkerPreparationIdentity,
   dependencies: RuntimeWorkerPreparationDependencies,
@@ -94,11 +124,7 @@ export async function prepareRuntimeWorkerExecution(
     } catch (error) {
       return authorizationFailure(error);
     }
-    try {
-      await dependencies.markPassiveRunning(job);
-    } catch {
-      throw new RuntimeWorkerError("RUNTIME_WORKER_AUTHORIZATION_FAILED");
-    }
+    await commitAuthorizedPreparation(input, context, job, asset, dependencies);
     return Object.freeze({
       taskId: context.taskId,
       attemptId: context.attemptId,
@@ -118,11 +144,7 @@ export async function prepareRuntimeWorkerExecution(
   } catch (error) {
     return authorizationFailure(error);
   }
-  try {
-    await dependencies.markActiveRunning(job);
-  } catch {
-    throw new RuntimeWorkerError("RUNTIME_WORKER_AUTHORIZATION_FAILED");
-  }
+  await commitAuthorizedPreparation(input, context, job, asset, dependencies);
   return Object.freeze({
     taskId: context.taskId,
     attemptId: context.attemptId,
