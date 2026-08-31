@@ -21,6 +21,7 @@ export interface PassiveRuntimeMediatorDependencies {
   transport?: RuntimeTransport;
   isCancelled?: RuntimeObserverDependencies["isCancelled"];
   now?: RuntimeObserverDependencies["now"];
+  signal?: RuntimeObserverDependencies["signal"];
 }
 
 export type PassiveRuntimeMediatorFailureCode =
@@ -61,6 +62,7 @@ export async function executePassiveRuntimeProfile(
     ...(dependencies.transport ? { transport: dependencies.transport } : {}),
     ...(dependencies.isCancelled ? { isCancelled: dependencies.isCancelled } : {}),
     ...(dependencies.now ? { now: dependencies.now } : {}),
+    ...(dependencies.signal ? { signal: dependencies.signal } : {}),
   });
 
   if (observation.status === "cancelled") {
