@@ -55,12 +55,7 @@ export function createCitadelCore(
   ringRadii.forEach((radius, index) => {
     const energetic = index === 0 || index === 3 || index === 7;
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(
-        radius,
-        energetic ? 0.075 : 0.042,
-        energetic ? 14 : 8,
-        quality === "constrained" || quality === "reduced" ? 48 : 96,
-      ),
+      new THREE.TorusGeometry(radius, energetic ? 0.075 : 0.042, energetic ? 14 : 8, quality === "constrained" || quality === "reduced" ? 48 : 96),
       energetic ? materials.healthyGlow : index % 2 === 0 ? materials.deckEdge : materials.structureEdge,
     );
     ring.rotation.x = Math.PI / 2;
@@ -71,34 +66,24 @@ export function createCitadelCore(
     core.add(ring);
   });
 
-  const energy = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.68, 0.92, 0.62, 48),
-    materials.healthy,
-  );
+  const energyMaterial = materials.healthy.clone();
+  energyMaterial.emissiveIntensity = 1.9;
+  const energy = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.92, 0.62, 48), energyMaterial);
   energy.position.y = 0.58;
   energy.name = "v5-energy-core";
   core.add(energy);
 
-  const energyCap = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.72, 0.18, 48),
-    materials.cyanGlow,
-  );
+  const energyCap = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.72, 0.18, 48), materials.cyanGlow);
   energyCap.position.y = 0.98;
   core.add(energyCap);
 
-  const chamber = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.02, 1.18, 1.05, 32, 1, true),
-    materials.glass,
-  );
+  const chamber = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.18, 1.05, 32, 1, true), materials.glass);
   chamber.position.y = 0.53;
   core.add(chamber);
 
   const haloStack: THREE.Mesh[] = [];
   [0.92, 1.18, 1.48].forEach((radius, index) => {
-    const halo = new THREE.Mesh(
-      new THREE.TorusGeometry(radius, 0.04 + index * 0.008, 10, 64),
-      index === 1 ? materials.cyanGlow : materials.healthyGlow,
-    );
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.04 + index * 0.008, 10, 64), index === 1 ? materials.cyanGlow : materials.healthyGlow);
     halo.rotation.x = Math.PI / 2;
     halo.position.y = 1.03 + index * 0.12;
     halo.userData.v5HaloPhase = index * 1.7;
@@ -106,26 +91,17 @@ export function createCitadelCore(
     core.add(halo);
   });
 
-  const crownBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.22, 1.58, 0.34, 8),
-    materials.deck,
-  );
+  const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(1.22, 1.58, 0.34, 8), materials.deck);
   crownBase.position.y = 1.16;
   crownBase.rotation.y = Math.PI / 8;
   core.add(crownBase);
 
-  const crownCage = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.45, 1.72, 0.72, 8, 1, true),
-    materials.structureEdge,
-  );
+  const crownCage = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.72, 0.72, 8, 1, true), materials.structureEdge);
   crownCage.position.y = 1.28;
   crownCage.rotation.y = Math.PI / 8;
   core.add(crownCage);
 
-  const crownBeacon = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.34, 0),
-    materials.amberGlow,
-  );
+  const crownBeacon = new THREE.Mesh(new THREE.OctahedronGeometry(0.34, 0), materials.amberGlow);
   crownBeacon.position.y = 1.68;
   crownBeacon.rotation.y = Math.PI / 4;
   crownBeacon.name = "v5-core-beacon";
@@ -135,19 +111,13 @@ export function createCitadelCore(
   for (let index = 0; index < braceCount; index += 1) {
     const angle = (index / braceCount) * Math.PI * 2;
     const radius = 2.72;
-    const brace = new THREE.Mesh(
-      new THREE.BoxGeometry(1.75, 0.11, 0.13),
-      index % 3 === 0 ? materials.deck : materials.structure,
-    );
+    const brace = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.11, 0.13), index % 3 === 0 ? materials.deck : materials.structure);
     brace.position.set(Math.cos(angle) * radius, -0.04, Math.sin(angle) * radius);
     brace.rotation.y = -angle;
     core.add(brace);
 
     if (quality === "cinematic" || quality === "balanced") {
-      const braceGlow = new THREE.Mesh(
-        new THREE.BoxGeometry(1.62, 0.025, 0.035),
-        materials.healthyGlow,
-      );
+      const braceGlow = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.025, 0.035), materials.healthyGlow);
       braceGlow.position.set(Math.cos(angle) * radius, 0.055, Math.sin(angle) * radius);
       braceGlow.rotation.y = -angle;
       core.add(braceGlow);

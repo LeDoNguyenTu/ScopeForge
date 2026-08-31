@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createCitadelArm } from "./citadel-arm";
+import { createCitadelAtmosphere } from "./atmosphere";
 import { createCitadelCompound } from "./citadel-compound";
 import { createCitadelCore } from "./citadel-core";
 import type { AttackSurfaceV5Model } from "./model";
@@ -45,14 +46,7 @@ export function createAttackSurfaceV5Group(model: AttackSurfaceV5Model, quality:
     arms.push(armResult.group);
     group.add(armResult.group);
 
-    const compound = createCitadelCompound(
-      entity,
-      index,
-      armResult.endpoint,
-      armResult.angle,
-      materials,
-      quality,
-    );
+    const compound = createCitadelCompound(entity, index, armResult.endpoint, armResult.angle, materials, quality);
     compounds.push(compound);
     group.add(compound);
 
@@ -60,10 +54,14 @@ export function createAttackSurfaceV5Group(model: AttackSurfaceV5Model, quality:
     if (entity.state === "risk" && path) riskPaths.push(path);
   });
 
+  const atmosphere = createCitadelAtmosphere(quality, materials);
+  group.add(atmosphere);
+
   group.userData.v5Core = core;
   group.userData.v5Arms = arms;
   group.userData.v5Compounds = compounds;
   group.userData.v5RiskPaths = riskPaths;
+  group.userData.v5Atmosphere = atmosphere;
   group.userData.v5Materials = materials;
   group.userData.v5AnimationChannels = [
     "ring-rotation",
@@ -71,6 +69,7 @@ export function createAttackSurfaceV5Group(model: AttackSurfaceV5Model, quality:
     "path-packets",
     "risk-cascade",
     "endpoint-scan",
+    "atmospheric-drift",
   ];
   return group;
 }

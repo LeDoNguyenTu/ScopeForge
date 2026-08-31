@@ -18,6 +18,12 @@ export function createV5Composer(
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), quality === "cinematic" ? 0.72 : 0.48, 0.7, 0.3));
+  const bloom = new UnrealBloomPass(
+    new THREE.Vector2(1, 1),
+    quality === "cinematic" ? 0.96 : 0.62,
+    quality === "cinematic" ? 0.82 : 0.68,
+    quality === "cinematic" ? 0.16 : 0.22,
+  );
+  composer.addPass(bloom);
   return composer;
 }
