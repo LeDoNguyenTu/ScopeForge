@@ -20,6 +20,7 @@ export interface ActiveCorsMediatorDependencies {
   transport?: RuntimeValidationTransport;
   isCancelled?: RuntimeValidatorDependencies["isCancelled"];
   now?: RuntimeValidatorDependencies["now"];
+  signal?: RuntimeValidatorDependencies["signal"];
 }
 
 export type ActiveCorsMediatorFailureCode =
@@ -59,6 +60,7 @@ export async function executeActiveCorsProfile(
     ...(dependencies.transport ? { transport: dependencies.transport } : {}),
     ...(dependencies.isCancelled ? { isCancelled: dependencies.isCancelled } : {}),
     ...(dependencies.now ? { now: dependencies.now } : {}),
+    ...(dependencies.signal ? { signal: dependencies.signal } : {}),
   });
 
   if (validation.status === "cancelled") {
