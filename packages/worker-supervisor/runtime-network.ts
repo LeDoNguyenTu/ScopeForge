@@ -38,6 +38,7 @@ export interface RuntimeNetworkPrepareInput {
   task: WorkerTaskContract;
   prepared: PreparedRuntimeWorkerExecution;
   signal: AbortSignal;
+  isCancelled: () => Promise<boolean>;
 }
 
 export interface RuntimeNetworkPreparer {
@@ -105,7 +106,7 @@ export function createRuntimeNetworkPreparer(
   const now = dependencies.now ?? (() => new Date());
 
   return Object.freeze({
-    async prepare({ task, prepared, signal }: RuntimeNetworkPrepareInput) {
+    async prepare({ task, prepared, signal, isCancelled }: RuntimeNetworkPrepareInput) {
       const claimed = runtimeTaskInput(task);
       if (prepared.taskId !== task.taskId
           || prepared.attemptId !== task.attemptId
@@ -120,7 +121,11 @@ export function createRuntimeNetworkPreparer(
       if (signal.aborted) {
         throw new DOMException("Runtime worker preparation was aborted.", "AbortError");
       }
+      if (await isCancelled()) {
+        throw new DOMException("Runtime worker preparation was cancelled.", "AbortError");
+      }
 
+      const authoritativeCancellation = async () => signal.aborted || await isCancelled();
       const registry = createRuntimeMediatorSessionRegistry<RuntimeMediatorPreparedProfile>({ randomBytes });
       const mediatorSession = registry.register({
         taskId: task.taskId,
@@ -132,15 +137,15 @@ export function createRuntimeNetworkPreparer(
       const socketPath = runtimeMediatorHostSocketPath(secretHex(randomBytes));
       const mediator = createRuntimeMediatorService({
         registry,
-        passive: { isCancelled: () => signal.aborted, signal },
-        activeCors: { isCancelled: () => signal.aborted, signal },
+        passive: { isCancelled: authoritativeCancellation, signal },
+        activeCors: { isCancelled: authoritativeCancellation, signal },
         now,
       });
       const server = createUnixServer({ socketPath, run: mediator.run });
 
       try {
         await server.start();
-        if (signal.aborted) {
+        if (signal.aborted || await isCancelled()) {
           await server.close();
           throw new DOMException("Runtime worker preparation was aborted.", "AbortError");
         }
