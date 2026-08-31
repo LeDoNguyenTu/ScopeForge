@@ -1,4 +1,4 @@
-import { chmod, mkdir, unlink } from "node:fs/promises";
+import { chmod, lstat, mkdir, unlink } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
 import path from "node:path";
 import type { RuntimeMediatorRunRequest } from "./contracts";
@@ -31,6 +31,18 @@ export function runtimeMediatorHostSocketPath(socketToken: string): string {
   return `${RUNTIME_MEDIATOR_HOST_SOCKET_ROOT}/${socketToken}.sock`;
 }
 
+async function assertPrivateSupervisorSocketRoot(): Promise<void> {
+  await mkdir(RUNTIME_MEDIATOR_HOST_SOCKET_ROOT, { recursive: true, mode: 0o700 });
+  const rootStats = await lstat(RUNTIME_MEDIATOR_HOST_SOCKET_ROOT);
+  if (rootStats.isSymbolicLink() || !rootStats.isDirectory()) {
+    throw new Error("Runtime mediator socket root must be a real supervisor-owned directory.");
+  }
+  if (typeof process.getuid !== "function" || rootStats.uid !== process.getuid()) {
+    throw new Error("Runtime mediator socket root must be owned by the supervisor process user.");
+  }
+  await chmod(RUNTIME_MEDIATOR_HOST_SOCKET_ROOT, 0o700);
+}
+
 export interface RuntimeMediatorUnixServerDependencies {
   socketPath: string;
   run(request: RuntimeMediatorRunRequest): Promise<unknown>;
@@ -44,7 +56,7 @@ export function createRuntimeMediatorUnixServer(
 
   async function start(): Promise<void> {
     if (server) throw new Error("Runtime mediator Unix server is already started.");
-    await mkdir(RUNTIME_MEDIATOR_HOST_SOCKET_ROOT, { recursive: true, mode: 0o700 });
+    await assertPrivateSupervisorSocketRoot();
     await unlink(socketPath).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== "ENOENT") throw error;
     });
