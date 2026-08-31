@@ -122,4 +122,46 @@ describe("Phase 6D authoritative cancellation probing", () => {
       }),
     }));
   });
+
+  it("fails closed before network execution if authoritative cancellation state cannot be checked", async () => {
+    const heartbeat = vi.fn(async () => Promise.reject(new Error("control unavailable")));
+    const execute = vi.fn();
+    const runtimeFinalize = vi.fn(async () => ({
+      outcome: "failed" as const,
+      replayed: false,
+    }));
+    const runtimeNetworkPreparer = {
+      prepare: vi.fn(async (input) => {
+        await input.isCancelled();
+        throw new Error("unreachable");
+      }),
+    };
+
+    await expect(runWorkerOnce({
+      control: {
+        claim: vi.fn(async () => task),
+        runtimePrepare: vi.fn(async () => prepared),
+        runtimeFinalize,
+        heartbeat,
+        finalize: vi.fn(),
+      },
+      executor: { execute },
+      runtimeNetworkPreparer,
+      heartbeatMs: 60_000,
+    })).resolves.toEqual({
+      status: "completed",
+      outcome: "failed",
+      replayed: false,
+    });
+
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+    expect(execute).not.toHaveBeenCalled();
+    expect(runtimeFinalize).toHaveBeenCalledWith(expect.objectContaining({
+      terminal: expect.objectContaining({
+        outcome: "failed",
+        failureCode: "WORKER_LOST",
+        result: null,
+      }),
+    }));
+  });
 });
