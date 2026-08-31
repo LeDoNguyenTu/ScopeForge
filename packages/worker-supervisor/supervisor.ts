@@ -350,7 +350,7 @@ export async function runWorkerOnce(
   const performHeartbeat = (): Promise<boolean> => {
     if (heartbeatInFlight) return heartbeatInFlight;
 
-    const pending = dependencies.control.heartbeat({
+    const request = dependencies.control.heartbeat({
       taskId: task.taskId,
       attemptId: task.attemptId,
       leaseToken: task.leaseToken,
@@ -364,12 +364,18 @@ export async function runWorkerOnce(
     }).catch((error: unknown) => {
       consecutiveHeartbeatFailures += 1;
       throw error;
-    }).finally(() => {
-      if (heartbeatInFlight === pending) heartbeatInFlight = null;
     });
 
-    heartbeatInFlight = pending;
-    return pending;
+    heartbeatInFlight = request;
+    void request.then(
+      () => {
+        if (heartbeatInFlight === request) heartbeatInFlight = null;
+      },
+      () => {
+        if (heartbeatInFlight === request) heartbeatInFlight = null;
+      },
+    );
+    return request;
   };
 
   const authoritativeRuntimeCancellationProbe = async (): Promise<boolean> => {
