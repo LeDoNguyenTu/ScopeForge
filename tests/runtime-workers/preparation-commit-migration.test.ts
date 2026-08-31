@@ -18,15 +18,27 @@ describe("Phase 6D atomic preparation commit migration", () => {
     expect(sql).not.toMatch(/to\s+(anon|authenticated)/i);
   });
 
-  it("relocks the lease, task, domain job, and asset before the running transition", async () => {
+  it("relocks worker, task, attempt, domain job, and asset in a deadlock-safe order", async () => {
     const sql = await readFile(migrationPath, "utf8");
-    expect(sql).toContain("from private.worker_attempts");
     expect(sql).toContain("from private.worker_nodes");
     expect(sql).toContain("from private.worker_tasks");
+    expect(sql).toContain("from private.worker_attempts");
     expect(sql).toContain("from private.runtime_worker_tasks");
     expect(sql).toContain("from public.scan_jobs");
     expect(sql).toContain("from public.assets");
     expect(sql.match(/for update/g)?.length).toBeGreaterThanOrEqual(5);
+
+    const workerLock = sql.indexOf("from private.worker_nodes");
+    const taskLock = sql.indexOf("from private.worker_tasks");
+    const attemptLock = sql.indexOf("from private.worker_attempts");
+    const jobLock = sql.indexOf("from public.scan_jobs");
+    const assetLock = sql.indexOf("from public.assets");
+    expect(workerLock).toBeGreaterThan(-1);
+    expect(workerLock).toBeLessThan(taskLock);
+    expect(taskLock).toBeLessThan(attemptLock);
+    expect(attemptLock).toBeLessThan(jobLock);
+    expect(jobLock).toBeLessThan(assetLock);
+
     expect(sql).toContain("attempt_record.lease_expires_at <= commit_now");
     expect(sql).toContain("task_record.absolute_deadline_at <= commit_now");
     expect(sql).toContain("task_record.max_attempts <> 1");
