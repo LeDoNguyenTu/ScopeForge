@@ -26,6 +26,10 @@ function safeExecutionClass(value: RuntimeWorkerExecutionClass): RuntimeWorkerEx
   return value;
 }
 
+function scratchBytes(executionClass: RuntimeWorkerExecutionClass): number {
+  return executionClass === "passive_runtime_observation_v1" ? 16_777_216 : 8_388_608;
+}
+
 function safeNonce(value: string): string {
   if (!SHA256_PATTERN.test(value)) {
     throw new Error("Runtime mediator session nonce is invalid.");
@@ -75,6 +79,7 @@ export function buildRuntimeWorkerPodmanCreateCommand(
   const image = safeImage(input.image);
   const mediatorSocketPath = validateRuntimeMediatorHostSocketPath(input.mediatorSocketPath);
   const containerName = `scopeforge-runtime-${taskId}-${attemptId}`;
+  const scratchLimit = scratchBytes(executionClass);
 
   return Object.freeze({
     file,
@@ -95,7 +100,7 @@ export function buildRuntimeWorkerPodmanCreateCommand(
       "--log-driver=none",
       "--user=65532:65532",
       "--unsetenv-all",
-      "--tmpfs=/tmp:rw,size=16777216,mode=0700,nosuid,nodev,noexec",
+      `--tmpfs=/tmp:rw,size=${scratchLimit},mode=0700,nosuid,nodev,noexec`,
       `--mount=type=bind,src=${mediatorSocketPath},dst=${RUNTIME_MEDIATOR_CONTAINER_SOCKET_PATH}`,
       "--entrypoint=/usr/local/bin/node",
       image,
