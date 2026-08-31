@@ -17,9 +17,17 @@ beforeEach(() => {
 });
 
 describe("AttackSurfaceSceneV5", () => {
-  it("renders a polished poster before or instead of the live canvas", () => {
+  it("renders a scene-derived WebP poster before or instead of the live canvas", () => {
     render(<AttackSurfaceSceneV5 />);
-    expect(screen.getByTestId("attack-surface-v5-poster")).toBeInTheDocument();
+    const poster = screen.getByTestId("attack-surface-v5-poster");
+    expect(poster).toBeInTheDocument();
+    expect(poster.querySelector("img")).toHaveAttribute("src", "/command-center-v5-poster-desktop.webp");
+  });
+
+  it("uses the separately art-directed mobile WebP poster", () => {
+    render(<AttackSurfaceSceneV5 variant="mobile" />);
+    const posters = screen.getAllByTestId("attack-surface-v5-poster");
+    expect(posters.at(-1)?.querySelector("img")).toHaveAttribute("src", "/command-center-v5-poster-mobile.webp");
   });
 
   it("keeps semantic labels outside the decorative canvas", () => {
