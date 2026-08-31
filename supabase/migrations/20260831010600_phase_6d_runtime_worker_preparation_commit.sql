@@ -85,6 +85,7 @@ begin
 
   if attempt_record.id is null
      or attempt_record.worker_id <> target_worker_id
+     or attempt_record.attempt_number <> task_record.attempt_count
      or attempt_record.lease_token_hash <> calculated_hash
      or attempt_record.finished_at is not null
      or attempt_record.lease_expires_at <= commit_now then
