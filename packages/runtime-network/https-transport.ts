@@ -69,6 +69,10 @@ function runtimeTimeoutError(): Error {
   });
 }
 
+function runtimeAbortError(): DOMException {
+  return new DOMException("Runtime HTTPS request was cancelled.", "AbortError");
+}
+
 export function buildPinnedHttpsRequestOptions(input: {
   plan: TrustedRuntimeRequestPlan;
   address: string;
@@ -172,15 +176,24 @@ export async function requestPinnedHttps(
   const resolver = dependencies.resolver ?? defaultRuntimeResolver;
   const requester = dependencies.requester ?? defaultRuntimeRequester;
   const now = dependencies.now ?? Date.now;
+  const externalSignal = dependencies.signal;
+  if (externalSignal?.aborted) throw runtimeAbortError();
+
   const startedAt = now();
   const controller = new AbortController();
   let expired = false;
+  let cancelled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let onExternalAbort: (() => void) | undefined;
 
   const operation = (async () => {
     const pinned = await resolvePinnedRuntimeAddress(plan.url.hostname, resolver);
     const elapsedMs = Math.max(0, now() - startedAt);
     const remainingTimeoutMs = plan.timeoutMs - elapsedMs;
+    if (cancelled || externalSignal?.aborted || controller.signal.aborted) {
+      if (expired) throw runtimeTimeoutError();
+      throw runtimeAbortError();
+    }
     if (expired || remainingTimeoutMs <= 0) {
       throw runtimeTimeoutError();
     }
@@ -206,9 +219,24 @@ export async function requestPinnedHttps(
     }, plan.timeoutMs);
   });
 
+  const races: Array<Promise<RuntimeNetworkResponse> | Promise<never>> = [operation, deadline];
+  if (externalSignal) {
+    races.push(new Promise<never>((_resolve, reject) => {
+      onExternalAbort = () => {
+        cancelled = true;
+        controller.abort();
+        reject(runtimeAbortError());
+      };
+      externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+    }));
+  }
+
   try {
-    return await Promise.race([operation, deadline]);
+    return await Promise.race(races);
   } finally {
     if (timer) clearTimeout(timer);
+    if (externalSignal && onExternalAbort) {
+      externalSignal.removeEventListener("abort", onExternalAbort);
+    }
   }
 }
