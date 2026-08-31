@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Phase6dDatabase } from "@/lib/database.phase6d.types";
+import type { Json } from "@/lib/database.types";
 import { WorkerControlError } from "@/lib/worker-control/types";
 import type {
   RuntimeWorkerFinalizationContext,
@@ -22,6 +23,22 @@ const CONTEXT_KEYS = Object.freeze([
   "taskId",
   "workspaceId",
 ]);
+
+export interface AtomicPassivePublicationRpcInput {
+  finalization: RuntimeWorkerFinalizeInput;
+  observationRows: Json;
+  findingRows: Json;
+  evidenceRows: Json;
+  observedAt: string;
+}
+
+export interface AtomicActivePublicationRpcInput {
+  finalization: RuntimeWorkerFinalizeInput;
+  observationRow: Json;
+  findingRows: Json;
+  evidenceRows: Json;
+  observedAt: string;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -144,6 +161,53 @@ export function createRuntimeWorkerFinalizationRepository(
         target_peak_memory_bytes: input.metrics.peakMemoryBytes,
         target_input_bytes: input.metrics.inputBytes,
         target_output_bytes: input.metrics.outputBytes,
+      });
+      if (error) throw mapRpcError(error.message);
+      return parseFinalize(data);
+    },
+
+    async publishPassiveSuccess(input: AtomicPassivePublicationRpcInput) {
+      const terminal = input.finalization;
+      const { data, error } = await client.rpc("publish_passive_runtime_worker_success", {
+        target_worker_id: terminal.workerId,
+        target_task_id: terminal.taskId,
+        target_attempt_id: terminal.attemptId,
+        target_lease_token: terminal.leaseToken,
+        target_terminal_digest: terminal.terminalDigest,
+        target_request_count: terminal.requestCount,
+        target_redirect_count: terminal.redirectCount,
+        target_wall_time_ms: terminal.metrics.wallTimeMs,
+        target_cpu_time_ms: terminal.metrics.cpuTimeMs,
+        target_peak_memory_bytes: terminal.metrics.peakMemoryBytes,
+        target_input_bytes: terminal.metrics.inputBytes,
+        target_output_bytes: terminal.metrics.outputBytes,
+        observation_rows: input.observationRows,
+        finding_rows: input.findingRows,
+        evidence_rows: input.evidenceRows,
+        observed_at: input.observedAt,
+      });
+      if (error) throw mapRpcError(error.message);
+      return parseFinalize(data);
+    },
+
+    async publishActiveSuccess(input: AtomicActivePublicationRpcInput) {
+      const terminal = input.finalization;
+      const { data, error } = await client.rpc("publish_active_cors_worker_success", {
+        target_worker_id: terminal.workerId,
+        target_task_id: terminal.taskId,
+        target_attempt_id: terminal.attemptId,
+        target_lease_token: terminal.leaseToken,
+        target_terminal_digest: terminal.terminalDigest,
+        target_request_count: terminal.requestCount,
+        target_wall_time_ms: terminal.metrics.wallTimeMs,
+        target_cpu_time_ms: terminal.metrics.cpuTimeMs,
+        target_peak_memory_bytes: terminal.metrics.peakMemoryBytes,
+        target_input_bytes: terminal.metrics.inputBytes,
+        target_output_bytes: terminal.metrics.outputBytes,
+        observation_row: input.observationRow,
+        finding_rows: input.findingRows,
+        evidence_rows: input.evidenceRows,
+        observed_at: input.observedAt,
       });
       if (error) throw mapRpcError(error.message);
       return parseFinalize(data);
