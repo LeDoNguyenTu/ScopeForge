@@ -10,6 +10,10 @@ import type { AttackSurfaceV5Controller, AttackSurfaceV5Variant } from "@/compon
 type RendererState = "poster" | "webgl" | "fallback";
 
 const PROGRESS = Object.freeze({ module: 20, capability: 32, geometry: 62, materials: 82, firstFrame: 100 });
+const POSTER_SOURCE: Record<AttackSurfaceV5Variant, string> = {
+  desktop: "/command-center-v5-poster-desktop.webp",
+  mobile: "/command-center-v5-poster-mobile.webp",
+};
 
 export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?: AttackSurfaceV5Variant }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -199,6 +203,13 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
       <div className={`ccV5Poster${posterVisible ? " ccV5Poster-visible" : ""}`} data-testid="attack-surface-v5-poster" aria-hidden="true">
         <div className="ccV5PosterCore"><i /><i /><i /><i /></div>
         {model.entities.map((entity) => <span key={entity.id} data-state={entity.state} data-arm={entity.armIndex} />)}
+        <img
+          src={POSTER_SOURCE[variant]}
+          alt=""
+          draggable={false}
+          decoding="async"
+          style={{ position: "absolute", inset: 0, zIndex: 2, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+        />
       </div>
       <canvas ref={canvasRef} className="ccV5Canvas" aria-hidden="true" />
       <div className="ccV5SceneLabels" aria-label="Illustrative scene entities">
