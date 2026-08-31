@@ -2,235 +2,192 @@
 
 Last reconciled: 2026-08-31
 
-This file is the persistent resume queue for unfinished ScopeForge work. It exists so later sessions can continue from repository state rather than conversation memory.
+This file is the persistent resume queue for unfinished ScopeForge work. It exists so later sessions continue from repository state rather than conversation memory.
 
 ## Global execution rules
 
 - Do not use, trigger, rerun, or depend on GitHub Actions while the monthly allowance remains exhausted.
-- Every repository commit made through the assisted workflow must contain `[skip ci]`.
-- Do not claim tests, typecheck, builds, audits, database state, sandbox containment, or runtime gates are green without fresh execution evidence tied to the exact candidate SHA.
-- Existing deployed Supabase migrations are immutable. Corrections are forward-only.
+- Every repository implementation/documentation commit made through this workflow must contain `[skip ci]`.
+- Do not claim tests, typecheck, builds, audits, database state, sandbox containment, or runtime gates are green without fresh evidence tied to the exact candidate SHA.
+- Existing deployed Supabase migrations are immutable. Any database correction is forward-only.
 - Keep `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED=false` and `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED=false` unless separately reviewed acceptance authorizes them.
-- Keep `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED=false` and `HOSTED_ACTIVE_CORS_WORKER_ENABLED=false` throughout Phase 6D implementation and merge. Phase 6D may merge disabled, but hosted network execution must not be enabled before real Linux containment acceptance.
+- Keep `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED=false` and `HOSTED_ACTIVE_CORS_WORKER_ENABLED=false` throughout Phase 6D review/merge. A disabled merge does not authorize runtime enablement.
 - Turnstile is not active and must not be described as active.
 - Do not add generic URL, HTTP, fetch, proxy, browser-automation, arbitrary-header/body, credential-replay, port-scanning, or unrestricted network authority.
 - Phase 6B GitHub networking is not reusable Phase 6D egress authority.
 
-## Active non-rate-limit queue
+## Current Phase 6D review state
 
-### 1. Phase 6D Task 9 - trusted result publication hardening
+Implementation branch:
 
-Current stacked branch:
+`feat/phase-6d-network-workers-v1-task14`
 
-`feat/phase-6d-network-workers-v1-task9`
+Draft implementation PR:
 
-Current head at this reconciliation:
+`#52 - Phase 6D dedicated network workers implementation [skip ci]`
 
-`6c6fc300562e0b95fbf6a9b176cd46941d227b44`
+PR #52 is based on `design/phase-6d-network-workers-v1`, whose docs-only PR #51 remains draft. The available connector currently cannot transition PR #51 out of draft because its GitHub GraphQL mutation is incompatible with the current schema. Do not force or bypass that state.
 
-Task 9 source currently contains:
+### Tasks 1-13
 
-- strict validation of normalized Phase 6D terminal output
-- trusted deterministic passive runtime rule evaluation and mapping
-- trusted deterministic active CORS rule evaluation and mapping
-- exact worker/task/attempt/lease-bound finalization context
-- cancellation-first publication behavior
-- replay acceptance only for the same terminal digest
-- lease-expiry carried into trusted finalization context
-- a dedicated internal runtime finalization route
-- a forward-only Phase 6D publication migration
-- service-role-only publication RPC intent
+The planned source implementation through Task 13 is present. The reviewed forward Phase 6D migrations have been applied to ScopeForge Supabase and live authority was reconciled. This includes:
 
-Remaining Task 9 work before it can be called complete:
+- two closed runtime execution classes only
+- `max_attempts = 1`
+- immutable runtime task/domain-job binding
+- lease-bound preparation and Phase 4 reauthorization
+- class-aware one-shot mediator
+- networkless executor contract
+- trusted cancellation/replay-aware publication
+- dashboard cutover with no direct Vercel network fallback
+- global/class/workspace backpressure
+- terminal lost/expired-attempt recovery
+- aggregate-only runtime fleet health
+- permanent import/authority architecture guards
+- service-role-only intended public RPCs and private helper/table restrictions
 
-- finish source review of private worker-task terminal-state semantics for succeeded, failed, and cancelled outcomes
-- confirm private broker task state matches the established Phase 6A/6C terminal conventions and cannot leave a leased task after domain-job finalization
-- confirm failure/cancellation finalization never permits retry because Phase 6D uses `max_attempts = 1`
-- confirm the forward publication migration rechecks exact class, binding, lease hash, cancellation, counters, metrics, and terminal digest under row locks
-- confirm every `SECURITY DEFINER` function has `set search_path = ''`
-- confirm browser roles have no execution grant to Phase 6D publication helpers
-- confirm no raw remote response body, raw header map, cookie value, authorization data, resolver transcript, or remote exception string can cross publication
-- confirm active CORS test fixtures use the real synthetic ScopeForge Origin semantics rather than wildcard behavior that the existing conservative rule intentionally ignores
-- keep the migration unapplied until Task 13 source/authority review
+Do not reopen Tasks 1-13 as if they were unimplemented. Revisit them only if Task 14/15/16 verification exposes a concrete defect.
 
-Do not spend additional time on executable verification here while external runners are rate-limited. That verification belongs in the externally parked section below.
+## Active Phase 6D gates
 
-### 2. Phase 6D Task 10 - cut hosted dashboard runtime actions over to queued workers
+### 1. Task 16 source security review - active
 
-Follow the reviewed plan in:
+Draft PR #52 remains intentionally unready.
 
-`docs/superpowers/plans/2026-08-30-phase-6d-network-workers.md`
+Source review still needs to remain exact-head aware and cover:
 
-Required behavior:
+- every changed path for unrelated authority expansion
+- worker task/result contracts
+- all network imports
+- every `SECURITY DEFINER`/grant boundary if a new SQL change appears
+- cancellation, replay, lost-attempt, one-shot, and cleanup ordering
+- audit/log/telemetry leakage
+- direct-network fallback
+- dependency drift
+- all final review commits containing `[skip ci]`
 
-- add `lib/runtime-workers/request.ts`
-- preserve the existing Phase 4 enqueue authorization before worker-task creation
-- atomically create the authorized domain job and corresponding closed worker task when the relevant capability is enabled
-- modify `app/dashboard/assets/[assetId]/runtime-actions.ts`
-- modify `app/dashboard/assets/[assetId]/active-validation-actions.ts`
-- server actions must continue accepting only asset ID, plus explicit-consent boolean for active CORS
-- no URL, method, header, body, profile, budget, worker class, target, or network configuration may enter from the browser
-- false capability must return truthful `RUNTIME_WORKER_UNAVAILABLE` before creating a dead domain/worker job
-- after cutover, hosted actions must never call `executeRuntimeObservation` or `executeActiveValidation` directly
-- there must be no `worker unavailable -> execute directly in Vercel` fallback
-- cancellation remains job-ID scoped and must propagate through trusted control state to the worker/mediator
-- UI/read model may be adjusted only enough to show queued, running, unavailable, cancelled, failed, and completed states truthfully
-- do not enable either Phase 6D capability flag
+Recent review fixes already landed:
 
-Tests first:
+- canonical worker cancellation now matches database semantics: cancelled terminals carry `failureCode = null` and no result payload
+- the public worker-contract validation boundary preserves cancellation while retaining strict metric/result validation
+- active CORS worker observations are explicitly reconstructed from validated fields
+- runtime mediator framing exposes decoder pending state and rejects a valid frame followed by trailing partial frame bytes
+- mediator/server accepts exactly one complete request frame per socket
 
-- extend `tests/runtime-validator/action-boundary.test.ts`
-- create `tests/runtime-observations/action-boundary.test.ts`
-- extend existing runtime-observation/runtime-validator service tests only where needed to preserve direct domain logic as unit-testable code rather than hosted execution
+Reviewed Phase 6D audit events expose safe IDs, class/state/outcome/timing/version metadata only. The reviewed event payloads do not include lease tokens, mediator nonces, target URLs, raw response bodies, cookie values, authorization material, resolver transcripts, or remote exception strings.
 
-### 3. Phase 6D Task 11 - queue backpressure, fleet health, and cancellation recovery
+Runtime fleet data remains aggregate-only for Phase 6D classes.
 
-Required behavior:
+### 2. Task 14 software acceptance - blocked on a complete runner
 
-- one live Phase 6D task per workspace across passive and active classes
-- passive fleet leased concurrency cap: 2
-- active CORS leased concurrency cap: 1
-- existing global worker leased cap remains an additional ceiling
-- passive workers claim only passive tasks; active workers claim only active tasks
-- cancelled queued tasks become terminal without mediator startup
-- cancellation of a leased task prevents success publication
-- lost/expired Phase 6D attempts are terminal and never requeued because `max_attempts = 1`
-- fleet health exposes only class availability/saturation and safe counts, never target identity or response data
-- no new public daily quota values in Phase 6D
+The exact final candidate must receive fresh execution evidence for the full accepted command chain. At minimum run and inspect:
 
-Planned tests:
+- focused Phase 6D tests
+- full `npm test`
+- `npm run typecheck`
+- CLI build/version checks required by the existing project acceptance process
+- scanner benchmark/performance guard
+- `npm audit` or the repository's accepted dependency audit command
+- production Next.js build
 
-- `tests/runtime-workers/backpressure.test.ts`
-- `tests/runtime-workers/fleet.test.ts`
-- relevant worker service and migration tests
+Historical Vercel previews are diagnostic evidence only. They exposed several real TypeScript defects that were repaired, but they are not a substitute for a clean exact-head acceptance run.
 
-### 4. Phase 6D Task 12 - permanent authority and import-graph guards
+Do not spend deployment quota polling or manually retrying Vercel while the platform limit remains authoritative.
 
-Create `tests/architecture/phase6d-runtime-workers.test.ts` and extend existing Phase 6B/6C guards.
+### 3. Task 15 real Linux containment acceptance - hard runtime-enable gate
 
-Permanent invariants to lock:
+This cannot be satisfied by unit tests or source review.
 
-- only the dedicated mediator and existing runtime-network package may own Phase 6D external networking primitives
-- executor/sandbox code cannot import raw HTTP/HTTPS/TCP/DNS runtime authority
-- dashboard/server actions cannot import runtime-network or mediator internals
-- mediator cannot import Supabase admin/database repositories
-- mediator cannot import R2, GitHub acquisition, scanner runner, model providers, browser automation, child process, VM, or worker-thread authority except the already-reviewed process boundary where explicitly intended outside the mediator
-- Phase 6B acquisition cannot import Phase 6D mediator code
-- Phase 6C zero-egress scanning cannot import Phase 6D mediator or runtime network
-- no generic URL/fetch/http/proxy execution class or public contract may appear
-- Phase 6D executor sandbox command permanently includes `--network=none`
-- do not weaken an architecture guard for implementation convenience
+Use a dedicated Linux worker host with rootless Podman and cgroup v2. Record OS, kernel/cgroup mode, Podman version, immutable runtime image digest, and exact ScopeForge commit.
 
-### 5. Phase 6D Task 13 - complete source review and Supabase reconciliation
+Prove:
 
-This begins only after Tasks 9-12 are source-complete.
-
-Before applying SQL:
-
-- compare every Phase 6D migration with both approved Phase 6D specs
-- inspect every `SECURITY DEFINER`, `search_path`, revoke, grant, function owner, FK, covering index, immutable binding, retry rule, cancellation check, and stored field
-- prove `private.runtime_worker_tasks` stores no target URL, method, headers, body, credentials, or request plan
-- prove `max_attempts = 1` cannot be bypassed by recovery
-- prove cancellation is checked before preparation and again before publication
-- prove service-role authority is RPC-scoped where intended instead of broad direct mutation
-
-Then apply only the reviewed forward migrations, in order, to Supabase project:
-
-`tdgpibrepzcvdivztkta`
-
-After application:
-
-- regenerate/reconcile TypeScript database types
-- inspect migration history and live constraints/indexes/RLS/ACLs/function grants
-- run Supabase security advisor and performance advisor
-- repair live defects only with another forward migration
-
-### 6. Phase 6D Task 15 - real Linux containment acceptance
-
-This is a hard runtime-enable gate and cannot be satisfied by unit tests alone.
-
-On a dedicated Linux worker host with rootless Podman and cgroup v2, prove:
-
-- exact generated container command works
+- exact generated container command starts successfully
 - executor direct DNS fails
 - executor direct public TCP/HTTPS fails
-- executor cannot reach supervisor/host services over loopback/TCP
+- executor cannot reach supervisor/host TCP services
 - only the dedicated Unix mediator socket is usable
 - arbitrary host Unix sockets are unavailable
-- mediator can perform only the prepared authorized HTTPS operation
+- mediator performs only the prepared authorized HTTPS operation
 - private/loopback/reserved targets remain rejected
-- active CORS makes exactly one request and the one-shot session cannot run again
-- passive request/redirect budgets hold across the entire attempt
-- cancellation stops mediator activity and late success is discarded
-- memory, process, wall-time, and output ceilings are enforced
-- mediator failure never causes direct-network fallback
+- active CORS performs exactly one request and its session cannot replay
+- passive request/redirect budgets hold over the entire attempt
+- cancellation stops mediator activity, terminates the Podman workload, and late success cannot publish
+- memory, PID/process, CPU/wall-time, scratch, and output ceilings are enforced
+- mediator failure never causes a direct-network fallback
 
-Record OS, Podman version, cgroup mode, image digest, exact ScopeForge commit, and evidence in a Phase 6D acceptance document.
+Explicit host questions discovered during Task 16 source review:
+
+1. Verify whether `--pids-limit=1` is actually compatible with the Node runtime under rootless Podman. Linux cgroup PID accounting includes tasks/threads, so this must be measured. Do not loosen the limit from source speculation alone.
+2. Test whether the single mediator socket bind can be made explicitly read-only while still allowing the executor to connect. If yes, tighten the command and add regression coverage. If not, document the host/runtime reason and maintain the smallest possible writable host surface.
+3. Verify abort/cancellation cannot return from the Podman executor until the hostile process is actually stopped. Phase 6D intentionally waits for killable sandbox termination before cleanup/finalization rather than detaching.
 
 Neither Phase 6D production capability may be enabled before this evidence is reviewed.
 
-### 7. Phase 6D Task 16 - implementation PR security review and disabled merge boundary
+### 4. Final Task 16 release decision
 
-Before marking the future Phase 6D implementation PR ready:
+After Tasks 14 and 15 have real evidence:
 
-- review every changed path for unrelated scope
-- review all worker task/result contracts for authority expansion
-- review every network import
-- review every `SECURITY DEFINER` and privilege grant
-- review cancellation, replay, lost-attempt, and one-shot semantics
-- review logs/telemetry for target/secret leakage
-- prove no direct-network fallback exists
-- confirm GitHub Actions were not used and commits contain `[skip ci]`
-- keep both Phase 6D production capabilities false after merge
+- refresh PR #52 exact head
+- reconcile its final diff and commit list
+- confirm no GitHub Actions were used
+- confirm every new implementation/documentation commit has `[skip ci]`
+- ensure both Phase 6D runtime flags remain false
+- review any PR comments/threads
+- mark ready only if the exact-head acceptance record supports it
+- merge only with exact-head protection
+- verify production remains disabled after merge
 
-Merge only with exact-head protection and fresh acceptance evidence for every executable gate. A disabled merge may precede real Linux acceptance, but runtime enablement may not.
+A disabled merge before Task 15 is technically permitted by the design, but current policy is to keep PR #52 draft until the unresolved acceptance risk is explicit and the exact-head release decision is made.
 
-### 8. Phase 8 validation methodology follow-on
+## Later roadmap
+
+### Phase 8 validation methodology follow-on
 
 Draft PR:
 
 `#50 - Phase 8 validation methodology foundation [skip ci]`
 
-The foundation document is intentionally incomplete. Remaining Phase 8 work includes:
+Still required:
 
 - versioned labeled vulnerable labs
 - machine-readable ground-truth manifests
 - negative-control fixtures
-- accuracy evaluator with rule-level TP/FP/FN reporting
+- rule-level TP/FP/FN evaluator
 - precision/recall/F1 only after a committed labeled corpus exists
 - additional realistic performance fixtures
-- justified regression thresholds rather than presenting the existing 20-second catastrophic ceiling as an SLO
+- justified regression thresholds
 - reproducibility metadata and artifact provenance
 - public technical methodology/report output
 - review and merge of PR #50 when its scope is ready
 
 Do not invent unsupported accuracy claims before the corpus/evaluator exists.
 
-### 9. Phase 7 Community Security Packs
+### Phase 7 Community Security Packs
 
-Still unfinished. Preserve the existing product goal: community-extensible security knowledge without allowing packs to become arbitrary hosted code execution or generic network authority.
+Still unfinished. Preserve the product goal of community-extensible security knowledge without allowing packs to become arbitrary hosted code or generic network authority.
 
-Before implementation, produce/approve the Phase 7 design covering at minimum:
+Before implementation, design and approve:
 
-- pack manifest/version/provenance model
+- manifest/version/provenance model
 - deterministic rule/policy boundaries
 - signing/trust/review model as appropriate
 - compatibility/versioning
 - safe loading/execution model
 - community contribution workflow
-- protection against pack-supplied executable commands, arbitrary hosted networking, credentials, or unrestricted code execution
+- protection against pack-supplied executable commands, arbitrary networking, credentials, or unrestricted execution
 
-### 10. Phase 9 public-release hardening and operations
+### Phase 9 public-release hardening and operations
 
-Still unfinished. It should follow the major runtime/community/methodology work and include at minimum:
+Still unfinished. Include at minimum:
 
 - abuse/rate-limit policy for public trial use
 - production capability enablement runbooks
 - worker fleet operational monitoring
 - incident/rollback procedures
 - security logging/privacy review
-- public authentication/bot-protection readiness, including truthful Turnstile status
-- release documentation and support boundaries
+- truthful auth/bot-protection readiness
+- release documentation/support boundaries
 - final threat-model reconciliation
 - production smoke/rollback checks
 - dependency/security advisories
@@ -238,45 +195,31 @@ Still unfinished. It should follow the major runtime/community/methodology work 
 
 Do not enable a capability merely because implementation code exists.
 
-### 11. Documentation reconciliation after Phase 6D
+### Documentation reconciliation after Phase 6D
 
-`docs/development/CURRENT_STATE.md` still describes Phase 6D as design-gated because production/main has not accepted the implementation. After Phase 6D is reviewed/merged, reconcile CURRENT_STATE, TEST_STATUS, roadmap/status documents, and the Phase 6D plan checkboxes to the actual merged and deployed state. Do not update main-facing completion language early.
+`docs/development/CURRENT_STATE.md` and other main-facing status documents must reflect the actual merged/deployed state only after the final Phase 6D release decision. Do not advertise Phase 6D as production-enabled before Task 15 and explicit enablement review.
 
-## Externally parked work - not part of the active queue while rate limits are in effect
-
-These items are intentionally excluded from the active implementation queue so development time is not wasted polling metered services.
+## Parked operational work
 
 ### Command center UI v4 - PR #49
 
-PR #49 is parked behind Vercel's Free-plan deployment/build limits. The existing resume automation will recheck after the reset window and continue exact-head acceptance, normal-build restoration, PR review/merge, and production verification only when Vercel accepts builds again.
-
-Do not spend active implementation time polling this PR while the rate limit remains authoritative.
-
-### Phase 6D executable verification for stacked Tasks 4-9
-
-The stacked Phase 6D source work must eventually receive fresh focused tests, full test suite, typecheck, CLI, benchmark, audit, and Next build evidence. External Vercel/Floot execution capacity has been rate-limited during implementation. Do not convert source review into a false 'green' claim.
-
-When an independent runner becomes available, run the reviewed Phase 6D focused suites first, fix real compiler/test defects with TDD/systematic debugging, then run the full Task 14 acceptance chain on the exact candidate head.
+PR #49 remains parked behind the relevant Vercel build/deployment limit. Do not spend active Phase 6D review time polling it.
 
 ### Temporary Floot operations helper cleanup
 
-A temporary Floot production-operations helper was previously left pending deletion because of a Floot daily action cap. Stored credentials must not be deleted. Clean up the temporary helper only after the relevant Floot quota is available and the helper identity is proven.
+A temporary Floot production-operations helper cleanup remains quota-dependent. Stored credentials must not be deleted. Remove only the proven temporary helper when the relevant operation capacity is available.
 
 ## Resume order
 
-Unless a new blocker or security finding changes the dependency graph, resume in this order:
+Unless a new security finding changes the dependency graph:
 
-1. Finish Task 9 source hardening.
-2. Implement Task 10 hosted action cutover with no fallback.
-3. Implement Task 11 backpressure/fleet/recovery.
-4. Implement Task 12 architecture guards.
-5. Perform Task 13 SQL source review and Supabase reconciliation.
-6. Run Task 14 software acceptance when an execution runner is available.
-7. Perform Task 15 real Linux containment acceptance before any runtime enablement.
-8. Perform Task 16 PR security review and merge disabled.
-9. Continue Phase 8 methodology/evaluator work and reconcile PR #50.
-10. Design and implement Phase 7 Community Security Packs.
-11. Complete Phase 9 public-release hardening/operations.
-12. Reconcile repository status documentation to the final accepted state.
+1. Continue Task 16 source review on draft PR #52 and repair concrete findings only.
+2. Run Task 14 exact-head software acceptance as soon as a complete independent runner is available.
+3. Run Task 15 on a dedicated rootless-Podman/cgroup-v2 Linux host, including the PID-limit and socket-mount questions above.
+4. Perform the final exact-head Task 16 release review and disabled merge decision.
+5. Reconcile main-facing Phase 6D documentation after merge/deployment state is known.
+6. Continue Phase 8 methodology/evaluator work and reconcile PR #50.
+7. Design and implement Phase 7 Community Security Packs.
+8. Complete Phase 9 public-release hardening/operations.
 
-Rate-limit-only work remains parked and should resume through its existing scheduled/availability path rather than interrupting this active queue.
+Rate-limit-only work should remain parked instead of interrupting the active security review.
