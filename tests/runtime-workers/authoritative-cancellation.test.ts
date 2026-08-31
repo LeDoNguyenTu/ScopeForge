@@ -5,13 +5,16 @@ import {
 } from "@/packages/worker-supervisor";
 import type { WorkerTaskContract } from "@/packages/worker-contracts";
 import { ACTIVE_VALIDATION_MAX_BUDGET } from "@/packages/runtime-validator";
+import { assetRef } from "@/packages/security-domain";
 import type { PreparedRuntimeWorkerExecution } from "@/packages/worker-supervisor/control-client";
+import type { RuntimeNetworkPrepareInput } from "@/packages/worker-supervisor/runtime-network";
 
 const taskId = "11111111-1111-4111-8111-111111111111";
 const attemptId = "22222222-2222-4222-8222-222222222222";
 const jobId = "33333333-3333-4333-8333-333333333333";
 const leaseToken = "a".repeat(64);
 const deadline = "2099-08-31T00:00:20.000Z";
+const socketPath = `/run/scopeforge/runtime-mediator/${"7".repeat(64)}.sock`;
 
 const task: WorkerTaskContract = {
   taskId,
@@ -42,7 +45,7 @@ const prepared: PreparedRuntimeWorkerExecution = {
   domainJobId: jobId,
   expiresAt: deadline,
   target: {
-    assetRef: "44444444-4444-4444-8444-444444444444",
+    assetRef: assetRef("44444444-4444-4444-8444-444444444444"),
     kind: "web_application",
     canonicalUrl: "https://example.com",
     hostname: "example.com",
@@ -57,7 +60,7 @@ describe("Phase 6D authoritative cancellation probing", () => {
     const preparer = createRuntimeNetworkPreparer({
       randomBytes: () => Buffer.alloc(32, 7),
       now: () => new Date("2099-08-30T23:59:59.000Z"),
-      createUnixServer: () => ({ start, close }),
+      createUnixServer: () => ({ start, close, socketPath }),
     });
     const controller = new AbortController();
     const isCancelled = vi.fn(async () => true);
@@ -85,7 +88,7 @@ describe("Phase 6D authoritative cancellation probing", () => {
       replayed: false,
     }));
     const runtimeNetworkPreparer = {
-      prepare: vi.fn(async (input) => {
+      prepare: vi.fn(async (input: RuntimeNetworkPrepareInput) => {
         expect(typeof input.isCancelled).toBe("function");
         expect(await input.isCancelled()).toBe(true);
         throw new DOMException("cancelled", "AbortError");
@@ -131,7 +134,7 @@ describe("Phase 6D authoritative cancellation probing", () => {
       replayed: false,
     }));
     const runtimeNetworkPreparer = {
-      prepare: vi.fn(async (input) => {
+      prepare: vi.fn(async (input: RuntimeNetworkPrepareInput) => {
         await input.isCancelled();
         throw new Error("unreachable");
       }),
