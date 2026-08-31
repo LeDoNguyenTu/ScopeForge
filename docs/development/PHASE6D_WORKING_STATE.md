@@ -9,8 +9,8 @@ This file is the compact implementation checkpoint for the Phase 6D dedicated ne
 - Implementation branch: `feat/phase-6d-network-workers-v1-task14`
 - Draft implementation PR: `#52 - Phase 6D dedicated network workers implementation [skip ci]`
 - Base branch: `design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
-- Current reviewed code/security head: `3e81369a0d3073b9fdca55637c05ad2c1543e995`
-- Authoritative release-state refresh commit: `22a8fb8453f93faff0b321fa8ca48fdb95d11a7f`
+- Current reviewed code/security head: `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`
+- Authoritative release-state refresh commit: `f7b814d60c5ea9fee60eb5ad16cab28510ec9950`
 - PR #52 remains draft and must not leave draft based on static review alone.
 
 ## Verification status
@@ -19,7 +19,7 @@ Do not interpret source review or Vercel compilation as full executable acceptan
 
 The reviewed Phase 6D forward migrations are live on the ScopeForge Supabase project. Live reconciliation confirms service-role-only intended RPC authority, hardened empty `search_path`, private helper/table restrictions, immutable runtime task binding, `max_attempts = 1`, backpressure, cancellation-first finalization, and a zero-worker/zero-active-task runtime fleet.
 
-Task 14 static gates are substantially complete. The last useful Vercel/Next.js compiler checkpoint was `5a7d3d26eb1bfaae5c38f536b0b9b153aa437a41`: compilation and framework lint/type validation succeeded, then `/auth/sign-in` prerender stopped because the Preview environment lacked the public Supabase URL/publishable key. The current code head `3e81369a0d3073b9fdca55637c05ad2c1543e995` has no GitHub Actions runs; its only commit status is a Vercel build-rate-limit failure. This is partial compiler/platform evidence only, not a successful production build.
+Task 14 static gates are substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The last useful Vercel/Next.js compiler checkpoint was `5a7d3d26eb1bfaae5c38f536b0b9b153aa437a41`: compilation and framework lint/type validation succeeded, then `/auth/sign-in` prerender stopped because the Preview environment lacked the public Supabase URL/publishable key. The current code head has no GitHub Actions verification and its visible commit status is a Vercel build-rate-limit failure. This is partial compiler/platform evidence only, not a successful production build.
 
 Fresh full-repository execution is still required on one dependency-complete exact candidate:
 
@@ -39,11 +39,11 @@ Task 15 real Linux containment acceptance has not been run. The current executio
 - Task 9: trusted publication is implemented with exact result validation, deterministic server-side rule evaluation, privacy-reduced canonical persistence, exact digest replay, cancellation-first behavior, and dedicated runtime finalization.
 - Task 10: hosted passive and active dashboard actions route only through the closed worker request service. The old direct Vercel execution path is removed and there is no worker-unavailable direct-network fallback.
 - Task 11: global/class/workspace backpressure, runtime fleet-safe aggregates, queued cancellation recovery, lost/expired-attempt terminality, and single-attempt behavior are implemented and reconciled.
-- Task 12: permanent authority guards cover dashboard actions, preparation/execution boundaries, mediator independence, Phase 6B/6C separation, no generic network execution class, network-disabled sandboxes, and atomic runtime success publication.
+- Task 12: permanent authority guards cover dashboard actions, preparation/execution boundaries, mediator independence, Phase 6B/6C separation, no generic network execution class, network-disabled sandboxes, atomic runtime success publication, and end-to-end abort propagation.
 - Task 13: SQL source review and Supabase reconciliation were completed. The intended Phase 6D public RPCs are live as service-role-only `SECURITY DEFINER` functions with empty `search_path`.
-- Task 14: static/source acceptance is substantially complete through code head `3e81369a0d3073b9fdca55637c05ad2c1543e995`. The remaining blocker is the explicit full exact-head executable command chain on a complete runner.
+- Task 14: static/source acceptance is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The remaining blocker is the explicit full exact-head executable command chain on a complete runner.
 - Task 15: real Linux rootless-Podman containment acceptance remains the hard runtime-enable gate.
-- Task 16: source/security review is substantially complete through code head `3e81369a0d3073b9fdca55637c05ad2c1543e995`. Final same-SHA release review remains pending after Task 14 executable acceptance; runtime enablement additionally remains blocked on Task 15.
+- Task 16: source/security review is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. Final same-SHA release review remains pending after Task 14 executable acceptance; runtime enablement additionally remains blocked on Task 15.
 
 ## Task 14 hardening added during review
 
@@ -56,14 +56,24 @@ Concrete concurrency/timing defects discovered during review were fixed with for
 
 The live fleet remained quiescent before and after these DDL changes.
 
-Source review also hardened the mediator socket lifecycle after the prior documentation checkpoint:
+Source review hardened the mediator socket lifecycle:
 
 - `d8f733551c8d230f3f3932b2db3571453eb1d84d` pins the private supervisor-owned socket-root invariant in regression coverage.
 - `9bcccd5e6a210feb210b8eb9b117859b987cac43` rejects symlink/non-directory/wrong-owner mediator roots and resets root permissions to `0700` before use.
 - `05ed16276de132c725926b911e5a811e8bd74f72` pins cleanup ordering if socket permission publication can fail after `listen()`.
 - `3e81369a0d3073b9fdca55637c05ad2c1543e995` closes the listening server and unlinks the socket if that permission setup fails.
 
-All four commits use `[skip ci]`. They change only the mediator Unix-server boundary and its focused test; they do not change package manifests, database migrations, or capability state.
+Source review also found and closed an in-flight cancellation integration gap:
+
+- `c1ea6a7f1a9b8784a955c6ddc14fe353523337c5` pins cancellation behavior at the runtime HTTPS layer.
+- `25b4495c3c1afed7b818734ba9edfdc3c1491c3e` adds the trusted runtime cancellation signal contract.
+- `a6a53160370b6177d68ac38c88b66df1c717281c` aborts runtime HTTPS orchestration when that signal fires.
+- `0d31483713336cdbc9397fc42ba7fd14f34abc63` adds passive/active in-flight cancellation regression coverage for the normal profile APIs.
+- `797e08a43a4209624c73a8ba6397603b8ecbd20e` and `632e973043d23f97f6dd4bbbcbd3d2d2abce638d` propagate signal-driven cancellation through passive observation and active CORS validation.
+- `7de479f664382d1b84f94f612830e00444a9f444`, `4eeaadd7d698d0a4ad67121f55d4499f02f7ff11`, and `aa42400421bf384544a53611e47ad9d36dbd7121` carry the same supervisor signal through mediator dependencies into those profiles.
+- `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf` permanently guards the supervisor-to-transport abort connection in the Phase 6D architecture test.
+
+All of these commits use `[skip ci]`. The cancellation work does not change database migrations, package manifests, capability state, or the closed URL/method/header/body authority model.
 
 ## Task 15 host checks that must not be skipped
 
@@ -71,7 +81,7 @@ In addition to the approved containment checklist, the real host acceptance must
 
 1. `--pids-limit=1` is compatible with the actual Node runtime inside the rootless Podman container. Linux cgroup PID accounting includes tasks/threads, so this limit must be proven rather than assumed. Do not weaken the limit without measured evidence and a separate security review.
 2. Determine whether the mediator Unix-socket bind can be mounted explicitly read-only while remaining connectable from the executor. If the real host supports that safely, tighten the command and add regression coverage. If not, document the reason and preserve the smallest possible writable host surface.
-3. Abort/cancellation must prove the Podman executor terminates before mediator cleanup and trusted finalization. Phase 6D intentionally does not detach from an executor that ignores abort.
+3. Abort/cancellation must prove the in-flight pinned HTTPS request and Podman executor terminate before mediator cleanup and trusted finalization. Phase 6D intentionally does not detach from an executor that ignores abort.
 4. Prove the supervisor-owned mediator root rejects symlink, wrong-owner, and non-directory states on the actual host, and prove socket startup failures do not leave a listener or stale socket behind.
 
 ## Source-review findings already incorporated
@@ -81,6 +91,8 @@ In addition to the approved containment checklist, the real host acceptance must
 - Runtime mediator request/response framing rejects multiple frames and any trailing partial-frame state.
 - Runtime mediator session consumption exact-validates task/attempt/class/nonce and is one-shot/expiry-bound.
 - Nested runtime result validation uses exact allowed keys, bounded values, HTTPS URLs without userinfo/query/fragment, selected-header allowlisting, and privacy-reduced cookie/TLS fields.
+- Runtime HTTPS is fresh-resolved and public-IP-pinned per request, with hostname/SNI preserved and no automatic redirect following.
+- The supervisor attempt abort signal now reaches in-flight passive/active HTTPS; a signal-driven `AbortError` maps to a cancelled profile result instead of a generic network failure.
 - Runtime worker audit/fleet telemetry is privacy-reduced and does not expose lease tokens, mediator nonces, target URLs, response bodies, cookie values, authorization material, resolver transcripts, or remote exception strings.
 - Runtime success publication cannot use the generic finalizer.
 - Successful Phase 6D publication cannot be split into separate application-level persist/finalize calls; the permanent architecture guard requires the two class-specific atomic publication dependencies.
