@@ -132,8 +132,8 @@ export function createRuntimeNetworkPreparer(
       const socketPath = runtimeMediatorHostSocketPath(secretHex(randomBytes));
       const mediator = createRuntimeMediatorService({
         registry,
-        passive: { isCancelled: () => signal.aborted },
-        activeCors: { isCancelled: () => signal.aborted },
+        passive: { isCancelled: () => signal.aborted, signal },
+        activeCors: { isCancelled: () => signal.aborted, signal },
         now,
       });
       const server = createUnixServer({ socketPath, run: mediator.run });
