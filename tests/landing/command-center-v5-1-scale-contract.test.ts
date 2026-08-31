@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const css = readFileSync(join(process.cwd(), "app/command-center-v5.css"), "utf8");
+const css = [
+  readFileSync(join(process.cwd(), "app/command-center-v5.css"), "utf8"),
+  readFileSync(join(process.cwd(), "app/command-center-v5-1.css"), "utf8"),
+].join("\n");
 
 function pxVariable(name: string): number {
   const match = css.match(new RegExp(`${name}\\s*:\\s*([0-9.]+)px`));

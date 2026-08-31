@@ -1,0 +1,254 @@
+.commandLanding {
+  --cc-v51-metric-value-desktop: 36px;
+  --cc-v51-metric-value-mobile: 40px;
+  --cc-v51-metric-label-desktop: 14px;
+  --cc-v51-metric-label-mobile: 15px;
+  --cc-v51-metric-icon: 28px;
+  --cc-v51-supporting-mobile: 13px;
+  --cc-v51-runtime-value: 14px;
+  --cc-v51-overview-label: 14px;
+  --cc-v51-risk-copy: 13px;
+  --cc-v51-scene-label-mobile: 12px;
+  --cc-v5-bg: #05070a;
+  --cc-v5-panel: rgba(10, 12, 16, 0.78);
+  --cc-v5-panel-strong: rgba(10, 12, 16, 0.94);
+  --cc-v5-line: rgba(92, 226, 201, 0.16);
+  --cc-v5-line-strong: rgba(92, 226, 201, 0.3);
+  --cc-v5-text: #eef6f4;
+  --cc-v5-muted: #809298;
+  --cc-v5-teal: #5ce2c9;
+  --cc-v5-cyan: #38e4de;
+  --cc-v5-risk: #ff6a38;
+  --cc-v5-amber: #f8b45b;
+  background:
+    radial-gradient(circle at 72% 34%, rgba(56, 228, 222, 0.09), transparent 31%),
+    radial-gradient(circle at 64% 68%, rgba(255, 106, 56, 0.035), transparent 27%),
+    linear-gradient(180deg, #05070a 0%, #070a0d 55%, #05070a 100%);
+}
+
+/* Desktop-first art direction: give the copy/telemetry enough real estate to stay readable. */
+.ccV5Desktop {
+  grid-template-columns: minmax(470px, .9fr) minmax(650px, 1.16fr);
+  grid-template-rows: auto auto minmax(220px, 1fr);
+  column-gap: clamp(10px, 1.25vw, 24px);
+  width: min(1560px, calc(100vw - 44px));
+  min-height: min(900px, calc(100svh - 88px));
+  padding-top: clamp(42px, 5vh, 66px);
+}
+
+.ccV5DesktopCopy,
+.ccV5DesktopMetrics,
+.ccV5DesktopOverview {
+  padding-left: clamp(10px, 1.25vw, 20px);
+}
+
+.ccV5DesktopScene {
+  min-height: 720px;
+  margin-left: clamp(-54px, -3vw, -24px);
+  overflow: visible;
+}
+
+.ccV5DesktopRuntime {
+  margin: 0 clamp(14px, 1.4vw, 26px) 20px 0;
+}
+
+.ccV5Copy { max-width: 590px; }
+.ccV5Eyebrow { font-size: 12px; margin-bottom: 18px; }
+.ccV5Eyebrow i { width: 7px; height: 7px; }
+.ccV5Copy h1 {
+  max-width: 620px;
+  font-size: clamp(4rem, 4.65vw, 5.15rem);
+  line-height: .98;
+  letter-spacing: -.052em;
+}
+.ccV5Copy h1 span { color: var(--cc-v5-teal); }
+.ccV5Copy > p {
+  width: min(500px, 100%);
+  margin-top: 22px;
+  color: rgba(238, 246, 244, .66);
+  font-size: 16px;
+  line-height: 1.62;
+}
+.ccV5Actions { margin-top: 27px; gap: 22px; }
+.ccV5Primary, .ccV5Secondary { min-height: 52px; font-size: 15px; }
+.ccV5Primary { padding-inline: 24px; }
+
+.ccV5SectionLabel { margin-bottom: 10px; }
+.ccV5SectionLabel span { font-size: 12px; }
+.ccV5SectionLabel small { font-size: 11px; }
+.ccV5Desktop .ccV5MetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ccV5MetricCard {
+  min-height: 112px;
+  padding: 17px 16px 15px 58px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(56, 228, 222, .055), transparent 36%),
+    linear-gradient(145deg, rgba(23, 28, 33, .88), rgba(5, 7, 10, .82));
+  box-shadow: inset 0 1px rgba(255,255,255,.035), 0 14px 40px rgba(0,0,0,.15);
+}
+.ccV5MetricIcon {
+  left: 17px;
+  top: 19px;
+  width: var(--cc-v51-metric-icon);
+  height: var(--cc-v51-metric-icon);
+}
+.ccV5MetricIcon svg { width: 100%; height: 100%; stroke-width: 1.65; }
+.ccV5MetricCard > strong {
+  font-size: var(--cc-v51-metric-value-desktop);
+  line-height: .98;
+  letter-spacing: -.038em;
+}
+.ccV5MetricCard > span:not(.ccV5MetricIcon) {
+  margin-top: 9px;
+  font-size: var(--cc-v51-metric-label-desktop);
+  line-height: 1.25;
+}
+.ccV5MetricCard > small {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.ccV5Overview { border-radius: 16px; }
+.ccV5OverviewHeading { min-height: 60px; padding: 13px 16px; }
+.ccV5OverviewHeading > div > span { font-size: var(--cc-v51-overview-label); }
+.ccV5OverviewHeading > div > small { margin-top: 5px; font-size: 12px; }
+.ccV5OverviewStatus { font-size: 12px; }
+.ccV5OverviewStatus i { width: 7px; height: 7px; }
+.ccV5OverviewBody { grid-template-columns: .84fr 1.16fr; gap: 14px 18px; padding: 15px 16px 17px; }
+.ccV5Exposure { gap: 13px; }
+.ccV5ExposureRing {
+  width: 82px;
+  padding-top: 23px;
+  border-width: 3px;
+}
+.ccV5ExposureRing strong { font-size: 30px; line-height: 1; }
+.ccV5ExposureRing small { font-size: 10px; }
+.ccV5Exposure > div:last-child span { font-size: var(--cc-v51-overview-label); }
+.ccV5Exposure > div:last-child strong { margin-top: 5px; font-size: 14px; }
+.ccV5AssetMix { gap: 9px 16px; }
+.ccV5AssetMix span {
+  grid-template-columns: 8px 1fr auto;
+  gap: 7px;
+  font-size: var(--cc-v51-overview-label);
+  line-height: 1.25;
+}
+.ccV5AssetMix i { width: 6px; height: 6px; }
+.ccV5AssetMix strong { font-size: 13px; }
+.ccV5RiskPath { gap: 12px; padding-top: 12px; }
+.ccV5RiskPath > span,
+.ccV5RiskPath > strong,
+.ccV5RiskPath a,
+.ccV5RiskPath em { font-size: var(--cc-v51-risk-copy); }
+
+.ccV5Runtime { min-height: 64px; border-radius: 14px; }
+.ccV5Runtime > span { height: 64px; padding-inline: 17px; gap: 10px; }
+.ccV5Runtime > span svg { width: 22px; height: 22px; }
+.ccV5Runtime small { font-size: 12px; }
+.ccV5Runtime strong { font-size: var(--cc-v51-runtime-value); }
+.ccV5RuntimeState i { width: 8px; height: 8px; }
+.ccV5Runtime button { min-height: 64px; padding-inline: 18px; font-size: 13px; }
+
+.ccV5Scene-desktop .ccV5SceneLabel {
+  min-width: 132px;
+  padding: 10px 12px 9px;
+  backdrop-filter: blur(8px);
+}
+.ccV5Scene-desktop .ccV5SceneLabel strong { font-size: 12px; }
+.ccV5Scene-desktop .ccV5SceneLabel span { margin-top: 4px; font-size: 11px; }
+
+@media (max-width: 1280px) and (min-width: 900px) {
+  .ccV5Desktop {
+    grid-template-columns: minmax(405px, .88fr) minmax(570px, 1.12fr);
+    width: calc(100vw - 30px);
+    min-height: 760px;
+    padding-top: 34px;
+  }
+  .ccV5Copy h1 { font-size: clamp(3.45rem, 4.8vw, 4.15rem); }
+  .ccV5Copy > p { font-size: 15px; }
+  .ccV5DesktopScene { min-height: 650px; margin-left: -34px; }
+  .ccV5MetricCard { min-height: 106px; padding-left: 55px; }
+  .ccV5MetricCard > strong { font-size: 32px; }
+  .ccV5MetricCard > span:not(.ccV5MetricIcon) { font-size: 13px; }
+  .ccV5OverviewBody { grid-template-columns: 1fr; }
+  .ccV5RiskPath { grid-template-columns: 1fr auto; }
+  .ccV5RiskPath > span { grid-column: 1 / -1; }
+  .ccV5RiskPath > strong { white-space: normal; }
+}
+
+@media (max-width: 899px) {
+  .ccV5Mobile {
+    width: min(100%, 720px);
+    padding: 36px max(18px, env(safe-area-inset-left)) 54px max(18px, env(safe-area-inset-right));
+  }
+  .ccV5MobileCopy { padding-inline: 4px; }
+  .ccV5Copy-mobile .ccV5Eyebrow { font-size: 12px; margin-bottom: 15px; }
+  .ccV5Copy-mobile h1 {
+    font-size: clamp(3rem, 12vw, 4.45rem);
+    line-height: .97;
+  }
+  .ccV5Copy-mobile > p {
+    margin-top: 20px;
+    font-size: 17px;
+    line-height: 1.58;
+  }
+  .ccV5Primary, .ccV5Secondary { font-size: 15px; }
+  .ccV5MobileScene {
+    width: calc(100% + 16px);
+    height: clamp(410px, 104vw, 560px);
+    margin: 14px -8px 0;
+  }
+  .ccV5Scene-mobile .ccV5SceneLabel { min-width: 102px; padding: 8px 9px; }
+  .ccV5Scene-mobile .ccV5SceneLabel strong { font-size: var(--cc-v51-scene-label-mobile); line-height: 1.15; }
+  .ccV5Scene-mobile .ccV5SceneLabel span { margin-top: 4px; font-size: 11px; }
+  .ccV5Metrics-mobile { margin: 2px 4px 0; }
+  .ccV5Metrics-mobile .ccV5MetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+  .ccV5MetricCard { min-height: 126px; padding: 20px 14px 16px 58px; }
+  .ccV5MetricIcon { left: 17px; top: 22px; }
+  .ccV5MetricCard > strong { font-size: var(--cc-v51-metric-value-mobile); }
+  .ccV5MetricCard > span:not(.ccV5MetricIcon) { margin-top: 10px; font-size: var(--cc-v51-metric-label-mobile); }
+  .ccV5MetricCard > small { margin-top: 5px; font-size: var(--cc-v51-supporting-mobile); }
+  .ccV5SectionLabel span { font-size: 12px; }
+  .ccV5SectionLabel small { font-size: 11px; }
+
+  .ccV5Runtime-mobile { margin: 14px 4px 0; min-height: 78px; flex-wrap: wrap; }
+  .ccV5Runtime-mobile > span {
+    flex: 1 1 33.333%;
+    min-width: 0;
+    height: 78px;
+    padding: 13px 12px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .ccV5Runtime-mobile > span small { display: block; font-size: 11px; line-height: 1.15; white-space: normal; }
+  .ccV5Runtime-mobile strong { font-size: var(--cc-v51-runtime-value); }
+  .ccV5Runtime-mobile button { min-height: 50px; font-size: 13px; }
+
+  .ccV5Overview-mobile { margin: 14px 4px 0; }
+  .ccV5Overview-mobile .ccV5OverviewHeading { min-height: 66px; padding: 14px 15px; }
+  .ccV5Overview-mobile .ccV5OverviewHeading > div > span,
+  .ccV5Overview-mobile .ccV5Exposure > div:last-child span,
+  .ccV5Overview-mobile .ccV5AssetMix span { font-size: var(--cc-v51-overview-label); }
+  .ccV5Overview-mobile .ccV5OverviewHeading > div > small,
+  .ccV5Overview-mobile .ccV5OverviewStatus { font-size: 12px; }
+  .ccV5Overview-mobile .ccV5OverviewBody { gap: 17px; padding: 16px; }
+  .ccV5Overview-mobile .ccV5ExposureRing { width: 86px; }
+  .ccV5Overview-mobile .ccV5AssetMix { gap: 11px 14px; }
+  .ccV5Overview-mobile .ccV5AssetMix strong { font-size: 13px; }
+  .ccV5Overview-mobile .ccV5RiskPath { gap: 9px; padding-top: 14px; }
+  .ccV5Overview-mobile .ccV5RiskPath > span,
+  .ccV5Overview-mobile .ccV5RiskPath > strong,
+  .ccV5Overview-mobile .ccV5RiskPath a,
+  .ccV5Overview-mobile .ccV5RiskPath em { font-size: var(--cc-v51-risk-copy); }
+}
+
+@media (max-width: 380px) {
+  .ccV5Mobile { padding-inline: 13px; }
+  .ccV5Copy-mobile h1 { font-size: 2.8rem; }
+  .ccV5MobileScene { height: 390px; }
+  .ccV5Metrics-mobile .ccV5MetricGrid { grid-template-columns: 1fr; }
+  .ccV5MetricCard { min-height: 116px; }
+  .ccV5Overview-mobile .ccV5AssetMix { grid-template-columns: 1fr; }
+}
