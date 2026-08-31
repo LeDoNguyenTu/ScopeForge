@@ -15,11 +15,28 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const model = useMemo(() => createIllustrativeAttackSurfaceV5Model(), []);
+  const mediaQuery = variant === "desktop" ? "(min-width: 900px)" : "(max-width: 899px)";
+  const [mediaActive, setMediaActive] = useState(false);
   const [rendererState, setRendererState] = useState<RendererState>("poster");
   const [posterVisible, setPosterVisible] = useState(true);
   const { reportProgress, markReady, releaseFallback } = useLandingBoot();
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia) {
+      setMediaActive(variant === "desktop" ? window.innerWidth >= 900 : window.innerWidth < 900);
+      return;
+    }
+
+    const query = window.matchMedia(mediaQuery);
+    const sync = () => setMediaActive(query.matches);
+    sync();
+    query.addEventListener?.("change", sync);
+    return () => query.removeEventListener?.("change", sync);
+  }, [mediaQuery, variant]);
+
+  useEffect(() => {
+    if (!mediaActive) return;
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
@@ -166,8 +183,9 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerleave", onPointerLeave);
       controller?.dispose();
+      controller = null;
     };
-  }, [markReady, model, releaseFallback, reportProgress, variant]);
+  }, [markReady, mediaActive, model, releaseFallback, reportProgress, variant]);
 
   return (
     <div
@@ -175,6 +193,7 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
       className={`ccV5Scene ccV5Scene-${variant}`}
       data-testid="attack-surface-v5-scene"
       data-renderer-state={rendererState}
+      data-media-active={mediaActive ? "true" : "false"}
       aria-label="Illustrative ScopeForge living attack surface"
     >
       <div className={`ccV5Poster${posterVisible ? " ccV5Poster-visible" : ""}`} data-testid="attack-surface-v5-poster" aria-hidden="true">
