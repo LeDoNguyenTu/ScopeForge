@@ -88,8 +88,6 @@ function terminal(executionClass: "passive_runtime_observation_v1" | "active_cor
 }
 
 function dependencies(executionClass: "passive_runtime_observation_v1" | "active_cors_validation_v1", cancelled = false): RuntimeWorkerPublicationDependencies {
-  const passivePersist = vi.fn(async () => undefined);
-  const activePersist = vi.fn(async () => undefined);
   return {
     getContext: vi.fn(async () => ({
       taskId,
@@ -106,8 +104,8 @@ function dependencies(executionClass: "passive_runtime_observation_v1" | "active
     })),
     loadPassiveJob: vi.fn(async () => executionClass === "passive_runtime_observation_v1" ? job("passive_runtime", cancelled ? { cancel_requested_at: observedAt.toISOString() } : {}) : null),
     loadActiveJob: vi.fn(async () => executionClass === "active_cors_validation_v1" ? job("active_validation", cancelled ? { cancel_requested_at: observedAt.toISOString() } : {}) : null),
-    persistPassive: passivePersist,
-    persistActive: activePersist,
+    publishPassiveSuccess: vi.fn(async (input) => ({ outcome: input.finalization.outcome, replayed: false })),
+    publishActiveSuccess: vi.fn(async (input) => ({ outcome: input.finalization.outcome, replayed: false })),
     finalize: vi.fn(async (input) => ({ outcome: input.outcome, replayed: false })),
     now: () => observedAt,
   };
@@ -116,45 +114,49 @@ function dependencies(executionClass: "passive_runtime_observation_v1" | "active
 const identity = { workerId, taskId, attemptId, leaseToken };
 
 describe("Phase 6D trusted publication", () => {
-  it("reruns passive deterministic rules and persists mapped findings/evidence in the control plane", async () => {
+  it("reruns passive deterministic rules and atomically publishes mapped findings/evidence", async () => {
     const deps = dependencies("passive_runtime_observation_v1");
     const result = await publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("passive_runtime_observation_v1") }, deps);
 
-    expect(deps.persistPassive).toHaveBeenCalledTimes(1);
-    const call = vi.mocked(deps.persistPassive).mock.calls[0]?.[0];
-    expect(call?.observations).toHaveLength(1);
-    expect(call?.findings.length).toBeGreaterThan(0);
-    expect(call?.evidence.length).toBeGreaterThan(0);
-    expect(String(call?.findings[0]?.source.sourceId)).toBe("scopeforge:runtime-observer");
-    expect(deps.finalize).toHaveBeenCalledWith(expect.objectContaining({
+    expect(deps.publishPassiveSuccess).toHaveBeenCalledTimes(1);
+    const call = vi.mocked(deps.publishPassiveSuccess).mock.calls[0]?.[0];
+    expect(call?.publication.observations).toHaveLength(1);
+    expect(call?.publication.findings.length).toBeGreaterThan(0);
+    expect(call?.publication.evidence.length).toBeGreaterThan(0);
+    expect(String(call?.publication.findings[0]?.source.sourceId)).toBe("scopeforge:runtime-observer");
+    expect(call?.finalization).toEqual(expect.objectContaining({
       outcome: "succeeded",
       requestCount: 1,
       redirectCount: 0,
-      findingCount: call?.findings.length,
+      findingCount: call?.publication.findings.length,
     }));
+    expect(deps.finalize).not.toHaveBeenCalled();
     expect(result).toEqual({ outcome: "succeeded", replayed: false });
   });
 
-  it("reruns active CORS rules and persists only the normalized observation", async () => {
+  it("reruns active CORS rules and atomically publishes only the normalized observation", async () => {
     const deps = dependencies("active_cors_validation_v1");
     await publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("active_cors_validation_v1") }, deps);
 
-    expect(deps.persistActive).toHaveBeenCalledTimes(1);
-    const call = vi.mocked(deps.persistActive).mock.calls[0]?.[0];
-    expect(call?.observation.kind).toBe("cors-policy");
-    expect(call?.findings.length).toBeGreaterThan(0);
-    expect(deps.finalize).toHaveBeenCalledWith(expect.objectContaining({
+    expect(deps.publishActiveSuccess).toHaveBeenCalledTimes(1);
+    const call = vi.mocked(deps.publishActiveSuccess).mock.calls[0]?.[0];
+    expect(call?.publication.observation.kind).toBe("cors-policy");
+    expect(call?.publication.findings.length).toBeGreaterThan(0);
+    expect(call?.finalization).toEqual(expect.objectContaining({
       outcome: "succeeded",
       requestCount: 1,
       redirectCount: 0,
+      findingCount: call?.publication.findings.length,
     }));
+    expect(deps.finalize).not.toHaveBeenCalled();
   });
 
   it("makes cancellation win before persistence even when a late success arrives", async () => {
     const deps = dependencies("passive_runtime_observation_v1", true);
     const result = await publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("passive_runtime_observation_v1") }, deps);
 
-    expect(deps.persistPassive).not.toHaveBeenCalled();
+    expect(deps.publishPassiveSuccess).not.toHaveBeenCalled();
+    expect(deps.publishActiveSuccess).not.toHaveBeenCalled();
     expect(deps.finalize).toHaveBeenCalledWith(expect.objectContaining({
       outcome: "cancelled",
       requestCount: 0,
@@ -164,7 +166,7 @@ describe("Phase 6D trusted publication", () => {
     expect(result.outcome).toBe("cancelled");
   });
 
-  it("rejects an expired late success without persisting observations or findings", async () => {
+  it("rejects an expired late success without publishing observations or findings", async () => {
     const deps = dependencies("passive_runtime_observation_v1");
     deps.getContext = vi.fn(async () => ({
       taskId,
@@ -183,18 +185,20 @@ describe("Phase 6D trusted publication", () => {
     await expect(publishRuntimeWorkerTerminal({ ...identity, terminal: terminal("passive_runtime_observation_v1") }, deps)).rejects.toMatchObject({
       code: "RUNTIME_WORKER_AUTHORIZATION_FAILED",
     });
-    expect(deps.persistPassive).not.toHaveBeenCalled();
+    expect(deps.publishPassiveSuccess).not.toHaveBeenCalled();
+    expect(deps.publishActiveSuccess).not.toHaveBeenCalled();
     expect(deps.finalize).not.toHaveBeenCalled();
   });
 
-  it("does not persist malformed or cross-class success output", async () => {
+  it("does not publish malformed or cross-class success output", async () => {
     const deps = dependencies("passive_runtime_observation_v1");
     const malformed = {
       ...terminal("passive_runtime_observation_v1"),
       result: { kind: "passive_runtime_observation", requestCount: 1, redirectCount: 0, observations: [], rawBody: "secret" },
     };
     await expect(publishRuntimeWorkerTerminal({ ...identity, terminal: malformed }, deps)).rejects.toThrow();
-    expect(deps.persistPassive).not.toHaveBeenCalled();
+    expect(deps.publishPassiveSuccess).not.toHaveBeenCalled();
+    expect(deps.publishActiveSuccess).not.toHaveBeenCalled();
     expect(deps.finalize).not.toHaveBeenCalled();
   });
 
@@ -202,8 +206,8 @@ describe("Phase 6D trusted publication", () => {
     const value = terminal("passive_runtime_observation_v1");
     const first = dependencies("passive_runtime_observation_v1");
     const accepted = await publishRuntimeWorkerTerminal({ ...identity, terminal: value }, first);
-    const finalizeInput = vi.mocked(first.finalize).mock.calls[0]?.[0];
-    expect(finalizeInput?.terminalDigest).toMatch(/^[a-f0-9]{64}$/);
+    const finalizationInput = vi.mocked(first.publishPassiveSuccess).mock.calls[0]?.[0]?.finalization;
+    expect(finalizationInput?.terminalDigest).toMatch(/^[a-f0-9]{64}$/);
 
     const replay = dependencies("passive_runtime_observation_v1");
     replay.getContext = vi.fn(async () => ({
@@ -217,10 +221,10 @@ describe("Phase 6D trusted publication", () => {
       leaseExpiresAt: "2026-08-31T01:00:30.000Z",
       finishedAt: observedAt.toISOString(),
       priorOutcome: accepted.outcome,
-      priorTerminalDigest: finalizeInput?.terminalDigest ?? null,
+      priorTerminalDigest: finalizationInput?.terminalDigest ?? null,
     }));
     await expect(publishRuntimeWorkerTerminal({ ...identity, terminal: value }, replay)).resolves.toEqual({ outcome: "succeeded", replayed: true });
-    expect(replay.persistPassive).not.toHaveBeenCalled();
+    expect(replay.publishPassiveSuccess).not.toHaveBeenCalled();
 
     replay.getContext = vi.fn(async () => ({
       taskId,
