@@ -1,14 +1,13 @@
 import { execFile } from "node:child_process";
 import { buildRuntimeWorkerPodmanCreateCommand } from "./podman-command";
 import type {
+  RuntimeWorkerExecutionClass,
   RuntimeWorkerPodmanCommandInput,
   RuntimeWorkerSandbox,
 } from "./types";
 
 const CONTROL_TIMEOUT_MS = 30_000;
-const EXECUTION_TIMEOUT_MS = 35_000;
 const CONTROL_OUTPUT_BYTES = 65_536;
-const RUNTIME_OUTPUT_BYTES = 196_608;
 
 export class RuntimeWorkerSandboxError extends Error {
   constructor(message: string) {
@@ -28,6 +27,15 @@ interface CommandDriver {
     args: readonly string[],
     options: { timeoutMs: number; maxOutputBytes: number },
   ): Promise<CommandResult>;
+}
+
+function runtimeLimits(executionClass: RuntimeWorkerExecutionClass): {
+  timeoutMs: number;
+  maxOutputBytes: number;
+} {
+  return executionClass === "passive_runtime_observation_v1"
+    ? { timeoutMs: 30_000, maxOutputBytes: 131_072 }
+    : { timeoutMs: 20_000, maxOutputBytes: 65_536 };
 }
 
 function fixedEnvironment(): NodeJS.ProcessEnv {
@@ -101,6 +109,7 @@ export function createRuntimeWorkerSandbox(
     async execute(input: RuntimeWorkerPodmanCommandInput, signal: AbortSignal) {
       if (signal.aborted) throw abortError();
       const command = buildRuntimeWorkerPodmanCreateCommand(input);
+      const limits = runtimeLimits(input.executionClass);
       let containerMayExist = false;
       let removed = false;
       let forceRemoval: Promise<void> | null = null;
@@ -144,10 +153,7 @@ export function createRuntimeWorkerSandbox(
 
         let attached: CommandResult;
         try {
-          attached = await driver.exec(command.file, ["start", "--attach", command.containerName], {
-            timeoutMs: EXECUTION_TIMEOUT_MS,
-            maxOutputBytes: RUNTIME_OUTPUT_BYTES,
-          });
+          attached = await driver.exec(command.file, ["start", "--attach", command.containerName], limits);
         } catch (error) {
           await forceRemove();
           if (signal.aborted) throw abortError();
@@ -176,7 +182,7 @@ export function createRuntimeWorkerSandbox(
         if (savedExit !== 0) {
           throw new RuntimeWorkerSandboxError("Runtime worker container failed inside the fixed sandbox boundary.");
         }
-        if (Buffer.byteLength(attached.stdout, "utf8") > RUNTIME_OUTPUT_BYTES) {
+        if (Buffer.byteLength(attached.stdout, "utf8") > limits.maxOutputBytes) {
           throw new RuntimeWorkerSandboxError("Runtime worker output exceeds the fixed result boundary.");
         }
         return Object.freeze({ output: attached.stdout });
