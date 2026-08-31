@@ -35,8 +35,8 @@ function dependencies(): RuntimeWorkerPublicationDependencies {
     })),
     loadPassiveJob: vi.fn(async () => null),
     loadActiveJob: vi.fn(async () => null),
-    persistPassive: vi.fn(async () => undefined),
-    persistActive: vi.fn(async () => undefined),
+    publishPassiveSuccess: vi.fn(async () => ({ outcome: "succeeded" as const, replayed: false })),
+    publishActiveSuccess: vi.fn(async () => ({ outcome: "succeeded" as const, replayed: false })),
     finalize: vi.fn(async (input) => ({ outcome: input.outcome, replayed: false })),
   };
 }
@@ -44,7 +44,7 @@ function dependencies(): RuntimeWorkerPublicationDependencies {
 const identity = { workerId, taskId, attemptId, leaseToken };
 
 describe("Phase 6D non-success terminal publication", () => {
-  it("finalizes a failed worker report without loading or persisting domain observations", async () => {
+  it("finalizes a failed worker report without loading or publishing domain observations", async () => {
     const deps = dependencies();
     const result = await publishRuntimeWorkerTerminal({
       ...identity,
@@ -62,8 +62,8 @@ describe("Phase 6D non-success terminal publication", () => {
 
     expect(deps.loadPassiveJob).not.toHaveBeenCalled();
     expect(deps.loadActiveJob).not.toHaveBeenCalled();
-    expect(deps.persistPassive).not.toHaveBeenCalled();
-    expect(deps.persistActive).not.toHaveBeenCalled();
+    expect(deps.publishPassiveSuccess).not.toHaveBeenCalled();
+    expect(deps.publishActiveSuccess).not.toHaveBeenCalled();
     expect(deps.finalize).toHaveBeenCalledWith(expect.objectContaining({
       outcome: "failed",
       failureCode: "PASSIVE_RUNTIME_NETWORK_ERROR",
@@ -74,7 +74,7 @@ describe("Phase 6D non-success terminal publication", () => {
     expect(result).toEqual({ outcome: "failed", replayed: false });
   });
 
-  it("finalizes a worker cancellation without loading or persisting domain observations", async () => {
+  it("finalizes a worker cancellation without loading or publishing domain observations", async () => {
     const deps = dependencies();
     const result = await publishRuntimeWorkerTerminal({
       ...identity,
@@ -92,8 +92,8 @@ describe("Phase 6D non-success terminal publication", () => {
 
     expect(deps.loadPassiveJob).not.toHaveBeenCalled();
     expect(deps.loadActiveJob).not.toHaveBeenCalled();
-    expect(deps.persistPassive).not.toHaveBeenCalled();
-    expect(deps.persistActive).not.toHaveBeenCalled();
+    expect(deps.publishPassiveSuccess).not.toHaveBeenCalled();
+    expect(deps.publishActiveSuccess).not.toHaveBeenCalled();
     expect(deps.finalize).toHaveBeenCalledWith(expect.objectContaining({
       outcome: "cancelled",
       failureCode: null,
