@@ -69,6 +69,22 @@ describe("trusted runtime HTTPS transport", () => {
     });
   });
 
+  it("pins the approved address family so Node family autoselection is disabled", () => {
+    const ipv4 = buildPinnedHttpsRequestOptions({
+      plan: passivePlan(),
+      address: "1.1.1.1",
+      family: 4,
+    });
+    const ipv6 = buildPinnedHttpsRequestOptions({
+      plan: passivePlan(),
+      address: "2606:4700:4700::1111",
+      family: 6,
+    });
+
+    expect(ipv4.family).toBe(4);
+    expect(ipv6.family).toBe(6);
+  });
+
   it("rejects request plans outside the trusted Origin contract", () => {
     const unsafe = {
       ...passivePlan("https://example.com/app", 1_000),

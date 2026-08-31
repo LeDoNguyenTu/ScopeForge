@@ -99,6 +99,7 @@ export function buildPinnedHttpsRequestOptions(input: {
     agent: false,
     hostname,
     servername: isIP(hostname) ? undefined : hostname,
+    family: input.family,
     port: 443,
     path: `${input.plan.url.pathname}${input.plan.url.search}`,
     timeout: input.plan.timeoutMs,
