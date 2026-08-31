@@ -34,15 +34,15 @@ Base:
 
 Current reviewed code/security head:
 
-`3e81369a0d3073b9fdca55637c05ad2c1543e995`
+`0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`
 
 Authoritative release-state refresh:
 
-`22a8fb8453f93faff0b321fa8ca48fdb95d11a7f`
+`f7b814d60c5ea9fee60eb5ad16cab28510ec9950`
 
 Compact working-state refresh:
 
-`145f335ee9aafb0c4aba42e14a050c764929a6a7`
+`953f4509ba03fd6b7f0dabd398b8e3c2d631b851`
 
 PR #52 remains draft. The source/security review has progressed beyond the earlier checkpoint; do not restart Tasks 1-13 or the initial Task 16 review from scratch unless new evidence identifies a concrete defect.
 
@@ -68,7 +68,7 @@ Do not reopen Tasks 1-13 as if they were unimplemented. Revisit them only if Tas
 
 ### Review hardening already completed
 
-Task 14/16 review found and repaired real defects using forward-only changes:
+Task 14/16 review found and repaired real defects:
 
 - canonical cancellation contract alignment
 - strict active-CORS observation reconstruction
@@ -85,6 +85,10 @@ Task 14/16 review found and repaired real defects using forward-only changes:
 - mediator host socket-root symlink/non-directory/wrong-owner rejection
 - mediator root permission re-establishment to `0700`
 - cleanup ordering that closes and unlinks a listening mediator socket if permission publication fails
+- trusted runtime HTTPS cancellation signal
+- supervisor-to-mediator-to-profile-to-pinned-HTTPS abort propagation for both passive observation and active CORS
+- cancellation-driven `AbortError` classification as cancelled rather than generic network failure
+- permanent architecture guard preventing the in-flight abort connection from being dropped
 
 The repository migration files for the final database hardening are:
 
@@ -102,13 +106,13 @@ The latest live Phase 6D database/fleet snapshot remains quiescent:
 
 Live Phase 6D public control/publication RPC review confirms `SECURITY DEFINER`, empty `search_path`, and service-role-only execution. The generic finalizer cannot publish Phase 6D success.
 
-The post-documentation mediator hardening from `e90bd6eb7e002e98c37cd401671e036adeda835a` through `3e81369a0d3073b9fdca55637c05ad2c1543e995` changed only the mediator Unix-server boundary and its focused regression test. It did not change package manifests, database migrations, or capability state. All four commits in that delta use `[skip ci]`.
+The socket/runtime-network hardening after the latest live database reconciliation did not change package manifests, database migrations, or capability state. The reviewed implementation/test/documentation commits in this hardening sequence use `[skip ci]`.
 
 ## Active Phase 6D gates
 
 ### 1. Task 14 full exact-head software acceptance - blocked on a complete runner
 
-Static/source gates are substantially complete. The exact final candidate still needs the accepted executable command chain on one fresh dependency-complete runner:
+Static/source gates are substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The exact final candidate still needs the accepted executable command chain on one fresh dependency-complete runner:
 
 ```text
 npm test
@@ -120,15 +124,15 @@ npm audit --audit-level=info
 npm run build
 ```
 
-Also inspect the focused Phase 6D tests directly if the full suite output does not make their execution obvious.
+Also inspect the focused Phase 6D tests directly if the full suite output does not make their execution obvious, including the runtime network cancellation tests.
 
 Current executable evidence is partial but useful:
 
 - the last useful Vercel/Next.js compiler checkpoint was `5a7d3d26eb1bfaae5c38f536b0b9b153aa437a41`
 - Next.js compilation and framework lint/type validation completed successfully there
 - the build then failed during `/auth/sign-in` prerender because the Preview environment lacked the public Supabase URL/publishable key
-- code head `3e81369a0d3073b9fdca55637c05ad2c1543e995` has no GitHub Actions runs
-- its only commit status is Vercel failure on the account build-rate limit
+- current code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf` has no GitHub Actions verification
+- its visible commit status is Vercel failure on the account build-rate limit
 
 Treat those as compiler/platform evidence only. They are not a successful production build and do not replace the explicit command chain above.
 
@@ -154,7 +158,7 @@ Prove:
 - private/loopback/link-local/reserved targets remain rejected
 - active CORS performs exactly one request and its session cannot replay
 - passive request/redirect/byte/time budgets hold over the entire attempt
-- cancellation stops mediator activity, terminates the Podman workload, and late success cannot publish
+- cancellation aborts the in-flight pinned HTTPS request, stops mediator activity, terminates the Podman workload, and prevents late success publication
 - memory, PID/process, CPU/wall-time, scratch, input, and output ceilings are enforced
 - mediator failure never causes a direct-network fallback
 - the supervisor socket root rejects symlink, non-directory, and wrong-owner states on the real host
@@ -164,14 +168,14 @@ Explicit host questions discovered during source review:
 
 1. Verify whether `--pids-limit=1` is actually compatible with the Node runtime under rootless Podman. Linux cgroup PID accounting includes tasks/threads, so this must be measured. Do not loosen the limit from source speculation alone.
 2. Test whether the single mediator socket bind can be made explicitly read-only while still allowing the executor to connect. If yes, tighten the command and add regression coverage. If not, document the host/runtime reason and maintain the smallest possible writable host surface.
-3. Verify abort/cancellation cannot return from the Podman executor until the hostile process is actually stopped. Phase 6D intentionally waits for killable sandbox termination before cleanup/finalization rather than detaching.
-4. Exercise the newly hardened socket-root ownership and cleanup paths under the same rootless account used by the production worker.
+3. Verify abort/cancellation cannot return from the Podman executor until the hostile process and in-flight mediator HTTPS operation are actually stopped. Phase 6D intentionally waits for killable sandbox termination before cleanup/finalization rather than detaching.
+4. Exercise the hardened socket-root ownership and cleanup paths under the same rootless account used by the production worker.
 
 Neither Phase 6D production capability may be enabled before this evidence is reviewed.
 
 ### 3. Final Task 16 same-SHA release review
 
-The broad source/security review pass is substantially complete through code head `3e81369a0d3073b9fdca55637c05ad2c1543e995`. The remaining Task 16 work is a **final release review after Task 14 executable acceptance** on the same candidate SHA.
+The broad source/security review pass is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The remaining Task 16 work is a **final release review after Task 14 executable acceptance** on the same candidate SHA.
 
 At that point:
 
@@ -181,6 +185,7 @@ At that point:
 - recheck worker task/result contracts and every network import changed since the current checkpoint
 - recheck every new `SECURITY DEFINER`/grant if any SQL changed
 - confirm cancellation/replay/lost-attempt/cleanup ordering
+- confirm supervisor abort still reaches both in-flight runtime transports
 - confirm mediator root ownership and startup cleanup remain fail-closed
 - confirm logging/telemetry privacy
 - confirm no direct-network or generic-finalizer fallback
