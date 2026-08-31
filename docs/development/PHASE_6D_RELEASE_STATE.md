@@ -6,7 +6,7 @@ This file is the authoritative release-gate checkpoint for **Phase 6D dedicated 
 
 - branch: `feat/phase-6d-network-workers-v1-task14`
 - PR: #52
-- reviewed implementation head before this checkpoint document: `686805d672656709f6fd4ca04f3df14f3cd8bc14`
+- current reviewed code/security head before this checkpoint update: `3e81369a0d3073b9fdca55637c05ad2c1543e995`
 - base: `design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
 - PR remains **draft**
 - no dependency manifest or lockfile drift exists in the Phase 6D base-to-head diff
@@ -24,6 +24,16 @@ Runtime executor containers remain network-disabled. Network authority is isolat
 
 Dashboard actions no longer perform runtime networking from Vercel. They call the request service, whose Phase 6D capability check happens before asset loading or queue creation.
 
+The mediator socket boundary is additionally hardened at the current code head:
+
+- the fixed host socket root is rechecked with `lstat` before use
+- symlink and non-directory roots are rejected
+- the root must be owned by the supervisor process user
+- root permissions are reset to `0700`
+- if socket permission publication fails after `listen()`, the listening server is closed and the socket is unlinked before the error escapes
+
+These source guards do not replace Task 15 host acceptance.
+
 ## Capability state
 
 These capabilities remain disabled and must stay disabled through merge:
@@ -39,12 +49,12 @@ Turnstile is not wired as active application behavior. The auth UI continues to 
 
 Authoritative ScopeForge project: `tdgpibrepzcvdivztkta`.
 
-The reviewed Phase 6D migration stack is live. Later Task 14 hardening was added only through forward migrations:
+The reviewed Phase 6D migration stack is live. Later Task 14 hardening was added only through forward migrations. The repository migration files are:
 
-- `20260831010900_phase_6d_runtime_finalization_recovery_lock`
-- `20260831011000_phase_6d_runtime_claim_clock`
-- `20260831011100_phase_6d_runtime_recovery_clock`
-- `20260831011200_phase_6d_atomic_runtime_publication`
+- `20260831010900_phase_6d_runtime_worker_finalization_recovery_lock.sql`
+- `20260831011000_phase_6d_runtime_worker_claim_clock.sql`
+- `20260831011100_worker_recovery_clock.sql`
+- `20260831011200_phase_6d_atomic_runtime_publication.sql`
 
 The latest atomic-publication migration is recorded live as `phase_6d_atomic_runtime_publication`.
 
@@ -60,9 +70,11 @@ Live verification after the latest DDL confirmed:
 - private runtime task state has no direct browser/service-role DML escape where RPC-only mutation is required
 - generic `finalize_worker_attempt` accepts only its older closed worker classes and rejects Phase 6D classes via `WORKER_CLASS_UNAVAILABLE`
 - dedicated runtime finalization resolves cancellation before success and independently requires `cancel_requested_at IS NULL` for a success transition
-- successful Phase 6D result persistence and broker finalization now occur atomically in class-specific RPCs under the shared recovery serialization lock
-- atomic success publication rechecks the live lease with `clock_timestamp()` before persistence
+- successful Phase 6D result persistence and broker finalization occur atomically in class-specific RPCs under the shared recovery serialization lock
+- atomic success publication rechecks the live lease with a fresh database wall clock before persistence
 - cancellation/replay branches occur before success persistence
+
+No database migration changed in the post-documentation mediator hardening from `e90bd6eb7e002e98c37cd401671e036adeda835a` through `3e81369a0d3073b9fdca55637c05ad2c1543e995`, so the prior live reconciliation remains applicable to that code delta.
 
 The post-DDL Supabase security advisor has no new Phase 6D finding. Its only current warning is the project-level `auth_leaked_password_protection` setting.
 
@@ -79,15 +91,20 @@ Completed static/review gates:
 - dedicated runtime finalization is cancellation-first
 - successful Phase 6D publication is atomic with trusted canonical persistence
 - permanent architecture guards pin network ownership, no-generic-network execution classes, sandbox `--network=none`, and atomic success publication
+- mediator result schemas exact-validate nested observations and reject unknown/raw fields
+- mediator request framing and one-shot session consumption bind task, attempt, class, nonce, and expiry
 - reviewed supervisor/runtime code does not log prepared targets, mediator secrets, raw terminal payloads, response bodies, authorization material, cookie values, or resolver transcripts
+- mediator socket-root ownership and startup-cleanup failures are now fail-closed at code head `3e81369a0d3073b9fdca55637c05ad2c1543e995`
 
 Executable evidence currently available:
 
-- automatic Vercel preview for `e28aa8b8073e15cb52d36b2715a9bce6a07efa73` compiled successfully and passed Next.js lint/type validation
-- that preview then failed during `/auth/sign-in` prerender because the **Preview** environment does not contain the public Supabase URL/publishable key
-- this is not recorded as a successful production build and is not exact-head evidence for the later checkpoint commit
+- the last useful Vercel/Next.js compiler checkpoint was `5a7d3d26eb1bfaae5c38f536b0b9b153aa437a41`, whose application code matched the earlier reviewed implementation state
+- Next.js compilation and framework lint/type validation completed successfully there
+- that build then failed during `/auth/sign-in` prerender because the **Preview** environment did not contain the public Supabase URL/publishable key
+- the current `3e81369a0d3073b9fdca55637c05ad2c1543e995` GitHub status has no GitHub Actions runs; its only status is Vercel failure on the account build-rate limit
+- none of this is a successful production `npm run build`, and none replaces the explicit exact-head command chain
 
-Still required on one fresh, dependency-complete exact-head runner before Task 14 can be called complete:
+Still required on one fresh, dependency-complete exact candidate before Task 14 can be called complete:
 
 ```text
 npm test
@@ -121,6 +138,9 @@ A dedicated Linux rootless-Podman/cgroup-v2 host must still prove, on the exact 
 - cancellation aborts mediator work and late success is discarded
 - memory, process, CPU, wall-time, scratch, input, and output ceilings are enforced
 - mediator failure never creates a direct-network fallback
+- the `--pids-limit=1` setting is proven compatible with the actual Node runtime rather than assumed
+- the mediator socket mount is tested for the narrowest usable read/write mode on the real host
+- socket-root ownership checks and startup failure cleanup behave as expected under rootless Podman
 
 Record OS, Podman version, rootless state, cgroup version, immutable image digest, exact git SHA, and raw acceptance evidence.
 
@@ -128,18 +148,19 @@ Do not enable either Phase 6D capability before this gate passes and receives fi
 
 ## Task 16 PR/release boundary
 
-Source review currently confirms:
+Source review through code head `3e81369a0d3073b9fdca55637c05ad2c1543e995` confirms:
 
 - changed paths are confined to Phase 6D, its tests/docs, and the reviewed repository-snapshot network-authority extraction
 - no package/dependency drift
 - no unrelated Phase 7/8 product feature implementation
 - every reviewed network import remains within an intended authority boundary
 - Phase 6D control/publication RPC ACL and `search_path` posture is live-verified
-- cancellation, replay, lease timing, backpressure, one-attempt runtime semantics, and atomic publication have explicit regression guards
+- cancellation, replay, lease timing, backpressure, one-attempt runtime semantics, atomic publication, mediator ownership, and startup cleanup have explicit regression guards
 - capability gates remain false/absent
 - PR #52 remains draft
+- PR review submissions and inline review threads remain empty at this checkpoint
 
-Before changing PR #52 from draft or merging it, rerun the exact-head Task 14 software acceptance above and perform one final base-to-head review against that same SHA.
+Before changing PR #52 from draft or merging it, run the exact-head Task 14 software acceptance above and perform one final base-to-head review against that same SHA. If code changes after the accepted SHA, rerun the affected acceptance rather than treating prior compiler evidence as transferable.
 
 A disabled Phase 6D code merge may occur before Task 15 only if Task 14 and final Task 16 review are genuinely green. A merge is **not** permission to enable runtime networking.
 
