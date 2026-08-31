@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "node scripts/print-lock-delta.mjs",
-    "build": "next build",
+    "build": "NEXT_PUBLIC_SUPABASE_URL=https://acceptance.invalid NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_scopeforge_visual_review NODE_ENV=production next build",
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
     "benchmark:scanner": "node benchmarks/scanner-medium.mjs",
