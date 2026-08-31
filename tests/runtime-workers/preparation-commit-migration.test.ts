@@ -45,6 +45,21 @@ describe("Phase 6D atomic preparation commit migration", () => {
     expect(sql).toContain("attempt_record.finished_at is not null");
   });
 
+  it("samples real wall-clock time only after the lease-bearing rows are locked", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toContain("commit_now timestamptz;");
+    expect(sql).not.toContain("commit_now timestamptz := now()");
+    expect(sql).toContain("commit_now := clock_timestamp();");
+
+    const attemptLock = sql.indexOf("from private.worker_attempts");
+    const clockSample = sql.indexOf("commit_now := clock_timestamp();");
+    const deadlineCheck = sql.indexOf("task_record.absolute_deadline_at <= commit_now");
+    const leaseCheck = sql.indexOf("attempt_record.lease_expires_at <= commit_now");
+    expect(clockSample).toBeGreaterThan(attemptLock);
+    expect(deadlineCheck).toBeGreaterThan(clockSample);
+    expect(leaseCheck).toBeGreaterThan(clockSample);
+  });
+
   it("binds the locked attempt to the task's sole attempt number", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toContain("task_record.attempt_count <> 1");
