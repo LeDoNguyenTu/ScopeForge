@@ -45,6 +45,13 @@ describe("Phase 6D atomic preparation commit migration", () => {
     expect(sql).toContain("attempt_record.finished_at is not null");
   });
 
+  it("binds the locked attempt to the task's sole attempt number", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toContain("task_record.attempt_count <> 1");
+    expect(sql).toContain("task_record.max_attempts <> 1");
+    expect(sql).toContain("attempt_record.attempt_number <> task_record.attempt_count");
+  });
+
   it("compares the exact reauthorized asset and job snapshot before execution starts", async () => {
     const sql = await readFile(migrationPath, "utf8");
     for (const field of [
