@@ -108,6 +108,47 @@ type Phase6dFunctions = {
     };
     Returns: Json;
   };
+  publish_passive_runtime_worker_success: {
+    Args: {
+      target_worker_id: string;
+      target_task_id: string;
+      target_attempt_id: string;
+      target_lease_token: string;
+      target_terminal_digest: string;
+      target_request_count: number;
+      target_redirect_count: number;
+      target_wall_time_ms: number;
+      target_cpu_time_ms: number;
+      target_peak_memory_bytes: number;
+      target_input_bytes: number;
+      target_output_bytes: number;
+      observation_rows: Json;
+      finding_rows: Json;
+      evidence_rows: Json;
+      observed_at: string;
+    };
+    Returns: Json;
+  };
+  publish_active_cors_worker_success: {
+    Args: {
+      target_worker_id: string;
+      target_task_id: string;
+      target_attempt_id: string;
+      target_lease_token: string;
+      target_terminal_digest: string;
+      target_request_count: number;
+      target_wall_time_ms: number;
+      target_cpu_time_ms: number;
+      target_peak_memory_bytes: number;
+      target_input_bytes: number;
+      target_output_bytes: number;
+      observation_row: Json;
+      finding_rows: Json;
+      evidence_rows: Json;
+      observed_at: string;
+    };
+    Returns: Json;
+  };
 };
 
 export type Phase6dDatabase = Omit<Phase6cDatabase, "public"> & {
