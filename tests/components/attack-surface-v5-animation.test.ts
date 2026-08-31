@@ -41,4 +41,15 @@ describe("V5.1 Citadel animation", () => {
     expect(scan.position.y).not.toBe(before.scanY);
     expect(atmosphere.rotation.y).not.toBe(before.atmosphereRotation);
   });
+
+  it("is idempotent at a fixed timestamp so tower motion cannot accumulate drift", () => {
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    const tower = group.getObjectByName("v5-tower-web-app")!;
+
+    updateAttackSurfaceV5Animation(group, 11.4, { x: 0, y: 0 });
+    const firstY = tower.position.y;
+    updateAttackSurfaceV5Animation(group, 11.4, { x: 0, y: 0 });
+
+    expect(tower.position.y).toBeCloseTo(firstY, 8);
+  });
 });
