@@ -26,8 +26,18 @@ describe("runtime mediator Unix socket framing", () => {
     const frame = encodeRuntimeMediatorFrame(request, 4_096);
     const decoder = createRuntimeMediatorFrameDecoder(4_096);
     expect(decoder.push(frame.subarray(0, 4))).toEqual([]);
+    expect(decoder.hasPendingData()).toBe(true);
     expect(decoder.push(frame.subarray(4, 12))).toEqual([]);
+    expect(decoder.hasPendingData()).toBe(true);
     expect(decoder.push(frame.subarray(12))).toEqual([request]);
+    expect(decoder.hasPendingData()).toBe(false);
+  });
+
+  it("exposes trailing partial frame bytes so a one-request socket can reject them", () => {
+    const frame = encodeRuntimeMediatorFrame(request, 4_096);
+    const decoder = createRuntimeMediatorFrameDecoder(4_096, "request");
+    expect(decoder.push(Buffer.concat([frame, Buffer.from([0, 0])]))).toEqual([request]);
+    expect(decoder.hasPendingData()).toBe(true);
   });
 
   it("rejects an oversized declared frame from the length header alone", () => {
