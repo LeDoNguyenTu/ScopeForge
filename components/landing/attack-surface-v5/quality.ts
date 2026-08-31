@@ -12,15 +12,49 @@ export type AttackSurfaceV5QualitySettings = Readonly<{
   dprCap: number;
   antialias: boolean;
   bloom: boolean;
+  detailFactor: number;
   particleFactor: number;
+  hologramFactor: number;
   transparentPanels: boolean;
 }>;
 
 const SETTINGS: Readonly<Record<AttackSurfaceV5Quality, AttackSurfaceV5QualitySettings>> = Object.freeze({
-  cinematic: Object.freeze({ dprCap: 2, antialias: true, bloom: true, particleFactor: 1, transparentPanels: true }),
-  balanced: Object.freeze({ dprCap: 1.75, antialias: true, bloom: true, particleFactor: 0.6, transparentPanels: true }),
-  constrained: Object.freeze({ dprCap: 1.35, antialias: false, bloom: false, particleFactor: 0.25, transparentPanels: false }),
-  reduced: Object.freeze({ dprCap: 1.25, antialias: false, bloom: false, particleFactor: 0, transparentPanels: false }),
+  cinematic: Object.freeze({
+    dprCap: 2.5,
+    antialias: true,
+    bloom: true,
+    detailFactor: 1,
+    particleFactor: 1,
+    hologramFactor: 1,
+    transparentPanels: true,
+  }),
+  balanced: Object.freeze({
+    dprCap: 2,
+    antialias: true,
+    bloom: true,
+    detailFactor: 0.78,
+    particleFactor: 0.66,
+    hologramFactor: 0.72,
+    transparentPanels: true,
+  }),
+  constrained: Object.freeze({
+    dprCap: 1.5,
+    antialias: false,
+    bloom: false,
+    detailFactor: 0.42,
+    particleFactor: 0.24,
+    hologramFactor: 0.28,
+    transparentPanels: false,
+  }),
+  reduced: Object.freeze({
+    dprCap: 1.5,
+    antialias: false,
+    bloom: false,
+    detailFactor: 0.36,
+    particleFactor: 0.08,
+    hologramFactor: 0.2,
+    transparentPanels: false,
+  }),
 });
 
 export function selectAttackSurfaceV5Quality(input: AttackSurfaceV5QualityInput): AttackSurfaceV5Quality {
