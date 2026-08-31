@@ -96,7 +96,7 @@ export function buildRuntimeWorkerPodmanCreateCommand(
       "--pids-limit=1",
       "--memory=256m",
       "--cgroup-conf=memory.swap.max=0",
-      "--cpus=1",
+      "--cpus=0.5",
       "--log-driver=none",
       "--user=65532:65532",
       "--unsetenv-all",
