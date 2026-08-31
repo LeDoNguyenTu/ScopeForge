@@ -251,7 +251,7 @@ function terminalFromMediatorExecution(
           attemptId: contract.attemptId,
           executionClass: contract.executionClass,
           outcome: "cancelled" as const,
-          failureCode: "RUNTIME_WORKER_CANCELLED" as const,
+          failureCode: null,
           metrics: terminalMetrics(contract, wallTimeMs, outputBytes),
           result: null,
         }
