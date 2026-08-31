@@ -1,6 +1,6 @@
 # ScopeForge Unfinished Work Queue
 
-Last reconciled: 2026-08-31
+Last reconciled: 2026-09-01
 
 This file is the persistent resume queue for unfinished ScopeForge work. It exists so later sessions continue from repository state rather than conversation memory.
 
@@ -140,38 +140,11 @@ Do not weaken Supabase client validation or commit configuration/secrets merely 
 
 The current execution container cannot materialize the exact GitHub repository because outbound GitHub DNS/network access is unavailable, and the available GitHub connector has no repository-archive export action. Do not fabricate a local test result from partial source retrieval.
 
-### 2. Task 15 real Linux containment acceptance - hard runtime-enable gate
+### 2. Task 15 real Linux containment acceptance - complete
 
-This cannot be satisfied by unit tests or source review.
+Completed on the dedicated Ubuntu 24.04/rootless-Podman/cgroup-v2 host for implementation SHA `faec75ed74e3e919c61d6ac80f249c56ee7f1885`. The immutable image, measured PID ceiling, real mediator integration, resource enforcement, lifecycle cleanup, and all 31 matrix verdicts are recorded in `docs/development/PHASE_6D_TASK15_ACCEPTANCE.md`.
 
-Use a dedicated Linux worker host with **rootless Podman** and cgroup v2. Record OS, kernel/cgroup mode, Podman version, rootless state, immutable runtime image digest, and exact ScopeForge commit.
-
-Prove:
-
-- exact generated container command starts successfully
-- executor direct DNS fails
-- executor direct public TCP/HTTPS fails
-- executor cannot reach supervisor/host TCP services or loopback services
-- only the dedicated Unix mediator socket is usable
-- arbitrary host Unix sockets are unavailable
-- mediator performs only the prepared authorized HTTPS operation
-- private/loopback/link-local/reserved targets remain rejected
-- active CORS performs exactly one request and its session cannot replay
-- passive request/redirect/byte/time budgets hold over the entire attempt
-- cancellation aborts the in-flight pinned HTTPS request, stops mediator activity, terminates the Podman workload, and prevents late success publication
-- memory, PID/process, CPU/wall-time, scratch, input, and output ceilings are enforced
-- mediator failure never causes a direct-network fallback
-- the supervisor socket root rejects symlink, non-directory, and wrong-owner states on the real host
-- mediator startup/permission failure leaves no listener or stale socket
-
-Explicit host questions discovered during source review:
-
-1. Verify the measured `--pids-limit=8` cgroup task/thread ceiling against the real fixed worker entry. The initial Task 15 sweep found normal Node 22 usage of 7, consistent degradation at 6, and chose one task of headroom. This remains a resource-exhaustion boundary, not process-spawn authority for the executor.
-2. Reverify the single mediator socket's explicit read-only bind on the final image. Task 15 proved it remains connectable under rootless Podman, and the production command plus regression coverage now require `,ro`.
-3. Verify abort/cancellation cannot return from the Podman executor until the hostile process and in-flight mediator HTTPS operation are actually stopped. Phase 6D intentionally waits for killable sandbox termination before cleanup/finalization rather than detaching.
-4. Exercise the hardened socket-root ownership and cleanup paths under the same rootless account used by the production worker.
-
-Neither Phase 6D production capability may be enabled before this evidence is reviewed.
+The acceptance does not enable production. Both Phase 6D capabilities remain false/absent through Task 16 and the disabled merge boundary.
 
 ### 3. Final Task 16 same-SHA release review
 
@@ -193,7 +166,7 @@ At that point:
 - review PR comments/threads
 - keep both Phase 6D capability flags false/absent
 
-A **disabled** Phase 6D merge may occur before Task 15 if Task 14 and this final same-SHA Task 16 review are genuinely green. Such a merge is not permission to enable runtime networking.
+A **disabled** Phase 6D merge may occur only if Task 14, Task 15, and this final same-SHA Task 16 review are genuinely green. Such a merge is not permission to enable runtime networking.
 
 ### 4. Runtime enablement decision - only after Task 15
 

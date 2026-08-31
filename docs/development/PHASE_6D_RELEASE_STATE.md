@@ -135,13 +135,11 @@ npm run build
 
 The scanner benchmark must remain within the existing catastrophic ceiling. The production build must use a complete ScopeForge application environment; missing Preview-only public Supabase configuration must not be worked around by weakening source validation.
 
-## Task 15 containment acceptance - hard enablement blocker
+## Task 15 containment acceptance - passed on the dedicated host
 
-Task 15 has **not** passed and must not be simulated.
+Task 15 passed on the dedicated Ubuntu/rootless-Podman/cgroup-v2 host for implementation SHA `faec75ed74e3e919c61d6ac80f249c56ee7f1885` and immutable image digest `sha256:04b5a5e4cf6b77ac3bf0f74a3126df15305ed1d337e11a8e00d13eef46fc9e43`.
 
-The currently available execution container is Linux with cgroup v2, but it does not provide the required dedicated **rootless Podman** worker host. Therefore it is not valid evidence for the production containment gate.
-
-A dedicated Linux rootless-Podman/cgroup-v2 host must still prove, on the exact candidate/runtime image:
+The complete 31-item evidence and limitations are recorded in `docs/development/PHASE_6D_TASK15_ACCEPTANCE.md`. The real host proved:
 
 - direct DNS from the executor fails
 - direct TCP/HTTPS from the executor fails
@@ -159,9 +157,7 @@ A dedicated Linux rootless-Podman/cgroup-v2 host must still prove, on the exact 
 - the mediator socket is bind-mounted read-only, the narrowest mode proven connectable on the real host
 - socket-root ownership checks and startup failure cleanup behave as expected under rootless Podman
 
-Record OS, Podman version, rootless state, cgroup version, immutable image digest, exact git SHA, and raw acceptance evidence.
-
-Do not enable either Phase 6D capability before this gate passes and receives final security review.
+This closes Task 15 for the tested candidate. Production capabilities remain false/absent and Task 16/final exact-head verification still control the disabled merge.
 
 ## Task 16 PR/release boundary
 
@@ -179,7 +175,7 @@ Source review through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf` confi
 
 Before changing PR #52 from draft or merging it, run the exact-head Task 14 software acceptance above and perform one final base-to-head review against that same SHA. If code changes after the accepted SHA, rerun the affected acceptance rather than treating prior compiler evidence as transferable.
 
-A disabled Phase 6D code merge may occur before Task 15 only if Task 14 and final Task 16 review are genuinely green. A merge is **not** permission to enable runtime networking.
+A disabled Phase 6D code merge may occur only if Task 14, Task 15, and final Task 16 review are genuinely green. A merge is **not** permission to enable runtime networking.
 
 ## Workflow constraints
 

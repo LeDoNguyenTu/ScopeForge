@@ -1,6 +1,6 @@
 # Phase 6D Working State
 
-Last updated: 2026-08-31
+Last updated: 2026-09-01
 
 This file is the compact implementation checkpoint for the Phase 6D dedicated network-worker work. The authoritative release-gate record is `docs/development/PHASE_6D_RELEASE_STATE.md`; the broader resume queue is `docs/development/UNFINISHED_WORK.md`.
 
@@ -31,7 +31,7 @@ Fresh full-repository execution is still required on one dependency-complete exa
 - `npm audit --audit-level=info`
 - `npm run build`
 
-Task 15 real Linux containment acceptance has not been run. The current execution environment has cgroup v2 but does not provide the required dedicated rootless-Podman worker host.
+Task 15 real Linux containment acceptance passed on the dedicated Ubuntu 24.04/rootless-Podman/cgroup-v2 host for implementation SHA `faec75ed74e3e919c61d6ac80f249c56ee7f1885`. See `docs/development/PHASE_6D_TASK15_ACCEPTANCE.md` for the 31-item matrix and immutable image digest.
 
 ## Implementation state
 
@@ -42,7 +42,7 @@ Task 15 real Linux containment acceptance has not been run. The current executio
 - Task 12: permanent authority guards cover dashboard actions, preparation/execution boundaries, mediator independence, Phase 6B/6C separation, no generic network execution class, network-disabled sandboxes, atomic runtime success publication, and end-to-end abort propagation.
 - Task 13: SQL source review and Supabase reconciliation were completed. The intended Phase 6D public RPCs are live as service-role-only `SECURITY DEFINER` functions with empty `search_path`.
 - Task 14: static/source acceptance is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The remaining blocker is the explicit full exact-head executable command chain on a complete runner.
-- Task 15: real Linux rootless-Podman containment acceptance remains the hard runtime-enable gate.
+- Task 15: real Linux rootless-Podman containment acceptance passed; production runtime gates remain disabled.
 - Task 16: source/security review is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. Final same-SHA release review remains pending after Task 14 executable acceptance; runtime enablement additionally remains blocked on Task 15.
 
 ## Task 14 hardening added during review
@@ -123,4 +123,4 @@ Supabase security advisor currently reports only the project-level leaked-passwo
 
 Turnstile is not active application behavior.
 
-No implementation, migration, source review, disabled PR merge, partial Vercel build, or compiler result authorizes enabling either Phase 6D runtime capability before Task 15 containment acceptance is completed and reviewed.
+Task 15 acceptance does not itself authorize production enablement. Both Phase 6D runtime capabilities remain false/absent through the disabled merge boundary.
