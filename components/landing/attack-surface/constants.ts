@@ -1,4 +1,4 @@
-export const SCENE_VERSION = "scopeforge-command-center-v4";
+export const SCENE_VERSION = "scopeforge-command-center-v5";
 
 export type AttackSurfaceQuality = "high" | "balanced" | "mobile" | "reduced";
 
