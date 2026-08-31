@@ -155,7 +155,7 @@ A dedicated Linux rootless-Podman/cgroup-v2 host must still prove, on the exact 
 - cancellation aborts in-flight mediator HTTPS work, terminates the executor, and late success is discarded
 - memory, process, CPU, wall-time, scratch, input, and output ceilings are enforced
 - mediator failure never creates a direct-network fallback
-- the `--pids-limit=1` setting is proven compatible with the actual Node runtime rather than assumed
+- the measured `--pids-limit=8` cgroup task/thread ceiling is verified against the actual Node runtime; it is not described as a literal one-process limit, and the executor still receives no general process-spawn authority from ScopeForge
 - the mediator socket mount is tested for the narrowest usable read/write mode on the real host
 - socket-root ownership checks and startup failure cleanup behave as expected under rootless Podman
 

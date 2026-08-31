@@ -93,7 +93,7 @@ export function buildRuntimeWorkerPodmanCreateCommand(
       "--read-only-tmpfs=false",
       "--cap-drop=all",
       "--security-opt=no-new-privileges",
-      "--pids-limit=1",
+      "--pids-limit=8",
       "--memory=256m",
       "--cgroup-conf=memory.swap.max=0",
       "--cpus=0.5",

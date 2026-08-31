@@ -239,7 +239,7 @@ feat: execute closed runtime profiles in mediator [skip ci]
 - [ ] Assert bounded length-prefixed JSON framing over a Unix-domain socket.
 - [ ] Assert peer messages are strict-schema and over-size frames are rejected before allocation/parse.
 - [ ] Assert session nonce is never logged.
-- [ ] Assert executor Podman command contains `--network=none`, `--read-only`, `--cap-drop=all`, `--security-opt=no-new-privileges`, `--pids-limit=1`, memory 256 MiB, no registry pull, no privileged/device/host socket mounts, and no shell-composed arguments.
+- [ ] Assert executor Podman command contains `--network=none`, `--read-only`, `--cap-drop=all`, `--security-opt=no-new-privileges`, the Task 15 measured cgroup task/thread ceiling `--pids-limit=8`, memory 256 MiB, no registry pull, no privileged/device/host socket mounts, and no shell-composed arguments. The executor still receives no general process-spawn authority from ScopeForge.
 - [ ] Assert only the dedicated mediator Unix socket is bind-mounted for IPC.
 - [ ] Assert no TCP localhost dependency is required because `--network=none` must remain valid.
 - [ ] Assert caller/task fields cannot inject Podman arguments or socket paths.

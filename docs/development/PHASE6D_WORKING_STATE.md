@@ -79,7 +79,7 @@ All of these commits use `[skip ci]`. The cancellation work does not change data
 
 In addition to the approved containment checklist, the real host acceptance must explicitly verify:
 
-1. `--pids-limit=1` is compatible with the actual Node runtime inside the rootless Podman container. Linux cgroup PID accounting includes tasks/threads, so this limit must be proven rather than assumed. Do not weaken the limit without measured evidence and a separate security review.
+1. Verify the measured `--pids-limit=8` cgroup task/thread ceiling with the real fixed Node worker entry. Task 15 found normal Node 22 usage of 7 tasks/threads, degradation at 6, and selected 8 as the smallest explicit margin. This is not a grant of general process-spawn authority to the executor.
 2. Determine whether the mediator Unix-socket bind can be mounted explicitly read-only while remaining connectable from the executor. If the real host supports that safely, tighten the command and add regression coverage. If not, document the reason and preserve the smallest possible writable host surface.
 3. Abort/cancellation must prove the in-flight pinned HTTPS request and Podman executor terminate before mediator cleanup and trusted finalization. Phase 6D intentionally does not detach from an executor that ignores abort.
 4. Prove the supervisor-owned mediator root rejects symlink, wrong-owner, and non-directory states on the actual host, and prove socket startup failures do not leave a listener or stale socket behind.

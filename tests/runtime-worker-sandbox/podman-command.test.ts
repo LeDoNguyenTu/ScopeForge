@@ -12,7 +12,7 @@ const input = {
 };
 
 describe("Phase 6D runtime worker Podman command", () => {
-  it("creates a networkless one-process read-only executor with only mediator IPC", () => {
+  it("allows Node native threads inside a tight PID ceiling while preserving networkless mediator-only IPC", () => {
     const command = buildRuntimeWorkerPodmanCreateCommand(input);
     const joined = command.args.join(" ");
 
@@ -22,7 +22,7 @@ describe("Phase 6D runtime worker Podman command", () => {
     expect(command.args).toContain("--read-only");
     expect(command.args).toContain("--cap-drop=all");
     expect(command.args).toContain("--security-opt=no-new-privileges");
-    expect(command.args).toContain("--pids-limit=1");
+    expect(command.args).toContain("--pids-limit=8");
     expect(command.args).toContain("--memory=256m");
     expect(command.args).toContain("--cpus=0.5");
     expect(command.args).toContain("--unsetenv-all");
