@@ -24,6 +24,7 @@ as $$
 declare
   context_record jsonb;
   result_record jsonb;
+  publish_now timestamptz;
 begin
   if observation_rows is null
      or jsonb_typeof(observation_rows) <> 'array'
@@ -77,7 +78,7 @@ begin
       target_lease_token,
       'passive_runtime_observation_v1',
       target_terminal_digest,
-      'succeeded',
+      'cancelled',
       null,
       0,
       0,
@@ -88,6 +89,11 @@ begin
       target_input_bytes,
       target_output_bytes
     );
+  end if;
+
+  publish_now := clock_timestamp();
+  if (context_record->>'leaseExpiresAt')::timestamptz <= publish_now then
+    raise exception 'WORKER_LEASE_INVALID';
   end if;
 
   perform public.persist_passive_runtime_result(
@@ -148,6 +154,7 @@ as $$
 declare
   context_record jsonb;
   result_record jsonb;
+  publish_now timestamptz;
 begin
   if observation_row is null
      or jsonb_typeof(observation_row) <> 'object'
@@ -201,7 +208,7 @@ begin
       target_lease_token,
       'active_cors_validation_v1',
       target_terminal_digest,
-      'succeeded',
+      'cancelled',
       null,
       0,
       0,
@@ -212,6 +219,11 @@ begin
       target_input_bytes,
       target_output_bytes
     );
+  end if;
+
+  publish_now := clock_timestamp();
+  if (context_record->>'leaseExpiresAt')::timestamptz <= publish_now then
+    raise exception 'WORKER_LEASE_INVALID';
   end if;
 
   perform public.persist_active_validation_result(
