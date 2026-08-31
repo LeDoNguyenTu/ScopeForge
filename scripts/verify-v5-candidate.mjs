@@ -4,7 +4,7 @@ const commands = [
   ["npm", ["test"], { NODE_ENV: "test" }],
   ["npm", ["run", "typecheck"], {}],
   ["npm", ["run", "build:cli"], {}],
-  ["node", [".scopeforge-build/packages/cli/index.js", "--version"], {}],
+  ["node", [".scopeforge-build/packages/cli/index.js", "version"], {}],
   ["npm", ["run", "benchmark:scanner"], {}],
   ["npm", ["audit", "--audit-level=info"], {}],
 ];
