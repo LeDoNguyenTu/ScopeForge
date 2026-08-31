@@ -98,4 +98,18 @@ describe("Phase 6D authority architecture", () => {
     expect(scannerSandbox).toContain("--network=none");
     expect(runtimeSandbox).toContain("--network=none");
   });
+
+  it("keeps successful runtime persistence and terminal commit on one atomic control-plane boundary", async () => {
+    const publication = await source("lib/runtime-workers/publication.ts");
+    const serverDependencies = await source("lib/runtime-workers/publication-server-dependencies.ts");
+    const finalizationRepository = await source("lib/runtime-workers/finalization-context.ts");
+
+    expect(publication).toContain("publishPassiveSuccess");
+    expect(publication).toContain("publishActiveSuccess");
+    expect(publication).not.toContain("persistPassive");
+    expect(publication).not.toContain("persistActive");
+    expect(serverDependencies).not.toContain(".persistResult(");
+    expect(finalizationRepository).toContain("publish_passive_runtime_worker_success");
+    expect(finalizationRepository).toContain("publish_active_cors_worker_success");
+  });
 });
