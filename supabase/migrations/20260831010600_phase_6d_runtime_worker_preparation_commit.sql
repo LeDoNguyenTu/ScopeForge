@@ -28,7 +28,7 @@ declare
   job_record public.scan_jobs%rowtype;
   asset_record public.assets%rowtype;
   calculated_hash text;
-  commit_now timestamptz := now();
+  commit_now timestamptz;
 begin
   if target_lease_token is null or target_lease_token !~ '^[a-f0-9]{64}$' then
     raise exception 'WORKER_LEASE_INVALID';
@@ -72,8 +72,7 @@ begin
      or task_record.execution_class <> worker_record.execution_class
      or task_record.state <> 'leased'
      or task_record.attempt_count <> 1
-     or task_record.max_attempts <> 1
-     or task_record.absolute_deadline_at <= commit_now then
+     or task_record.max_attempts <> 1 then
     raise exception 'WORKER_LEASE_INVALID';
   end if;
 
@@ -87,8 +86,7 @@ begin
      or attempt_record.worker_id <> target_worker_id
      or attempt_record.attempt_number <> task_record.attempt_count
      or attempt_record.lease_token_hash <> calculated_hash
-     or attempt_record.finished_at is not null
-     or attempt_record.lease_expires_at <= commit_now then
+     or attempt_record.finished_at is not null then
     raise exception 'WORKER_LEASE_INVALID';
   end if;
 
@@ -115,6 +113,13 @@ begin
    where id = runtime_task.asset_id
      and workspace_id = runtime_task.workspace_id
    for update;
+
+  commit_now := clock_timestamp();
+
+  if task_record.absolute_deadline_at <= commit_now
+     or attempt_record.lease_expires_at <= commit_now then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
 
   if job_record.id is null
      or asset_record.id is null
