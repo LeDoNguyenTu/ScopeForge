@@ -26,7 +26,7 @@ describe("Phase 6D runtime worker Podman command", () => {
     expect(command.args).toContain("--memory=256m");
     expect(command.args).toContain("--cpus=0.5");
     expect(command.args).toContain("--unsetenv-all");
-    expect(command.args).toContain("--tmpfs=/tmp:rw,size=16777216,mode=0700,nosuid,nodev,noexec");
+    expect(command.args).toContain("--tmpfs=/tmp:rw,size=16777216,mode=1777,nosuid,nodev,noexec");
     expect(joined).not.toMatch(/--privileged|--device|docker[.]sock|podman[.]sock|\/var\/run/);
 
     const mounts = command.args.filter((arg) => arg.startsWith("--mount="));
@@ -49,8 +49,8 @@ describe("Phase 6D runtime worker Podman command", () => {
     });
 
     expect(command.args).toContain("--cpus=0.5");
-    expect(command.args).toContain("--tmpfs=/tmp:rw,size=8388608,mode=0700,nosuid,nodev,noexec");
-    expect(command.args).not.toContain("--tmpfs=/tmp:rw,size=16777216,mode=0700,nosuid,nodev,noexec");
+    expect(command.args).toContain("--tmpfs=/tmp:rw,size=8388608,mode=1777,nosuid,nodev,noexec");
+    expect(command.args).not.toContain("--tmpfs=/tmp:rw,size=16777216,mode=1777,nosuid,nodev,noexec");
   });
 
   it("rejects task-controlled socket paths and argument injection", () => {
