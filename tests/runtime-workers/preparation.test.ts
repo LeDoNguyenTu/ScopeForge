@@ -97,15 +97,17 @@ function context(kind: "passive" | "active" = "passive") {
   });
 }
 
-function dependencies(kind: "passive" | "active" = "passive", overrides: Partial<RuntimeWorkerPreparationDependencies> = {}): RuntimeWorkerPreparationDependencies {
+function dependencies(
+  kind: "passive" | "active" = "passive",
+  overrides: Partial<RuntimeWorkerPreparationDependencies> = {},
+): RuntimeWorkerPreparationDependencies {
   const job = kind === "passive" ? passiveJob() : activeJob();
   return {
     getPreparationContext: vi.fn(async () => context(kind)),
     loadAsset: vi.fn(async () => asset()),
     loadPassiveJob: vi.fn(async () => kind === "passive" ? job : null),
     loadActiveJob: vi.fn(async () => kind === "active" ? job : null),
-    markPassiveRunning: vi.fn(async (value) => ({ ...value, status: "running" as const, started_at: now.toISOString() })),
-    markActiveRunning: vi.fn(async (value) => ({ ...value, status: "running" as const, started_at: now.toISOString() })),
+    commitPreparation: vi.fn(async () => undefined),
     now: () => now,
     ...overrides,
   };
@@ -114,13 +116,19 @@ function dependencies(kind: "passive" | "active" = "passive", overrides: Partial
 const input = Object.freeze({ workerId, taskId, attemptId, leaseToken });
 
 describe("Phase 6D runtime worker preparation", () => {
-  it("reauthorizes the current passive asset and returns a deadline-bound closed profile", async () => {
+  it("reauthorizes the current passive snapshot and atomically commits it before returning a profile", async () => {
     const deps = dependencies("passive");
     const result = await prepareRuntimeWorkerExecution(input, deps);
 
     expect(deps.getPreparationContext).toHaveBeenCalledWith(input);
     expect(deps.loadAsset).toHaveBeenCalledWith(assetId, workspaceId);
-    expect(deps.markPassiveRunning).toHaveBeenCalledTimes(1);
+    expect(deps.commitPreparation).toHaveBeenCalledTimes(1);
+    expect(deps.commitPreparation).toHaveBeenCalledWith({
+      identity: input,
+      context: context("passive"),
+      job: passiveJob(),
+      asset: asset(),
+    });
     expect(result).toEqual({
       taskId,
       attemptId,
@@ -138,11 +146,16 @@ describe("Phase 6D runtime worker preparation", () => {
     expect(JSON.stringify(result)).not.toMatch(/requestedBy|leaseToken|authorizationGrantedAt|credential|secret/i);
   });
 
-  it("reauthorizes active CORS using the exact approved profile and budget", async () => {
+  it("reauthorizes active CORS using the exact approved profile and commits the same snapshot", async () => {
     const deps = dependencies("active");
     const result = await prepareRuntimeWorkerExecution(input, deps);
 
-    expect(deps.markActiveRunning).toHaveBeenCalledTimes(1);
+    expect(deps.commitPreparation).toHaveBeenCalledWith({
+      identity: input,
+      context: context("active"),
+      job: activeJob(),
+      asset: asset(),
+    });
     expect(result).toMatchObject({
       executionClass: "active_cors_validation_v1",
       domainJobId: jobId,
@@ -175,21 +188,31 @@ describe("Phase 6D runtime worker preparation", () => {
     await expect(prepareRuntimeWorkerExecution(input, deps)).rejects.toMatchObject({
       code: "RUNTIME_WORKER_AUTHORIZATION_FAILED",
     });
-    expect(deps.markPassiveRunning).not.toHaveBeenCalled();
+    expect(deps.commitPreparation).not.toHaveBeenCalled();
   });
 
-  it("blocks cancellation, wrong job status, wrong class pairing, and expired preparation before running", async () => {
+  it("fails closed if the lease or authorization snapshot changes during the atomic commit", async () => {
+    const deps = dependencies("passive", {
+      commitPreparation: vi.fn(async () => { throw new Error("WORKER_LEASE_INVALID stale detail"); }),
+    });
+
+    await expect(prepareRuntimeWorkerExecution(input, deps)).rejects.toMatchObject({
+      code: "RUNTIME_WORKER_AUTHORIZATION_FAILED",
+    });
+  });
+
+  it("blocks cancellation, wrong job status, wrong class pairing, and expired preparation before commit", async () => {
     const cancelled = dependencies("passive", {
       loadPassiveJob: vi.fn(async () => passiveJob({ cancel_requested_at: "2026-08-31T00:00:04.000Z" })),
     });
     await expect(prepareRuntimeWorkerExecution(input, cancelled)).rejects.toMatchObject({ code: "RUNTIME_WORKER_AUTHORIZATION_FAILED" });
-    expect(cancelled.markPassiveRunning).not.toHaveBeenCalled();
+    expect(cancelled.commitPreparation).not.toHaveBeenCalled();
 
     const running = dependencies("passive", {
       loadPassiveJob: vi.fn(async () => passiveJob({ status: "running" })),
     });
     await expect(prepareRuntimeWorkerExecution(input, running)).rejects.toMatchObject({ code: "RUNTIME_WORKER_AUTHORIZATION_FAILED" });
-    expect(running.markPassiveRunning).not.toHaveBeenCalled();
+    expect(running.commitPreparation).not.toHaveBeenCalled();
 
     const wrongPair = dependencies("passive", {
       getPreparationContext: vi.fn(async () => ({ ...context("passive"), domainJobKind: "active_validation" as const })),
@@ -204,7 +227,7 @@ describe("Phase 6D runtime worker preparation", () => {
       })),
     });
     await expect(prepareRuntimeWorkerExecution(input, expired)).rejects.toMatchObject({ code: "RUNTIME_WORKER_TASK_INVALID" });
-    expect(expired.markPassiveRunning).not.toHaveBeenCalled();
+    expect(expired.commitPreparation).not.toHaveBeenCalled();
   });
 
   it("blocks active preparation if profile consent or exact CORS budget is invalid", async () => {
@@ -212,12 +235,12 @@ describe("Phase 6D runtime worker preparation", () => {
       loadActiveJob: vi.fn(async () => activeJob({ authorization_granted_at: null })),
     });
     await expect(prepareRuntimeWorkerExecution(input, missingConsent)).rejects.toMatchObject({ code: "RUNTIME_WORKER_AUTHORIZATION_FAILED" });
-    expect(missingConsent.markActiveRunning).not.toHaveBeenCalled();
+    expect(missingConsent.commitPreparation).not.toHaveBeenCalled();
 
     const changedBudget = dependencies("active", {
       loadActiveJob: vi.fn(async () => activeJob({ budget: { ...ACTIVE_VALIDATION_MAX_BUDGET, maxRequests: 2 } })),
     });
     await expect(prepareRuntimeWorkerExecution(input, changedBudget)).rejects.toMatchObject({ code: "RUNTIME_WORKER_AUTHORIZATION_FAILED" });
-    expect(changedBudget.markActiveRunning).not.toHaveBeenCalled();
+    expect(changedBudget.commitPreparation).not.toHaveBeenCalled();
   });
 });
