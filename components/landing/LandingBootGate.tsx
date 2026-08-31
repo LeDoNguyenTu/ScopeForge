@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import ScopeForgeBootScreen from "@/components/landing/ScopeForgeBootScreen";
-import { READY_STORAGE_KEY, SCENE_VERSION } from "@/components/landing/attack-surface/progress";
+import { READY_STORAGE_KEY, SCENE_VERSION } from "@/components/landing/attack-surface-v5/progress";
 
 type LandingBootContextValue = Readonly<{
   reportProgress: (progress: number, stage: string) => void;
@@ -84,7 +84,7 @@ export default function LandingBootGate({ children }: { children: ReactNode }) {
   const releaseFallback = useCallback(() => {
     readyRef.current = true;
     setProgress(100);
-    setStage("Optimized fallback ready");
+    setStage("Polished static scene ready");
     setBootVisible(false);
   }, []);
 

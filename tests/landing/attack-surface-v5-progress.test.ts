@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createSceneProgress } from "@/components/landing/attack-surface/progress";
+import { createAttackSurfaceV5Progress } from "@/components/landing/attack-surface-v5/progress";
 
-describe("createSceneProgress", () => {
+describe("createAttackSurfaceV5Progress", () => {
   it("reports monotonic progress from completed initialization milestones", () => {
-    const progress = createSceneProgress();
-
+    const progress = createAttackSurfaceV5Progress();
     expect(progress.value()).toBe(0);
     expect(progress.mark("module")).toBe(20);
     expect(progress.mark("capability")).toBe(32);
@@ -14,7 +13,7 @@ describe("createSceneProgress", () => {
   });
 
   it("does not regress when milestones are repeated out of order", () => {
-    const progress = createSceneProgress();
+    const progress = createAttackSurfaceV5Progress();
     expect(progress.mark("geometry")).toBe(62);
     expect(progress.mark("module")).toBe(62);
     expect(progress.mark("geometry")).toBe(62);
