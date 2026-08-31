@@ -80,7 +80,10 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
       antenna.scale.setScalar(0.92 + Math.sin(elapsed * 2.8 + phase) * 0.11);
     }
     if (orbit) orbit.rotation.z = elapsed * (index % 2 === 0 ? 0.34 : -0.29) + phase;
-    if (tower) tower.position.y += Math.sin(elapsed * 0.82 + phase) * 0.0007;
+    if (tower) {
+      const baseY = Number(tower.userData.v5BaseY ?? tower.position.y);
+      tower.position.y = baseY + Math.sin(elapsed * 0.82 + phase) * 0.025;
+    }
   });
 
   const atmosphere = group.userData.v5Atmosphere as THREE.Group | undefined;

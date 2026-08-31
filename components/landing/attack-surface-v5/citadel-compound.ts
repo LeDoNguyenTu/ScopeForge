@@ -50,6 +50,7 @@ export function createCitadelCompound(
     stateMaterial(entity, materials),
   );
   mainTower.position.set(0, 0.3 + towerHeight / 2, 0);
+  mainTower.userData.v5BaseY = mainTower.position.y;
   mainTower.rotation.y = Math.PI / 4;
   mainTower.name = `v5-tower-${entity.id}`;
   compound.add(mainTower);
