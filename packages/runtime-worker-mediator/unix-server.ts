@@ -103,8 +103,13 @@ export function createRuntimeMediatorUnixServer(
         resolve();
       });
     });
-    await chmod(socketPath, 0o666);
     server = nextServer;
+    try {
+      await chmod(socketPath, 0o666);
+    } catch (error) {
+      await close();
+      throw error;
+    }
   }
 
   async function close(): Promise<void> {
