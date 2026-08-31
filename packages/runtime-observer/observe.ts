@@ -19,6 +19,7 @@ import { validateInitialRuntimeUrl, validateRedirectTarget } from "./target-poli
 export type RuntimeTransport = (input: {
   url: URL;
   timeoutMs: number;
+  signal?: AbortSignal;
 }) => Promise<RuntimeNetworkResponse>;
 
 export type RuntimeObservationFailureCode =
@@ -39,6 +40,7 @@ export interface RuntimeObserverDependencies {
   transport?: RuntimeTransport;
   isCancelled?: () => boolean | Promise<boolean>;
   now?: () => number;
+  signal?: AbortSignal;
 }
 
 const defaultTransport: RuntimeTransport = (input) => requestPinnedHttps({
@@ -49,7 +51,7 @@ const defaultTransport: RuntimeTransport = (input) => requestPinnedHttps({
     accept: "*/*",
     "user-agent": PASSIVE_RUNTIME_USER_AGENT,
   },
-});
+}, input.signal ? { signal: input.signal } : {});
 
 function result(input: RuntimeObservationResult): RuntimeObservationResult {
   return Object.freeze({
@@ -109,6 +111,7 @@ export async function observeRuntimeTarget(
   const budget = validateRuntimeObservationBudget(budgetInput);
   const transport = dependencies.transport ?? defaultTransport;
   const isCancelled = dependencies.isCancelled ?? (() => false);
+  const signal = dependencies.signal;
   const now = dependencies.now ?? Date.now;
   const startedAt = now();
   const observations: RuntimeObservation[] = [];
@@ -116,8 +119,11 @@ export async function observeRuntimeTarget(
   let redirectCount = 0;
   let current = validateInitialRuntimeUrl(target);
 
+  const cancellationRequested = async (): Promise<boolean> =>
+    signal?.aborted === true || await isCancelled();
+
   while (true) {
-    if (await isCancelled()) {
+    if (await cancellationRequested()) {
       return result({ status: "cancelled", observations, requestCount, redirectCount });
     }
     const elapsedBeforeRequest = Math.max(0, now() - startedAt);
@@ -140,9 +146,13 @@ export async function observeRuntimeTarget(
       response = await transport({
         url: current,
         timeoutMs: requestTimeoutMs,
+        ...(signal ? { signal } : {}),
       });
       requestCount += 1;
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError" && await cancellationRequested()) {
+        return result({ status: "cancelled", observations, requestCount, redirectCount });
+      }
       if (error instanceof Error && error.name === "TimeoutError") {
         return failed(
           observations,
@@ -162,7 +172,7 @@ export async function observeRuntimeTarget(
       return failed(observations, requestCount, redirectCount, "OBSERVATION_BUDGET");
     }
 
-    if (await isCancelled()) {
+    if (await cancellationRequested()) {
       return result({ status: "cancelled", observations, requestCount, redirectCount });
     }
     if (now() - startedAt >= budget.totalTimeoutMs) {
@@ -219,7 +229,7 @@ export async function observeRuntimeTarget(
       return result({ status: "succeeded", observations, requestCount, redirectCount });
     }
 
-    if (await isCancelled()) {
+    if (await cancellationRequested()) {
       return result({ status: "cancelled", observations, requestCount, redirectCount });
     }
     if (now() - startedAt >= budget.totalTimeoutMs) {
