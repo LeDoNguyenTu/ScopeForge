@@ -97,8 +97,10 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
       tower.position.y = baseY + Math.sin(elapsed * 0.82 + phase) * 0.025;
     }
     if (holoCage) {
+      if (typeof holoCage.userData.v5BaseY !== "number") holoCage.userData.v5BaseY = holoCage.position.y;
+      const baseY = Number(holoCage.userData.v5BaseY);
       holoCage.rotation.y = Math.sin(elapsed * 0.21 + phase) * 0.08;
-      holoCage.position.y += Math.sin(elapsed * 0.55 + phase) * 0.00045;
+      holoCage.position.y = baseY + Math.sin(elapsed * 0.55 + phase) * 0.035;
     }
     if (holoCore) {
       holoCore.rotation.x = elapsed * 0.12 + phase;
