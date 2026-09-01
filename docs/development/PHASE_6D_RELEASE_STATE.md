@@ -7,7 +7,8 @@ This file is the authoritative release-gate checkpoint for **Phase 6D dedicated 
 - branch: `feat/phase-6d-network-workers-v1-task14`
 - PR: #52
 - current reviewed code/security head before this checkpoint update: `22f80584a9a473051d02556e5942d57291c40fea`
-- base: `design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
+- current PR base: `main` at `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a` after design PR #51 merged
+- security-review source range base: `2be96ada2cf511b186d5e994c214e12683e76802`
 - PR remains **draft**
 - no dependency manifest or lockfile drift exists in the Phase 6D base-to-head diff
 

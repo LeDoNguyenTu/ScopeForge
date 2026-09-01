@@ -4,7 +4,8 @@ Review date: 2026-09-01 (Asia/Singapore)
 
 ## Exact review range
 
-- base: `2be96ada2cf511b186d5e994c214e12683e76802`
+- security-review source range base: `2be96ada2cf511b186d5e994c214e12683e76802`
+- current PR base after PR #51 merged: `main` at `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a`
 - reviewed code and Task 15 evidence head: `22f80584a9a473051d02556e5942d57291c40fea`
 - branch: `feat/phase-6d-network-workers-v1-task14`
 - PR: #52, still draft

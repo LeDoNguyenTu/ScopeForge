@@ -1,5 +1,13 @@
 # ScopeForge Session Handoff
 
+> **Superseded current-phase notice (2026-09-01):** The Phase 6B/6C resume
+> sequence below is historical. Current work is Phase 6D implementation PR #52
+> at `bd558fdf0830bfdb95027374e168835a8a48f43d`. Task 14, Task 15, and the
+> source-security portion of Task 16 passed; fresh read-only reconciliation
+> against Supabase project `tdgpibrepzcvdivztkta` is the only release blocker.
+> Continue from `PHASE_6D_RELEASE_STATE.md`, `PHASE_6D_TASK16_REVIEW.md`, and
+> `UNFINISHED_WORK.md`. Do not touch the separately active dashboard UI work.
+
 ## Current phase
 
 Phase 6B public GitHub repository acquisition and private immutable source snapshots is complete and merged through PR #38.

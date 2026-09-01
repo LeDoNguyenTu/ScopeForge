@@ -30,7 +30,9 @@ Draft implementation PR:
 
 Base:
 
-`design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
+Current PR base: `main` at `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a`
+
+Security-review source range base: `design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
 
 Current reviewed code/security head:
 
@@ -166,3 +168,12 @@ After Task 15 evidence passes and receives security review:
 - only then consider changing either Phase 6D capability from false/absent
 
 Do not combine code merge approval with runtime enablement approval.
+
+## Repository/PR reconciliation completed on 2026-09-01
+
+- PR #50 (Phase 8 validation methodology foundation) merged as `0b5c27a1226ca5c3f3f3fc40a25558dce05e9b20`; the broader Phase 8 implementation remains unfinished.
+- PR #51 (Phase 6D design/threat model) merged as `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a`.
+- PR #52 was retargeted to `main` and intentionally remains draft.
+- Thirty remote non-UI branches backed by already merged PRs were deleted.
+- All dashboard/visual branches, all open-PR refs, the active Phase 6D worktree branch, and stacked Phase 6D checkpoint branches were preserved.
+- Do not delete the Task 15 VM/boot volume or the Phase 6D worktree until PR #52's fresh Supabase gate passes and the PR is merged.

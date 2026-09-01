@@ -8,8 +8,10 @@ This file is the compact implementation checkpoint for the Phase 6D dedicated ne
 
 - Implementation branch: `feat/phase-6d-network-workers-v1-task14`
 - Draft implementation PR: `#52 - Phase 6D dedicated network workers implementation [skip ci]`
-- Base branch: `design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
+- Current PR base: `main` at `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a` after design PR #51 merged
+- Security-review source range base: `2be96ada2cf511b186d5e994c214e12683e76802`
 - Current reviewed code/security head: `22f80584a9a473051d02556e5942d57291c40fea`
+- Current documentation head before this reconciliation: `bd558fdf0830bfdb95027374e168835a8a48f43d`
 - Authoritative release-state refresh commit: `f7b814d60c5ea9fee60eb5ad16cab28510ec9950`
 - PR #52 remains draft and must not leave draft based on static review alone.
 

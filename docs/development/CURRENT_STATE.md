@@ -1,5 +1,14 @@
 # ScopeForge Current State
 
+> **2026-09-01 authoritative status:** Phase 6D design PR #51 and the Phase 8
+> methodology-foundation PR #50 are merged. Phase 6D implementation PR #52 is
+> retargeted to `main` and remains draft solely because a fresh read-only
+> reconciliation against Supabase project `tdgpibrepzcvdivztkta` is unavailable
+> under the current identities. Read `PHASE_6D_RELEASE_STATE.md`,
+> `PHASE_6D_TASK16_REVIEW.md`, and `UNFINISHED_WORK.md` before relying on older
+> phase-boundary prose below. Dashboard UI work is intentionally excluded from
+> this handoff while it is being developed separately.
+
 ## Product direction
 
 ScopeForge is an open-source application-security and cyber-risk awareness platform built around:
@@ -207,7 +216,7 @@ All 33 other non-main branches were preserved because comparison showed `ahead_b
 
 Production control-plane deployment, `scopeforge.dev`, the Living Attack Surface WebGL dashboard, and the browser identity refresh are complete with both repository worker capability gates still false.
 
-The next implementation architecture boundary is **Phase 6D dedicated network-enabled worker execution**. It remains design-gated. Existing passive runtime and bounded active CORS validation may move behind dedicated closed worker classes only after a separate threat model and approved design preserve the current authorization snapshot, immediate pre-network reauthorization, DNS/IP policy, request shapes, owner/admin active consent, fixed budgets, cancellation, deterministic persistence, privacy, quotas/backpressure, and fleet controls.
+The current implementation boundary is **Phase 6D dedicated network-enabled worker execution**. Its threat model and design are merged through PR #51. The implementation is complete and independently verified on Linux at PR #52 head `bd558fdf0830bfdb95027374e168835a8a48f43d`, but the PR remains draft and unmerged until fresh read-only reconciliation against the exact production Supabase project closes Task 16.
 
 Phase 6B GitHub networking is not generic egress authority. A generic URL/network worker executor is prohibited.
 
