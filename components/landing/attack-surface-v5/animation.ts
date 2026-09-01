@@ -9,6 +9,15 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
   group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, targetPitch, 0.038);
   group.position.y = Math.sin(elapsed * 0.34) * 0.045;
 
+  const materials = group.userData.v5Materials as { nanoTransition?: THREE.ShaderMaterial } | undefined;
+  const nanoTransition = materials?.nanoTransition;
+  if (nanoTransition) {
+    const timeUniform = nanoTransition.uniforms.uTime;
+    const progressUniform = nanoTransition.uniforms.uProgress;
+    if (timeUniform) timeUniform.value = elapsed;
+    if (progressUniform) progressUniform.value = 0.44 + Math.sin(elapsed * 0.23) * 0.18;
+  }
+
   const core = group.userData.v5Core as THREE.Group | undefined;
   const rings = (core?.userData.v5Rings as THREE.Mesh[] | undefined) ?? [];
   for (const ring of rings) {
@@ -70,6 +79,9 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
     const antenna = compound.userData.v5AntennaHead as THREE.Mesh | undefined;
     const orbit = compound.userData.v5Orbit as THREE.Mesh | undefined;
     const tower = compound.userData.v5Tower as THREE.Mesh | undefined;
+    const holoCage = compound.userData.v5HoloCage as THREE.Group | undefined;
+    const holoCore = holoCage?.userData.v5HoloCore as THREE.Mesh | undefined;
+    const holoEnergy = holoCage?.userData.v5HoloEnergy as THREE.Mesh | undefined;
     const phase = index * 0.83;
     if (scan) {
       scan.position.y = 0.68 + Math.sin(elapsed * 1.25 + phase) * 0.22;
@@ -83,6 +95,18 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
     if (tower) {
       const baseY = Number(tower.userData.v5BaseY ?? tower.position.y);
       tower.position.y = baseY + Math.sin(elapsed * 0.82 + phase) * 0.025;
+    }
+    if (holoCage) {
+      holoCage.rotation.y = Math.sin(elapsed * 0.21 + phase) * 0.08;
+      holoCage.position.y += Math.sin(elapsed * 0.55 + phase) * 0.00045;
+    }
+    if (holoCore) {
+      holoCore.rotation.x = elapsed * 0.12 + phase;
+      holoCore.rotation.y = elapsed * (index % 2 === 0 ? 0.19 : -0.16);
+    }
+    if (holoEnergy) {
+      const holoPulse = 0.84 + Math.sin(elapsed * 2.2 + phase) * 0.12;
+      holoEnergy.scale.setScalar(holoPulse);
     }
   });
 
