@@ -42,6 +42,18 @@ describe("V5.1 Citadel animation", () => {
     expect(atmosphere.rotation.y).not.toBe(before.atmosphereRotation);
   });
 
+  it("preserves the controller framing offset while adding subtle surface float", () => {
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    group.position.y = -0.3;
+
+    updateAttackSurfaceV5Animation(group, 0, { x: 0, y: 0 });
+    expect(group.position.y).toBeCloseTo(-0.3, 8);
+
+    updateAttackSurfaceV5Animation(group, 4.2, { x: 0, y: 0 });
+    expect(group.position.y).toBeGreaterThanOrEqual(-0.345);
+    expect(group.position.y).toBeLessThanOrEqual(-0.255);
+  });
+
   it("is idempotent at a fixed timestamp so endpoint architecture motion cannot accumulate drift", () => {
     const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
     const orbit = group.getObjectByName("v5-compound-orbit-web-app")!;
