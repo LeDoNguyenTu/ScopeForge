@@ -52,4 +52,20 @@ describe("V5.1 Citadel animation", () => {
 
     expect(tower.position.y).toBeCloseTo(firstY, 8);
   });
+
+  it("keeps holographic endpoint float bounded and idempotent over long sessions", () => {
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    const cage = group.getObjectByName("v5-holo-cage-web-app")!;
+    const initialY = cage.position.y;
+
+    for (let frame = 0; frame < 3600; frame += 1) {
+      updateAttackSurfaceV5Animation(group, frame / 60, { x: 0, y: 0 });
+    }
+    expect(Math.abs(cage.position.y - initialY)).toBeLessThanOrEqual(0.04);
+
+    updateAttackSurfaceV5Animation(group, 42.5, { x: 0, y: 0 });
+    const fixedTimestampY = cage.position.y;
+    updateAttackSurfaceV5Animation(group, 42.5, { x: 0, y: 0 });
+    expect(cage.position.y).toBeCloseTo(fixedTimestampY, 8);
+  });
 });
