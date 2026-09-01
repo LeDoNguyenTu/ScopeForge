@@ -6,7 +6,7 @@ This file is the authoritative release-gate checkpoint for **Phase 6D dedicated 
 
 - branch: `feat/phase-6d-network-workers-v1-task14`
 - PR: #52
-- current reviewed code/security head before this checkpoint update: `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`
+- current reviewed code/security head before this checkpoint update: `22f80584a9a473051d02556e5942d57291c40fea`
 - base: `design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
 - PR remains **draft**
 - no dependency manifest or lockfile drift exists in the Phase 6D base-to-head diff
@@ -96,7 +96,7 @@ The post-DDL Supabase security advisor has no new Phase 6D finding. Its only cur
 
 ## Task 14 software acceptance
 
-Completed static/review gates through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`:
+Completed static/review and executable gates through code head `22f80584a9a473051d02556e5942d57291c40fea`:
 
 - no `package.json` or lockfile drift relative to the Phase 6D base
 - Phase 6D capability parsing is exact-true/fail-closed
@@ -118,10 +118,10 @@ Executable evidence currently available:
 - the last useful Vercel/Next.js compiler checkpoint was `5a7d3d26eb1bfaae5c38f536b0b9b153aa437a41`
 - Next.js compilation and framework lint/type validation completed successfully there
 - that build then failed during `/auth/sign-in` prerender because the **Preview** environment did not contain the public Supabase URL/publishable key
-- current code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf` has no GitHub Actions verification; its visible commit status is Vercel failure on the account build-rate limit
-- none of this is a successful production `npm run build`, and none replaces the explicit exact-head command chain
+- GitHub Actions were not used; the visible Vercel status is a deployment-rate quota failure and is not relied upon
+- the clean Linux exact-head chain passed 283 files/1,169 tests, typecheck, CLI build/version, a 544 ms scanner benchmark, zero audit vulnerabilities, and a successful production build with 9/9 static pages
 
-Still required on one fresh, dependency-complete exact candidate before Task 14 can be called complete:
+The executed exact-head command chain was:
 
 ```text
 npm test
@@ -133,11 +133,11 @@ npm audit --audit-level=info
 npm run build
 ```
 
-The scanner benchmark must remain within the existing catastrophic ceiling. The production build must use a complete ScopeForge application environment; missing Preview-only public Supabase configuration must not be worked around by weakening source validation.
+The production build used the real public ScopeForge Supabase configuration through a mode-0600 temporary environment file. No secret or configuration was committed.
 
 ## Task 15 containment acceptance - passed on the dedicated host
 
-Task 15 passed on the dedicated Ubuntu/rootless-Podman/cgroup-v2 host for implementation SHA `faec75ed74e3e919c61d6ac80f249c56ee7f1885` and immutable image digest `sha256:04b5a5e4cf6b77ac3bf0f74a3126df15305ed1d337e11a8e00d13eef46fc9e43`.
+Task 15 passed on the dedicated Ubuntu/rootless-Podman/cgroup-v2 host for implementation SHA `faec75ed74e3e919c61d6ac80f249c56ee7f1885` and immutable image digest `sha256:04b5a5e4cf6b77ac3bf0f74a3126df15305ed1d337e11a8e00d13eef46fc9e43`. The same runtime bundle was rebuilt and the key integration/resource/lifecycle matrix rerun on clean code/evidence head `22f80584a9a473051d02556e5942d57291c40fea` with image digest `sha256:85404929fdd8b2e51c10280311b7a637a27702569d7e5fcb544f0bc9b9f942b5`.
 
 The complete 31-item evidence and limitations are recorded in `docs/development/PHASE_6D_TASK15_ACCEPTANCE.md`. The real host proved:
 
@@ -159,21 +159,21 @@ The complete 31-item evidence and limitations are recorded in `docs/development/
 
 This closes Task 15 for the tested candidate. Production capabilities remain false/absent and Task 16/final exact-head verification still control the disabled merge.
 
-## Task 16 PR/release boundary
+## Task 16 PR/release boundary - source review passed, live reconciliation blocked
 
-Source review through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf` confirms:
+Source review through code head `22f80584a9a473051d02556e5942d57291c40fea` confirms:
 
 - changed paths are confined to Phase 6D, its tests/docs, and the reviewed repository-snapshot network-authority extraction
 - no package/dependency drift
 - no unrelated Phase 7/8 product feature implementation
 - every reviewed network import remains within an intended authority boundary
-- Phase 6D control/publication RPC ACL and `search_path` posture is live-verified
+- Phase 6D control/publication RPC ACL and `search_path` posture was live-verified after the final migration; fresh readback remains the documented blocker
 - cancellation, replay, lease timing, backpressure, one-attempt runtime semantics, atomic publication, mediator ownership, startup cleanup, and in-flight abort propagation have explicit regression guards
 - capability gates remain false/absent
 - PR #52 remains draft
 - no source evidence from GitHub Actions is being relied upon for this phase
 
-Before changing PR #52 from draft or merging it, run the exact-head Task 14 software acceptance above and perform one final base-to-head review against that same SHA. If code changes after the accepted SHA, rerun the affected acceptance rather than treating prior compiler evidence as transferable.
+The final scan found no reportable security finding. `docs/development/PHASE_6D_TASK16_REVIEW.md` records the evidence and the remaining blocker: fresh live Supabase fleet/RPC/migration/advisor readback is unavailable under the current authenticated identities. PR #52 remains draft and must not merge until that exact-project readback succeeds.
 
 A disabled Phase 6D code merge may occur only if Task 14, Task 15, and final Task 16 review are genuinely green. A merge is **not** permission to enable runtime networking.
 

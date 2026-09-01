@@ -34,7 +34,7 @@ Base:
 
 Current reviewed code/security head:
 
-`0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`
+`22f80584a9a473051d02556e5942d57291c40fea`
 
 Authoritative release-state refresh:
 
@@ -110,9 +110,9 @@ The socket/runtime-network hardening after the latest live database reconciliati
 
 ## Active Phase 6D gates
 
-### 1. Task 14 full exact-head software acceptance - blocked on a complete runner
+### 1. Task 14 full exact-head software acceptance - complete
 
-Static/source gates are substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The exact final candidate still needs the accepted executable command chain on one fresh dependency-complete runner:
+Completed on clean Linux code/evidence head `22f80584a9a473051d02556e5942d57291c40fea`:
 
 ```text
 npm test
@@ -124,21 +124,7 @@ npm audit --audit-level=info
 npm run build
 ```
 
-Also inspect the focused Phase 6D tests directly if the full suite output does not make their execution obvious, including the runtime network cancellation tests.
-
-Current executable evidence is partial but useful:
-
-- the last useful Vercel/Next.js compiler checkpoint was `5a7d3d26eb1bfaae5c38f536b0b9b153aa437a41`
-- Next.js compilation and framework lint/type validation completed successfully there
-- the build then failed during `/auth/sign-in` prerender because the Preview environment lacked the public Supabase URL/publishable key
-- current code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf` has no GitHub Actions verification
-- its visible commit status is Vercel failure on the account build-rate limit
-
-Treat those as compiler/platform evidence only. They are not a successful production build and do not replace the explicit command chain above.
-
-Do not weaken Supabase client validation or commit configuration/secrets merely to make an incomplete Preview environment build.
-
-The current execution container cannot materialize the exact GitHub repository because outbound GitHub DNS/network access is unavailable, and the available GitHub connector has no repository-archive export action. Do not fabricate a local test result from partial source retrieval.
+Result: 283 files/1,169 tests, typecheck and CLI build passed; CLI reported ScopeForge 0.1.0; benchmark wall time was 544 ms against 20,000 ms; audit found zero vulnerabilities; production build completed compilation, validation and 9/9 static pages.
 
 ### 2. Task 15 real Linux containment acceptance - complete
 
@@ -146,9 +132,11 @@ Completed on the dedicated Ubuntu 24.04/rootless-Podman/cgroup-v2 host for imple
 
 The acceptance does not enable production. Both Phase 6D capabilities remain false/absent through Task 16 and the disabled merge boundary.
 
-### 3. Final Task 16 same-SHA release review
+### 3. Final Task 16 release reconciliation - blocked on exact-project Supabase access
 
-The broad source/security review pass is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The remaining Task 16 work is a **final release review after Task 14 executable acceptance** on the same candidate SHA.
+The exact base-to-head source/security review through `22f80584a9a473051d02556e5942d57291c40fea` completed with no reportable finding. PR comments/threads, dependency drift, commit subjects, production flags, Task 14 and Task 15 were refreshed. See `docs/development/PHASE_6D_TASK16_REVIEW.md`.
+
+One external gate remains: authenticate a read-only-capable Supabase CLI or browser session to exact project `tdgpibrepzcvdivztkta`, then freshly confirm zero runtime fleet/activity, intended definer/search-path/grants, applied migrations, and no new Phase 6D advisor finding. Current CLI authentication sees different projects and was not used against them. Do not substitute another project.
 
 At that point:
 

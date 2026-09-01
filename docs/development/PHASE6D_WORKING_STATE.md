@@ -9,7 +9,7 @@ This file is the compact implementation checkpoint for the Phase 6D dedicated ne
 - Implementation branch: `feat/phase-6d-network-workers-v1-task14`
 - Draft implementation PR: `#52 - Phase 6D dedicated network workers implementation [skip ci]`
 - Base branch: `design/phase-6d-network-workers-v1` at `2be96ada2cf511b186d5e994c214e12683e76802`
-- Current reviewed code/security head: `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`
+- Current reviewed code/security head: `22f80584a9a473051d02556e5942d57291c40fea`
 - Authoritative release-state refresh commit: `f7b814d60c5ea9fee60eb5ad16cab28510ec9950`
 - PR #52 remains draft and must not leave draft based on static review alone.
 
@@ -19,9 +19,9 @@ Do not interpret source review or Vercel compilation as full executable acceptan
 
 The reviewed Phase 6D forward migrations are live on the ScopeForge Supabase project. Live reconciliation confirms service-role-only intended RPC authority, hardened empty `search_path`, private helper/table restrictions, immutable runtime task binding, `max_attempts = 1`, backpressure, cancellation-first finalization, and a zero-worker/zero-active-task runtime fleet.
 
-Task 14 static gates are substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The last useful Vercel/Next.js compiler checkpoint was `5a7d3d26eb1bfaae5c38f536b0b9b153aa437a41`: compilation and framework lint/type validation succeeded, then `/auth/sign-in` prerender stopped because the Preview environment lacked the public Supabase URL/publishable key. The current code head has no GitHub Actions verification and its visible commit status is a Vercel build-rate-limit failure. This is partial compiler/platform evidence only, not a successful production build.
+Task 14 passed on clean Linux code/evidence head `22f80584a9a473051d02556e5942d57291c40fea`: 283 files/1,169 tests, typecheck, CLI build/version, 544 ms scanner benchmark, zero audit vulnerabilities, and a successful production build with 9/9 static pages.
 
-Fresh full-repository execution is still required on one dependency-complete exact candidate:
+The executed chain was:
 
 - `npm test`
 - `npm run typecheck`
@@ -41,9 +41,9 @@ Task 15 real Linux containment acceptance passed on the dedicated Ubuntu 24.04/r
 - Task 11: global/class/workspace backpressure, runtime fleet-safe aggregates, queued cancellation recovery, lost/expired-attempt terminality, and single-attempt behavior are implemented and reconciled.
 - Task 12: permanent authority guards cover dashboard actions, preparation/execution boundaries, mediator independence, Phase 6B/6C separation, no generic network execution class, network-disabled sandboxes, atomic runtime success publication, and end-to-end abort propagation.
 - Task 13: SQL source review and Supabase reconciliation were completed. The intended Phase 6D public RPCs are live as service-role-only `SECURITY DEFINER` functions with empty `search_path`.
-- Task 14: static/source acceptance is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. The remaining blocker is the explicit full exact-head executable command chain on a complete runner.
+- Task 14: complete for code/evidence head `22f80584a9a473051d02556e5942d57291c40fea`.
 - Task 15: real Linux rootless-Podman containment acceptance passed; production runtime gates remain disabled.
-- Task 16: source/security review is substantially complete through code head `0fffafa2ea69a78bd0fe2c4c25546cbf5879a2bf`. Final same-SHA release review remains pending after Task 14 executable acceptance; runtime enablement additionally remains blocked on Task 15.
+- Task 16: exact base-to-head source/security review passed with no reportable finding. Fresh live Supabase reconciliation is blocked by unavailable access to the exact project, so PR #52 remains draft and unmerged.
 
 ## Task 14 hardening added during review
 

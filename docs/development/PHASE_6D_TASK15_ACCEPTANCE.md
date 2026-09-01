@@ -16,6 +16,8 @@ Acceptance date: 2026-09-01 (Asia/Singapore)
 - runtime image: `localhost/scopeforge-runtime-worker@sha256:04b5a5e4cf6b77ac3bf0f74a3126df15305ed1d337e11a8e00d13eef46fc9e43`
 - application bundle SHA-256: `11bd0ab9e2eb772e395455a75230b52c97cab913025839b7e971c7b9df983e79`
 
+The same unchanged runtime entry was rebuilt after this evidence document was committed. On clean code/evidence head `22f80584a9a473051d02556e5942d57291c40fea`, its immutable image was `localhost/scopeforge-runtime-worker@sha256:85404929fdd8b2e51c10280311b7a637a27702569d7e5fcb544f0bc9b9f942b5`; the bundle digest remained identical. Production mediator integration, OS containment and lifecycle cleanup were rerun against that exact head/image and passed.
+
 The image was built from a clean checkout of the implementation SHA and invoked by immutable digest. The documentation commit containing this record is identified separately by Git and the PR because a commit cannot embed its own hash.
 
 ## PID ceiling decision
