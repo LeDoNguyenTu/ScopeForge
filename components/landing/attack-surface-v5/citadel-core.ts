@@ -2,6 +2,33 @@ import * as THREE from "three";
 import type { AttackSurfaceV5Materials } from "./materials";
 import type { AttackSurfaceV5Quality } from "./quality";
 
+function createRadialPlateGeometry(innerRadius: number, outerRadius: number, innerHalfWidth: number, outerHalfWidth: number, height: number): THREE.BufferGeometry {
+  const vertices = new Float32Array([
+    innerRadius, 0, -innerHalfWidth,
+    outerRadius, 0, -outerHalfWidth,
+    outerRadius, 0, outerHalfWidth,
+    innerRadius, 0, innerHalfWidth,
+    innerRadius + 0.08, height, -innerHalfWidth * 0.78,
+    outerRadius - 0.1, height, -outerHalfWidth * 0.78,
+    outerRadius - 0.1, height, outerHalfWidth * 0.78,
+    innerRadius + 0.08, height, innerHalfWidth * 0.78,
+  ]);
+  const indices = [
+    0, 2, 1, 0, 3, 2,
+    4, 5, 6, 4, 6, 7,
+    0, 1, 5, 0, 5, 4,
+    1, 2, 6, 1, 6, 5,
+    2, 3, 7, 2, 7, 6,
+    3, 0, 4, 3, 4, 7,
+  ];
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
 export function createCitadelCore(materials: AttackSurfaceV5Materials, quality: AttackSurfaceV5Quality): THREE.Group {
   const core = new THREE.Group();
   core.name = "v5-citadel-core";
@@ -52,12 +79,67 @@ export function createCitadelCore(materials: AttackSurfaceV5Materials, quality: 
       energetic ? materials.healthyGlow : index % 2 === 0 ? materials.deckEdge : materials.structureEdge,
     );
     ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.67 + index * 0.014;
+    ring.position.y = 0.63 + index * 0.012;
     ring.userData.v5RingSpeed = (index % 2 === 0 ? 1 : -1) * (0.026 + index * 0.0048);
     ring.userData.v5RingPhase = index * 0.37;
     rings.push(ring);
     core.add(ring);
   });
+
+  const shell = new THREE.Group();
+  shell.name = "v5-core-mechanical-shell";
+  const armorCount = detailed ? 32 : 24;
+  const armorGeometryA = createRadialPlateGeometry(2.62, 4.34, 0.18, 0.42, 0.16);
+  const armorGeometryB = createRadialPlateGeometry(2.82, 4.52, 0.15, 0.34, 0.22);
+  const cavityGeometry = createRadialPlateGeometry(3.1, 4.05, 0.09, 0.2, 0.035);
+  const rimGeometry = new THREE.BoxGeometry(0.72, 0.24, 0.18);
+  const lightGeometry = new THREE.BoxGeometry(0.42, 0.045, 0.055);
+
+  for (let index = 0; index < armorCount; index += 1) {
+    const angle = (index / armorCount) * Math.PI * 2;
+    const plate = new THREE.Mesh(
+      index % 4 === 0 ? armorGeometryB : armorGeometryA,
+      index % 5 === 0 ? materials.deck : materials.structure,
+    );
+    plate.rotation.y = -angle;
+    plate.position.y = 0.57 + (index % 3) * 0.018;
+    plate.name = `v5-core-armor-${index}`;
+    shell.add(plate);
+
+    const rim = new THREE.Mesh(rimGeometry, index % 6 === 0 ? materials.deck : materials.structure);
+    rim.position.set(Math.cos(angle) * 4.58, 0.45 + (index % 2) * 0.07, Math.sin(angle) * 4.58);
+    rim.rotation.y = -angle + Math.PI / 2;
+    rim.rotation.z = index % 2 === 0 ? 0.07 : -0.05;
+    rim.name = `v5-core-rim-segment-${index}`;
+    shell.add(rim);
+
+    if (index % 2 === 0) {
+      const cavity = new THREE.Mesh(cavityGeometry, materials.panel);
+      cavity.rotation.y = -angle + (index % 4 === 0 ? 0.018 : -0.018);
+      cavity.position.y = 0.705;
+      cavity.name = `v5-core-cavity-${index / 2}`;
+      shell.add(cavity);
+
+      const panelLight = new THREE.Mesh(lightGeometry, index % 8 === 0 ? materials.cyanGlow : materials.healthyGlow);
+      const lightRadius = 3.72 + (index % 4 === 0 ? 0.18 : -0.08);
+      panelLight.position.set(Math.cos(angle) * lightRadius, 0.77, Math.sin(angle) * lightRadius);
+      panelLight.rotation.y = -angle + Math.PI / 2;
+      panelLight.name = `v5-core-panel-light-${index / 2}`;
+      shell.add(panelLight);
+    }
+  }
+
+  const innerWallCount = detailed ? 16 : 10;
+  const wallGeometry = new THREE.BoxGeometry(0.5, 0.56, 0.18);
+  for (let index = 0; index < innerWallCount; index += 1) {
+    const angle = (index / innerWallCount) * Math.PI * 2 + Math.PI / innerWallCount;
+    const wall = new THREE.Mesh(wallGeometry, index % 3 === 0 ? materials.deck : materials.structure);
+    wall.position.set(Math.cos(angle) * 2.54, 0.88 + (index % 2) * 0.08, Math.sin(angle) * 2.54);
+    wall.rotation.y = -angle + Math.PI / 2;
+    wall.name = `v5-core-inner-wall-${index}`;
+    shell.add(wall);
+  }
+  core.add(shell);
 
   const energyMaterial = materials.healthy.clone();
   energyMaterial.emissiveIntensity = 2.1;
@@ -147,5 +229,6 @@ export function createCitadelCore(materials: AttackSurfaceV5Materials, quality: 
   core.userData.v5Halos = haloStack;
   core.userData.v5Beacon = crownBeacon;
   core.userData.v5Decks = decks;
+  core.userData.v5MechanicalShell = shell;
   return core;
 }
