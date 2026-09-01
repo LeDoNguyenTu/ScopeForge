@@ -7,7 +7,9 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
   const targetPitch = pointer.y * 0.035;
   group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, targetYaw, 0.038);
   group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, targetPitch, 0.038);
-  group.position.y = Math.sin(elapsed * 0.34) * 0.045;
+  if (typeof group.userData.v5BaseY !== "number") group.userData.v5BaseY = group.position.y;
+  const surfaceBaseY = Number(group.userData.v5BaseY);
+  group.position.y = surfaceBaseY + Math.sin(elapsed * 0.34) * 0.045;
 
   const materials = group.userData.v5Materials as { nanoTransition?: THREE.ShaderMaterial } | undefined;
   const nanoTransition = materials?.nanoTransition;
@@ -78,7 +80,6 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
     const scan = compound.userData.v5ScanPlane as THREE.Mesh | undefined;
     const antenna = compound.userData.v5AntennaHead as THREE.Mesh | undefined;
     const orbit = compound.userData.v5Orbit as THREE.Mesh | undefined;
-    const tower = compound.userData.v5Tower as THREE.Mesh | undefined;
     const holoCage = compound.userData.v5HoloCage as THREE.Group | undefined;
     const holoCore = holoCage?.userData.v5HoloCore as THREE.Mesh | undefined;
     const holoEnergy = holoCage?.userData.v5HoloEnergy as THREE.Mesh | undefined;
@@ -92,10 +93,6 @@ export function updateAttackSurfaceV5Animation(group: THREE.Group, elapsed: numb
       antenna.scale.setScalar(0.92 + Math.sin(elapsed * 2.8 + phase) * 0.11);
     }
     if (orbit) orbit.rotation.z = elapsed * (index % 2 === 0 ? 0.34 : -0.29) + phase;
-    if (tower) {
-      const baseY = Number(tower.userData.v5BaseY ?? tower.position.y);
-      tower.position.y = baseY + Math.sin(elapsed * 0.82 + phase) * 0.025;
-    }
     if (holoCage) {
       if (typeof holoCage.userData.v5BaseY !== "number") holoCage.userData.v5BaseY = holoCage.position.y;
       const baseY = Number(holoCage.userData.v5BaseY);
