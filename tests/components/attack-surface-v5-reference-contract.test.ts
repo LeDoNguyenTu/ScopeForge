@@ -26,6 +26,16 @@ describe("V5 reference reconstruction contract", () => {
     }
   });
 
+  it("builds the central hub from dense segmented mechanical armor rather than exposed rings alone", () => {
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    const core = group.getObjectByName("v5-citadel-core")!;
+
+    expect(countNamed(core, "v5-core-armor-")).toBeGreaterThanOrEqual(24);
+    expect(countNamed(core, "v5-core-cavity-")).toBeGreaterThanOrEqual(12);
+    expect(countNamed(core, "v5-core-rim-segment-")).toBeGreaterThanOrEqual(24);
+    expect(countNamed(core, "v5-core-panel-light-")).toBeGreaterThanOrEqual(12);
+  });
+
   it("gives every endpoint a multi-layer holographic cage instead of a simple tower", () => {
     const model = createIllustrativeAttackSurfaceV5Model();
     const group = createAttackSurfaceV5Group(model, "balanced");
