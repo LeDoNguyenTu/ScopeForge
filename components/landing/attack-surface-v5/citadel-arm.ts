@@ -19,9 +19,9 @@ function createFacetedPlateGeometry(length: number, width: number, height: numbe
   const wz = width * 0.5;
   const topInset = width * 0.17;
   const vertices = new Float32Array([
-    -lx, 0, -wz,   lx, 0, -wz,   lx, 0, wz,   -lx, 0, wz,
-    -lx * 0.82, height, -wz + topInset,   lx * 0.82, height, -wz + topInset,
-    lx * 0.82, height, wz - topInset,   -lx * 0.82, height, wz - topInset,
+    -lx, 0, -wz, lx, 0, -wz, lx, 0, wz, -lx, 0, wz,
+    -lx * 0.82, height, -wz + topInset, lx * 0.82, height, -wz + topInset,
+    lx * 0.82, height, wz - topInset, -lx * 0.82, height, wz - topInset,
   ]);
   const indices = [
     0, 1, 2, 0, 2, 3,
@@ -30,6 +30,46 @@ function createFacetedPlateGeometry(length: number, width: number, height: numbe
     1, 5, 6, 1, 6, 2,
     2, 6, 7, 2, 7, 3,
     3, 7, 4, 3, 4, 0,
+  ];
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+function createBridgeDeckGeometry(length: number, width: number, height: number, notchBias: number): THREE.BufferGeometry {
+  const halfLength = length * 0.5;
+  const halfWidth = width * 0.5;
+  const shoulder = halfLength * 0.72;
+  const inset = width * 0.12;
+  const bias = THREE.MathUtils.clamp(notchBias, -0.1, 0.1) * width;
+  const vertices = new Float32Array([
+    -halfLength, 0, -halfWidth,
+    halfLength, 0, -halfWidth,
+    halfLength, 0, halfWidth,
+    -halfLength, 0, halfWidth,
+    -shoulder, height, -halfWidth + inset + bias,
+    shoulder, height, -halfWidth + inset - bias,
+    shoulder, height, halfWidth - inset - bias,
+    -shoulder, height, halfWidth - inset + bias,
+    -halfLength * 0.22, height * 1.12, -halfWidth * 0.3,
+    halfLength * 0.22, height * 1.12, -halfWidth * 0.3,
+    halfLength * 0.22, height * 1.12, halfWidth * 0.3,
+    -halfLength * 0.22, height * 1.12, halfWidth * 0.3,
+  ]);
+  const indices = [
+    0, 1, 5, 0, 5, 4,
+    1, 2, 6, 1, 6, 5,
+    2, 3, 7, 2, 7, 6,
+    3, 0, 4, 3, 4, 7,
+    4, 5, 9, 4, 9, 8,
+    5, 6, 10, 5, 10, 9,
+    6, 7, 11, 6, 11, 10,
+    7, 4, 8, 7, 8, 11,
+    8, 9, 10, 8, 10, 11,
+    0, 2, 1, 0, 3, 2,
   ];
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
@@ -69,21 +109,44 @@ export function createCitadelArm(
     const deckY = 0.02 + Math.sin(segmentIndex * 0.9 + index * 0.45) * 0.035;
 
     const bridge = new THREE.Mesh(
-      new THREE.BoxGeometry(segmentLength, 0.24, taper),
+      createBridgeDeckGeometry(segmentLength, taper, 0.24, (segmentIndex % 2 === 0 ? 1 : -1) * wave * 0.045),
       segmentIndex % 2 === 0 ? materials.structure : materials.deck,
     );
-    bridge.position.copy(worldPosition(direction, side, radial, lateral, deckY - 0.12));
+    bridge.position.copy(worldPosition(direction, side, radial, lateral, deckY - 0.24));
     bridge.rotation.y = -angle;
     bridge.name = `v5-bridge-${entity.id}-${segmentIndex}`;
     arm.add(bridge);
 
     const wireDeck = new THREE.Mesh(
-      new THREE.BoxGeometry(segmentLength * 0.94, 0.055, taper * 0.91),
+      createFacetedPlateGeometry(segmentLength * 0.94, taper * 0.91, 0.055),
       materials.deckEdge,
     );
-    wireDeck.position.copy(worldPosition(direction, side, radial, lateral, deckY + 0.035));
+    wireDeck.position.copy(worldPosition(direction, side, radial, lateral, deckY + 0.004));
     wireDeck.rotation.y = -angle;
     arm.add(wireDeck);
+
+    if (segmentIndex < segmentCenters.length - 1) {
+      const nextLateral = lateralOffsets[segmentIndex + 1];
+      const hingeRadial = (radial + segmentCenters[segmentIndex + 1]) * 0.5;
+      const hingeLateral = (lateral + nextLateral) * 0.5;
+      const hinge = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3 - segmentIndex * 0.012, 0.36 - segmentIndex * 0.012, 0.24, 8),
+        segmentIndex % 2 === 0 ? materials.deck : materials.structure,
+      );
+      hinge.position.copy(worldPosition(direction, side, hingeRadial, hingeLateral, deckY + 0.05));
+      hinge.rotation.y = Math.PI / 8 + segmentIndex * 0.11 * wave;
+      hinge.name = `v5-arm-hinge-${entity.id}-${segmentIndex}`;
+      arm.add(hinge);
+
+      const hingeCore = new THREE.Mesh(
+        new THREE.TorusGeometry(0.23 - segmentIndex * 0.01, 0.042, 8, 28),
+        segmentIndex >= 2 && entity.state === "risk" ? materials.riskGlow : materials.structureEdge,
+      );
+      hingeCore.position.copy(worldPosition(direction, side, hingeRadial, hingeLateral, deckY + 0.18));
+      hingeCore.rotation.x = Math.PI / 2;
+      hingeCore.rotation.z = angle;
+      arm.add(hingeCore);
+    }
 
     if (detailed) {
       for (let plateIndex = 0; plateIndex < 3; plateIndex += 1) {
@@ -122,11 +185,11 @@ export function createCitadelArm(
 
       if (detailed) {
         const sidePlate = new THREE.Mesh(
-          new THREE.BoxGeometry(segmentLength * 0.7, 0.36, 0.06),
+          createFacetedPlateGeometry(segmentLength * 0.7, 0.34, 0.08),
           segmentIndex % 2 === 0 ? materials.glass : materials.panel,
         );
-        sidePlate.position.copy(worldPosition(direction, side, radial, lateral + sign * taper * 0.49, deckY + 0.03));
-        sidePlate.rotation.y = -angle;
+        sidePlate.position.copy(worldPosition(direction, side, radial, lateral + sign * taper * 0.49, deckY - 0.02));
+        sidePlate.rotation.set(sign * Math.PI / 2, -angle, sign * 0.04);
         arm.add(sidePlate);
 
         const upperTruss = new THREE.Mesh(
