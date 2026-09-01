@@ -4,7 +4,7 @@ import { inflateSync } from "node:zlib";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const TARGET = "https://scopeforge-8kvrdim02-itsbrian.vercel.app/";
+const DEFAULT_TARGET = "https://scopeforge-8kvrdim02-itsbrian.vercel.app/";
 const CHUNK_SIZE = 48000;
 
 type DecodedPng = Readonly<{
@@ -124,8 +124,14 @@ function asciiPreview(image: DecodedPng, cols = 120, rows = 68) {
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
+  const requestedTarget = requestUrl.searchParams.get("target") ?? DEFAULT_TARGET;
+  const parsedTarget = new URL(requestedTarget);
+  if (parsedTarget.protocol !== "https:" || !parsedTarget.hostname.endsWith("vercel.app")) {
+    return Response.json({ ok: false, error: "Diagnostic target must be an HTTPS vercel.app URL" }, { status: 400 });
+  }
+
   const captureUrl = new URL("https://api.webstractor.com/v1/screenshot");
-  captureUrl.searchParams.set("url", TARGET);
+  captureUrl.searchParams.set("url", parsedTarget.toString());
   captureUrl.searchParams.set("width", "1920");
   captureUrl.searchParams.set("height", "1080");
   captureUrl.searchParams.set("fullPage", "false");
@@ -135,7 +141,7 @@ export async function GET(request: NextRequest) {
   if (!capture.ok) {
     return Response.json({
       ok: false,
-      target: TARGET,
+      target: parsedTarget.toString(),
       status: capture.status,
       detail: (await capture.text()).slice(0, 1200),
     }, { status: 502 });
@@ -147,7 +153,7 @@ export async function GET(request: NextRequest) {
       const decoded = decodePng(bytes);
       return Response.json({
         ok: true,
-        target: TARGET,
+        target: parsedTarget.toString(),
         viewport: { width: 1920, height: 1080 },
         decoded: { width: decoded.width, height: decoded.height, channels: decoded.channels },
         preview: asciiPreview(decoded),
@@ -167,7 +173,7 @@ export async function GET(request: NextRequest) {
 
   return Response.json({
     ok: true,
-    target: TARGET,
+    target: parsedTarget.toString(),
     viewport: { width: 1920, height: 1080 },
     contentType: capture.headers.get("content-type") ?? "image/png",
     byteLength: bytes.length,
