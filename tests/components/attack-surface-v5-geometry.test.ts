@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { createIllustrativeAttackSurfaceV5Model } from "@/components/landing/attack-surface-v5/model";
 import {
@@ -6,15 +7,16 @@ import {
 } from "@/components/landing/attack-surface-v5/geometry";
 
 describe("V5.2 premium citadel geometry composition", () => {
-  it("describes an architectural structure rather than a hub with six simple spokes", () => {
+  it("describes the actual segmented architecture instead of stale tower and torus counts", () => {
     const model = createIllustrativeAttackSurfaceV5Model();
     const description = describeAttackSurfaceV5Geometry(model);
 
-    expect(description.coreRingCount).toBeGreaterThanOrEqual(14);
+    expect(description.coreRingCount).toBe(8);
     expect(description.coreDeckCount).toBeGreaterThanOrEqual(5);
     expect(description.armCount).toBe(6);
     expect(description.bridgeSegmentCount).toBeGreaterThanOrEqual(30);
     expect(description.compoundModuleCount).toBeGreaterThanOrEqual(72);
+    expect(description.towerCount).toBe(0);
     expect(description.riskPathCount).toBe(2);
   });
 
@@ -38,6 +40,15 @@ describe("V5.2 premium citadel geometry composition", () => {
       expect(anchor?.userData.v5State).toBe(entity.state);
       expect(group.getObjectByName(`v5-path-${entity.id}`)?.userData.v5State).toBe(entity.state);
     }
+  });
+
+  it("uses instanced shared micro-hardware for dense repeated detail", () => {
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    const hardware = group.getObjectByName("v5-instanced-micro-hardware");
+
+    expect(hardware).toBeInstanceOf(THREE.InstancedMesh);
+    expect((hardware as THREE.InstancedMesh).count).toBeGreaterThanOrEqual(96);
+    expect((hardware as THREE.InstancedMesh).instanceMatrix.usage).toBe(THREE.StaticDrawUsage);
   });
 
   it("keeps both vulnerability entities mapped to their own orange risk branches", () => {
