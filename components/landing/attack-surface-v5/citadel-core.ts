@@ -71,20 +71,46 @@ export function createCitadelCore(materials: AttackSurfaceV5Materials, quality: 
   core.add(undersideCage);
 
   const rings: THREE.Mesh[] = [];
-  const ringRadii = [0.72, 0.94, 1.18, 1.44, 1.72, 2.02, 2.34, 2.68, 3.02, 3.34, 3.62, 3.88, 4.12, 4.34, 4.54, 4.7];
+  const ringRadii = [0.76, 1.18, 1.72, 2.34, 3.02, 3.62, 4.12, 4.54];
   ringRadii.forEach((radius, index) => {
-    const energetic = index === 0 || index === 3 || index === 7 || index === 11 || index === 15;
+    const energetic = index === 0 || index === 2 || index === 4 || index === 7;
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(radius, energetic ? 0.078 : 0.036, energetic ? 14 : 8, quality === "constrained" || quality === "reduced" ? 56 : 112),
+      new THREE.TorusGeometry(radius, energetic ? 0.068 : 0.032, energetic ? 12 : 8, quality === "constrained" || quality === "reduced" ? 48 : 96),
       energetic ? materials.healthyGlow : index % 2 === 0 ? materials.deckEdge : materials.structureEdge,
     );
     ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.63 + index * 0.012;
-    ring.userData.v5RingSpeed = (index % 2 === 0 ? 1 : -1) * (0.026 + index * 0.0048);
-    ring.userData.v5RingPhase = index * 0.37;
+    ring.position.y = 0.64 + index * 0.018;
+    ring.userData.v5RingSpeed = (index % 2 === 0 ? 1 : -1) * (0.028 + index * 0.006);
+    ring.userData.v5RingPhase = index * 0.52;
     rings.push(ring);
     core.add(ring);
   });
+
+  const bandGroup = new THREE.Group();
+  bandGroup.name = "v5-core-segmented-bands";
+  const bandSpecs = [
+    { radius: 3.46, y: 0.785, thickness: 0.12 },
+    { radius: 4.08, y: 0.735, thickness: 0.15 },
+  ] as const;
+  const bandSegmentCount = detailed ? 24 : 16;
+  bandSpecs.forEach((spec, bandIndex) => {
+    const chord = 2 * spec.radius * Math.sin(Math.PI / bandSegmentCount) * 0.78;
+    const geometry = new THREE.BoxGeometry(chord, 0.07 + bandIndex * 0.015, spec.thickness);
+    for (let segmentIndex = 0; segmentIndex < bandSegmentCount; segmentIndex += 1) {
+      const angle = (segmentIndex / bandSegmentCount) * Math.PI * 2 + (bandIndex === 0 ? 0 : Math.PI / bandSegmentCount);
+      const energized = segmentIndex % (bandIndex === 0 ? 4 : 6) === 0;
+      const segment = new THREE.Mesh(
+        geometry,
+        energized ? (bandIndex === 0 ? materials.cyanGlow : materials.healthyGlow) : segmentIndex % 2 === 0 ? materials.deck : materials.structure,
+      );
+      segment.position.set(Math.cos(angle) * spec.radius, spec.y + (segmentIndex % 3) * 0.008, Math.sin(angle) * spec.radius);
+      segment.rotation.y = -angle + Math.PI / 2;
+      segment.rotation.z = segmentIndex % 2 === 0 ? 0.018 : -0.018;
+      segment.name = `v5-core-band-segment-${bandIndex}-${segmentIndex}`;
+      bandGroup.add(segment);
+    }
+  });
+  core.add(bandGroup);
 
   const shell = new THREE.Group();
   shell.name = "v5-core-mechanical-shell";
@@ -269,5 +295,6 @@ export function createCitadelCore(materials: AttackSurfaceV5Materials, quality: 
   core.userData.v5ReactorStar = reactorStar;
   core.userData.v5Decks = decks;
   core.userData.v5MechanicalShell = shell;
+  core.userData.v5BandGroup = bandGroup;
   return core;
 }
