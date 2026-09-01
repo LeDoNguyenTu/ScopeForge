@@ -48,7 +48,7 @@ function addHolographicCage(
     }
 
     if (layerIndex < layerYs.length - 1) {
-      for (const [cornerIndex, corner] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const).entries()) {
+      for (const [cornerIndex, corner] of ([[-1, -1], [1, -1], [1, 1], [-1, 1]] as const).entries()) {
         const upright = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.62, 0.045), wire);
         upright.position.set(corner[0] * frameSize * 0.5, layerY + 0.31, corner[1] * frameSize * 0.5);
         upright.name = `v5-holo-frame-${entity.id}-${frameIndex + cornerIndex}`;
