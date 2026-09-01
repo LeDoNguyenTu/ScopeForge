@@ -1,8 +1,10 @@
+import { utimesSync, writeFileSync } from "node:fs";
 import {
   link,
   lstat,
   mkdir,
   mkdtemp,
+  readFile,
   rename,
   rm,
   symlink,
@@ -189,6 +191,20 @@ describe("Security Pack manifest parser", () => {
     expect(loaded.manifest.rules[0]!.matcher.literals[0]).toBe("FIRST\r\nSECOND");
   });
 
+  it.each(["\u2028", "\u2029"])(
+    "rejects Unicode separator U+%s in every single-line field",
+    async (separator) => {
+      await expect(loadSecurityPackManifest(await packWith({
+        name: `Unsafe${separator}name`,
+      }))).rejects.toMatchObject({ code: "PACK_MANIFEST_INVALID", field: "name" });
+
+      const rule = validRule();
+      rule.title = `Unsafe${separator}title`;
+      await expect(loadSecurityPackManifest(await packWith({ rules: [rule] })))
+        .rejects.toMatchObject({ code: "PACK_MANIFEST_INVALID", field: "rules[0].title" });
+    },
+  );
+
   it("rejects a non-UTF-8 manifest", async () => {
     await expect(loadRawPack(Uint8Array.from([0xc3, 0x28])))
       .rejects.toMatchObject({ code: "PACK_MANIFEST_INVALID" });
@@ -314,5 +330,41 @@ describe("Security Pack manifest parser", () => {
       validatedStat,
       SECURITY_PACK_LIMITS.manifestBytes,
     )).rejects.toMatchObject({ code: "PACK_PATH_INVALID" });
+  });
+
+  it("rejects an equal-size in-place rewrite on the opened manifest inode", async () => {
+    const root = await tempRoot();
+    const manifestPath = join(root, "scopeforge-pack.json");
+    const original = JSON.stringify(validManifest());
+    const replacement = JSON.stringify({
+      ...validManifest(),
+      packId: "org.scopeforge.changed",
+    });
+    expect(Buffer.byteLength(replacement)).toBe(Buffer.byteLength(original));
+    await writeFile(manifestPath, original);
+    const validatedStat = await lstat(manifestPath);
+    let mutationRan = false;
+    const hookedStat = new Proxy(validatedStat, {
+      get(target, property, receiver) {
+        if (property === "nlink" && !mutationRan) {
+          writeFileSync(manifestPath, replacement);
+          const changedTime = new Date(Date.now() + 60_000);
+          utimesSync(manifestPath, changedTime, changedTime);
+          mutationRan = true;
+        }
+        const value = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+
+    const outcome = await readVerifiedManifestBytes(
+      manifestPath,
+      root,
+      hookedStat,
+      SECURITY_PACK_LIMITS.manifestBytes,
+    ).catch((error: unknown) => error);
+    expect(mutationRan).toBe(true);
+    expect(await readFile(manifestPath, "utf8")).toBe(replacement);
+    expect(outcome).toMatchObject({ code: "PACK_PATH_INVALID" });
   });
 });

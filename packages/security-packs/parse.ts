@@ -1,4 +1,4 @@
-import { constants, type Stats } from "node:fs";
+import { constants, type BigIntStats, type Stats } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
@@ -92,7 +92,7 @@ function singleLineText(
   field: string,
   maximumBytes = SECURITY_PACK_LIMITS.guidanceFieldBytes,
 ): string {
-  if (typeof value !== "string" || /[\r\n]/u.test(value)) {
+  if (typeof value !== "string" || /[\r\n\u2028\u2029]/u.test(value)) {
     return fail("PACK_MANIFEST_INVALID", "Pack manifest single-line text is invalid.", field);
   }
   return boundedText(value, field, maximumBytes, false);
@@ -397,14 +397,39 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-function sameFileIdentity(left: Stats, right: Stats): boolean {
-  return left.isFile()
-    && right.isFile()
-    && left.dev === right.dev
-    && left.ino === right.ino
-    && left.size === right.size
-    && left.nlink === 1
-    && right.nlink === 1;
+type VerifiedManifestStat = Stats | BigIntStats;
+
+function isBigIntStat(stat: VerifiedManifestStat): stat is BigIntStats {
+  return typeof stat.dev === "bigint";
+}
+
+function sameFileIdentity(
+  left: VerifiedManifestStat,
+  right: VerifiedManifestStat,
+): boolean {
+  if (isBigIntStat(left) !== isBigIntStat(right)) return false;
+  if (isBigIntStat(left) && isBigIntStat(right)) {
+    return left.isFile()
+      && right.isFile()
+      && left.dev === right.dev
+      && left.ino === right.ino
+      && left.size === right.size
+      && left.nlink === BigInt(1)
+      && right.nlink === BigInt(1)
+      && left.mtimeNs === right.mtimeNs
+      && left.ctimeNs === right.ctimeNs;
+  }
+  const numericLeft = left as Stats;
+  const numericRight = right as Stats;
+  return numericLeft.isFile()
+    && numericRight.isFile()
+    && numericLeft.dev === numericRight.dev
+    && numericLeft.ino === numericRight.ino
+    && numericLeft.size === numericRight.size
+    && numericLeft.nlink === 1
+    && numericRight.nlink === 1
+    && numericLeft.mtimeMs === numericRight.mtimeMs
+    && numericLeft.ctimeMs === numericRight.ctimeMs;
 }
 
 function isContained(canonicalRoot: string, candidate: string): boolean {
@@ -412,9 +437,9 @@ function isContained(canonicalRoot: string, candidate: string): boolean {
   return child !== "" && child !== ".." && !child.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) && !isAbsolute(child);
 }
 
-async function safeLstat(path: string): Promise<Stats> {
+async function safeLstat(path: string): Promise<BigIntStats> {
   try {
-    return await lstat(path);
+    return await lstat(path, { bigint: true });
   } catch {
     return fail("PACK_PATH_INVALID", "Security Pack path cannot be inspected.");
   }
@@ -423,7 +448,7 @@ async function safeLstat(path: string): Promise<Stats> {
 export async function readVerifiedManifestBytes(
   manifestPath: string,
   canonicalRoot: string,
-  manifestStat: Stats,
+  manifestStat: VerifiedManifestStat,
   maximumBytes: number,
 ): Promise<Uint8Array> {
   let canonicalManifest: string;
@@ -445,7 +470,9 @@ export async function readVerifiedManifestBytes(
   }
 
   try {
-    const openedStat = await handle.stat();
+    const openedStat = isBigIntStat(manifestStat)
+      ? await handle.stat({ bigint: true })
+      : await handle.stat();
     if (!sameFileIdentity(manifestStat, openedStat)) {
       return fail("PACK_PATH_INVALID", "Pack manifest identity changed during validation.");
     }
@@ -459,7 +486,9 @@ export async function readVerifiedManifestBytes(
     if (total > maximumBytes) {
       return fail("PACK_MANIFEST_TOO_LARGE", "Pack manifest exceeds the fixed byte limit.");
     }
-    const completedStat = await handle.stat();
+    const completedStat = isBigIntStat(openedStat)
+      ? await handle.stat({ bigint: true })
+      : await handle.stat();
     if (!sameFileIdentity(openedStat, completedStat) || !sameFileIdentity(manifestStat, completedStat)) {
       return fail("PACK_PATH_INVALID", "Pack manifest identity changed during validation.");
     }
@@ -492,7 +521,7 @@ export async function loadSecurityPackManifest(packDirectory: string): Promise<L
   if (!manifestStat.isFile() || manifestStat.isSymbolicLink()) {
     return fail("PACK_PATH_INVALID", "Pack manifest must be a regular file.");
   }
-  if (manifestStat.nlink !== 1) {
+  if (manifestStat.nlink !== BigInt(1)) {
     return fail("PACK_PATH_INVALID", "Pack manifest must not be hard-linked.");
   }
   if (manifestStat.size > SECURITY_PACK_LIMITS.manifestBytes) {
