@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createAttackSurfaceV5Group } from "@/components/landing/attack-surface-v5/geometry";
 import { createV5Materials } from "@/components/landing/attack-surface-v5/materials";
 import { createIllustrativeAttackSurfaceV5Model } from "@/components/landing/attack-surface-v5/model";
-import { getAttackSurfaceV5CameraPreset } from "@/components/landing/attack-surface-v5/controller";
+import { getAttackSurfaceV5CameraPreset, projectAttackSurfaceV5Anchors } from "@/components/landing/attack-surface-v5/controller";
 
 const countNamed = (root: THREE.Object3D, prefix: string) => {
   let count = 0;
@@ -67,6 +67,38 @@ describe("V5 reference reconstruction contract", () => {
     expect(desktop.surfaceScale).toBeLessThanOrEqual(0.76);
     expect(mobile.position[1]).toBeGreaterThanOrEqual(16);
     expect(mobile.surfaceScale).toBeLessThanOrEqual(0.64);
+  });
+
+  it("keeps all six projected desktop labels safely separated and inside the 1920x1080 graph frame", () => {
+    const width = 1920;
+    const height = 1080;
+    const preset = getAttackSurfaceV5CameraPreset("desktop");
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    group.scale.setScalar(preset.surfaceScale);
+    group.position.y = preset.surfaceY;
+
+    const camera = new THREE.PerspectiveCamera(preset.fov, width / height, 0.1, 120);
+    camera.position.set(...preset.position);
+    camera.lookAt(...preset.target);
+    camera.updateProjectionMatrix();
+
+    const anchors = projectAttackSurfaceV5Anchors(group, camera, width, height);
+    expect(anchors).toHaveLength(6);
+    for (const anchor of anchors) {
+      expect(anchor.visible, anchor.id).toBe(true);
+      expect(anchor.x, `${anchor.id} x`).toBeGreaterThan(72);
+      expect(anchor.x, `${anchor.id} x`).toBeLessThan(width - 72);
+      expect(anchor.y, `${anchor.id} y`).toBeGreaterThan(72);
+      expect(anchor.y, `${anchor.id} y`).toBeLessThan(height - 72);
+      expect(Math.hypot(anchor.x - width / 2, anchor.y - height / 2), `${anchor.id} hub clearance`).toBeGreaterThan(150);
+    }
+
+    for (let left = 0; left < anchors.length; left += 1) {
+      for (let right = left + 1; right < anchors.length; right += 1) {
+        const distance = Math.hypot(anchors[left].x - anchors[right].x, anchors[left].y - anchors[right].y);
+        expect(distance, `${anchors[left].id}/${anchors[right].id} separation`).toBeGreaterThan(90);
+      }
+    }
   });
 
   it("provides a real nano-tech transition shader for one live structural branch", () => {
