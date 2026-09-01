@@ -36,6 +36,16 @@ describe("V5 reference reconstruction contract", () => {
     expect(countNamed(core, "v5-core-panel-light-")).toBeGreaterThanOrEqual(12);
   });
 
+  it("gives the hub a shielded orange reactor star instead of a generic glowing primitive", () => {
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    const core = group.getObjectByName("v5-citadel-core")!;
+
+    expect(core.getObjectByName("v5-core-reactor-star")).toBeTruthy();
+    expect(countNamed(core, "v5-core-star-spoke-")).toBeGreaterThanOrEqual(8);
+    expect(countNamed(core, "v5-core-shield-frame-")).toBeGreaterThanOrEqual(6);
+    expect(countNamed(core, "v5-core-reactor-node-")).toBeGreaterThanOrEqual(6);
+  });
+
   it("gives every endpoint a multi-layer holographic cage instead of a simple tower", () => {
     const model = createIllustrativeAttackSurfaceV5Model();
     const group = createAttackSurfaceV5Group(model, "balanced");
