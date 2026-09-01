@@ -186,11 +186,49 @@ export function createCitadelCore(materials: AttackSurfaceV5Materials, quality: 
   crownShield.rotation.y = Math.PI / 4;
   core.add(crownShield);
 
-  const crownBeacon = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), materials.amberGlow);
-  crownBeacon.position.y = 1.84;
+  const reactorStar = new THREE.Group();
+  reactorStar.name = "v5-core-reactor-star";
+  reactorStar.position.y = 1.96;
+  reactorStar.rotation.y = Math.PI / 8;
+
+  const starSpokeGeometry = new THREE.BoxGeometry(0.92, 0.075, 0.105);
+  for (let index = 0; index < 8; index += 1) {
+    const angle = (index / 8) * Math.PI * 2;
+    const spoke = new THREE.Mesh(starSpokeGeometry, index % 2 === 0 ? materials.amberGlow : materials.riskGlow);
+    spoke.position.set(Math.cos(angle) * 0.38, 0, Math.sin(angle) * 0.38);
+    spoke.rotation.y = -angle;
+    spoke.scale.x = index % 2 === 0 ? 1.12 : 0.78;
+    spoke.name = `v5-core-star-spoke-${index}`;
+    reactorStar.add(spoke);
+  }
+
+  const shieldFrameGeometry = new THREE.BoxGeometry(0.76, 0.055, 0.065);
+  const shieldRadius = 0.72;
+  for (let index = 0; index < 6; index += 1) {
+    const angleA = (index / 6) * Math.PI * 2;
+    const angleB = ((index + 1) / 6) * Math.PI * 2;
+    const ax = Math.cos(angleA) * shieldRadius;
+    const az = Math.sin(angleA) * shieldRadius;
+    const bx = Math.cos(angleB) * shieldRadius;
+    const bz = Math.sin(angleB) * shieldRadius;
+    const frame = new THREE.Mesh(shieldFrameGeometry, index % 2 === 0 ? materials.deckEdge : materials.structureEdge);
+    frame.position.set((ax + bx) * 0.5, 0.04, (az + bz) * 0.5);
+    frame.rotation.y = -Math.atan2(bz - az, bx - ax);
+    frame.name = `v5-core-shield-frame-${index}`;
+    reactorStar.add(frame);
+
+    const node = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), index % 2 === 0 ? materials.amberGlow : materials.cyanGlow);
+    node.position.set(ax, 0.08, az);
+    node.name = `v5-core-reactor-node-${index}`;
+    reactorStar.add(node);
+  }
+
+  const crownBeacon = new THREE.Mesh(new THREE.OctahedronGeometry(0.31, 0), materials.amberGlow);
+  crownBeacon.position.y = 0.07;
   crownBeacon.rotation.y = Math.PI / 4;
   crownBeacon.name = "v5-core-beacon";
-  core.add(crownBeacon);
+  reactorStar.add(crownBeacon);
+  core.add(reactorStar);
 
   const braceCount = quality === "constrained" || quality === "reduced" ? 10 : 18;
   for (let index = 0; index < braceCount; index += 1) {
@@ -228,6 +266,7 @@ export function createCitadelCore(materials: AttackSurfaceV5Materials, quality: 
   core.userData.v5EnergyCap = energyCap;
   core.userData.v5Halos = haloStack;
   core.userData.v5Beacon = crownBeacon;
+  core.userData.v5ReactorStar = reactorStar;
   core.userData.v5Decks = decks;
   core.userData.v5MechanicalShell = shell;
   return core;
