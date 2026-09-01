@@ -93,6 +93,8 @@ export function createCitadelCompound(entity: AttackSurfaceV5Entity, index: numb
   compound.userData.v5EntityId = entity.id;
   compound.userData.v5State = entity.state;
   const detailed = quality === "cinematic" || quality === "balanced";
+  const glow = glowMaterial(entity, materials);
+  const wire = cageMaterial(entity, materials);
 
   const base = new THREE.Mesh(new THREE.CylinderGeometry(1.46, 1.72, 0.42, 8), materials.structure);
   base.position.y = 0.05;
@@ -104,64 +106,89 @@ export function createCitadelCompound(entity: AttackSurfaceV5Entity, index: numb
   upperBase.rotation.y = Math.PI / 8;
   compound.add(upperBase);
 
-  const perimeterRing = new THREE.Mesh(new THREE.TorusGeometry(1.42, 0.05, 8, 48), glowMaterial(entity, materials));
+  const perimeterRing = new THREE.Mesh(new THREE.TorusGeometry(1.42, 0.05, 8, 48), glow);
   perimeterRing.rotation.x = Math.PI / 2;
   perimeterRing.position.y = 0.48;
   compound.add(perimeterRing);
 
-  const towerHeight = entity.state === "risk" ? 1.34 : 1.12 + (index % 3) * 0.1;
-  const mainTower = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.82, towerHeight, 8), stateMaterial(entity, materials));
-  mainTower.position.set(0, 0.48 + towerHeight / 2, 0);
-  mainTower.rotation.y = Math.PI / 8;
-  mainTower.name = `v5-tower-${entity.id}`;
-  mainTower.userData.v5BaseY = mainTower.position.y;
-  compound.add(mainTower);
+  const deckSpecs = [
+    { radius: 1.02, bottom: 1.18, height: 0.17, y: 0.6, sides: 8 },
+    { radius: 0.8, bottom: 0.98, height: 0.15, y: 0.82, sides: 8 },
+    { radius: 0.58, bottom: 0.76, height: 0.13, y: 1.02, sides: 6 },
+  ] as const;
+  const endpointDecks: THREE.Mesh[] = [];
+  deckSpecs.forEach((spec, deckIndex) => {
+    const deck = new THREE.Mesh(
+      new THREE.CylinderGeometry(spec.radius, spec.bottom, spec.height, spec.sides),
+      deckIndex === 1 ? stateMaterial(entity, materials) : deckIndex === 2 ? materials.panel : materials.deck,
+    );
+    deck.position.y = spec.y;
+    deck.rotation.y = Math.PI / 8 + deckIndex * 0.13;
+    deck.name = `v5-endpoint-deck-${entity.id}-${deckIndex}`;
+    endpointDecks.push(deck);
+    compound.add(deck);
+  });
 
-  const mainCage = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.06, towerHeight + 0.28, 8, 2, true), cageMaterial(entity, materials));
-  mainCage.position.copy(mainTower.position);
-  mainCage.rotation.y = Math.PI / 8;
-  compound.add(mainCage);
+  const crossRailGeometry = new THREE.BoxGeometry(1.7, 0.065, 0.08);
+  for (let railIndex = 0; railIndex < 4; railIndex += 1) {
+    const rail = new THREE.Mesh(crossRailGeometry, railIndex % 2 === 0 ? wire : materials.deckEdge);
+    rail.position.y = 0.92 + (railIndex % 2) * 0.16;
+    rail.rotation.y = railIndex * Math.PI / 4 + Math.PI / 8;
+    rail.name = `v5-endpoint-rail-${entity.id}-${railIndex}`;
+    compound.add(rail);
+  }
 
-  const crown = new THREE.Mesh(new THREE.OctahedronGeometry(entity.state === "risk" ? 0.34 : 0.29, 0), glowMaterial(entity, materials));
-  crown.position.set(0, towerHeight + 0.58, 0);
-  crown.rotation.y = index * 0.34;
-  compound.add(crown);
+  const coreHousing = new THREE.Mesh(new THREE.DodecahedronGeometry(0.43, 0), materials.glass);
+  coreHousing.position.y = 1.26;
+  coreHousing.rotation.set(0.12, index * 0.3, -0.08);
+  compound.add(coreHousing);
 
-  const pylonRadius = 0.98;
+  const coreEnergy = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), glow);
+  coreEnergy.position.y = 1.26;
+  compound.add(coreEnergy);
+
+  const pylonRadius = 1.02;
   for (let pylonIndex = 0; pylonIndex < 4; pylonIndex += 1) {
     const pylonAngle = pylonIndex * Math.PI / 2 + Math.PI / 4;
-    const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.78 + (pylonIndex % 2) * 0.18, 0.2), entity.state === "risk" && pylonIndex % 2 === 0 ? materials.risk : materials.deck);
-    pylon.position.set(Math.cos(pylonAngle) * pylonRadius, 0.74, Math.sin(pylonAngle) * pylonRadius);
+    const pylonHeight = 0.48 + (pylonIndex % 2) * 0.12;
+    const pylon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.18, pylonHeight, 6),
+      entity.state === "risk" && pylonIndex % 2 === 0 ? materials.risk : materials.deck,
+    );
+    pylon.position.set(Math.cos(pylonAngle) * pylonRadius, 0.55 + pylonHeight * 0.5, Math.sin(pylonAngle) * pylonRadius);
     pylon.rotation.y = pylonAngle;
     compound.add(pylon);
 
     if (detailed) {
-      const cap = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), pylonIndex % 2 === 0 ? glowMaterial(entity, materials) : materials.cyanGlow);
-      cap.position.set(Math.cos(pylonAngle) * pylonRadius, 1.22 + (pylonIndex % 2) * 0.1, Math.sin(pylonAngle) * pylonRadius);
+      const cap = new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), pylonIndex % 2 === 0 ? glow : materials.cyanGlow);
+      cap.position.set(Math.cos(pylonAngle) * pylonRadius, 0.84 + pylonHeight, Math.sin(pylonAngle) * pylonRadius);
       compound.add(cap);
     }
   }
 
-  const satellites = [{ x: -0.72, z: 0.86, h: 0.72 }, { x: 0.72, z: -0.82, h: 0.62 }, { x: 0.84, z: 0.62, h: 0.54 }];
+  const satellites = [{ x: -0.78, z: 0.86, h: 0.46 }, { x: 0.76, z: -0.84, h: 0.4 }, { x: 0.88, z: 0.62, h: 0.34 }];
   satellites.forEach((spec, satelliteIndex) => {
-    const satellite = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.38, spec.h + (index % 2) * 0.08, satelliteIndex % 2 === 0 ? 6 : 4), satelliteIndex === 0 && entity.state === "risk" ? materials.risk : materials.deck);
+    const satellite = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.24, 0.34, spec.h, satelliteIndex % 2 === 0 ? 6 : 4),
+      satelliteIndex === 0 && entity.state === "risk" ? materials.risk : materials.deck,
+    );
     satellite.position.set(spec.x, 0.48 + spec.h / 2, spec.z);
     satellite.rotation.y = Math.PI / 4 + satelliteIndex * 0.3;
     compound.add(satellite);
   });
 
-  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 0.72, 8), materials.deck);
-  antenna.position.set(0, towerHeight + 0.88, 0);
-  compound.add(antenna);
+  const signalMast = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.045, 0.36, 8), materials.deck);
+  signalMast.position.set(0.22, 1.5, -0.16);
+  compound.add(signalMast);
 
-  const antennaHead = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), glowMaterial(entity, materials));
-  antennaHead.position.set(0, towerHeight + 1.28, 0);
+  const antennaHead = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), glow);
+  antennaHead.position.set(0.22, 1.72, -0.16);
   antennaHead.name = `v5-antenna-${entity.id}`;
   compound.add(antennaHead);
 
-  const orbit = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.03, 8, 40), glowMaterial(entity, materials));
+  const orbit = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.028, 8, 40), glow);
   orbit.rotation.x = Math.PI / 2;
-  orbit.position.set(0, towerHeight + 0.56, 0);
+  orbit.position.set(0, 1.54, 0);
   orbit.name = `v5-compound-orbit-${entity.id}`;
   compound.add(orbit);
 
@@ -172,23 +199,23 @@ export function createCitadelCompound(entity: AttackSurfaceV5Entity, index: numb
   compound.add(scanPlane);
 
   if (detailed) {
-    const outerCage = new THREE.Mesh(new THREE.CylinderGeometry(1.46, 1.62, 1.1, 8, 2, true), cageMaterial(entity, materials));
-    outerCage.position.y = 0.72;
+    const outerCage = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 1.58, 0.82, 8, 2, true), wire);
+    outerCage.position.y = 0.82;
     outerCage.rotation.y = Math.PI / 8;
     compound.add(outerCage);
 
-    const holoPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.34, 0.58), entity.state === "risk" ? materials.scanRisk : materials.panel);
-    holoPanel.position.set(-1.08, 1.24, 0.76);
+    const holoPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.24, 0.5), entity.state === "risk" ? materials.scanRisk : materials.panel);
+    holoPanel.position.set(-1.04, 1.12, 0.72);
     holoPanel.rotation.y = Math.PI / 4;
     holoPanel.name = `v5-hologram-${entity.id}`;
     compound.add(holoPanel);
   }
 
-  const holoCage = addHolographicCage(compound, entity, towerHeight + 1.74, materials);
+  const holoCage = addHolographicCage(compound, entity, 1.88, materials);
 
   const labelAnchor = new THREE.Object3D();
   labelAnchor.name = `v5-label-anchor-${entity.id}`;
-  labelAnchor.position.set(0, towerHeight + 2.72, 0);
+  labelAnchor.position.set(0, 3.12, 0);
   labelAnchor.userData.v5EntityId = entity.id;
   labelAnchor.userData.v5State = entity.state;
   compound.add(labelAnchor);
@@ -196,8 +223,8 @@ export function createCitadelCompound(entity: AttackSurfaceV5Entity, index: numb
   compound.userData.v5ScanPlane = scanPlane;
   compound.userData.v5AntennaHead = antennaHead;
   compound.userData.v5Orbit = orbit;
-  compound.userData.v5Tower = mainTower;
   compound.userData.v5HoloCage = holoCage;
+  compound.userData.v5EndpointDecks = endpointDecks;
   compound.userData.v5LabelAnchor = labelAnchor;
   return compound;
 }
