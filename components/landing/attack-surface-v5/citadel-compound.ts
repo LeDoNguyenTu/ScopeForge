@@ -13,14 +13,11 @@ function glowMaterial(entity: AttackSurfaceV5Entity, materials: AttackSurfaceV5M
   return entity.state === "risk" ? materials.riskGlow : materials.healthyGlow;
 }
 
-export function createCitadelCompound(
-  entity: AttackSurfaceV5Entity,
-  index: number,
-  endpoint: THREE.Vector3,
-  angle: number,
-  materials: AttackSurfaceV5Materials,
-  quality: AttackSurfaceV5Quality,
-): THREE.Group {
+function cageMaterial(entity: AttackSurfaceV5Entity, materials: AttackSurfaceV5Materials) {
+  return entity.state === "risk" ? materials.riskEdge : materials.structureEdge;
+}
+
+export function createCitadelCompound(entity: AttackSurfaceV5Entity, index: number, endpoint: THREE.Vector3, angle: number, materials: AttackSurfaceV5Materials, quality: AttackSurfaceV5Quality): THREE.Group {
   const compound = new THREE.Group();
   compound.name = `v5-compound-${entity.id}`;
   compound.position.copy(endpoint);
@@ -52,7 +49,7 @@ export function createCitadelCompound(
   mainTower.userData.v5BaseY = mainTower.position.y;
   compound.add(mainTower);
 
-  const mainCage = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 1.02, towerHeight + 0.34, 6, 3, true), materials.structureEdge);
+  const mainCage = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 1.02, towerHeight + 0.34, 6, 3, true), cageMaterial(entity, materials));
   mainCage.position.copy(mainTower.position);
   mainCage.rotation.y = Math.PI / 6;
   compound.add(mainCage);
@@ -65,7 +62,7 @@ export function createCitadelCompound(
   const pylonRadius = 0.98;
   for (let pylonIndex = 0; pylonIndex < 4; pylonIndex += 1) {
     const pylonAngle = pylonIndex * Math.PI / 2 + Math.PI / 4;
-    const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0 + (pylonIndex % 2) * 0.22, 0.2), materials.deck);
+    const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0 + (pylonIndex % 2) * 0.22, 0.2), entity.state === "risk" && pylonIndex % 2 === 0 ? materials.risk : materials.deck);
     pylon.position.set(Math.cos(pylonAngle) * pylonRadius, 0.86, Math.sin(pylonAngle) * pylonRadius);
     pylon.rotation.y = pylonAngle;
     compound.add(pylon);
@@ -77,16 +74,9 @@ export function createCitadelCompound(
     }
   }
 
-  const satellites = [
-    { x: -0.72, z: 0.86, h: 0.96 },
-    { x: 0.72, z: -0.82, h: 0.78 },
-    { x: 0.84, z: 0.62, h: 0.62 },
-  ];
+  const satellites = [{ x: -0.72, z: 0.86, h: 0.96 }, { x: 0.72, z: -0.82, h: 0.78 }, { x: 0.84, z: 0.62, h: 0.62 }];
   satellites.forEach((spec, satelliteIndex) => {
-    const satellite = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.28, 0.38, spec.h + (index % 2) * 0.08, satelliteIndex % 2 === 0 ? 6 : 4),
-      satelliteIndex === 0 && entity.state === "risk" ? materials.risk : materials.deck,
-    );
+    const satellite = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.38, spec.h + (index % 2) * 0.08, satelliteIndex % 2 === 0 ? 6 : 4), satelliteIndex === 0 && entity.state === "risk" ? materials.risk : materials.deck);
     satellite.position.set(spec.x, 0.48 + spec.h / 2, spec.z);
     satellite.rotation.y = Math.PI / 4 + satelliteIndex * 0.3;
     compound.add(satellite);
@@ -114,12 +104,12 @@ export function createCitadelCompound(
   compound.add(scanPlane);
 
   if (detailed) {
-    const outerCage = new THREE.Mesh(new THREE.CylinderGeometry(1.46, 1.62, 1.1, 8, 2, true), materials.structureEdge);
+    const outerCage = new THREE.Mesh(new THREE.CylinderGeometry(1.46, 1.62, 1.1, 8, 2, true), cageMaterial(entity, materials));
     outerCage.position.y = 0.72;
     outerCage.rotation.y = Math.PI / 8;
     compound.add(outerCage);
 
-    const holoPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.34, 0.58), materials.panel);
+    const holoPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.34, 0.58), entity.state === "risk" ? materials.scanRisk : materials.panel);
     holoPanel.position.set(-1.08, 1.32, 0.76);
     holoPanel.rotation.y = Math.PI / 4;
     holoPanel.name = `v5-hologram-${entity.id}`;
