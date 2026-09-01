@@ -29,18 +29,18 @@ export type AttackSurfaceV5ProjectedAnchor = Readonly<{
 
 const CAMERA_PRESETS: Readonly<Record<AttackSurfaceV5Variant, AttackSurfaceV5CameraPreset>> = Object.freeze({
   desktop: Object.freeze({
-    fov: 38,
-    position: Object.freeze([0.7, 8.0, 20.6] as const),
-    target: Object.freeze([0.25, 0.02, 0] as const),
-    surfaceScale: 0.82,
-    surfaceY: -0.15,
+    fov: 34,
+    position: Object.freeze([0.8, 12.4, 24.4] as const),
+    target: Object.freeze([0.18, -0.08, 0] as const),
+    surfaceScale: 0.73,
+    surfaceY: -0.3,
   }),
   mobile: Object.freeze({
-    fov: 50,
-    position: Object.freeze([0, 15.1, 23.6] as const),
-    target: Object.freeze([0, 0.16, 0] as const),
-    surfaceScale: 0.66,
-    surfaceY: -0.36,
+    fov: 46,
+    position: Object.freeze([0, 17.2, 25.8] as const),
+    target: Object.freeze([0, 0.05, 0] as const),
+    surfaceScale: 0.62,
+    surfaceY: -0.42,
   }),
 });
 
@@ -71,7 +71,7 @@ export function projectAttackSurfaceV5Anchors(
       x: (point.x * 0.5 + 0.5) * safeWidth,
       y: (-point.y * 0.5 + 0.5) * safeHeight,
       depth: point.z,
-      visible: point.z >= -1 && point.z <= 1 && point.x >= -1.25 && point.x <= 1.25 && point.y >= -1.25 && point.y <= 1.25,
+      visible: point.z >= -1 && point.z <= 1 && point.x >= -1.18 && point.x <= 1.18 && point.y >= -1.18 && point.y <= 1.18,
       sourceName: object.name,
     }));
   });
@@ -135,7 +135,7 @@ export function createAttackSurfaceV5Controller(options: CreateAttackSurfaceV5Co
   renderer.setClearColor(0x05070a, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = options.quality === "cinematic" ? 1.24 : options.quality === "balanced" ? 1.14 : 1.02;
+  renderer.toneMappingExposure = options.quality === "cinematic" ? 1.18 : options.quality === "balanced" ? 1.1 : 1.0;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(preset.fov, 1, 0.1, 120);
