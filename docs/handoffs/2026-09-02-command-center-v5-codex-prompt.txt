@@ -1,0 +1,393 @@
+Continue my ScopeForge Command Center V5 implementation autonomously from the documented checkpoint.
+
+Repository:
+https://github.com/LeDoNguyenTu/ScopeForge
+
+Active branch:
+preview/command-center-v5-reference-rebuild
+
+IMPORTANT: do not assume the SHA in this prompt is still the branch head. First fetch the repository and resolve the exact current branch/head before editing anything.
+
+Last fully verified IMPLEMENTATION commit before the documentation-only handoff commits:
+227654d7d9057fd56751f6d72d4b97eafb476e7e
+
+That implementation commit is VERIFIED:
+- Vercel deployment READY
+- deployment: https://scopeforge-qov62825f-itsbrian.vercel.app
+- 6 focused V5 test files passed
+- 29 focused V5 tests passed
+- Next.js 15.5.24 production build passed
+
+FIRST ACTION
+
+Read this file in full before touching code:
+
+docs/handoffs/2026-09-02-command-center-v5-codex-handoff.md
+
+Also inspect the existing V5 design/spec/plan documents under:
+
+docs/superpowers/
+
+Use the Superpowers development workflow. Apply TDD for objective regressions and use the appropriate planning/execution/debugging/review skills rather than improvising large unreviewed changes.
+
+PRIMARY OBJECTIVE
+
+Finish the high-end public ScopeForge landing-page V5 reconstruction, with the live Three.js Living Attack Surface hero genuinely close to the two supplied approved reference images.
+
+The CLEAN GRAPH-ONLY reference is the PRIMARY geometry/composition target.
+The fuller HUD/nano-tech reference is secondary guidance for materials, transition effect, teal/orange energy styling, detail density and technical polish.
+
+If the two visual reference images are not visible in this Codex session, ask me to attach those two images before making subjective visual-convergence claims. You may continue objective code/test inspection while waiting, but DO NOT declare the graph visually accepted from text descriptions alone.
+
+ABSOLUTE RULE - DO NOT CHEAT WITH THE REFERENCE ART
+
+The live hero must be real Three.js geometry.
+
+Forbidden:
+- reference image as webpage hero background
+- screenshot plus CSS/particles presented as a live scene
+- static image as the main hero once WebGL is ready
+- cropping or embedding the supplied reference as the visual scene
+- generated master render as the structural base
+- 2D image plus shader/overlay claimed as a Three.js reconstruction
+
+Poster images are allowed only for initial loading/fallback/reduced-capability fallback. Once WebGL is ready the user must see actual Three.js geometry.
+
+DO NOT RESTORE THIS WRONG-PATH COMMIT WHOLESALE:
+4b9af5b6f077253510c87ad8924c06d3d6907ae6
+
+It used a static master-image base and violates the current governing rules even though its Vercel deployment was READY.
+
+Its parent test experiment is also not authoritative because some tests explicitly require the static master image:
+2de173418c702febba245ba08de4d118329a72d0
+
+CURRENT GRAPH STATE TO PRESERVE
+
+The current reconstruction already includes:
+- six-arm topology
+- WEB APPLICATION and DATA STORE as the only risk branches
+- teal healthy routes
+- orange risk routes
+- five-layer central mechanical platform
+- segmented central armor/rim/cavities
+- shielded orange central reactor/star
+- reduced visible torus dependence
+- custom faceted articulated arm bridge geometry instead of five obvious BoxGeometry blocks
+- arm armor plates, cavities, rails, braces, under-supports, joints and node lights
+- low-profile endpoint mechanical architecture
+- holographic endpoint cages, nodes and holographic cores
+- no explicit v5-tower-* endpoint meshes
+- real DOM labels projected from actual 3D label anchors
+- real Three.js ShaderMaterial nano-tech transition with carbon weave, Voronoi, hex-grid edge, metallic resolution and vertex displacement
+- multiple asynchronous animation channels
+- bounded/idempotent long-session hologram motion
+- adaptive render quality tiers
+- reduced-motion handling
+- visibility/intersection pause behavior
+- disposal/cleanup logic
+- 108-instance shared InstancedMesh micro-hardware for repeated mechanical detail
+- a fixed animation framing bug so animation preserves controller surfaceY instead of resetting scene Y toward zero
+
+CORE FILES
+
+components/landing/AttackSurfaceSceneV5.tsx
+components/landing/attack-surface-v5/model.ts
+components/landing/attack-surface-v5/quality.ts
+components/landing/attack-surface-v5/materials.ts
+components/landing/attack-surface-v5/geometry.ts
+components/landing/attack-surface-v5/citadel-core.ts
+components/landing/attack-surface-v5/citadel-arm.ts
+components/landing/attack-surface-v5/citadel-compound.ts
+components/landing/attack-surface-v5/atmosphere.ts
+components/landing/attack-surface-v5/controller.ts
+components/landing/attack-surface-v5/animation.ts
+components/landing/attack-surface-v5/lighting.ts
+components/landing/attack-surface-v5/effects.ts
+
+CURRENT FOCUSED TESTS
+
+tests/components/attack-surface-v5-quality.test.ts
+tests/components/attack-surface-v5-geometry.test.ts
+tests/components/attack-surface-v5-animation.test.ts
+tests/components/attack-surface-v5-controller.test.ts
+tests/components/attack-surface-v5-reference-contract.test.ts
+tests/landing/command-center-v5-1-scale-contract.test.ts
+
+CURRENT PACKAGE BUILD NOTE
+
+The V5 branch currently has a focused preview prebuild test command and acceptance placeholder Supabase public env values in the build script so Vercel Preview can perform the visual branch build.
+
+Do not confuse that with final release verification. At the final gate, run the full repository acceptance suite and restore/verify the intended normal production build configuration before promotion.
+
+EXECUTION RULES
+
+1. Work autonomously. Handle normal engineering decisions yourself.
+2. Do not ask me about routine implementation choices.
+3. Use TDD for objective behavior/regression changes: RED, verify the expected failure, implement the smallest correct fix, GREEN, refactor only while green.
+4. Make small understandable commits.
+5. Every implementation/documentation commit must include [skip ci].
+6. Do NOT use, trigger, rerun or depend on GitHub Actions.
+7. Do not add AI co-author attribution or AI trailers to commits.
+8. Three.js is the only newly approved runtime visualization dependency. Do not add another 3D/visualization framework without explicit approval.
+9. Do not merge PR #49 or mark it ready until I explicitly approve the final visual result.
+10. Do not make unrelated backend/security changes.
+
+HARD SCOPE BOUNDARY
+
+This work is presentation-layer only.
+
+Do NOT change:
+- Supabase schema
+- RLS
+- authentication semantics
+- scanner authorization
+- Phase 6D workers/containment
+- hosted runtime/network security boundaries
+- Turnstile/security gates
+- unrelated API security
+
+PR #49 CURRENT RELEASE RULE
+
+PR #49 is still open, draft and unmerged.
+It remains the release gate context.
+DO NOT merge it until I explicitly approve the final V5 visual screenshots.
+
+PHASE 0 - MANDATORY GRAPH-ONLY VISUAL PROOF
+
+This is your immediate priority.
+
+Do NOT start by redesigning the rest of the landing page.
+
+Start the local app and capture the REAL live WebGL hero at 1920x1080 using a real browser automation environment such as Playwright/Chromium available to Codex.
+
+Prefer localhost for screenshot acceptance so Vercel Preview Protection does not interfere.
+
+The previous ChatGPT environment already attempted Webstractor and Microlink against protected Vercel previews. Both captured Vercel's protection/interstitial page rather than ScopeForge. A disposable diagnostic branch exists at:
+
+diag/v5-reference-live-capture
+
+Do not waste time repeating those same protected external screenshot approaches unless you have a concrete reason they will now work.
+
+Before treating any screenshot as evidence, verify the scene is in live WebGL state, not poster/fallback/protection page.
+
+GRAPH-ONLY PASS CRITERIA
+
+At 1920x1080 the graph must simultaneously show:
+- all six arms
+- elevated three-quarter camera
+- no cropped endpoints
+- no giant foreground object obscuring the core
+- dense circular mechanical/cybernetic central platform
+- thick articulated arms
+- faceted plating and visible subdivision
+- multi-scale detail: large bridge/support forms, medium plates/rails/braces/cavities, small hardware/grid/panel/light detail
+- low-profile holographic/wireframe endpoint architecture
+- dark mechanical mass as the dominant visual
+- restrained teal/orange glow revealing form instead of washing it out
+- teal healthy routes
+- orange WEB APPLICATION route
+- orange DATA STORE route
+- orange shielded central reactor/star
+- labels attached to the actual endpoint positions
+- no label floating over the central hub
+- no giant white rings/bloom washout
+- a visible real nano-tech material transition on a selected structural region
+- crisp high-resolution output
+
+FAIL THE GRAPH if it still reads as:
+- simplified radial diagram
+- generic Three.js demo
+- six tubes or five box segments per arm
+- tower endpoints
+- TorusGeometry stack as the main visual language
+- infographic instead of mechanical structure
+- overglowing emissive art with insufficient physical mass
+- cropped or disconnected topology
+
+REFERENCE GEOMETRY INTENT
+
+Central hub should feel like a large mechanical platform with:
+- thick outer rim
+- multiple segmented ring bands
+- recessed inner rings/channels
+- raised walls
+- layered floor plates
+- angular armor
+- cutouts/cavities
+- support structure
+- upper platform
+- polygonal shield/reactor
+- orange energy/star
+- restrained teal concentric channels
+
+Do not regress to an obvious torus stack.
+
+Arms should have:
+- meaningful width
+- segmented articulated geometry
+- joints
+- angular plates
+- side rails
+- under-support
+- braces
+- raised and recessed regions
+- embedded channels
+- asymmetry
+- visible subdivision
+- tapering
+
+Do not regress to five obvious box blocks.
+
+Endpoint structures should be low-profile holographic/mechanical compounds rather than vertical towers.
+
+NANO-TECH TRANSITION
+
+Keep this as a real shader/material effect on selected structure only.
+
+Required language:
+1. Mask 0 - very dark carbon-fiber micro-weave, high roughness/restrained reflection
+2. Transition edge - moving linear mask combined with cellular/Voronoi breakup and dense hex-grid detail, cyan/teal emissive energy, narrow broken edge
+3. Mask 1 - resolved metallic armor with sharper highlights and visible plate segmentation
+4. Subtle vertex/physical displacement through the transition edge
+
+Do not apply the transition to the whole graph.
+
+ANIMATION
+
+Keep asynchronous layers rather than one shared frequency:
+- core breathing/pulse
+- rotating ring/band groups with differing rates/directions
+- path packets with differing rates/offsets
+- more prominent risk motion/cascade
+- holographic endpoint motion
+- atmosphere/pointer response
+
+Long-running motion must not accumulate positional drift.
+Reduced motion must disable repetitive movement while preserving a beautiful real static scene.
+
+PERFORMANCE
+
+Preserve/use:
+- shared geometries/materials
+- InstancedMesh for repeated micro-detail
+- efficient BufferGeometry reuse
+- adaptive detail tiers
+- intersection/document-visibility pause
+- disposal of geometries/materials/textures/render resources
+
+Quality targets:
+- cinematic DPR cap 2.5
+- balanced 2.0
+- constrained 1.5
+- reduced motion about 1.5
+
+On mobile, reduce particles, secondary geometry, shadows/transparency/post effects before sacrificing the readability of core geometry.
+
+CAMERA/RESPONSIVE
+
+Desktop:
+- graph sits to the right of hero copy but has enough width to read as premium hero art
+- elevated three-quarter view
+- all six arms/endpoints simultaneously readable
+
+Tablet 900-1199:
+- moderately reduced detail
+- preserve silhouette/topology
+
+Mobile <900:
+- separate camera/composition
+- not a simple scaled desktop scene
+
+AFTER GRAPH PASSES - LANDING PAGE UI
+
+Only after screenshot-driven graph convergence, continue the full landing-page polish.
+
+Header must use a true three-zone layout:
+grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr)
+
+Brand left.
+Product / Security model / GitHub centered.
+Auth actions right.
+
+Runtime bar must contain EXACTLY four equal cells:
+grid-template-columns: repeat(4, minmax(0, 1fr))
+
+Cells:
+1. Scene / Running
+2. Sensors / 182
+3. Coverage / 98%
+4. Pause animation
+
+No spacer cell.
+
+Typography/scale targets:
+
+Hero desktop:
+- eyebrow 13-14
+- H1 roughly 58-78 via clamp
+- body 16-18
+- CTA 15-16
+
+Metric cards:
+- values 32-36
+- icons 24-28
+- labels 14-15
+- supporting 12.5-13.5
+- use tabular numerals
+
+Attack Surface Overview:
+- support UI >=12-13
+- main 14-15
+- risk 13-14
+- score around 30
+
+Workflow:
+- eyebrow >=14
+- step 15
+- icons 26-28
+- heading 23-25
+- body 15.5-17
+- desktop preferably 4 + 3 cards, not seven narrow slivers
+
+Security Model:
+- eyebrow >=14
+- heading roughly 48-60
+- body 16-17
+- card titles 18-20
+- card body 15-16
+- icons >=26
+
+MANDATORY FINAL SCREENSHOT SIZES
+
+- 1920x1080 - primary graph gate
+- 1728x1117
+- 1440x900
+- 1280x800
+- 430x932
+- 393x852
+
+FINAL VERIFICATION BEFORE ASKING ME TO APPROVE
+
+Run and report:
+- focused V5 tests
+- full repository tests
+- npm run typecheck
+- intended normal production build
+- relevant CLI/build checks if shared config changed
+- npm audit --audit-level=info if dependencies/config changed
+- live WebGL poster-to-canvas transition
+- fallback behavior
+- reduced-motion behavior
+- cleanup/disposal
+- all mandatory screenshots
+- exact final commit SHA
+- exact Vercel preview URL
+
+Do not claim visual acceptance just because tests pass.
+Do not claim a screenshot is the live scene unless you verified it is not the poster/fallback/Vercel protection page.
+
+When the graph and landing page genuinely match the target, show me the final screenshots and verification results and WAIT for my explicit approval.
+
+Only after my approval may you consider moving PR #49 out of draft or merging/promoting the result.
+
+Continue autonomously now.
