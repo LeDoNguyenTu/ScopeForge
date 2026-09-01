@@ -34,7 +34,7 @@ function invalidRepositoryPath(): never {
 }
 
 function hasDrivePrefix(value: string): boolean {
-  if (value.length < 3 || value[1] !== ":" || value[2] !== "/") return false;
+  if (value.length < 2 || value[1] !== ":") return false;
   const first = value.charCodeAt(0);
   return (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
 }

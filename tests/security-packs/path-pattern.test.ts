@@ -42,6 +42,7 @@ describe("Security Pack path patterns", () => {
     "a{b,c}",
     "a@(b)",
     "C:/x",
+    "C:relative",
     "a/**b/c",
     "a/./b",
   ])("rejects unsupported pattern %s", (pattern) => {
