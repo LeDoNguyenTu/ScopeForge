@@ -175,5 +175,6 @@ Do not combine code merge approval with runtime enablement approval.
 - PR #51 (Phase 6D design/threat model) merged as `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a`.
 - PR #52 was retargeted to `main` and intentionally remains draft.
 - Thirty remote non-UI branches backed by already merged PRs were deleted.
+- The orphaned Phase 6A documentation-only branch was deleted after confirming its handover content was superseded by current `main`.
 - All dashboard/visual branches, all open-PR refs, the active Phase 6D worktree branch, and stacked Phase 6D checkpoint branches were preserved.
 - Do not delete the Task 15 VM/boot volume or the Phase 6D worktree until PR #52's fresh Supabase gate passes and the PR is merged.

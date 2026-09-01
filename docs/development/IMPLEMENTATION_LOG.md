@@ -139,3 +139,4 @@ Phase 4C may be designed only after Phase 4B is merged. It must remain narrow, e
 - Phase 6D implementation PR #52 is based on `main`, remains draft, and is verified through exact head `bd558fdf0830bfdb95027374e168835a8a48f43d` except for the fresh exact-project Supabase reconciliation described in `PHASE_6D_TASK16_REVIEW.md`.
 - Real Linux rootless-Podman/cgroup-v2 containment acceptance passed all 31 checks. This evidence does not enable either Phase 6D production capability.
 - Thirty historical non-UI remote branches whose PRs were already merged were deleted. Open PR refs, Phase 6D checkpoints, worktree refs, and all dashboard/visual branches were preserved.
+- The orphaned `feat/phase-6a-worker-foundation` branch was also deleted after confirming its six unique commits changed only superseded Phase 6A handover documents and current `main` already records Phase 6A completion.
