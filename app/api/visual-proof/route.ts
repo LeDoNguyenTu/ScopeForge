@@ -122,6 +122,38 @@ function asciiPreview(image: DecodedPng, cols = 120, rows = 68) {
   return { cols, rows, legend: "space=black .=deep-dark #=structure +=mid W=white T=teal C=cyan O=orange", counts, output };
 }
 
+async function captureWithWebstractor(target: string) {
+  const captureUrl = new URL("https://api.webstractor.com/v1/screenshot");
+  captureUrl.searchParams.set("url", target);
+  captureUrl.searchParams.set("width", "1920");
+  captureUrl.searchParams.set("height", "1080");
+  captureUrl.searchParams.set("fullPage", "false");
+  captureUrl.searchParams.set("format", "png");
+  const response = await fetch(captureUrl, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Webstractor ${response.status}: ${(await response.text()).slice(0, 600)}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function captureWithMicrolink(target: string) {
+  const apiUrl = new URL("https://api.microlink.io");
+  apiUrl.searchParams.set("url", target);
+  apiUrl.searchParams.set("screenshot", "true");
+  apiUrl.searchParams.set("screenshot.type", "png");
+  apiUrl.searchParams.set("viewport.width", "1920");
+  apiUrl.searchParams.set("viewport.height", "1080");
+  apiUrl.searchParams.set("meta", "false");
+  const response = await fetch(apiUrl, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Microlink ${response.status}: ${(await response.text()).slice(0, 600)}`);
+  const payload = await response.json() as { status?: string; data?: { screenshot?: { url?: string } }; message?: string };
+  const screenshotUrl = payload.data?.screenshot?.url;
+  if (payload.status !== "success" || !screenshotUrl) {
+    throw new Error(`Microlink did not return a screenshot: ${payload.message ?? JSON.stringify(payload).slice(0, 600)}`);
+  }
+  const screenshot = await fetch(screenshotUrl, { cache: "no-store" });
+  if (!screenshot.ok) throw new Error(`Microlink asset ${screenshot.status}`);
+  return Buffer.from(await screenshot.arrayBuffer());
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const requestedTarget = requestUrl.searchParams.get("target") ?? DEFAULT_TARGET;
@@ -130,36 +162,34 @@ export async function GET(request: NextRequest) {
     return Response.json({ ok: false, error: "Diagnostic target must be an HTTPS vercel.app URL" }, { status: 400 });
   }
 
-  const captureUrl = new URL("https://api.webstractor.com/v1/screenshot");
-  captureUrl.searchParams.set("url", parsedTarget.toString());
-  captureUrl.searchParams.set("width", "1920");
-  captureUrl.searchParams.set("height", "1080");
-  captureUrl.searchParams.set("fullPage", "false");
-  captureUrl.searchParams.set("format", "png");
-
-  const capture = await fetch(captureUrl, { cache: "no-store" });
-  if (!capture.ok) {
+  const provider = requestUrl.searchParams.get("provider") === "microlink" ? "microlink" : "webstractor";
+  let bytes: Buffer;
+  try {
+    bytes = provider === "microlink"
+      ? await captureWithMicrolink(parsedTarget.toString())
+      : await captureWithWebstractor(parsedTarget.toString());
+  } catch (error) {
     return Response.json({
       ok: false,
+      provider,
       target: parsedTarget.toString(),
-      status: capture.status,
-      detail: (await capture.text()).slice(0, 1200),
+      error: error instanceof Error ? error.message : String(error),
     }, { status: 502 });
   }
 
-  const bytes = Buffer.from(await capture.arrayBuffer());
   if (requestUrl.searchParams.get("mode") === "ascii") {
     try {
       const decoded = decodePng(bytes);
       return Response.json({
         ok: true,
+        provider,
         target: parsedTarget.toString(),
         viewport: { width: 1920, height: 1080 },
         decoded: { width: decoded.width, height: decoded.height, channels: decoded.channels },
         preview: asciiPreview(decoded),
       }, { headers: { "Cache-Control": "no-store", "X-ScopeForge-Diagnostic": "v5-live-capture" } });
     } catch (error) {
-      return Response.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+      return Response.json({ ok: false, provider, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
     }
   }
 
@@ -173,9 +203,9 @@ export async function GET(request: NextRequest) {
 
   return Response.json({
     ok: true,
+    provider,
     target: parsedTarget.toString(),
     viewport: { width: 1920, height: 1080 },
-    contentType: capture.headers.get("content-type") ?? "image/png",
     byteLength: bytes.length,
     base64Length: base64.length,
     chunkSize: CHUNK_SIZE,
