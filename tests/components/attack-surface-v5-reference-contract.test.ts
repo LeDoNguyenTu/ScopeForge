@@ -13,6 +13,14 @@ const countNamed = (root: THREE.Object3D, prefix: string) => {
   return count;
 };
 
+const namedMeshes = (root: THREE.Object3D, prefix: string) => {
+  const meshes: THREE.Mesh[] = [];
+  root.traverse((object) => {
+    if (object instanceof THREE.Mesh && object.name.startsWith(prefix)) meshes.push(object);
+  });
+  return meshes;
+};
+
 describe("V5 reference reconstruction contract", () => {
   it("builds each arm from layered armor, cavities, braces, and embedded route hardware", () => {
     const model = createIllustrativeAttackSurfaceV5Model();
@@ -26,6 +34,20 @@ describe("V5 reference reconstruction contract", () => {
     }
   });
 
+  it("does not build the six primary bridges as five obvious box blocks", () => {
+    const model = createIllustrativeAttackSurfaceV5Model();
+    const group = createAttackSurfaceV5Group(model, "balanced");
+
+    for (const entity of model.entities) {
+      const bridges = namedMeshes(group, `v5-bridge-${entity.id}-`);
+      expect(bridges, entity.id).toHaveLength(5);
+      for (const bridge of bridges) {
+        expect(bridge.geometry.type, `${entity.id}/${bridge.name}`).not.toBe("BoxGeometry");
+      }
+      expect(countNamed(group, `v5-arm-hinge-${entity.id}-`), entity.id).toBeGreaterThanOrEqual(4);
+    }
+  });
+
   it("builds the central hub from dense segmented mechanical armor rather than exposed rings alone", () => {
     const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
     const core = group.getObjectByName("v5-citadel-core")!;
@@ -34,6 +56,15 @@ describe("V5 reference reconstruction contract", () => {
     expect(countNamed(core, "v5-core-cavity-")).toBeGreaterThanOrEqual(12);
     expect(countNamed(core, "v5-core-rim-segment-")).toBeGreaterThanOrEqual(24);
     expect(countNamed(core, "v5-core-panel-light-")).toBeGreaterThanOrEqual(12);
+  });
+
+  it("uses segmented mechanical ring bands instead of a dominant torus stack", () => {
+    const group = createAttackSurfaceV5Group(createIllustrativeAttackSurfaceV5Model(), "balanced");
+    const core = group.getObjectByName("v5-citadel-core")!;
+    const rings = (core.userData.v5Rings ?? []) as THREE.Mesh[];
+
+    expect(rings.length).toBeLessThanOrEqual(8);
+    expect(countNamed(core, "v5-core-band-segment-")).toBeGreaterThanOrEqual(32);
   });
 
   it("gives the hub a shielded orange reactor star instead of a generic glowing primitive", () => {
@@ -46,14 +77,20 @@ describe("V5 reference reconstruction contract", () => {
     expect(countNamed(core, "v5-core-reactor-node-")).toBeGreaterThanOrEqual(6);
   });
 
-  it("gives every endpoint a multi-layer holographic cage instead of a simple tower", () => {
+  it("gives every endpoint a low-profile multi-layer holographic architecture instead of a tower", () => {
     const model = createIllustrativeAttackSurfaceV5Model();
     const group = createAttackSurfaceV5Group(model, "balanced");
 
     for (const entity of model.entities) {
+      const compound = group.getObjectByName(`v5-compound-${entity.id}`)!;
       expect(countNamed(group, `v5-holo-frame-${entity.id}-`), entity.id).toBeGreaterThanOrEqual(8);
       expect(countNamed(group, `v5-holo-node-${entity.id}-`), entity.id).toBeGreaterThanOrEqual(6);
       expect(group.getObjectByName(`v5-holo-core-${entity.id}`), entity.id).toBeTruthy();
+      expect(group.getObjectByName(`v5-tower-${entity.id}`), entity.id).toBeFalsy();
+      expect(countNamed(compound, `v5-endpoint-deck-${entity.id}-`), entity.id).toBeGreaterThanOrEqual(3);
+
+      const bounds = new THREE.Box3().setFromObject(compound);
+      expect(bounds.max.y - bounds.min.y, `${entity.id} endpoint height`).toBeLessThanOrEqual(3.25);
     }
   });
 
