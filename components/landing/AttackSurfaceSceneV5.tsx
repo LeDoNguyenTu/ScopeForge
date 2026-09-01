@@ -5,7 +5,7 @@ import { useLandingBoot } from "@/components/landing/LandingBootGate";
 import { ATTACK_SURFACE_PAUSE_EVENT } from "@/components/landing/SceneMonitoringToggle";
 import { createIllustrativeAttackSurfaceV5Model } from "@/components/landing/attack-surface-v5/model";
 import { getAttackSurfaceV5QualitySettings, selectAttackSurfaceV5Quality } from "@/components/landing/attack-surface-v5/quality";
-import type { AttackSurfaceV5Controller, AttackSurfaceV5Variant } from "@/components/landing/attack-surface-v5/controller";
+import type { AttackSurfaceV5Controller, AttackSurfaceV5ProjectedAnchor, AttackSurfaceV5Variant } from "@/components/landing/attack-surface-v5/controller";
 
 type RendererState = "poster" | "webgl" | "fallback";
 
@@ -17,8 +17,8 @@ const POSTER_SOURCE: Record<AttackSurfaceV5Variant, string> = {
 
 export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?: AttackSurfaceV5Variant }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const model = useMemo(() => createIllustrativeAttackSurfaceV5Model(), []);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mediaQuery = variant === "desktop" ? "(min-width: 900px)" : "(max-width: 899px)";
   const [mediaActive, setMediaActive] = useState(false);
   const [rendererState, setRendererState] = useState<RendererState>("poster");
@@ -31,7 +31,6 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
       setMediaActive(variant === "desktop" ? window.innerWidth >= 900 : window.innerWidth < 900);
       return;
     }
-
     const query = window.matchMedia(mediaQuery);
     const sync = () => setMediaActive(query.matches);
     sync();
@@ -55,6 +54,28 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
     let userPaused = false;
     let reducedMotion = false;
 
+    const updateLabels = (anchors: readonly AttackSurfaceV5ProjectedAnchor[]) => {
+      const width = Math.max(1, container.clientWidth);
+      const height = Math.max(1, container.clientHeight);
+      for (const anchor of anchors) {
+        const label = container.querySelector<HTMLElement>(`[data-entity-id="${anchor.id}"]`);
+        if (!label) continue;
+        const centered = Math.abs(anchor.x - width / 2) < width * 0.13;
+        const side = centered ? "center" : anchor.x < width / 2 ? "left" : "right";
+        const labelWidth = variant === "mobile" ? 112 : 142;
+        const outward = variant === "mobile" ? 24 : 34;
+        const offsetX = side === "left" ? -(labelWidth + outward) : side === "right" ? outward : -labelWidth / 2;
+        const offsetY = side === "center" ? (anchor.y < height / 2 ? -74 : 24) : -24;
+        label.style.setProperty("--cc-v52-anchor-x", `${anchor.x.toFixed(2)}px`);
+        label.style.setProperty("--cc-v52-anchor-y", `${anchor.y.toFixed(2)}px`);
+        label.style.setProperty("--cc-v52-label-dx", `${offsetX}px`);
+        label.style.setProperty("--cc-v52-label-dy", `${offsetY}px`);
+        label.dataset.anchorReady = "true";
+        label.dataset.anchorSide = side;
+        label.style.opacity = anchor.visible ? "1" : "0";
+      }
+    };
+
     const requestFrame = () => {
       if (cancelled || raf || !controller || !pageVisible || !inViewport || userPaused || reducedMotion) return;
       raf = window.requestAnimationFrame((time) => {
@@ -76,16 +97,8 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
       }
     };
 
-    const onDocumentVisibility = () => {
-      pageVisible = !document.hidden;
-      syncActivity();
-    };
-
-    const onPause = (event: Event) => {
-      userPaused = Boolean((event as CustomEvent<{ paused?: boolean }>).detail?.paused);
-      syncActivity();
-    };
-
+    const onDocumentVisibility = () => { pageVisible = !document.hidden; syncActivity(); };
+    const onPause = (event: Event) => { userPaused = Boolean((event as CustomEvent<{ paused?: boolean }>).detail?.paused); syncActivity(); };
     const onPointerMove = (event: PointerEvent) => {
       if (!controller || reducedMotion) return;
       const bounds = container.getBoundingClientRect();
@@ -93,7 +106,6 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
       const y = -(((event.clientY - bounds.top) / Math.max(1, bounds.height) - 0.5) * 2);
       controller.setPointer(x, y);
     };
-
     const onPointerLeave = () => controller?.setPointer(0, 0);
 
     const start = async () => {
@@ -117,17 +129,15 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
 
         const module = await import("@/components/landing/attack-surface-v5/controller");
         if (cancelled) return;
-        controller = module.createAttackSurfaceV5Controller({ canvas, model, quality, variant });
-        reportProgress(PROGRESS.geometry, "Building volumetric attack surface");
+        controller = module.createAttackSurfaceV5Controller({ canvas, model, quality, variant, onAnchorFrame: updateLabels });
+        reportProgress(PROGRESS.geometry, "Building premium citadel attack surface");
         reportProgress(PROGRESS.materials, "Preparing scene lighting and materials");
 
-        const resize = (nextWidth: number, nextHeight: number) => {
-          controller?.resize(
-            Math.max(1, nextWidth),
-            Math.max(1, nextHeight),
-            Math.min(window.devicePixelRatio || 1, settings.dprCap),
-          );
-        };
+        const resize = (nextWidth: number, nextHeight: number) => controller?.resize(
+          Math.max(1, nextWidth),
+          Math.max(1, nextHeight),
+          Math.min(window.devicePixelRatio || 1, settings.dprCap),
+        );
         resize(container.clientWidth || width, container.clientHeight || (variant === "mobile" ? Math.round(width * 1.04) : Math.round(width * 0.72)));
 
         if (typeof ResizeObserver !== "undefined") {
@@ -137,7 +147,6 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
           });
           resizeObserver.observe(container);
         }
-
         if (typeof IntersectionObserver !== "undefined") {
           intersectionObserver = new IntersectionObserver((entries) => {
             inViewport = entries[0]?.isIntersecting ?? true;
@@ -192,29 +201,16 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
   }, [markReady, mediaActive, model, releaseFallback, reportProgress, variant]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`ccV5Scene ccV5Scene-${variant}`}
-      data-testid="attack-surface-v5-scene"
-      data-renderer-state={rendererState}
-      data-media-active={mediaActive ? "true" : "false"}
-      aria-label="Illustrative ScopeForge living attack surface"
-    >
+    <div ref={containerRef} className={`ccV5Scene ccV5Scene-${variant}`} data-testid="attack-surface-v5-scene" data-renderer-state={rendererState} data-media-active={mediaActive ? "true" : "false"} aria-label="Illustrative ScopeForge living attack surface">
       <div className={`ccV5Poster${posterVisible ? " ccV5Poster-visible" : ""}`} data-testid="attack-surface-v5-poster" aria-hidden="true">
         <div className="ccV5PosterCore"><i /><i /><i /><i /></div>
         {model.entities.map((entity) => <span key={entity.id} data-state={entity.state} data-arm={entity.armIndex} />)}
-        <img
-          src={POSTER_SOURCE[variant]}
-          alt=""
-          draggable={false}
-          decoding="async"
-          style={{ position: "absolute", inset: 0, zIndex: 2, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
-        />
+        <img src={POSTER_SOURCE[variant]} alt="" draggable={false} decoding="async" style={{ position: "absolute", inset: 0, zIndex: 2, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
       </div>
       <canvas ref={canvasRef} className="ccV5Canvas" aria-hidden="true" />
       <div className="ccV5SceneLabels" aria-label="Illustrative scene entities">
         {model.entities.map((entity) => (
-          <div className="ccV5SceneLabel" data-state={entity.state} data-arm={entity.armIndex} key={entity.id}>
+          <div className="ccV5SceneLabel" data-state={entity.state} data-entity-id={entity.id} data-arm={entity.armIndex} key={entity.id}>
             <strong>{entity.label}</strong>
             <span>{entity.detail}</span>
           </div>

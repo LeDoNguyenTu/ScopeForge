@@ -1,0 +1,171 @@
+.commandLanding {
+  --cc-v52-metric-value: 34px;
+  --cc-v52-metric-label: 15px;
+  --cc-v52-metric-icon: 26px;
+  --cc-v52-metric-supporting: 13px;
+  --cc-v52-workflow-title: 22px;
+  --cc-v52-workflow-body: 15.5px;
+  --cc-v52-workflow-step: 12px;
+  --cc-v52-workflow-icon: 26px;
+  --cc-v52-security-card-title: 18px;
+  --cc-v52-security-card-body: 15px;
+}
+
+/* True 3D annotations: JS projects each compound anchor every rendered frame. */
+.ccV5SceneLabel[data-anchor-ready="true"] {
+  left: 0 !important;
+  right: auto !important;
+  top: 0 !important;
+  bottom: auto !important;
+  width: 142px;
+  min-width: 142px;
+  transform: translate3d(var(--cc-v52-anchor-x), var(--cc-v52-anchor-y), 0)
+    translate3d(var(--cc-v52-label-dx), var(--cc-v52-label-dy), 0);
+  transition: opacity .18s ease;
+  will-change: transform;
+  background: linear-gradient(90deg, rgba(5, 7, 10, .9), rgba(5, 7, 10, .18));
+}
+.ccV5SceneLabel[data-anchor-ready="true"][data-anchor-side="left"] {
+  border-left: 0;
+  border-right: 1px solid rgba(92, 226, 201, .66);
+  text-align: right;
+  background: linear-gradient(270deg, rgba(5, 7, 10, .9), rgba(5, 7, 10, .18));
+}
+.ccV5SceneLabel[data-anchor-ready="true"][data-anchor-side="right"] { text-align: left; }
+.ccV5SceneLabel[data-anchor-ready="true"][data-anchor-side="center"] { text-align: center; border-left: 0; border-top: 1px solid rgba(92, 226, 201, .56); }
+.ccV5SceneLabel[data-state="risk"][data-anchor-ready="true"] { border-color: rgba(255, 106, 56, .86); }
+.ccV5SceneLabel[data-state="risk"][data-anchor-ready="true"] strong { color: #fff2eb; }
+.ccV5SceneLabel[data-state="risk"][data-anchor-ready="true"] span { color: #ff8a62; }
+
+/* Optical metric centering: icon + value are one centered row; labels center below. */
+.ccV5MetricCard {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto auto;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  min-height: 126px;
+  padding: 18px 14px 16px;
+  text-align: center;
+}
+.ccV5MetricIcon {
+  position: static;
+  grid-column: 1;
+  grid-row: 1;
+  width: var(--cc-v52-metric-icon);
+  height: var(--cc-v52-metric-icon);
+  align-self: center;
+}
+.ccV5MetricCard > strong {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: clamp(32px, 2.15vw, var(--cc-v52-metric-value));
+  line-height: 1;
+  text-align: left;
+}
+.ccV5MetricCard > span:not(.ccV5MetricIcon) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 7px;
+  font-size: var(--cc-v52-metric-label);
+  line-height: 1.25;
+  text-align: center;
+}
+.ccV5MetricCard > small {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin-top: 2px;
+  font-size: var(--cc-v52-metric-supporting);
+  line-height: 1.25;
+  text-align: center;
+}
+.ccV5Metrics-mobile .ccV5MetricCard { min-height: 132px; }
+
+/* Harmonized runtime/overview: keep supporting information readable but secondary. */
+.ccV5Runtime > span { justify-content: center; }
+.ccV5Runtime small { font-size: 13px; }
+.ccV5Runtime strong { font-size: 15px; }
+.ccV5OverviewHeading > div > span { font-size: 15px; }
+.ccV5OverviewHeading > div > small,
+.ccV5OverviewStatus { font-size: 13px; }
+.ccV5AssetMix span,
+.ccV5Exposure > div:last-child span { font-size: 14px; }
+.ccV5RiskPath > span,
+.ccV5RiskPath > strong,
+.ccV5RiskPath a,
+.ccV5RiskPath em { font-size: 13px; line-height: 1.4; }
+
+/* The seven-step workflow is no longer seven undersized slivers. */
+.commandBelowFold.forgePlatform { width: min(1320px, calc(100% - 48px)); padding-top: 104px; }
+.commandBelowFold .forgeSectionHeading { max-width: 800px; margin-bottom: 42px; }
+.commandBelowFold .forgeSectionHeading .forgeEyebrow { font-size: 12px; }
+.commandBelowFold .forgeSectionHeading h2 { font-size: clamp(40px, 4.2vw, 60px); line-height: 1.01; margin-top: 16px; }
+.commandBelowFold .forgeSectionHeading > p { max-width: 760px; font-size: 16px; line-height: 1.65; }
+.forgeWorkflowGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.forgeWorkflowCard {
+  min-height: 218px;
+  padding: 24px 24px 26px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(92, 226, 201, .05), transparent 36%),
+    linear-gradient(150deg, rgba(19, 25, 31, .92), rgba(7, 10, 14, .86));
+}
+.forgeWorkflowTop { min-height: 30px; }
+.forgeWorkflowTop > span { font-size: var(--cc-v52-workflow-step); line-height: 1; letter-spacing: .1em; }
+.forgeWorkflowTop svg { width: var(--cc-v52-workflow-icon); height: var(--cc-v52-workflow-icon); stroke-width: 1.7; }
+.forgeWorkflowCard h3 { margin: auto 0 10px; font-size: var(--cc-v52-workflow-title); line-height: 1.12; letter-spacing: -.02em; }
+.forgeWorkflowCard p { margin: 0; color: #8b98a1; font-size: var(--cc-v52-workflow-body); line-height: 1.58; }
+.forgeWorkflowCard:nth-child(5) { grid-column: 1; }
+
+/* Bring the security model cards into the same typography system. */
+.forgeSecurityModel { gap: 64px; }
+.forgeSecurityIntro > p { font-size: 16px; line-height: 1.65; }
+.forgeSecurityIntro > a { font-size: 14px; }
+.forgeSecurityCards { gap: 14px; }
+.forgeSecurityCards article { min-height: 164px; padding: 26px 26px; grid-template-columns: 36px 1fr; column-gap: 16px; align-content: center; }
+.forgeSecurityCards svg { width: 26px; height: 26px; }
+.forgeSecurityCards strong { font-size: var(--cc-v52-security-card-title); line-height: 1.2; }
+.forgeSecurityCards p { margin-top: 10px; font-size: var(--cc-v52-security-card-body); line-height: 1.55; }
+
+@media (max-width: 1180px) {
+  .forgeWorkflowGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .forgeWorkflowCard:nth-child(5) { grid-column: auto; }
+}
+
+@media (max-width: 899px) {
+  .ccV5SceneLabel[data-anchor-ready="true"] { width: 112px; min-width: 112px; padding: 8px 9px; }
+  .ccV5SceneLabel[data-anchor-ready="true"] strong { font-size: 12px; line-height: 1.15; }
+  .ccV5SceneLabel[data-anchor-ready="true"] span { font-size: 11px; }
+  .ccV5MetricCard > strong { font-size: clamp(30px, 8.4vw, var(--cc-v52-metric-value)); }
+  .ccV5MetricIcon { width: 25px; height: 25px; }
+  .ccV5Runtime-mobile > span { align-items: center; text-align: center; }
+  .forgeWorkflowGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .forgeWorkflowCard { min-height: 210px; }
+  .forgeSecurityModel { gap: 36px; }
+}
+
+@media (max-width: 600px) {
+  .commandBelowFold.forgePlatform { width: calc(100% - 32px); padding: 82px 0 88px; }
+  .commandBelowFold .forgeSectionHeading { margin-bottom: 30px; }
+  .commandBelowFold .forgeSectionHeading h2 { font-size: clamp(39px, 11vw, 48px); }
+  .commandBelowFold .forgeSectionHeading > p { font-size: 16px; }
+  .forgeWorkflowGrid { grid-template-columns: 1fr; gap: 12px; }
+  .forgeWorkflowCard {
+    min-height: 184px;
+    padding: 22px 22px 24px;
+  }
+  .forgeWorkflowCard h3 { margin-top: auto; font-size: 22px; }
+  .forgeWorkflowCard p { font-size: 15.5px; }
+  .forgeSecurityModel { width: calc(100% - 32px); padding: 30px 22px; }
+  .forgeSecurityIntro h2 { font-size: 42px; }
+  .forgeSecurityIntro > p { font-size: 16px; }
+  .forgeSecurityCards article { min-height: 156px; padding: 22px; }
+}

@@ -19,11 +19,11 @@ export type AttackSurfaceV5GeometryDescription = Readonly<{
 
 export function describeAttackSurfaceV5Geometry(model: AttackSurfaceV5Model): AttackSurfaceV5GeometryDescription {
   return Object.freeze({
-    coreRingCount: 10,
-    coreDeckCount: 4,
+    coreRingCount: 16,
+    coreDeckCount: 5,
     armCount: model.entities.length,
-    bridgeSegmentCount: model.entities.length * 3,
-    compoundModuleCount: model.entities.length * 8,
+    bridgeSegmentCount: model.entities.length * 5,
+    compoundModuleCount: model.entities.length * 16,
     towerCount: model.entities.length,
     riskPathCount: model.entities.filter((entity) => entity.state === "risk").length,
   });
