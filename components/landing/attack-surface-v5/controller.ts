@@ -30,7 +30,7 @@ export type AttackSurfaceV5ProjectedAnchor = Readonly<{
 const CAMERA_PRESETS: Readonly<Record<AttackSurfaceV5Variant, AttackSurfaceV5CameraPreset>> = Object.freeze({
   desktop: Object.freeze({
     fov: 34,
-    position: Object.freeze([0.8, 12.4, 24.4] as const),
+    position: Object.freeze([0.8, 15.5, 23.5] as const),
     target: Object.freeze([0.18, -0.08, 0] as const),
     surfaceScale: 0.73,
     surfaceY: -0.3,
