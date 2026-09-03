@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const phase6cDatabaseTypesPath = path.resolve("lib/database.phase6c.types.ts");
+const phase6dDatabaseTypesPath = path.resolve("lib/database.phase6d.types.ts");
 const baseDatabaseTypesPath = path.resolve("lib/database.types.ts");
 const workerControlRepositoryPath = path.resolve("lib/worker-control/repository.ts");
 const workerControlServerDependenciesPath = path.resolve("lib/worker-control/server-dependencies.ts");
@@ -42,18 +43,20 @@ describe("Phase 6C live database type contract", () => {
     }
   });
 
-  it("uses the Phase 6C overlay directly for trusted worker-control RPCs", async () => {
-    const [repositorySource, dependenciesSource] = await Promise.all([
+  it("uses the Phase 6D overlay directly for trusted worker-control RPCs", async () => {
+    const [phase6dSource, repositorySource, dependenciesSource] = await Promise.all([
+      readFile(phase6dDatabaseTypesPath, "utf8"),
       readFile(workerControlRepositoryPath, "utf8"),
       readFile(workerControlServerDependenciesPath, "utf8"),
     ]);
 
-    expect(repositorySource).toContain('import type { Phase6cDatabase } from "@/lib/database.phase6c.types";');
-    expect(repositorySource).toContain("client: SupabaseClient<Phase6cDatabase>");
+    expect(phase6dSource).toContain('import type { Phase6cDatabase } from "./database.phase6c.types";');
+    expect(repositorySource).toContain('import type { Phase6dDatabase } from "@/lib/database.phase6d.types";');
+    expect(repositorySource).toContain("client: SupabaseClient<Phase6dDatabase>");
     expect(repositorySource).not.toContain("Phase6cWorkerRpc");
     expect(repositorySource).not.toContain("as unknown as");
-    expect(dependenciesSource).toContain('import type { Phase6cDatabase } from "@/lib/database.phase6c.types";');
-    expect(dependenciesSource).toContain("createAdminClient<Phase6cDatabase>()");
+    expect(dependenciesSource).toContain('import type { Phase6dDatabase } from "@/lib/database.phase6d.types";');
+    expect(dependenciesSource).toContain("createAdminClient<Phase6dDatabase>()");
   });
 
   it("does not expose private worker or repository-scan implementation tables", async () => {

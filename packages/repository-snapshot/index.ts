@@ -1,6 +1,9 @@
 export { writeRepositorySnapshotBundle } from "./bundle";
 export { buildRepositorySnapshotManifest } from "./manifest";
-export { materializeRepositorySnapshotBundle } from "./reader";
+export {
+  materializeRepositorySnapshotBundle,
+  removeMaterializedRepositorySnapshot,
+} from "./reader";
 export { parseGitHubRepositoryArchive } from "./tar-reader";
 export {
   REPOSITORY_SNAPSHOT_FORMAT,

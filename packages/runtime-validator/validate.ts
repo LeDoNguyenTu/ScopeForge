@@ -14,12 +14,14 @@ import type {
 
 export type RuntimeValidationTransport = (
   plan: TrustedRuntimeRequestPlan,
+  options?: Readonly<{ signal?: AbortSignal }>,
 ) => Promise<RuntimeNetworkResponse>;
 
 export interface RuntimeValidatorDependencies {
   transport?: RuntimeValidationTransport;
   isCancelled?: () => boolean | Promise<boolean>;
   now?: () => number;
+  signal?: AbortSignal;
 }
 
 function frozenResult(
@@ -32,18 +34,32 @@ function observationBytes(value: unknown): number {
   return Buffer.byteLength(JSON.stringify(value), "utf8");
 }
 
+const defaultTransport: RuntimeValidationTransport = (plan, options) =>
+  requestPinnedHttps(plan, options?.signal ? { signal: options.signal } : {});
+
+function errorHasName(error: unknown, name: string): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "name" in error
+    && (error as { name?: unknown }).name === name;
+}
+
 export async function validateCorsOriginPolicy(
   target: AuthorizedValidationTarget,
   budgetInput: ActiveValidationBudget,
   dependencies: RuntimeValidatorDependencies = {},
 ): Promise<CorsOriginPolicyValidationResult> {
   const budget = validateActiveValidationBudget(budgetInput);
-  const transport = dependencies.transport ?? requestPinnedHttps;
+  const transport = dependencies.transport ?? defaultTransport;
   const isCancelled = dependencies.isCancelled ?? (() => false);
+  const signal = dependencies.signal;
   const now = dependencies.now ?? Date.now;
   const startedAt = now();
 
-  if (await isCancelled()) {
+  const cancellationRequested = async (): Promise<boolean> =>
+    signal?.aborted === true || await isCancelled();
+
+  if (await cancellationRequested()) {
     return frozenResult({ status: "cancelled", requestCount: 0 });
   }
 
@@ -69,9 +85,12 @@ export async function validateCorsOriginPolicy(
 
   let response: RuntimeNetworkResponse;
   try {
-    response = await transport(plan);
+    response = await transport(plan, signal ? { signal } : undefined);
   } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
+    if (errorHasName(error, "AbortError") && await cancellationRequested()) {
+      return frozenResult({ status: "cancelled", requestCount: 0 });
+    }
+    if (errorHasName(error, "TimeoutError")) {
       return frozenResult({
         status: "failed",
         requestCount: 0,
@@ -85,7 +104,7 @@ export async function validateCorsOriginPolicy(
     });
   }
 
-  if (await isCancelled()) {
+  if (await cancellationRequested()) {
     return frozenResult({ status: "cancelled", requestCount: 1 });
   }
   if (now() - startedAt >= budget.totalTimeoutMs) {

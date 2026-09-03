@@ -8,6 +8,8 @@ import {
 import {
   WorkerControlError,
   type FoundationProbeEnqueueInput,
+  type RuntimeWorkerEnqueueInput,
+  type RuntimeWorkerPersistenceClaimResult,
   type WorkerAuthenticationInput,
   type WorkerClaimInput,
   type WorkerClaimResult,
@@ -15,16 +17,32 @@ import {
   type WorkerNodeIdentity,
   type WorkerPersistenceClaimResult,
 } from "./types";
-import type { WorkerControlRepository } from "./repository";
+import type {
+  RuntimeWorkerControlRepository,
+  WorkerControlRepository,
+} from "./repository";
 
-export type { WorkerControlRepository } from "./repository";
+export type {
+  RuntimeWorkerControlRepository,
+  WorkerControlRepository,
+} from "./repository";
 
 export interface WorkerControlServiceDependencies {
   repository: WorkerControlRepository;
+  runtimeRepository?: RuntimeWorkerControlRepository;
   repositorySnapshotObjectStore?: () => RepositorySnapshotObjectStore;
   randomBytes?: (size: number) => Buffer;
   now?: () => Date;
 }
+
+type LegacyRegistrationClass =
+  | "foundation_no_egress_v1"
+  | "repository_snapshot_github_public_v1"
+  | "phase3_repository_scan_no_egress_v1";
+
+type RuntimeRegistrationClass =
+  | "passive_runtime_observation_v1"
+  | "active_cors_validation_v1";
 
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
@@ -43,10 +61,19 @@ function currentTime(dependencies: WorkerControlServiceDependencies): Date {
   return (dependencies.now ?? (() => new Date()))();
 }
 
+function requireRuntimeRepository(
+  dependencies: WorkerControlServiceDependencies,
+): RuntimeWorkerControlRepository {
+  if (!dependencies.runtimeRepository) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return dependencies.runtimeRepository;
+}
+
 async function registerWith(
   softwareVersion: string,
   dependencies: WorkerControlServiceDependencies,
-  executionClass: WorkerExecutionClass,
+  executionClass: LegacyRegistrationClass,
 ) {
   const secret = randomSecret(dependencies);
   const input = {
@@ -58,6 +85,26 @@ async function registerWith(
     : executionClass === "repository_snapshot_github_public_v1"
       ? await dependencies.repository.registerRepositorySnapshot(input)
       : await dependencies.repository.registerRepositoryScan(input);
+  if (node.executionClass !== executionClass) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({ ...node, secret });
+}
+
+async function registerRuntimeWith(
+  softwareVersion: string,
+  dependencies: WorkerControlServiceDependencies,
+  executionClass: RuntimeRegistrationClass,
+) {
+  const secret = randomSecret(dependencies);
+  const input = {
+    credentialHash: sha256(secret),
+    softwareVersion,
+  };
+  const repository = requireRuntimeRepository(dependencies);
+  const node = executionClass === "passive_runtime_observation_v1"
+    ? await repository.registerPassiveRuntime(input)
+    : await repository.registerActiveCors(input);
   if (node.executionClass !== executionClass) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
@@ -83,6 +130,20 @@ export async function registerRepositoryScanWorkerNode(
   dependencies: WorkerControlServiceDependencies,
 ) {
   return registerWith(input.softwareVersion, dependencies, "phase3_repository_scan_no_egress_v1");
+}
+
+export async function registerPassiveRuntimeWorkerNode(
+  input: { softwareVersion: string },
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return registerRuntimeWith(input.softwareVersion, dependencies, "passive_runtime_observation_v1");
+}
+
+export async function registerActiveCorsWorkerNode(
+  input: { softwareVersion: string },
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return registerRuntimeWith(input.softwareVersion, dependencies, "active_cors_validation_v1");
 }
 
 export async function disableWorkerNode(
@@ -111,6 +172,20 @@ export async function enqueueFoundationWorkerProbe(
   dependencies: WorkerControlServiceDependencies,
 ) {
   return dependencies.repository.enqueueFoundationProbe(input);
+}
+
+export async function enqueuePassiveRuntimeWorkerTask(
+  input: RuntimeWorkerEnqueueInput,
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return requireRuntimeRepository(dependencies).enqueuePassiveRuntime(input);
+}
+
+export async function enqueueActiveCorsWorkerTask(
+  input: RuntimeWorkerEnqueueInput,
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return requireRuntimeRepository(dependencies).enqueueActiveCors(input);
 }
 
 function repositoryClaimExpiry(
@@ -166,6 +241,21 @@ async function composePublicClaim(
   });
 }
 
+function composeRuntimeClaim(
+  claim: RuntimeWorkerPersistenceClaimResult,
+): WorkerClaimResult {
+  if (claim === null) return null;
+  return Object.freeze({
+    taskId: claim.taskId,
+    attemptId: claim.attemptId,
+    executionClass: claim.executionClass,
+    leaseToken: claim.leaseToken,
+    absoluteDeadlineAt: claim.absoluteDeadlineAt,
+    budget: claim.budget,
+    input: claim.input,
+  });
+}
+
 export async function claimWorkerTask(
   input: WorkerClaimInput,
   dependencies: WorkerControlServiceDependencies,
@@ -178,6 +268,17 @@ export async function claimWorkerTaskForNode(
   worker: WorkerNodeIdentity,
   dependencies: WorkerControlServiceDependencies,
 ): Promise<WorkerClaimResult> {
+  if (
+    worker.executionClass === "passive_runtime_observation_v1"
+    || worker.executionClass === "active_cors_validation_v1"
+  ) {
+    const runtimeClaim = await requireRuntimeRepository(dependencies).claimRuntime({ workerId: worker.workerId });
+    if (runtimeClaim !== null && runtimeClaim.executionClass !== worker.executionClass) {
+      throw new WorkerControlError("WORKER_CONTROL_FAILED");
+    }
+    return composeRuntimeClaim(runtimeClaim);
+  }
+
   const claim = worker.executionClass === "phase3_repository_scan_no_egress_v1"
     ? await dependencies.repository.claimRepositoryScan({ workerId: worker.workerId })
     : await dependencies.repository.claim({ workerId: worker.workerId });

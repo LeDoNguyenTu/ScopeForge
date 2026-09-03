@@ -15,8 +15,6 @@ const FORBIDDEN_IMPORT_FRAGMENTS = [
   "node:tls",
   "node:worker_threads",
   "runtime-network",
-  "runtime-observer",
-  "runtime-validator",
   "scanner-core",
   "scanner-output",
   "scanner-inventory",
@@ -46,6 +44,12 @@ describe("worker-contracts dependency boundary", () => {
     for (const { file, source } of files) {
       for (const fragment of FORBIDDEN_IMPORT_FRAGMENTS) {
         expect(source, `${file} must not import ${fragment}`).not.toContain(fragment);
+      }
+      const runtimeTypeImports = Array.from(source.matchAll(
+        /import[\s\S]*?from ["']@\/packages\/(?:runtime-observer|runtime-validator)["'];/g,
+      ));
+      for (const [runtimeImport] of runtimeTypeImports) {
+        expect(runtimeImport, `${file} runtime contracts must be type-only`).toMatch(/^import type\b/);
       }
       expect(source, `${file} must not invoke fetch`).not.toMatch(/\bfetch\s*\(/);
     }

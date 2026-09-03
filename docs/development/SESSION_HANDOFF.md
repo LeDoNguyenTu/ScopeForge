@@ -1,109 +1,114 @@
 # ScopeForge Session Handoff
 
-## Current phase
+Last refreshed: 2026-09-04 (Asia/Singapore)
 
-Phase 6B public GitHub repository acquisition and private immutable source snapshots is complete and merged through PR #38.
+This handoff is the fastest entry point for a new session. For the authoritative non-UI queue, also read `docs/development/UNFINISHED_WORK.md`.
 
-- reviewed Phase 6B feature head: `6a999df6bbb849e5eb698dbc387f7ec2a82df6d6`
-- Phase 6B merge commit: `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`
-- production Supabase project: `tdgpibrepzcvdivztkta`
-- GitHub Actions monthly allowance is exhausted
-- do not trigger, rerun, or depend on GitHub Actions
-- continue using `[skip ci]`
-- never claim the npm/Vitest/type/build gate is green unless it is actually executed
+## Hard execution rules
 
-The next architectural boundary is Phase 6C isolated zero-egress Phase 3 scanning over immutable Phase 6B snapshots.
+- GitHub Actions allowance is available again as of 2026-09-04. Use CI selectively at meaningful integration/release gates rather than on every small checkpoint commit.
+- Routine documentation-only or intermediate commits may still use `[skip ci]` when no executable evidence would be gained. Final release candidates and meaningful code milestones should deliberately allow CI to run.
+- Do not modify or merge the active dashboard V5/UI preview work from this non-UI stream.
+- Do not enable hosted worker/runtime capability flags as part of a code merge.
+- Do not rewrite deployed Supabase migrations. Corrections are forward-only.
+- Do not add AI co-author attribution.
+- Do not claim verification that was not actually executed or freshly reconciled.
 
-## Completed platform work
+## Current release priority - Phase 6D PR #52
 
-- Phase 1 foundation complete
-- Phase 2 asset control/authorization complete
-- Phase 3 code and supply-chain security complete
-- Phase 4A security-domain contracts complete
-- Phase 4B passive runtime observations complete
-- Phase 4C-1 bounded CORS validation complete
-- Phase 5A hosted finding foundation complete
-- Phase 5B remediation/retest/Security Story complete
-- Phase 5C hosted Phase 3 import complete
-- Phase 6A zero-egress worker foundation complete
-- Phase 6B public GitHub acquisition/private immutable snapshots complete and merged
+Repository: `LeDoNguyenTu/ScopeForge`
 
-## Phase 6B invariants that Phase 6C must preserve
+Branch: `feat/phase-6d-network-workers-v1-task14`
 
-- repository identity comes only from the stored canonical repository asset
-- acquisition network authority is only GitHub API, one reviewed codeload redirect, and one attempt R2 PUT
-- the resolved default branch becomes an immutable 40-hex commit SHA before archive acquisition
-- hostile source is parsed without shell/tar/git/package/project execution
-- R2 object keys are opaque and private
-- the signed PUT is create-only using `If-None-Match: *`
-- server publication requires signed HEAD exact-size equality
-- repository success cannot use the generic finalizer
-- cancellation wins before snapshot publication
-- public snapshot provenance is immutable and member-readable only
-- service_role has zero direct privileges on the public snapshot table
-- private repository task/upload/artifact tables have no direct application/service-role DML grants
-- Phase 5C cannot gain worker/acquisition authority
-- foundation workers cannot gain GitHub/R2 authority
+PR: `#52 - Phase 6D dedicated network workers implementation [skip ci]`
 
-## Production migration history
+Pre-closure base: `main` at `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a`
 
-Live Phase 6B migrations are:
+Reviewed code/security head: `22f80584a9a473051d02556e5942d57291c40fea`
 
-- `20260826221813 phase_6b_repository_snapshot_enum`
-- `20260826221849 phase_6b_repository_snapshot_schema`
-- `20260826224132 phase_6b_repository_snapshot_control`
-- `20260826224240 phase_6b_repository_snapshot_publication`
-- `20260826224409 phase_6b_repository_snapshot_cleanup`
-- `20260826224847 phase_6b_repository_snapshot_live_hardening`
+Executable/docs acceptance checkpoint: `bd558fdf0830bfdb95027374e168835a8a48f43d`
 
-Do not edit deployed migration history. Any later correction must be a forward migration.
+### What is complete
 
-## Phase 6B verification evidence
+- Tasks 1-13 implementation and hardening.
+- Task 14 clean Linux software acceptance: 283 test files / 1,169 tests, typecheck, CLI build/version, benchmark, zero-vulnerability audit and production Next.js build.
+- Task 15 dedicated Ubuntu/rootless-Podman/cgroup-v2 31-check containment acceptance.
+- Task 16 exact-range source/security review with no reportable finding.
+- Fresh read-only Supabase reconciliation on 2026-09-04 against exact project `tdgpibrepzcvdivztkta`.
 
-Direct live verification confirmed RLS, authenticated member SELECT-only provenance, anon denial, zero direct service-role snapshot-table privileges, service-role-only `SECURITY DEFINER` public operation RPCs with empty `search_path`, non-executable private publication helper, private-table isolation, FK/index coverage, clean security advisor, resolved Phase 6B FK-index advisor findings, and public generated TypeScript types without private schema.
-
-A rollback-only production workflow smoke passed repository enqueue, repository worker claim, exact lease-bound artifact lookup, atomic publication, exact replay, conflicting replay rejection, cancellation-wins, and orphan cleanup. Follow-up counts returned to zero.
-
-## Verification limitation
-
-The current container cannot resolve `github.com` and has no dependency-complete checkout. These commands were not run for the merged Phase 6B head:
+Fresh Supabase counts:
 
 ```text
-npm test
-npm run typecheck
-npm run build:cli
-node .scopeforge-build/packages/cli/index.js version
-npm run benchmark:scanner
-npm run build
+enabled_runtime_workers = 0
+active_runtime_tasks = 0
+unfinished_runtime_attempts = 0
+active_runtime_jobs = 0
 ```
 
-Do not claim otherwise.
+The complete Phase 6D migration stack is live through `20260831042723 phase_6d_atomic_runtime_publication`.
 
-## Phase 6C boundary
+Phase 6D public RPCs were freshly rechecked as `SECURITY DEFINER` with `search_path=""`, no `anon`/`authenticated` EXECUTE and intended `service_role` EXECUTE. Relevant private runtime helpers do not expose direct application-role execution. The generic `public.finalize_worker_attempt` still excludes Phase 6D classes.
 
-Phase 6C must consume only the broker-selected immutable Phase 6B snapshot under a new closed execution class.
+Current Supabase security advisor warning: `auth_leaked_password_protection` is disabled. Carry this into Phase 9; do not misclassify it as a Phase 6D implementation defect.
 
-It must:
+### Exact next action
 
-- have zero target/GitHub/R2 network authority
-- expose no arbitrary URL, object key, scanner selection, command, environment, or budget input to callers
-- verify immutable snapshot provenance before scan use
-- isolate snapshot materialization from the host filesystem
-- enforce concrete CPU, memory, process, input, scratch, output, and wall-time limits
-- terminate underlying sandbox resources on cancellation/deadline
-- execute no repository code, package lifecycle scripts, package managers, build/project commands, IaC/container tooling, or hooks
-- invoke only trusted deterministic Phase 3 scanner libraries
-- preserve existing normalized authoritative ingestion semantics
-- never infer `verified_fixed` merely from absence
-- keep model/advisory output downstream and non-authoritative
+1. Refresh PR #52 exact head/base.
+2. Compare `bd558fdf0830bfdb95027374e168835a8a48f43d` to the exact PR head.
+3. Confirm the entire post-acceptance diff is documentation/handover only.
+4. Confirm no package/lockfile/migration/capability/authority drift.
+5. Recheck PR reviews/threads.
+6. Mark PR #52 ready to intentionally trigger the final GitHub Actions validation on the exact candidate.
+7. Require the CI validate job to pass on that exact head.
+8. Merge with exact-head SHA protection.
+9. Leave `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED` and `HOSTED_ACTIVE_CORS_WORKER_ENABLED` false/absent.
 
-Dedicated runtime/active network-enabled workers remain a later separately reviewed boundary.
+Read `PHASE_6D_RELEASE_STATE.md` and `PHASE_6D_TASK16_REVIEW.md` before that merge.
 
-## Resume order
+## Immediately after Phase 6D merge
 
-1. Re-check exact `main` and active branch heads and production migration history.
-2. Read `CURRENT_STATE.md`, `TEST_STATUS.md`, `NEXT_STEPS.md`, `docs/ARCHITECTURE.md`, and `docs/PHASES.md`.
-3. Threat-model Phase 6C before implementation.
-4. Present and approve the Phase 6C architecture before writing execution code.
-5. Write the approved design/spec and implementation plan.
-6. Implement with RED then minimal GREEN checkpoints and `[skip ci]` while GitHub Actions remain unavailable.
+Do not start dashboard work. Continue the non-UI roadmap:
+
+### 1. Reconcile Phase 7 branch
+
+Branch: `feat/phase-7-community-security-packs-v1`
+
+Last audited head before Phase 6D merge: `c1bbbb936a845ec16e8440d5c3d95009f4e13f63`
+
+The branch is stacked on Phase 6D. Refresh its relation to the new `main` after PR #52 merges. Preserve its existing Task 1 and Task 2 work.
+
+Plan: `docs/superpowers/plans/2026-09-01-phase-7-community-security-packs.md`
+
+Resume from Task 3 using TDD:
+
+- Task 3 identity-checked byte reads, literal matching and findings.
+- Task 4 deterministic registry/scanner adapter.
+- Task 5 fixture discovery and behavioral validation.
+- Task 6 CLI validate/inspect/explicit scan integration.
+- Task 7 output compatibility and authority guards.
+- Task 8 first-party example pack and governance docs.
+- Task 9 whole-phase verification, security review, Linux acceptance, handover and implementation PR.
+
+Phase 7 is local-only, explicitly selected and data-only. It must not change Supabase, Vercel runtime authority, hosted workers, production capability flags or dashboard UI.
+
+### 2. Vercel Preview environment parity
+
+A Phase 7 Preview build previously compiled but failed prerendering `/auth/sign-in` because Preview lacked the browser-safe public Supabase URL/key required by `@supabase/ssr`.
+
+Fix only Preview environment parity. Never expose `service_role` or other server secrets through `NEXT_PUBLIC_*`.
+
+If the connected Vercel tool cannot mutate project environment variables, record the exact manual or authenticated API step and continue with repository work rather than claiming it was fixed.
+
+### 3. Production worker acceptance remains separate
+
+- Phase 6B hosted repository acquisition remains disabled pending its own operational acceptance.
+- Phase 6C zero-egress repository scanning remains disabled pending its own execution-boundary acceptance.
+- Phase 6D passive and active runtime enablement remain separate post-merge gates requiring source/image identity, monitoring, rollback and staged canary decisions.
+
+Do not use Phase 6D containment evidence as automatic authorization for Phase 6B/6C.
+
+## Later roadmap
+
+Phase 8 broader validation work remains after the already-merged methodology foundation. Phase 9 production hardening includes leaked-password protection, abuse controls, observability, private-schema defense-in-depth review, incident/rollback readiness, release engineering and final security review.
+
+Accessibility/responsive UI QA belongs after dashboard V5 visual work is stable and is intentionally not part of this non-UI handoff.

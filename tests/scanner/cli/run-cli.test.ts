@@ -72,6 +72,10 @@ describe("runCli", () => {
     expect(await runCli(["version"], { io: version.io })).toBe(SCAN_EXIT.SUCCESS);
     expect(version.stdout).toContain("ScopeForge 0.1.0");
 
+    const versionFlag = captureIo();
+    expect(await runCli(["--version"], { io: versionFlag.io })).toBe(SCAN_EXIT.SUCCESS);
+    expect(versionFlag.stdout).toContain("ScopeForge 0.1.0");
+
     const rules = captureIo();
     expect(await runCli(["rules", "list"], { io: rules.io })).toBe(SCAN_EXIT.SUCCESS);
     expect(rules.stdout).toContain("secrets/github-token");

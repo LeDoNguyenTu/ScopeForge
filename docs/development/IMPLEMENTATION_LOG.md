@@ -1,5 +1,10 @@
 # ScopeForge Implementation Log
 
+> **2026-09-01 status notice:** This chronological log contains historical
+> boundary text near its end. The current release gate is recorded in
+> `PHASE_6D_RELEASE_STATE.md`; the persistent resume queue is
+> `UNFINISHED_WORK.md`.
+
 This log records major delivery boundaries and merge evidence. Detailed implementation contracts live in the corresponding design, plan, architecture, scanner, and test documentation.
 
 ## 2026-08-24 - Community platform direction
@@ -126,3 +131,12 @@ CI #437 is supporting evidence only. The final architecture/documentation change
 Phase 4B implementation is complete in PR #25 pending full changed-file review, review-thread clearance, exact-final-head CI, squash merge with head protection, and merged-content verification.
 
 Phase 4C may be designed only after Phase 4B is merged. It must remain narrow, explicitly authorized, isolated, and non-destructive while reusing Phase 4B target, network-safety, budget, cancellation, evidence, and audit contracts.
+
+## 2026-09-01 - Phase 6D and Phase 8 documentation checkpoints
+
+- Phase 8 validation-methodology foundation merged through PR #50 as `0b5c27a1226ca5c3f3f3fc40a25558dce05e9b20`; Phase 8 itself remains incomplete by design.
+- Phase 6D threat model, containment addendum, and implementation plan merged through PR #51 as `605518bfc2c6f99f6229bbb56a4b2f4b46c2a47a`.
+- Phase 6D implementation PR #52 is based on `main`, remains draft, and is verified through exact head `bd558fdf0830bfdb95027374e168835a8a48f43d` except for the fresh exact-project Supabase reconciliation described in `PHASE_6D_TASK16_REVIEW.md`.
+- Real Linux rootless-Podman/cgroup-v2 containment acceptance passed all 31 checks. This evidence does not enable either Phase 6D production capability.
+- Thirty historical non-UI remote branches whose PRs were already merged were deleted. Open PR refs, Phase 6D checkpoints, worktree refs, and all dashboard/visual branches were preserved.
+- The orphaned `feat/phase-6a-worker-foundation` branch was also deleted after confirming its six unique commits changed only superseded Phase 6A handover documents and current `main` already records Phase 6A completion.

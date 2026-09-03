@@ -34,4 +34,5 @@ export interface RuntimeNetworkDependencies {
   resolver?: import("./dns").RuntimeResolver;
   requester?: RuntimeRequester;
   now?: () => number;
+  signal?: AbortSignal;
 }

@@ -13,6 +13,7 @@ import {
   PodmanSandboxError,
   type PodmanSandbox,
 } from "@/packages/worker-sandbox";
+import { removeMaterializedRepositorySnapshot } from "@/packages/repository-snapshot";
 import {
   stageRepositoryScanSnapshot,
   type RepositoryScanStagingArtifact,
@@ -132,10 +133,14 @@ export function createRepositoryScanPreparer(
         return Object.freeze({
           contract,
           cleanup: async () => {
+            await removeMaterializedRepositorySnapshot(staged.sourceDirectory);
             await rm(workDirectory, { recursive: true, force: true });
           },
         });
       } catch (error) {
+        await removeMaterializedRepositorySnapshot(
+          path.join(workDirectory, "materialized-source"),
+        ).catch(() => undefined);
         await rm(workDirectory, { recursive: true, force: true }).catch(() => undefined);
         throw error;
       }

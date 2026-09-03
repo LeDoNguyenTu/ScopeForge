@@ -69,7 +69,7 @@ function usage(): string {
     "  scopeforge scan [path] [--format terminal|json|sarif|hosted-json] [--repository github-url] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
     "  scopeforge baseline create [path]",
     "  scopeforge rules list",
-    "  scopeforge version",
+    "  scopeforge version | --version",
     ""
   ].join("\n");
 }
@@ -260,7 +260,7 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
   const cwd = resolve(options.cwd ?? process.cwd());
 
   try {
-    if (argv.length === 1 && argv[0] === "version") {
+    if (argv.length === 1 && (argv[0] === "version" || argv[0] === "--version")) {
       io.stdout(`ScopeForge ${SCOPEFORGE_VERSION}\n`);
       return SCAN_EXIT.SUCCESS;
     }

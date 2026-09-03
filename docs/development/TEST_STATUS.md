@@ -1,5 +1,10 @@
 # ScopeForge Test Status
 
+> **2026-09-01 current evidence:** Phase 6D exact-head executable acceptance is
+> recorded in `PHASE_6D_TASK15_ACCEPTANCE.md` and release reconciliation in
+> `PHASE_6D_TASK16_REVIEW.md`. The older Phase 6C-focused statement at the end
+> of this file is historical and does not supersede those records.
+
 ## GitHub Actions constraint
 
 GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use, reruns, or dependency on workflow status as merge evidence.
@@ -134,6 +139,6 @@ Existing security review confirmed the intended RLS/ACL/private-table separation
 
 ## Current verification statement
 
-The current repository has executable, exact-SHA evidence for the completed Phase 6C candidate and the subsequent public acquisition runtime gate. GitHub Actions were not used for that evidence.
+The repository has executable, exact-SHA evidence for the completed Phase 6C candidate, the subsequent public acquisition runtime gate, and Phase 6D implementation head `bd558fdf0830bfdb95027374e168835a8a48f43d`. GitHub Actions were not used for that evidence.
 
-The next implementation architecture boundary, Phase 6D dedicated network-enabled worker execution, requires a separate approved threat model/design. Do not infer Phase 6D acceptance from Phase 6C's zero-egress proof or Phase 6B's GitHub acquisition networking.
+Phase 6D source/security review and real Linux containment acceptance passed. Its release reconciliation is still incomplete because fresh read-only access to the exact Supabase project is unavailable. Do not infer production enablement from implementation acceptance; both Phase 6D capability flags remain false/absent.

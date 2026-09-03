@@ -1,5 +1,12 @@
 # ScopeForge Next Steps
 
+> **2026-09-01 resume override:** Do not begin Phase 6D design or implementation
+> from the older sequence below. PR #51 is merged and PR #52 contains the
+> implementation at `bd558fdf0830bfdb95027374e168835a8a48f43d`. Resume only
+> the fresh read-only Supabase reconciliation in `PHASE_6D_TASK16_REVIEW.md`,
+> keep all four hosted worker flags false/absent, and leave dashboard UI work
+> untouched until its owner explicitly releases that scope.
+
 ## Current boundary
 
 Phase 6C isolated zero-egress Phase 3 scanning is complete and merged through PR #39.
@@ -106,3 +113,4 @@ Continue using `[skip ci]` on implementation, test, migration, dependency, and d
 5. Keep worker credentials, private R2 object keys, Supabase secret credentials, and lease credentials outside browser code.
 6. Preserve cancellation-first publication, exact lease binding, immutable snapshot provenance, artifact digest binding, and worker-class separation.
 7. Do not enable either hosted repository worker feature until its stated production acceptance evidence exists.
+8. Read `PHASE_6D_RELEASE_STATE.md` and `UNFINISHED_WORK.md`; they supersede the older Phase 6C-to-6D sequencing in this file.

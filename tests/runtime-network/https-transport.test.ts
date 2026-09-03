@@ -69,6 +69,22 @@ describe("trusted runtime HTTPS transport", () => {
     });
   });
 
+  it("pins the approved address family so Node family autoselection is disabled", () => {
+    const ipv4 = buildPinnedHttpsRequestOptions({
+      plan: passivePlan(),
+      address: "1.1.1.1",
+      family: 4,
+    });
+    const ipv6 = buildPinnedHttpsRequestOptions({
+      plan: passivePlan(),
+      address: "2606:4700:4700::1111",
+      family: 6,
+    });
+
+    expect(ipv4.family).toBe(4);
+    expect(ipv6.family).toBe(6);
+  });
+
   it("rejects request plans outside the trusted Origin contract", () => {
     const unsafe = {
       ...passivePlan("https://example.com/app", 1_000),
@@ -176,5 +192,59 @@ describe("trusted runtime HTTPS transport", () => {
 
     expect(requester).toHaveBeenCalledTimes(1);
     expect(requester.mock.calls[0]?.[0].timeout).toBe(600);
+  });
+
+  it("returns immediately on cancellation during DNS and never starts HTTPS after DNS later resolves", async () => {
+    let releaseDns: ((addresses: readonly string[]) => void) | undefined;
+    const resolver = {
+      resolve: vi.fn(() => new Promise<readonly string[]>((resolve) => {
+        releaseDns = resolve;
+      })),
+    };
+    const requester = vi.fn(async (_options: Parameters<RuntimeRequester>[0]) => response);
+    const controller = new AbortController();
+
+    const pending = requestPinnedHttps(
+      passivePlan("https://example.com/app", 5_000),
+      { resolver, requester, signal: controller.signal },
+    );
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    releaseDns?.(["1.1.1.1"]);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(requester).not.toHaveBeenCalled();
+  });
+
+  it("propagates cancellation to an in-flight pinned HTTPS requester", async () => {
+    const resolver = { resolve: vi.fn(async () => ["1.1.1.1"]) };
+    let markRequesterStarted!: () => void;
+    const requesterStarted = new Promise<void>((resolve) => {
+      markRequesterStarted = resolve;
+    });
+    const requester = vi.fn((options: Parameters<RuntimeRequester>[0]) => new Promise<RuntimeNetworkResponse>((_resolve, reject) => {
+      markRequesterStarted();
+      const signal = options.signal;
+      if (!signal) {
+        reject(new Error("missing cancellation signal"));
+        return;
+      }
+      signal.addEventListener("abort", () => {
+        reject(new DOMException("cancelled", "AbortError"));
+      }, { once: true });
+    }));
+    const controller = new AbortController();
+
+    const pending = requestPinnedHttps(
+      passivePlan("https://example.com/app", 5_000),
+      { resolver, requester, signal: controller.signal },
+    );
+    await requesterStarted;
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(requester).toHaveBeenCalledTimes(1);
   });
 });

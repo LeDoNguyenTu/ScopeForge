@@ -50,7 +50,7 @@ describe("hosted finding dependency boundaries", () => {
     expect(ingestion).not.toMatch(/@\/packages\/runtime-(?:network|observer|validator)/);
   });
 
-  it("limits ingestion serialization imports to the two trusted runtime repositories", async () => {
+  it("limits ingestion serialization imports to the trusted runtime publication boundaries", async () => {
     const libRoot = path.resolve(process.cwd(), "lib");
     const importers: string[] = [];
 
@@ -64,6 +64,7 @@ describe("hosted finding dependency boundaries", () => {
     expect(importers.sort()).toEqual([
       "lib/active-validation/repository.ts",
       "lib/runtime-observations/repository.ts",
+      "lib/runtime-workers/publication-server-dependencies.ts",
     ]);
   });
 });
