@@ -11,7 +11,7 @@ This file is the compact resumable checkpoint for Phase 7 implementation PR #54.
 - reconciled base: `main` at Phase 6D merge `4ec80199ed922a5d9c92041e5432a8355f4a4277`
 - branch reconciliation merge commit: `5cc61633f1cc759fb4d29288074ed2c90de125f7`
 - after reconciliation the branch is ahead of `main` and not behind it
-- the base-to-branch diff is Phase 7-only: design/plan, Security Pack source/tests, the shared inventory-reader Task 3 test, and CLI compilation inclusion
+- the base-to-branch diff is Phase 7-only
 - dashboard V5/UI files are out of scope and untouched
 
 ## CI policy
@@ -37,7 +37,7 @@ No Supabase, Vercel runtime, hosted worker, production capability, or dashboard 
 
 ## Completed work
 
-### Task 1 - complete before this checkpoint
+### Task 1 - complete
 
 - frozen closed v1 contracts and fixed resource ceilings
 - privacy-safe typed `SecurityPackError`
@@ -46,7 +46,7 @@ No Supabase, Vercel runtime, hosted worker, production capability, or dashboard 
 - compatibility checks
 - CLI TypeScript compilation inclusion
 
-### Task 2 - complete before this checkpoint
+### Task 2 - complete
 
 - closed non-regex path-pattern compiler
 - bounded dynamic-programming matching
@@ -55,29 +55,95 @@ No Supabase, Vercel runtime, hosted worker, production capability, or dashboard 
 - drive-relative path rejection
 - adversarial wildcard tests
 
-## Task 3 - RED candidate
+### Task 3 - complete through full GREEN validation
 
 Task 3 adds identity-checked byte reads, static literal matching, and normalized privacy-safe findings.
 
-RED tests now exist for:
+#### RED evidence
 
-1. `readInventoryEntryBytes(...)` returning the exact file bytes without UTF-8 or line-ending normalization while sharing all existing containment, symlink, inode/device, size, sentinel-read, and post-read checks.
-2. `matchStaticLiteral(...)` implementing include/exclude paths, any/all semantics, absent literals, deterministic earliest-byte selection, ASCII-only case-insensitive behavior, CRLF-aware one-based byte locations, and no matched-source leakage.
-3. `createSecurityPackFinding(...)` producing deterministic normal `Finding` values with published pack rule IDs, stable fingerprints, reviewed mappings/remediation, and no raw literal, source, ATT&CK, or NIST leakage.
+Intentional RED candidate: `4a3842db77322a8e609738d05992e76762841fcf`
 
-The production APIs above do not exist at this checkpoint. The next intentional GitHub Actions run must therefore fail during the test stage for those missing Task 3 APIs. That failure is the required TDD RED evidence, not a release regression.
+GitHub Actions run: `33818173324`, validate job `100855132904`.
 
-## Next exact actions
+The full test stage produced the expected missing-feature failures:
 
-1. Mark PR #54 ready to trigger the intentional Task 3 RED run on this exact candidate.
-2. Confirm failure is caused by missing `readInventoryEntryBytes`, `literal-matcher`, and/or `finding` production APIs rather than unrelated existing tests.
-3. Implement the minimal Task 3 GREEN production code without expanding authority.
-4. Run CI again and require focused/full tests, typecheck, CLI build/version, benchmark, and Next.js build to remain green.
-5. Review the Task 3 diff before continuing to Task 4.
+- `readInventoryEntryBytes` was not a function
+- `@/packages/security-packs/literal-matcher` did not exist
+- `@/packages/security-packs/finding` did not exist
 
-## Remaining plan after Task 3
+At that RED boundary, 285 existing test files and 1,228 tests still passed. The failure was therefore pinned to the newly specified Task 3 APIs rather than unrelated branch drift.
 
-- Task 4 deterministic registry and scanner adapter
+#### GREEN implementation
+
+GREEN candidate: `43a938308e742a346055ac6e8d60996769275f91`
+
+Implemented:
+
+1. `readInventoryEntryBytes(...)` reuses the existing safe inventory-open boundary and preserves exact bytes while `readInventoryEntry(...)` remains the UTF-8 compatibility wrapper.
+2. `matchStaticLiteral(...)` implements include/exclude path admission, any/all semantics, absent literals, deterministic earliest-byte selection, ASCII-only case-insensitive matching, CRLF-preserving byte locations, and no source/literal output.
+3. `createSecurityPackFinding(...)` emits ordinary deterministic findings with published pack rule IDs, stable fingerprints, reviewed CWE/OWASP/remediation fields, and privacy-limited metadata.
+4. A self-review caught and fixed an initial ASCII-insensitive needle normalization bug before GREEN validation.
+
+Exact RED-to-GREEN production diff is limited to:
+
+- `packages/scanner-core/filesystem/read-inventory-entry.ts`
+- `packages/security-packs/finding.ts`
+- `packages/security-packs/index.ts`
+- `packages/security-packs/literal-matcher.ts`
+
+#### GREEN evidence
+
+GitHub Actions run: `33818604589`, validate job `100856108494`.
+
+Passed on exact head `43a938308e742a346055ac6e8d60996769275f91`:
+
+```text
+npm ci --ignore-scripts --no-audit --no-fund: PASS
+npm test: PASS
+npm run typecheck: PASS
+npm run build:cli: PASS
+node .scopeforge-build/packages/cli/index.js version: PASS
+npm run benchmark:scanner: PASS
+npm run build: PASS
+```
+
+Task 3 is therefore the current last fully verified implementation boundary.
+
+## Current next task - Task 4
+
+Task 4 adds the deterministic registry and standard scanner adapter.
+
+Required implementation files:
+
+- `packages/security-packs/registry.ts`
+- `packages/security-packs/scanner.ts`
+- `packages/security-packs/index.ts`
+
+Required RED tests:
+
+- `tests/security-packs/registry.test.ts`
+- `tests/security-packs/scanner.test.ts`
+
+Task 4 invariants:
+
+- 1 to 10 selected packs
+- no duplicate canonical pack directory
+- no duplicate or reserved published rule ID
+- no more than 500 selected rules
+- deterministic pack/rule ordering
+- immutable registry
+- include/exclude path matchers compiled once during registry construction, not inside the per-file scan loop
+- only inventory-admitted candidate files are read
+- at most one finding per rule/file
+- findings deduplicated and deterministically sorted
+- maximum 1,000 findings per pack
+- read failures and limit exhaustion produce fixed privacy-safe diagnostics
+- no source-byte or literal leakage
+
+Next exact action is to write and intentionally fail Task 4 registry/scanner behavior tests before production implementation.
+
+## Remaining plan after Task 4
+
 - Task 5 safe fixture discovery and behavioral validation
 - Task 6 CLI validate/inspect/explicit repeated `scan --pack` integration
 - Task 7 output compatibility and permanent authority guards
