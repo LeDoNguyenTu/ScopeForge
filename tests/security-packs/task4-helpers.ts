@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import type { SecurityPackRuleV1 } from "@/packages/security-packs/contracts";
 
@@ -71,7 +71,6 @@ export async function createTask4Pack(
   rules: readonly SecurityPackRuleV1[],
 ): Promise<string> {
   const root = await temporaryDirectory();
-  await mkdir(root, { recursive: true });
   await writeFile(
     join(root, "scopeforge-pack.json"),
     JSON.stringify({
@@ -97,7 +96,7 @@ export async function createTask4Repository(
   const root = await temporaryDirectory("scopeforge-pack-repo-");
   for (const [relativePath, contents] of Object.entries(files)) {
     const absolute = join(root, ...relativePath.split("/"));
-    await mkdir(join(absolute, ".."), { recursive: true });
+    await mkdir(dirname(absolute), { recursive: true });
     await writeFile(absolute, contents);
   }
   return root;
