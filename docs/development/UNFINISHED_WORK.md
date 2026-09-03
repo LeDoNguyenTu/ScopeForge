@@ -6,8 +6,8 @@ This is the persistent non-UI resume queue. It exists so later sessions continue
 
 ## Global execution rules
 
-- Do not use, trigger, rerun or depend on GitHub Actions while the user's monthly allowance remains exhausted.
-- Every implementation/documentation commit made through this workflow must contain `[skip ci]`.
+- GitHub Actions allowance is available again as of 2026-09-04. Use CI selectively at meaningful implementation, integration and release gates rather than on every small checkpoint.
+- Routine documentation-only or intermediate commits may use `[skip ci]` when CI would add no useful executable evidence. Final release candidates and significant code milestones should deliberately run CI.
 - Do not claim tests, typecheck, builds, audits, database state, containment or runtime gates are green without evidence tied to the relevant candidate SHA.
 - Existing deployed Supabase migrations are immutable. Database corrections are forward-only.
 - Keep `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED=false` and `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED=false` unless their own production acceptance gates authorize them.
@@ -17,7 +17,7 @@ This is the persistent non-UI resume queue. It exists so later sessions continue
 - Do not modify, merge, replace or deploy the active dashboard V5/UI preview branch from this non-UI workstream.
 - No AI co-author attribution. Preserve user-only authorship conventions.
 
-## Phase 6D - release gate closed, final merge reconciliation next
+## Phase 6D - release gate closed, final CI and merge next
 
 Implementation branch:
 
@@ -69,8 +69,8 @@ Before merging PR #52:
 3. Confirm all post-acceptance changes are documentation/handover-only.
 4. Confirm no package/lockfile/migration/capability/authority drift.
 5. Recheck PR review threads/comments.
-6. Confirm new commits use `[skip ci]`.
-7. Mark the PR ready.
+6. Mark the PR ready to intentionally trigger one final GitHub Actions validation on the exact candidate.
+7. Require the validate job to pass on that exact head.
 8. Merge with exact-head SHA protection.
 9. Keep Phase 6D runtime capabilities disabled.
 
@@ -110,6 +110,8 @@ Remaining:
 Phase 7 remains local-only, explicitly selected and data-only. No Supabase, Vercel, hosted worker, runtime, dashboard or production capability changes belong in Phase 7.
 
 After PR #52 merges, refresh the Phase 7 branch relationship to the new `main` and continue from Task 3 using TDD. Do not touch dashboard V5 files.
+
+For Phase 7, prefer targeted CI after coherent task groups and one full exact-head CI gate before integration. Avoid spending Actions minutes on documentation-only checkpoints.
 
 ## Vercel Preview configuration gap
 
