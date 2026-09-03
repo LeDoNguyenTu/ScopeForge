@@ -6,8 +6,8 @@ This handoff is the fastest entry point for a new session. For the authoritative
 
 ## Hard execution rules
 
-- Do not use, trigger, rerun or depend on GitHub Actions while the user's allowance is exhausted.
-- Use `[skip ci]` on every implementation/documentation commit in this workflow.
+- GitHub Actions allowance is available again as of 2026-09-04. Use CI selectively at meaningful integration/release gates rather than on every small checkpoint commit.
+- Routine documentation-only or intermediate commits may still use `[skip ci]` when no executable evidence would be gained. Final release candidates and meaningful code milestones should deliberately allow CI to run.
 - Do not modify or merge the active dashboard V5/UI preview work from this non-UI stream.
 - Do not enable hosted worker/runtime capability flags as part of a code merge.
 - Do not rewrite deployed Supabase migrations. Corrections are forward-only.
@@ -58,8 +58,8 @@ Current Supabase security advisor warning: `auth_leaked_password_protection` is 
 3. Confirm the entire post-acceptance diff is documentation/handover only.
 4. Confirm no package/lockfile/migration/capability/authority drift.
 5. Recheck PR reviews/threads.
-6. Confirm all new commits contain `[skip ci]`.
-7. Mark PR #52 ready.
+6. Mark PR #52 ready to intentionally trigger the final GitHub Actions validation on the exact candidate.
+7. Require the CI validate job to pass on that exact head.
 8. Merge with exact-head SHA protection.
 9. Leave `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED` and `HOSTED_ACTIVE_CORS_WORKER_ENABLED` false/absent.
 
