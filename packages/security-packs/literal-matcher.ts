@@ -120,7 +120,7 @@ export function matchStaticLiteral(
       haystack,
       rule.matcher.literals[literalOrdinal]!,
       literalOrdinal,
-      true,
+      rule.matcher.caseSensitive,
     );
     if (candidate === null) {
       if (rule.matcher.mode === "all") return null;
