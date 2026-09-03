@@ -16,8 +16,8 @@ This file is the authoritative release checkpoint for **Phase 6D dedicated netwo
 - reviewed code/security head: `22f80584a9a473051d02556e5942d57291c40fea`
 - exact executable/docs acceptance checkpoint: `bd558fdf0830bfdb95027374e168835a8a48f43d`
 - no package manifest or lockfile drift was present in the reviewed Phase 6D source range
-- GitHub Actions are not verification evidence and must not be triggered while the user's Actions allowance remains exhausted
-- implementation and documentation commits in this workflow use `[skip ci]`
+- GitHub Actions allowance is available again as of 2026-09-04; CI should be used selectively at meaningful release and integration gates
+- routine docs/checkpoint commits may use `[skip ci]`, but the exact final release candidate deliberately allows CI to run
 
 ## Implemented boundary
 
@@ -71,7 +71,7 @@ The evidence covers direct-network denial, mediator-only authority, prohibited-a
 
 The reviewed Phase 6D source range has no reportable security finding. Review covered capability gates, authorization, contracts, network ownership, DNS/address handling, pinned HTTPS, cancellation, rootless Podman lifecycle, replay/recovery, atomic publication, SQL definer/search-path/grant posture, logging/privacy and the absence of a generic-network fallback.
 
-PR review threads and dependency drift were previously reconciled. Before merge, refresh the exact PR head/base and confirm no new non-documentation source drift exists after the executable acceptance checkpoint.
+PR review threads and dependency drift were reconciled. The final merge gate must refresh the exact PR head/base and confirm no new non-documentation source drift exists after the executable acceptance checkpoint.
 
 ## Fresh live Supabase reconciliation - complete 2026-09-04
 
@@ -112,10 +112,10 @@ The previously blocking exact-project Supabase readback is closed. Phase 6D may 
 2. The diff from executable checkpoint `bd558fdf0830bfdb95027374e168835a8a48f43d` to the exact PR head is documentation/handover-only.
 3. No package manifest, lockfile, migration, runtime authority or capability-gate drift was introduced.
 4. No unresolved PR review thread or new reportable finding exists.
-5. All newly added repository commits comply with `[skip ci]`.
+5. The final GitHub Actions `validate` job passes on the exact PR head.
 6. Both Phase 6D runtime capability flags remain false/absent.
 
-After that reconciliation, mark PR #52 ready and merge using exact-head SHA protection. Do not enable Phase 6D networking as part of the merge.
+Mark PR #52 ready to intentionally trigger that exact-head CI validation, then merge only if the resulting CI run passes and the PR head remains unchanged. Use expected-head SHA protection on the merge. Do not enable Phase 6D networking as part of the merge.
 
 ## After merge
 
