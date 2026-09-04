@@ -1,3 +1,4 @@
+import type { BigIntStats } from "node:fs";
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
 
@@ -195,7 +196,9 @@ function parseFixtureCase(value: unknown): SecurityPackFixtureCaseV1 {
 function isContainedOrEqual(root: string, candidate: string): boolean {
   const child = relative(root, candidate);
   if (child === "") return true;
-  return !isAbsolute(child) && child !== ".." && !child.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`);
+  return !isAbsolute(child)
+    && child !== ".."
+    && !child.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`);
 }
 
 function canonicalRelativePath(root: string, candidate: string): string {
@@ -207,7 +210,7 @@ function canonicalRelativePath(root: string, candidate: string): string {
 }
 
 async function safeRealDirectory(path: string, containmentRoot: string): Promise<string> {
-  let stat;
+  let stat: BigIntStats;
   try {
     stat = await lstat(path, { bigint: true });
   } catch {
@@ -228,10 +231,7 @@ async function safeRealDirectory(path: string, containmentRoot: string): Promise
   return canonical;
 }
 
-function sameDirectoryIdentity(
-  left: Awaited<ReturnType<typeof lstat>>,
-  right: Awaited<ReturnType<typeof lstat>>,
-): boolean {
+function sameDirectoryIdentity(left: BigIntStats, right: BigIntStats): boolean {
   return left.isDirectory()
     && right.isDirectory()
     && !left.isSymbolicLink()
@@ -250,10 +250,10 @@ async function walkFixtureRepository(root: string): Promise<void> {
 
   const seenCaseFolded = new Set<string>();
   let files = 0;
-  let bytes = 0n;
+  let bytes = BigInt(0);
 
   async function walk(directory: string): Promise<void> {
-    let before;
+    let before: BigIntStats;
     try {
       before = await lstat(directory, { bigint: true });
     } catch {
@@ -283,7 +283,7 @@ async function walkFixtureRepository(root: string): Promise<void> {
 
     for (const entry of entries) {
       const absolute = join(directory, entry.name);
-      let stat;
+      let stat: BigIntStats;
       try {
         stat = await lstat(absolute, { bigint: true });
       } catch {
@@ -311,7 +311,7 @@ async function walkFixtureRepository(root: string): Promise<void> {
       if (!stat.isFile()) {
         return fail("PACK_FIXTURE_INVALID", "Fixture repository contains an unsupported file type.");
       }
-      if (stat.nlink !== 1n) {
+      if (stat.nlink !== BigInt(1)) {
         return fail("PACK_FIXTURE_INVALID", "Fixture files must not be hard-linked.");
       }
       if (entry.name === NESTED_MANIFEST_NAME) {
@@ -328,7 +328,7 @@ async function walkFixtureRepository(root: string): Promise<void> {
       }
     }
 
-    let after;
+    let after: BigIntStats;
     try {
       after = await lstat(directory, { bigint: true });
     } catch {
@@ -344,13 +344,13 @@ async function walkFixtureRepository(root: string): Promise<void> {
 
 async function readFixtureCase(caseRoot: string): Promise<SecurityPackFixtureCaseV1> {
   const casePath = join(caseRoot, CASE_FILE_NAME);
-  let stat;
+  let stat: BigIntStats;
   try {
     stat = await lstat(casePath, { bigint: true });
   } catch {
     return fail("PACK_FIXTURE_INVALID", "Fixture case metadata is missing or unreadable.");
   }
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1n) {
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== BigInt(1)) {
     return fail("PACK_FIXTURE_INVALID", "Fixture case metadata must be a regular single-link file.");
   }
   if (stat.size > BigInt(MAX_CASE_FILE_BYTES)) {
