@@ -8,146 +8,142 @@ This file is the compact resumable checkpoint for Phase 7 implementation PR #54.
 
 - implementation branch: `feat/phase-7-community-security-packs-v1`
 - implementation PR: #54
-- reconciled base: `main` at Phase 6D merge `4ec80199ed922a5d9c92041e5432a8355f4a4277`
-- branch reconciliation merge commit: `5cc61633f1cc759fb4d29288074ed2c90de125f7`
-- after reconciliation the branch is ahead of `main` and not behind it
-- the base-to-branch diff is Phase 7-only
-- dashboard V5/UI files are out of scope and untouched
+- base: `main` after Phase 6D merge `4ec80199ed922a5d9c92041e5432a8355f4a4277`
+- reconciliation merge: `5cc61633f1cc759fb4d29288074ed2c90de125f7`
+- branch remains ahead of `main` and not behind it
+- base-to-branch changes are Phase 7-only: Security Pack source/tests/docs, the shared identity-checked inventory reader, and CLI compilation inclusion
+- dashboard V5/UI files remain out of scope and untouched
 
 ## CI policy
 
-GitHub Actions allowance is available again. Use CI selectively:
+GitHub Actions is available again and is used selectively:
 
-- routine documentation-only and tiny intermediate checkpoints may use `[skip ci]`
-- meaningful TDD RED/GREEN boundaries and final integration candidates should run CI
-- do not rerun identical successful jobs without a concrete reason
-- use the workflow's existing concurrency cancellation instead of allowing obsolete runs to consume minutes
+- routine docs/tiny intermediate implementation commits may use `[skip ci]`
+- meaningful TDD RED/GREEN boundaries and final integration candidates run CI
+- identical successful jobs are not rerun without a concrete reason
+- workflow concurrency cancellation is used to avoid obsolete runner spend
 
-## Phase 7 safety boundary
+## Permanent Phase 7 safety boundary
 
 Security Packs remain:
 
 - local-only
-- explicitly selected by the user through CLI input
+- explicitly selected
 - data-only
 - restricted to `static_literal_v1`
-- unable to introduce regex execution, scripts, dynamic imports, callbacks, subprocesses, package hooks, network access, active probing, browser authority, arbitrary runtime commands, or target-repository auto-discovery
+- unable to add regex execution, scripts, dynamic imports, callbacks, subprocesses, package hooks, network access, active probing, browser authority, arbitrary runtime commands, or target-repository auto-discovery
 
-No Supabase, Vercel runtime, hosted worker, production capability, or dashboard behavior change belongs in Phase 7.
+Phase 7 does not change Supabase, Vercel production behavior, hosted workers, production capability flags, or dashboard behavior.
 
-## Completed work
+## Task 1 - complete
 
-### Task 1 - complete
-
-- frozen closed v1 contracts and fixed resource ceilings
-- privacy-safe typed `SecurityPackError`
-- strict bounded `scopeforge-pack.json` loader
-- hostile JSON/identity/path/TOCTOU handling
+- closed frozen v1 contracts and fixed resource ceilings
+- privacy-safe typed errors
+- strict bounded manifest loading
+- hostile JSON/path/identity/TOCTOU handling
 - compatibility checks
-- CLI TypeScript compilation inclusion
 
-### Task 2 - complete
+## Task 2 - complete
 
-- closed non-regex path-pattern compiler
-- bounded dynamic-programming matching
+- bounded non-RegExp path-pattern compiler
 - canonical repository-path enforcement
-- unsupported wildcard syntax rejection
-- drive-relative path rejection
-- adversarial wildcard tests
+- unsupported wildcard and drive-relative rejection
+- adversarial matching tests
 
-### Task 3 - complete through full GREEN validation
+## Task 3 - complete and GREEN
 
-Task 3 adds identity-checked byte reads, static literal matching, and normalized privacy-safe findings.
+RED candidate: `4a3842db77322a8e609738d05992e76762841fcf`
 
-#### RED evidence
+RED Actions run: `33818173324`
 
-Intentional RED candidate: `4a3842db77322a8e609738d05992e76762841fcf`
-
-GitHub Actions run: `33818173324`, validate job `100855132904`.
-
-The full test stage produced the expected missing-feature failures:
-
-- `readInventoryEntryBytes` was not a function
-- `@/packages/security-packs/literal-matcher` did not exist
-- `@/packages/security-packs/finding` did not exist
-
-At that RED boundary, 285 existing test files and 1,228 tests still passed. The failure was therefore pinned to the newly specified Task 3 APIs rather than unrelated branch drift.
-
-#### GREEN implementation
+Expected RED failures were limited to the missing Task 3 APIs. At that boundary 285 existing test files and 1,228 tests passed.
 
 GREEN candidate: `43a938308e742a346055ac6e8d60996769275f91`
 
+GREEN Actions run: `33818604589`
+
 Implemented:
 
-1. `readInventoryEntryBytes(...)` reuses the existing safe inventory-open boundary and preserves exact bytes while `readInventoryEntry(...)` remains the UTF-8 compatibility wrapper.
-2. `matchStaticLiteral(...)` implements include/exclude path admission, any/all semantics, absent literals, deterministic earliest-byte selection, ASCII-only case-insensitive matching, CRLF-preserving byte locations, and no source/literal output.
-3. `createSecurityPackFinding(...)` emits ordinary deterministic findings with published pack rule IDs, stable fingerprints, reviewed CWE/OWASP/remediation fields, and privacy-limited metadata.
-4. A self-review caught and fixed an initial ASCII-insensitive needle normalization bug before GREEN validation.
+- identity-checked exact-byte inventory reads
+- deterministic static literal matching
+- ASCII-only case-insensitive matching
+- privacy-safe deterministic Security Pack findings
 
-Exact RED-to-GREEN production diff is limited to:
+The exact GREEN run passed tests, typecheck, CLI build/version, scanner benchmark, and production Next.js build.
 
-- `packages/scanner-core/filesystem/read-inventory-entry.ts`
-- `packages/security-packs/finding.ts`
-- `packages/security-packs/index.ts`
-- `packages/security-packs/literal-matcher.ts`
+## Task 4 - complete and GREEN
 
-#### GREEN evidence
+Task 4 adds deterministic registry construction and the standard scanner adapter.
 
-GitHub Actions run: `33818604589`, validate job `100856108494`.
+RED candidate: `a804728b8eaefbb160f67f82be8491f1a52748fe`
 
-Passed on exact head `43a938308e742a346055ac6e8d60996769275f91`:
+RED Actions run: `33818961762`
 
-```text
-npm ci --ignore-scripts --no-audit --no-fund: PASS
-npm test: PASS
-npm run typecheck: PASS
-npm run build:cli: PASS
-node .scopeforge-build/packages/cli/index.js version: PASS
-npm run benchmark:scanner: PASS
-npm run build: PASS
-```
+All existing 1,235 tests passed and only the new registry/scanner suites failed because the planned modules did not exist.
 
-Task 3 is therefore the current last fully verified implementation boundary.
+GREEN candidate: `30b9439ac431e8ccb738201ef9ab3c4a6674d26c`
 
-## Current next task - Task 4
+GREEN Actions run: `33820356775`
 
-Task 4 adds the deterministic registry and standard scanner adapter.
+Implemented:
 
-Required implementation files:
+- 1-10 selected-pack ceiling
+- 500 selected-rule ceiling
+- canonical duplicate-directory and published/reserved-rule collision rejection
+- immutable deterministic pack/rule ordering
+- include/exclude matchers compiled once at registry construction
+- safe inventory-only reads
+- one finding per rule/file
+- per-pack 1,000-finding ceiling
+- fixed privacy-safe scanner diagnostics
+- deterministic finding ordering
 
-- `packages/security-packs/registry.ts`
-- `packages/security-packs/scanner.ts`
-- `packages/security-packs/index.ts`
+The exact GREEN run passed tests, typecheck, CLI build/version, scanner benchmark, and production Next.js build.
 
-Required RED tests:
+## Task 5 - behavior GREEN, type compatibility repair under final validation
 
-- `tests/security-packs/registry.test.ts`
-- `tests/security-packs/scanner.test.ts`
+Task 5 adds safe fixture discovery and behavioral ground-truth validation.
 
-Task 4 invariants:
+RED candidate: `b53fc14b4cd80e43122ff42881243940464fcf40`
 
-- 1 to 10 selected packs
-- no duplicate canonical pack directory
-- no duplicate or reserved published rule ID
-- no more than 500 selected rules
-- deterministic pack/rule ordering
-- immutable registry
-- include/exclude path matchers compiled once during registry construction, not inside the per-file scan loop
-- only inventory-admitted candidate files are read
-- at most one finding per rule/file
-- findings deduplicated and deterministically sorted
-- maximum 1,000 findings per pack
-- read failures and limit exhaustion produce fixed privacy-safe diagnostics
-- no source-byte or literal leakage
+RED Actions run: `33820722891`
 
-Next exact action is to write and intentionally fail Task 4 registry/scanner behavior tests before production implementation.
+All existing 1,242 tests passed and only the two new fixture suites failed because `packages/security-packs/fixtures.ts` did not exist.
 
-## Remaining plan after Task 4
+Initial GREEN candidate: `aa02dbb3c707b5c0fb5e591f70d832e43a55e0a9`
 
-- Task 5 safe fixture discovery and behavioral validation
-- Task 6 CLI validate/inspect/explicit repeated `scan --pack` integration
+Initial GREEN Actions run: `33821241223`
+
+Behavioral result on that exact candidate:
+
+- 292 test files passed
+- 1,265 tests passed
+- all fixture behavior and hostile-filesystem regressions passed
+
+Typecheck then caught three ES2017-target incompatibilities caused only by bigint literal syntax (`0n` / `1n`). No behavioral test failed.
+
+Repair commit: `e7573bcf2d81a210910ab2e53a0027a679f4f41d`
+
+The repair preserves the already-green validation logic and replaces bigint literal syntax with `BigInt(...)`, while making bigint filesystem-stat types explicit.
+
+Task 5 implemented boundaries include:
+
+- exact `case.json` schema with strict unique-key JSON
+- verified identity-checked metadata reads
+- real-path containment
+- rejection of symlinks, hard links, special files, nested manifests, hidden/vendor dependency trees, case-insensitive path collisions, and traversal
+- 20 fixture cases per rule, 100 files per case, and 1 MiB per case ceilings
+- mandatory positive, clean-negative, and suppressed/excluded near-miss coverage for every rule
+- exact finding count/location comparison against fixture ground truth
+- zero fixture or metadata writes during validation
+
+The next CI run after this documentation checkpoint is the final Task 5 repair GREEN gate. Task 5 is not considered fully complete until tests, typecheck, CLI build/version, scanner benchmark, and production Next.js build all pass on the repaired exact head.
+
+## Remaining plan
+
+- Task 6 CLI validation, inspection, and explicit repeated `scan --pack` integration
 - Task 7 output compatibility and permanent authority guards
 - Task 8 first-party example pack and contributor/reviewer governance
-- Task 9 full verification, security review, Linux acceptance, documentation, and final integration
+- Task 9 full verification, security review, non-root Linux acceptance, release documentation, and final integration
 
 Authoritative plan: `docs/superpowers/plans/2026-09-01-phase-7-community-security-packs.md`.
