@@ -18,79 +18,79 @@ Security Packs remain local-only, explicitly selected, data-only, and restricted
 
 GitHub Actions is available and used selectively. Meaningful TDD RED/GREEN and final integration candidates run CI; tiny intermediate implementation/docs checkpoints generally use `[skip ci]`.
 
-## Task 1 - complete
+## Tasks 1-2 - complete
 
-Closed frozen v1 contracts, fixed resource ceilings, privacy-safe errors, strict bounded hostile-safe manifest loading, compatibility checks.
-
-## Task 2 - complete
-
-Bounded non-RegExp path matching, canonical repository paths, unsupported wildcard and drive-relative rejection, adversarial tests.
+Task 1 delivered closed frozen v1 contracts, fixed resource ceilings, privacy-safe errors, strict bounded hostile-safe manifest loading, and compatibility checks. Task 2 delivered bounded non-RegExp path matching, canonical repository paths, unsupported wildcard and drive-relative rejection, and adversarial tests.
 
 ## Task 3 - complete and GREEN
 
-- RED candidate: `4a3842db77322a8e609738d05992e76762841fcf`
-- RED run: `33818173324`
-- GREEN candidate: `43a938308e742a346055ac6e8d60996769275f91`
-- GREEN run: `33818604589`
+- RED: `4a3842db77322a8e609738d05992e76762841fcf`, run `33818173324`
+- GREEN: `43a938308e742a346055ac6e8d60996769275f91`, run `33818604589`
 
 Exact-byte identity-checked inventory reads, deterministic literal matching, ASCII-only case-insensitive matching, CRLF-aware locations, and privacy-safe deterministic pack findings. Full CI passed.
 
 ## Task 4 - complete and GREEN
 
-- RED candidate: `a804728b8eaefbb160f67f82be8491f1a52748fe`
-- RED run: `33818961762`
-- GREEN candidate: `30b9439ac431e8ccb738201ef9ab3c4a6674d26c`
-- GREEN run: `33820356775`
+- RED: `a804728b8eaefbb160f67f82be8491f1a52748fe`, run `33818961762`
+- GREEN: `30b9439ac431e8ccb738201ef9ab3c4a6674d26c`, run `33820356775`
 
-Deterministic immutable registry construction, 1-10 pack and 500-rule ceilings, collision handling, once-compiled path admission, inventory-only reads, one finding per rule/file, 1,000 findings/pack ceiling, and fixed privacy-safe scanner diagnostics. Full CI passed.
+Deterministic immutable registry construction, pack/rule ceilings, collision handling, once-compiled path admission, inventory-only reads, finding ceilings, and fixed privacy-safe diagnostics. Full CI passed.
 
 ## Task 5 - complete and GREEN
 
-- RED candidate: `b53fc14b4cd80e43122ff42881243940464fcf40`
-- RED run: `33820722891`
-- initial behavioral GREEN candidate: `aa02dbb3c707b5c0fb5e591f70d832e43a55e0a9`
-- compatibility repair: `e7573bcf2d81a210910ab2e53a0027a679f4f41d`
-- final GREEN head before Task 6 tests: `a0c8fa1f58d22804e870d07c4a134357ad4d675a`
-- final GREEN run: `33821554251`
+- RED: `b53fc14b4cd80e43122ff42881243940464fcf40`, run `33820722891`
+- initial behavioral GREEN: `aa02dbb3c707b5c0fb5e591f70d832e43a55e0a9`
+- ES2017 bigint compatibility repair: `e7573bcf2d81a210910ab2e53a0027a679f4f41d`
+- final GREEN head before Task 6: `a0c8fa1f58d22804e870d07c4a134357ad4d675a`, run `33821554251`
 
-The final Task 5 run passed tests, typecheck, CLI build/version, scanner benchmark, and production Next.js build. Fixture validation now enforces strict case schemas, real-path and file-identity boundaries, hostile filesystem rejection, fixed case/file/byte budgets, mandatory positive/negative/near-miss coverage, exact finding ground truth, and zero writes.
+Fixture validation enforces strict case schemas, real-path/file-identity boundaries, hostile filesystem rejection, fixed budgets, required positive/negative/near-miss coverage, exact finding ground truth, and zero writes.
 
-## Task 6 - RED confirmed, GREEN candidate under validation
+## Task 6 - complete and GREEN
 
-Intentional RED head: `23348c2b031798e4d1ff3bbc66992bb7c9767a43`
+- intentional RED head: `23348c2b031798e4d1ff3bbc66992bb7c9767a43`
+- RED run: `33821933407`
+- initial GREEN candidate: `272dc7fa7dcfe3a89239f9a53acb786e513ded3e`
+- initial GREEN run: `33858389016`
+- CLI runtime portability repair: `057b56da324db53e6db18e292a555581b4e87061`
+- final GREEN run: `33858705622`
 
-RED Actions run: `33821933407`
+RED evidence was limited to the planned inspection/CLI surfaces. During test review, the temporary Docker target was corrected from an invalid raw Docker directive to a valid Dockerfile comment carrying the same literal, so built-in IaC behavior remained a valid baseline.
 
-RED evidence was clean:
+Task 6 now provides:
 
-- 292 pre-existing test files passed
-- 1,265 pre-existing tests passed
-- failures were confined to the new Task 6 inspection and CLI suites
-- `packages/security-packs/inspect.ts` was absent as intended
-- `pack validate`, `pack inspect`, and `--pack` parsing/integration were absent as intended
-
-A RED-test self-review also found that the temporary scan target used an invalid raw Docker directive (`UNSAFE_SETTING=1`), causing the existing IaC scanner to fail independently of Security Packs. The Task 6 tests were corrected to use a syntactically valid Dockerfile comment containing the same literal. This preserves the Security Pack matching behavior while keeping the built-in scanner baseline valid.
-
-Task 6 implementation now includes:
-
-- canonical deterministic `inspectSecurityPack(...)` JSON with no matcher literals, fixture source, or absolute paths
-- `scopeforge pack validate <directory>`
-- `scopeforge pack inspect <directory> --json`
-- repeated explicit `scan --pack <directory>`
-- pack path resolution against CLI cwd, never the scanned repository root
-- a 10-pack parser ceiling enforced before pack filesystem access
+- canonical privacy-safe `pack inspect --json`
+- `pack validate`
+- repeated explicit `scan --pack`
+- cwd-relative pack path resolution
+- parser-level 10-pack ceiling before pack filesystem access
 - deterministic registry loading with built-in rule identities reserved
-- `security-pack` scanner appended only when packs are explicitly selected
-- target repository manifests/fixtures never auto-activate packs
-- baseline creation remains pack-free
-- hosted-json plus explicitly selected packs fails closed as a usage error
-- privacy-safe `SecurityPackError` CLI formatting
+- no target-repository pack auto-discovery
+- pack-free baseline creation
+- CLI-level hosted-json rejection when packs are explicitly selected
+- privacy-safe `SecurityPackError` handling
 
-Implementation head before this documentation trigger: `fdcadb8932d4a3495e0ff35314e5646557273d5e`.
+The initial GREEN run passed all 1,274 tests, typecheck, and CLI compilation, but the compiled CLI smoke found that `finding.ts` still used `@/...` TypeScript aliases. Plain CommonJS Node could not resolve them. The repair changed only those runtime imports to relative paths. Fresh exact-head verification on `057b56da324db53e6db18e292a555581b4e87061` then passed:
 
-This documentation commit triggers the consolidated Task 6 GREEN gate. Task 6 is not complete until tests, typecheck, CLI build/version, scanner benchmark, and production Next.js build all pass on the resulting exact head.
+- `npm test` - 295 files, 1,274 tests
+- `npm run typecheck`
+- `npm run build:cli`
+- `node .scopeforge-build/packages/cli/index.js version`
+- `npm run benchmark:scanner`
+- `npm run build`
 
-## Remaining plan after Task 6
+## Current next task - Task 7
+
+Task 7 adds ordinary output compatibility and permanent authority guards:
+
+- deterministic JSON/SARIF/terminal/baseline behavior for pack findings without source/literal leakage
+- direct hosted serializer rejection of any `security-pack` finding before payload construction
+- package dependency guards that keep Security Packs offline/data-only
+- architecture guards that keep app/hosted/runtime worker authority independent from Security Packs
+- explicit CLI selection remains the only activation path
+
+Task 7 begins with failing output/authority tests before production changes.
+
+## Remaining plan
 
 - Task 7 output compatibility and permanent authority guards
 - Task 8 first-party example pack and contributor/reviewer governance
