@@ -5,10 +5,7 @@ import {
   type SecurityPackRuleV1,
 } from "./contracts";
 import { SecurityPackError } from "./error";
-import {
-  type CompiledSecurityPackPathPattern,
-  compileSecurityPackPathPattern,
-} from "./path-pattern";
+import { compileSecurityPackPathPattern } from "./path-pattern";
 import {
   assertSecurityPackCompatibility,
   loadSecurityPackManifest,
@@ -32,14 +29,16 @@ export interface LoadSecurityPackRegistryOptions {
 }
 
 function compilePathMatcher(rule: SecurityPackRuleV1): (repositoryPath: string) => boolean {
-  const includes = rule.matcher.include.map(compileSecurityPackPathPattern);
-  const excludes = rule.matcher.exclude.map(compileSecurityPackPathPattern);
+  const includes = rule.matcher.include.map((pattern) =>
+    compileSecurityPackPathPattern(pattern),
+  );
+  const excludes = rule.matcher.exclude.map((pattern) =>
+    compileSecurityPackPathPattern(pattern),
+  );
 
   return (repositoryPath: string): boolean => {
-    if (!includes.some((pattern: CompiledSecurityPackPathPattern) => pattern.matches(repositoryPath))) {
-      return false;
-    }
-    return !excludes.some((pattern: CompiledSecurityPackPathPattern) => pattern.matches(repositoryPath));
+    if (!includes.some((pattern) => pattern.matches(repositoryPath))) return false;
+    return !excludes.some((pattern) => pattern.matches(repositoryPath));
   };
 }
 
@@ -72,7 +71,9 @@ export async function loadSecurityPackRegistry(
     );
   }
 
-  const packs = await Promise.all(packDirectories.map(loadSecurityPackManifest));
+  const packs = await Promise.all(packDirectories.map((packDirectory) =>
+    loadSecurityPackManifest(packDirectory),
+  ));
   const roots = new Set<string>();
   const publishedIds = new Set(options.reservedRuleIds ?? []);
   let selectedRules = 0;
