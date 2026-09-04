@@ -1,5 +1,5 @@
-import { createFindingFingerprint } from "@/packages/scanner-core/findings/fingerprint";
-import type { Finding } from "@/packages/scanner-core/findings/types";
+import { createFindingFingerprint } from "../scanner-core/findings/fingerprint";
+import type { Finding } from "../scanner-core/findings/types";
 
 import type { SecurityPackManifestV1, SecurityPackRuleV1 } from "./contracts";
 import type { SecurityPackLiteralMatch } from "./literal-matcher";
