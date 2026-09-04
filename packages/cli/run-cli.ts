@@ -17,12 +17,24 @@ import type { BaselineGate, ScanError, Severity } from "../scanner-core/findings
 import { buildRepositoryInventory } from "../scanner-core/inventory/build-inventory";
 import { evaluatePolicy, resolveScanExitCode } from "../scanner-core/policy/evaluate-policy";
 import { SCAN_EXIT, type ScanExitCode } from "../scanner-core/policy/exit-codes";
+import {
+  SECURITY_PACK_LIMITS,
+  SecurityPackError,
+  createSecurityPackScanner,
+  loadSecurityPackRegistry,
+} from "../security-packs";
 import { generateCycloneDxSbom } from "../scanner-sca/sbom/generate";
 import { serializeHostedScanResult } from "../scanner-output/hosted/serialize";
 import { serializeScanResult } from "../scanner-output/json/serialize";
 import { serializeSarifResult } from "../scanner-output/sarif/serialize";
-import { createBuiltInScanners, formatBuiltInRuleList, validateBuiltInRules } from "./builtins";
+import {
+  BUILTIN_RULES,
+  createBuiltInScanners,
+  formatBuiltInRuleList,
+  validateBuiltInRules,
+} from "./builtins";
 import { UnsafeOutputError, writeScanOutput } from "./safe-output";
+import { runPackInspect, runPackValidate } from "./security-packs";
 import { formatTerminalResult } from "./terminal";
 
 export const SCOPEFORGE_VERSION = "0.1.0";
@@ -43,6 +55,7 @@ export interface RunCliOptions {
 
 interface ScanArguments {
   path: string;
+  packs: string[];
   format?: CliOutputFormat;
   repository?: string;
   output?: string;
@@ -66,7 +79,9 @@ function defaultIo(): CliIo {
 function usage(): string {
   return [
     "Usage:",
-    "  scopeforge scan [path] [--format terminal|json|sarif|hosted-json] [--repository github-url] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
+    "  scopeforge scan [path] [--pack directory]... [--format terminal|json|sarif|hosted-json] [--repository github-url] [--output file] [--sbom file] [--fail-on severity] [--baseline file] [--baseline-gate new|all]",
+    "  scopeforge pack validate directory",
+    "  scopeforge pack inspect directory --json",
     "  scopeforge baseline create [path]",
     "  scopeforge rules list",
     "  scopeforge version | --version",
@@ -82,6 +97,7 @@ function requireValue(argv: string[], index: number, option: string): string {
 
 function parseScanArguments(argv: string[], cwd: string): ScanArguments {
   let path: string | undefined;
+  const packs: string[] = [];
   let format: CliOutputFormat | undefined;
   let repository: string | undefined;
   let output: string | undefined;
@@ -92,6 +108,15 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
+    if (token === "--pack") {
+      const value = requireValue(argv, index, token);
+      if (packs.length >= SECURITY_PACK_LIMITS.selectedPacks) {
+        throw new CliUsageError("Selected pack count exceeds the fixed limit.");
+      }
+      packs.push(resolve(cwd, value));
+      index += 1;
+      continue;
+    }
     if (token === "--format") {
       const value = requireValue(argv, index, token);
       if (value !== "terminal" && value !== "json" && value !== "sarif" && value !== "hosted-json") {
@@ -150,6 +175,7 @@ function parseScanArguments(argv: string[], cwd: string): ScanArguments {
 
   return {
     path: resolve(cwd, path ?? "."),
+    packs,
     format,
     repository,
     output,
@@ -165,6 +191,20 @@ function parseBaselineCreatePath(argv: string[], cwd: string): string {
     throw new CliUsageError("baseline create accepts at most one repository path and no options.");
   }
   return resolve(cwd, argv[0] ?? ".");
+}
+
+function parsePackValidatePath(argv: string[], cwd: string): string {
+  if (argv.length !== 1 || argv[0]?.startsWith("--")) {
+    throw new CliUsageError("pack validate requires exactly one pack directory.");
+  }
+  return resolve(cwd, argv[0]);
+}
+
+function parsePackInspectPath(argv: string[], cwd: string): string {
+  if (argv.length !== 2 || argv[1] !== "--json" || argv[0]?.startsWith("--")) {
+    throw new CliUsageError("--json is required for pack inspect.");
+  }
+  return resolve(cwd, argv[0]);
 }
 
 async function assertScanRoot(root: string): Promise<void> {
@@ -194,7 +234,11 @@ function selectScanners(scanners: Scanner[], configured: string[] | null): Scann
   return configured.map((name) => available.get(name) as Scanner);
 }
 
-function scannersForConfig(config: ScannerConfig, options: RunCliOptions): Scanner[] {
+async function scannersForConfig(
+  config: ScannerConfig,
+  options: RunCliOptions,
+  packDirectories: readonly string[] = [],
+): Promise<Scanner[]> {
   let scanners: Scanner[];
   if (options.scanners === undefined) {
     validateBuiltInRules(config.rules);
@@ -202,15 +246,28 @@ function scannersForConfig(config: ScannerConfig, options: RunCliOptions): Scann
   } else {
     scanners = options.scanners;
   }
-  return selectScanners(scanners, config.scanners);
+
+  const selected = selectScanners(scanners, config.scanners);
+  if (packDirectories.length === 0) return selected;
+
+  const registry = await loadSecurityPackRegistry(packDirectories, {
+    currentScopeForgeVersion: SCOPEFORGE_VERSION,
+    reservedRuleIds: BUILTIN_RULES.map((rule) => rule.id),
+  });
+  return [...selected, createSecurityPackScanner(registry)];
 }
 
-async function executeRepositoryScan(root: string, config: ScannerConfig, options: RunCliOptions) {
+async function executeRepositoryScan(
+  root: string,
+  config: ScannerConfig,
+  options: RunCliOptions,
+  packDirectories: readonly string[] = [],
+) {
   const inventory = await buildRepositoryInventory(root, config.budgets);
   const result = await runScan({
     root,
     inventory,
-    scanners: scannersForConfig(config, options)
+    scanners: await scannersForConfig(config, options, packDirectories)
   });
   return { inventory, result };
 }
@@ -270,6 +327,18 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
       return SCAN_EXIT.SUCCESS;
     }
 
+    if (argv[0] === "pack") {
+      if (argv[1] === "validate") {
+        io.stdout(await runPackValidate(parsePackValidatePath(argv.slice(2), cwd), SCOPEFORGE_VERSION));
+        return SCAN_EXIT.SUCCESS;
+      }
+      if (argv[1] === "inspect") {
+        io.stdout(await runPackInspect(parsePackInspectPath(argv.slice(2), cwd), SCOPEFORGE_VERSION));
+        return SCAN_EXIT.SUCCESS;
+      }
+      throw new CliUsageError("Unknown or missing pack command.");
+    }
+
     if (argv[0] === "baseline" && argv[1] === "create") {
       return await runBaselineCreate(parseBaselineCreatePath(argv.slice(2), cwd), options, io);
     }
@@ -288,6 +357,9 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
     const baselinePath = args.baseline ?? config.baseline;
     const baselineGate = args.baselineGate ?? config.baselineGate;
 
+    if (format === "hosted-json" && args.packs.length > 0) {
+      throw new CliUsageError("Hosted JSON does not support Security Packs.");
+    }
     if (format === "hosted-json" && args.repository === undefined) {
       throw new CliUsageError("--repository is required when --format hosted-json is selected.");
     }
@@ -299,7 +371,7 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
       throw new CliUsageError("SBOM output must use a different path from the normal scan output.");
     }
 
-    const { inventory, result } = await executeRepositoryScan(args.path, config, options);
+    const { inventory, result } = await executeRepositoryScan(args.path, config, options, args.packs);
 
     if (baselinePath !== undefined) {
       const baseline = await loadBaseline(args.path, baselinePath);
@@ -351,6 +423,10 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
   } catch (error) {
     if (error instanceof CliUsageError) {
       io.stderr(`${error.message}\n${usage()}`);
+      return SCAN_EXIT.USAGE_ERROR;
+    }
+    if (error instanceof SecurityPackError) {
+      io.stderr(`Security Pack error [${error.code}]: ${error.message}\n${usage()}`);
       return SCAN_EXIT.USAGE_ERROR;
     }
     if (error instanceof ScannerConfigError) {

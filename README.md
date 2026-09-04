@@ -16,6 +16,8 @@ The Phase 3 code and supply-chain security feature set is implemented. Final com
 
 Phase 3 scanning is local and passive. It does not require a ScopeForge account.
 
+Phase 7 Community Security Packs v1 is implemented in candidate PR #54 and is pending exact-head acceptance. The v1 design is local-only, explicitly selected, data-only, and limited to the closed `static_literal_v1` matcher. Hosted pack distribution/activation, active rules, executable plugins, and target-repository auto-discovery do not exist.
+
 ### Local scanner capabilities
 
 - bounded hostile-repository inventory with file-count, file-size, total-byte, ignore, and symlink boundaries
@@ -33,6 +35,7 @@ Phase 3 scanning is local and passive. It does not require a ScopeForge account.
 - selected Terraform AWS configuration analysis
 - GitHub Actions workflow security analysis
 - `.npmrc` and `vercel.json` security checks
+- explicitly selected local Security Packs using the bounded `static_literal_v1` matcher
 - versioned baselines with new/existing finding classification
 - terminal, deterministic native JSON, and deterministic SARIF 2.1.0 output
 - GitHub Code Scanning compatible SARIF generation
@@ -131,6 +134,29 @@ List built-in rules:
 npm run scopeforge -- rules list
 ```
 
+## Security Packs - local v1 candidate
+
+Security Packs are loaded only from explicit local paths. A target repository containing `scopeforge-pack.json` or a `fixtures/` directory cannot activate a pack.
+
+Validate and inspect the first-party example:
+
+```bash
+npm run build:cli
+node .scopeforge-build/packages/cli/index.js pack validate security-packs/first-party/node-tls-verification
+node .scopeforge-build/packages/cli/index.js pack inspect security-packs/first-party/node-tls-verification --json
+```
+
+Scan with an explicitly selected pack:
+
+```bash
+node .scopeforge-build/packages/cli/index.js scan . \
+  --pack security-packs/first-party/node-tls-verification
+```
+
+Multiple `--pack` flags may be supplied up to the fixed v1 ceiling. Pack paths resolve from the CLI working directory, not from the scanned repository. Baseline creation remains pack-free, and hosted JSON rejects Security Pack findings.
+
+See `docs/security-packs/AUTHORING.md` and `docs/security-packs/REVIEWING.md` for the exact schema, limits, fixture contract, versioning, and review requirements.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -174,7 +200,7 @@ Example:
 }
 ```
 
-Repository configuration may tighten inventory budgets but cannot raise ScopeForge's built-in safe ceilings.
+Repository configuration may tighten inventory budgets but cannot raise ScopeForge's built-in safe ceilings. Security Pack selection is not accepted from `.scopeforge.json` in v1.
 
 ## Secret handling
 
@@ -248,6 +274,7 @@ ScopeForge CLI
   +--> dependency inventory
   +--> optional fixed-endpoint OSV enrichment
   +--> Docker / Kubernetes / Terraform / GitHub Actions / config checks
+  +--> explicitly selected local static Security Packs
   +--> normalized findings + explicit scanner errors
   +--> baseline classification + policy
   +--> terminal / JSON / SARIF
@@ -258,16 +285,16 @@ Browser
   v
 Next.js / Vercel control plane
   +--> Supabase Auth + PostgreSQL
-  +--> future authorized runtime-security workflows
+  +--> authorized hosted/runtime workflows behind separate capability boundaries
 ```
 
-The local scanner and web control plane are deliberately separated. Phase 3 does not upload local scan results to the hosted application by default.
+The local scanner and web control plane are deliberately separated. Local Security Pack selection does not grant hosted, worker, browser, or network authority.
 
 ## Security boundary
 
 Scanned repositories are hostile input.
 
-ScopeForge Phase 3:
+ScopeForge local scanning:
 
 - reads only through bounded repository inventory and safe content-read boundaries
 - does not follow repository symlinks for scanner content reads
@@ -278,7 +305,8 @@ ScopeForge Phase 3:
 - does not send detected secret values anywhere
 - fails distinctly when requested analysis is incomplete
 - uses no-follow output and baseline file handling
-- remains local/passive and does not perform remote application security testing
+- requires Security Packs to be explicitly selected outside the target repository
+- keeps Security Packs data-only and offline
 
 Report ScopeForge vulnerabilities privately as described in `SECURITY.md`.
 
@@ -293,7 +321,7 @@ npm run benchmark:scanner
 npm run build
 ```
 
-Current Phase 3O diagnostic evidence is tracked in `docs/development/TEST_STATUS.md` and `docs/scanner/RELEASE_READINESS.md`.
+Current validation evidence is tracked in `docs/development/TEST_STATUS.md` and the active phase release/handover documents.
 
 ## Project direction
 
@@ -313,7 +341,7 @@ Findings should lead to practical preparation, including what to fix, what relat
 
 ### Community Security Packs
 
-Future packs are intended to carry versioned detection metadata, mappings, explainers, remediation guidance, preparedness information, fixtures, and false-positive notes. Phase 3 does not execute arbitrary community JavaScript plugins.
+The reviewed local v1 candidate carries versioned static detection metadata, mappings, explainers, remediation guidance, preparedness information, fixtures, validation, and false-positive notes through a closed machine-validated schema. It does not execute arbitrary community JavaScript, provide hosted distribution, or permit active/network-capable pack rules.
 
 ## Roadmap
 
@@ -327,7 +355,7 @@ Future packs are intended to carry versioned detection metadata, mappings, expla
 8. Validation, benchmarks, and public methodology
 9. Production hardening and public release
 
-Phase 4 is the next implementation boundary after the final Phase 3 completion gate.
+Detailed phase state and acceptance gates are tracked in `docs/PHASES.md`.
 
 ## Documentation
 
@@ -338,15 +366,16 @@ Start with:
 3. `docs/scanner/CI.md`
 4. `docs/scanner/LIMITATIONS.md`
 5. `docs/scanner/PERFORMANCE.md`
-6. `docs/scanner/RELEASE_READINESS.md`
+6. `docs/security-packs/AUTHORING.md`
+7. `docs/security-packs/REVIEWING.md`
 
 Long-term product architecture is in `docs/superpowers/specs/2026-08-24-community-platform-design.md`.
 
-Phase 3 scanner architecture is in `docs/superpowers/specs/2026-08-24-phase-3-code-supply-chain-design.md`.
+Phase 7 Security Pack architecture and implementation steps are in the active Phase 7 spec/plan under `docs/superpowers/`.
 
 ## Community
 
-ScopeForge is a community project. Contributions can include scanner rules, safe fixtures, parsers, vulnerability explanations, remediation recipes, preparedness guidance, security mappings, accessibility, UX, documentation, test infrastructure, and security architecture.
+ScopeForge is a community project. Contributions can include scanner rules, reviewed Security Packs, safe fixtures, parsers, vulnerability explanations, remediation recipes, preparedness guidance, security mappings, accessibility, UX, documentation, test infrastructure, and security architecture.
 
 See `CONTRIBUTING.md` before opening a contribution.
 

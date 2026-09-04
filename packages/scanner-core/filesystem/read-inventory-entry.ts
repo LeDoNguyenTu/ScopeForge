@@ -55,11 +55,11 @@ function nodeErrorCode(error: unknown): string | undefined {
     : undefined;
 }
 
-async function readBounded(
+async function readBoundedBytes(
   handle: Awaited<ReturnType<typeof open>>,
   repositoryPath: string,
   maxFileBytes: number
-): Promise<string> {
+): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let total = 0;
 
@@ -80,14 +80,14 @@ async function readBounded(
     chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
   }
 
-  return Buffer.concat(chunks, total).toString("utf8");
+  return Buffer.concat(chunks, total);
 }
 
-export async function readInventoryEntry(
+export async function readInventoryEntryBytes(
   inventory: RepositoryInventory,
   repositoryPath: string,
   options: ReadInventoryEntryOptions = {}
-): Promise<string> {
+): Promise<Buffer> {
   validateRepositoryPath(repositoryPath);
 
   const entry = inventory.entries.find((candidate) => candidate.path === repositoryPath);
@@ -158,7 +158,7 @@ export async function readInventoryEntry(
       throw new InventoryReadError("changed_during_read", `Inventory entry changed while it was being opened: ${repositoryPath}`);
     }
 
-    const content = await readBounded(handle, repositoryPath, maxFileBytes);
+    const content = await readBoundedBytes(handle, repositoryPath, maxFileBytes);
     const finalStat = await handle.stat();
     if (
       finalStat.dev !== openedStat.dev ||
@@ -171,4 +171,13 @@ export async function readInventoryEntry(
   } finally {
     await handle.close();
   }
+}
+
+export async function readInventoryEntry(
+  inventory: RepositoryInventory,
+  repositoryPath: string,
+  options: ReadInventoryEntryOptions = {}
+): Promise<string> {
+  const content = await readInventoryEntryBytes(inventory, repositoryPath, options);
+  return content.toString("utf8");
 }

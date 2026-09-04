@@ -8,6 +8,7 @@ Useful contributions include:
 
 - application and platform code
 - static security rules
+- reviewed local Security Packs
 - infrastructure and configuration rules
 - safe test fixtures
 - vulnerability explainers
@@ -61,18 +62,31 @@ Keep each PR cohesive. A strong PR should include:
 
 The repository uses CI for tests, TypeScript validation, and production builds. A PR should not be merged while required checks are failing.
 
-## Security rules and knowledge contributions
+## Security Pack contributions
 
-Future ScopeForge Security Packs will use machine-validated schemas. Until the pack format ships, proposed rules or knowledge content should include enough metadata to review:
+The Phase 7 local Security Pack v1 candidate uses a machine-validated schema and the closed `static_literal_v1` matcher. Packs are local-only and activated only by an explicit CLI path. Target repositories cannot auto-discover packs.
 
-- what the rule or guidance detects or explains
+Before proposing a pack or changing pack rule logic, read:
+
+1. `docs/security-packs/AUTHORING.md`
+2. `docs/security-packs/REVIEWING.md`
+3. `security-packs/first-party/node-tls-verification` as the first-party reference pack
+
+Every proposed rule must include enough evidence to review:
+
+- what the rule detects
 - expected true-positive conditions
-- known false-positive conditions
+- clean-negative conditions
+- suppressed/excluded near-miss conditions
 - severity and confidence rationale
-- relevant CWE or OWASP mapping when applicable
-- safe fixtures or examples
-- remediation guidance
-- whether the contribution performs passive, static, or active behavior
+- relevant CWE, OWASP, MITRE ATT&CK, or NIST mapping when applicable
+- minimal synthetic fixtures with exact expected locations
+- remediation and verification guidance
+- preparedness and false-positive notes where relevant
+
+A v1 Security Pack contribution must not introduce regular-expression execution, scripts, dynamic imports, callbacks, subprocesses, package hooks, network requests, active probing, browser authority, hosted source registration, or worker authority. Those are architecture changes and require a separate approved design rather than a pack PR.
+
+Rule-logic changes increment the rule version. Pack-content releases increment the pack version. Do not reuse a version for materially different reviewed content.
 
 ## Community conduct
 
