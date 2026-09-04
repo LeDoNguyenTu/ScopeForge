@@ -15,49 +15,24 @@ This is the persistent non-UI resume queue.
 - do not modify, merge, replace, retarget, or deploy active dashboard V5/UI work from this stream
 - no AI co-author attribution
 
-## 1. Phase 7 - final release gate only
+## Completed - Phase 7
 
-Branch:
+Community Security Packs v1 merged through PR #54 as `1e9a72e0c4a526b064d6d3729981b405fac6b2b1` after final CI #756 passed. Do not resume or recreate Phase 7 Tasks 1-9.
 
-`feat/phase-7-community-security-packs-v1`
-
-PR:
-
-`#54 - Phase 7 community security packs implementation`
-
-Base:
-
-`main` at `4ec80199ed922a5d9c92041e5432a8355f4a4277`
-
-Fully tested source candidate:
-
-`e8bef81d36090402cab7af77e549e3ef268c4eef`
-
-Tasks 1-8 are complete. Task 9 preflight/security review is complete except for the final non-root Linux CI confirmation and integration.
-
-Remaining:
-
-1. preflight final documentation-only head
-2. confirm no review-thread/Vercel blocker
-3. trigger exactly one CI run via draft -> ready on the same SHA
-4. require exact-head green CI
-5. squash merge with exact-head protection and `[skip ci]` release subject if still mergeable
-6. keep all runtime capability flags disabled
-
-Do not recreate Tasks 1-8.
-
-## 2. Phase 8 - broader validation/public methodology
+## 1. Phase 8 - broader validation/public methodology
 
 Methodology foundation PR #50 is already merged. Remaining work:
 
 - vulnerable/ground-truth labs
+- deterministic evaluation contracts and regression corpus
 - measurable precision/recall/false-positive tracking where valid
-- regression corpora
-- scanner benchmark methodology
-- limitations documentation
+- reproducible scanner benchmark methodology
+- transparent limitations documentation
 - technical validation reports
 
-## 3. Production worker enablement - separate from code phases
+Start by auditing the existing Phase 8 foundation and current branches/PRs to avoid duplicate work.
+
+## 2. Production worker enablement - separate from code phases
 
 ### Phase 6B
 
@@ -65,15 +40,15 @@ Hosted GitHub acquisition remains disabled pending acquisition-worker/private-ar
 
 ### Phase 6C
 
-Hosted zero-egress repository scanning remains disabled pending its own real execution-boundary acceptance for zero egress, read-only input/rootfs, resource enforcement, and cancellation/container termination.
+Hosted zero-egress repository scanning remains disabled pending its own real execution-boundary acceptance for zero egress, read-only boundaries, resource enforcement, and cancellation/container termination.
 
 ### Phase 6D
 
-Passive and active runtime worker enablement remain separate post-merge gates. Each requires source/image identity, monitoring/rollback, staged canary evidence, and the existing authorization/network-safety controls.
+Passive and active runtime worker enablement remain separate post-merge gates. Each requires source/image identity, monitoring/rollback, staged canary evidence, and existing authorization/network-safety controls.
 
 Do not use Phase 6D containment evidence as automatic authorization for 6B or 6C.
 
-## 4. Phase 9 hardening/public release
+## 3. Phase 9 hardening/public release
 
 Remaining non-UI items include:
 
@@ -87,12 +62,6 @@ Remaining non-UI items include:
 - final public-launch security review
 
 Do not drop indexes solely because current sparse-production statistics report them unused.
-
-## Vercel Preview gap - resolved
-
-Phase 7 Preview failures were caused by missing browser-safe public Supabase build configuration. The repository now supplies the public URL/publishable key only, and the subsequent Preview build completed READY with 9/9 pages prerendered.
-
-No server/service-role secret was exposed.
 
 ## UI isolation
 

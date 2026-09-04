@@ -2,57 +2,59 @@
 
 Last reconciled: 2026-09-05 (Asia/Singapore)
 
-## Phase 7 executable/source candidate
+## Phase 7 final release evidence
 
-Candidate:
+Merged release:
 
-`e8bef81d36090402cab7af77e549e3ef268c4eef`
+`1e9a72e0c4a526b064d6d3729981b405fac6b2b1`
 
-Base:
+Accepted PR head:
+
+`b10f04f87ff06a81106b585973c3e7872571bfa6`
+
+Base validated by CI:
 
 `4ec80199ed922a5d9c92041e5432a8355f4a4277`
 
-Fresh preflight evidence:
+GitHub Actions CI #756 checked out the synthetic PR merge ref `a0f001b831e4c2a13778d8e4261c896cd7084184`, so it validated the actual proposed integration tree.
 
-- focused Phase 7 suite: 19/19 files, 129/129 tests passed
-- full repository suite: 299/299 files, 1,282/1,282 tests passed
+Final CI results:
+
+- `npm ci --ignore-scripts --no-audit --no-fund`: passed
+- `npm test`: 299/299 files, 1,282/1,282 tests passed
 - `npm run typecheck`: passed
 - `npm run build:cli`: passed
 - CLI version: `ScopeForge 0.1.0`
-- first-party pack validation: passed with 1 rule / 3 fixture cases
-- deterministic `pack inspect --json`: repeated output byte-identical
-- `npm run benchmark:scanner`: 700 files, zero findings/errors, 338 ms wall time / 20,000 ms ceiling
-- `npm audit`: zero info, low, moderate, high, critical, and total vulnerabilities
-- Vercel Preview production-style build: READY; compile/type validation passed and 9/9 pages prerendered
+- scanner benchmark: 700 files, zero findings/errors, 888 ms wall time / 20,000 ms ceiling
+- `npm run build`: passed, including 9/9 static pages
 
-## Security review
+Preflight on executable candidate `e8bef81d36090402cab7af77e549e3ef268c4eef` additionally recorded:
 
-Base-to-source-candidate security review covered traversal/containment, symlink/hard-link/special-file rejection, TOCTOU-sensitive reads, strict parsing/Unicode/budgets, matcher complexity, explicit authority selection, output privacy, deterministic identity/order, hosted rejection, and forbidden process/network/VM/dynamic-import/browser dependencies.
+- focused Phase 7 suite: 19/19 files, 129/129 tests
+- repeated `pack inspect --json`: byte-identical
+- first-party pack validation: passed
+- npm audit: zero vulnerabilities at all severities
+- source/security review: no unresolved reportable finding
 
-No unresolved reportable source/security finding was identified.
+## Production verification
 
-No package manifest/lockfile, Supabase migration, or dashboard V5/UI source change exists in the Phase 7 delta.
+Vercel deployment for the Phase 7 squash merge:
 
-## Remaining final gate
+`dpl_9dHDoELwaxXMgAerv8LufwDEjC8B`
 
-The disposable Linux verifier runs as root and cannot perform a UID drop, so it is not counted as the required non-root Linux release gate.
+State: READY
 
-After documentation-only reconciliation is preflighted, PR #54 will be toggled draft -> ready exactly once. The workflow listens to `ready_for_review`, allowing the `ubuntu-latest` validate job to run against the same frozen SHA without another source commit.
-
-The final CI result must be tied to the exact PR head before merge. Do not trigger additional speculative runs.
+Aliases include `scopeforge.dev`; `aliasError=null`.
 
 ## CI policy
 
-Earlier Phase 7 TDD checkpoints produced several intentional/non-skip runs. The current policy is preflight-first:
+Earlier Phase 7 TDD checkpoints created unnecessary red-status noise. The standing policy is now:
 
-- intermediate/documentation checkpoints: `[skip ci]` where appropriate
-- executable verification outside Actions first
-- one final CI run only after candidate freeze
-
-## Earlier phase evidence
-
-Detailed Phase 6C and Phase 6D acceptance remains in their dedicated release/acceptance documents and Git history. Phase 6D is merged; its runtime capabilities remain disabled.
+- preflight executable changes outside Actions first
+- use `[skip ci]` for intermediate/docs-only checkpoints
+- freeze a candidate before final CI
+- never blind-rerun a failed CI job; diagnose first
 
 ## Production capability statement
 
-Passing Phase 7 tests or merging Phase 7 is not permission to enable repository acquisition, repository scanning, passive runtime workers, or active CORS workers. Those remain separately gated.
+Passing or merging Phase 7 is not permission to enable repository acquisition, repository scanning, passive runtime workers, or active CORS workers. Those remain separately gated.

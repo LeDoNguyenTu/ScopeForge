@@ -2,16 +2,13 @@
 
 Last refreshed: 2026-09-05 (Asia/Singapore)
 
-This log records major delivery boundaries. Detailed task-by-task evidence remains in the phase specs/plans/release-state documents and Git history.
+This log records major delivery boundaries. Detailed task evidence remains in phase specs/plans/release documents and Git history.
 
-## Phases 1-3
+## Phases 1-5C
 
 - Phase 1 established identity, workspaces, tenancy/RLS, application shell, security headers, CI, and deployment baseline.
 - Phase 2 added workspace-scoped assets, proof-of-control, SSRF-safe verification, quotas, audit state, and authorization boundaries.
 - Phase 3 delivered the local/passive code and supply-chain scanner, bounded hostile-repository inventory/reads, normalized findings, secrets, JS/TS SAST, bounded taint analysis, SCA/SBOM, IaC/configuration rules, baselines, JSON/SARIF, golden outputs, and benchmark methodology.
-
-## Phases 4A-5C
-
 - Phase 4A added provider-neutral security-domain contracts.
 - Phase 4B added verified passive runtime observations with target authorization and pinned network safety.
 - Phase 4C-1 added the separately authorized bounded CORS validation profile.
@@ -30,13 +27,13 @@ This log records major delivery boundaries. Detailed task-by-task evidence remai
 
 ## Phase 8 methodology foundation
 
-PR #50 merged the initial Phase 8 validation-methodology foundation. Broader Phase 8 labs, accuracy/false-positive measurement, benchmark/report publication, and limitations work remain incomplete by design.
+PR #50 merged the initial Phase 8 validation-methodology foundation. Broader Phase 8 labs, evaluator, measurable accuracy/false-positive evidence, benchmark/report publication, and limitations work remain incomplete by design.
 
-## Phase 7 Community Security Packs - 2026-09-03 to 2026-09-05
+## Phase 7 Community Security Packs - complete
 
-PR #54 implements the approved local-only Community Security Packs v1 design.
+PR #54 merged as squash commit `1e9a72e0c4a526b064d6d3729981b405fac6b2b1`.
 
-Completed implementation work:
+Delivered:
 
 - strict closed contracts and bounded unique-key manifest parsing
 - drive-relative/traversal-safe bounded path-pattern engine
@@ -49,27 +46,26 @@ Completed implementation work:
 - first-party `org.scopeforge.node-tls@1.0.0` example pack
 - author/reviewer governance documentation
 
-Release preflight on source candidate `e8bef81d36090402cab7af77e549e3ef268c4eef`:
+Acceptance:
 
-- 19 focused files / 129 tests passed
-- 299 full-suite files / 1,282 tests passed
+- final CI #756 on `b10f04f87ff06a81106b585973c3e7872571bfa6`
+- GitHub-hosted Ubuntu 24.04
+- 299 test files / 1,282 tests passed
 - typecheck and CLI build/version passed
-- example pack validation passed
-- deterministic inspection was byte-identical
-- 700-file benchmark completed in 338 ms with zero findings/errors
-- npm audit reported zero vulnerabilities
-- Vercel Preview build completed READY with 9/9 prerendered pages
-- security-diff review found no unresolved reportable source finding
+- 700-file benchmark passed at 888 ms / 20,000 ms
+- production Next.js build passed with 9/9 static pages
+- preflight npm audit: zero vulnerabilities
+- source/security review: no unresolved reportable Phase 7 finding
+- production Vercel deployment `dpl_9dHDoELwaxXMgAerv8LufwDEjC8B`: READY on `scopeforge.dev`
 
-The final remaining release step is one exact-head GitHub Actions run after documentation-only reconciliation, used as explicit non-root Linux acceptance evidence. Integration must keep all hosted runtime gates disabled and must not touch dashboard V5/UI work.
+Phase 7 did not enable hosted runtime capabilities and did not alter dashboard V5/UI work.
 
 ## CI process correction
 
-Several earlier Phase 7 RED/GREEN commits intentionally triggered CI before a preflight-first policy was adopted. After repeated red-status noise, the process changed to:
+Several early Phase 7 RED/GREEN commits generated avoidable status noise. Standing process from this release onward:
 
-1. isolated exact-head preflight first
-2. `[skip ci]` for intermediate/documentation checkpoints
-3. one frozen final candidate
-4. one final CI confirmation only after local/external verification is green
-
-Prefer squash integration for PR #54 so `main` receives one clean reviewed release commit instead of carrying the noisy TDD checkpoint history.
+1. isolated exact-tree preflight first
+2. `[skip ci]` for intermediate/docs-only checkpoints
+3. one frozen release candidate
+4. one final CI confirmation
+5. diagnose failures before any rerun

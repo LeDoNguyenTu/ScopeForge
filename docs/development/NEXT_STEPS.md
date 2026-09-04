@@ -2,48 +2,27 @@
 
 Last reconciled: 2026-09-05 (Asia/Singapore)
 
-## Immediate priority - finish Phase 7 PR #54
+## Phase 7 - complete
 
-Base:
+PR #54 merged as `1e9a72e0c4a526b064d6d3729981b405fac6b2b1` after exact-head CI #756 passed on `b10f04f87ff06a81106b585973c3e7872571bfa6`. Production Vercel deployment `dpl_9dHDoELwaxXMgAerv8LufwDEjC8B` is READY on `scopeforge.dev`.
 
-`main` at `4ec80199ed922a5d9c92041e5432a8355f4a4277`
+Do not recreate Phase 7 Tasks 1-9.
 
-Branch:
+## Immediate non-UI priority - broader Phase 8
 
-`feat/phase-7-community-security-packs-v1`
+The Phase 8 methodology foundation from PR #50 already exists. Continue from that foundation rather than redesigning it from scratch.
 
-Fully tested executable/source candidate:
+Remaining work includes:
 
-`e8bef81d36090402cab7af77e549e3ef268c4eef`
+1. define reviewed ground-truth/vulnerable lab corpus boundaries
+2. implement deterministic corpus/evaluator contracts
+3. measure precision/recall/false positives only where ground truth is defensible
+4. add reproducible scanner benchmark/regression methodology
+5. document limitations and methodology caveats
+6. produce technical validation reports from reproducible evidence
+7. keep Phase 8 local/offline unless a separately reviewed design requires hosted behavior
 
-Tasks 1-8 are implemented. Task 9 source/security preflight is complete with no unresolved reportable finding. Read `PHASE_7_RELEASE_STATE.md`.
-
-Exact remaining sequence:
-
-1. commit the documentation-only release checkpoint with `[skip ci]`
-2. confirm the new PR head differs from `e8bef81d...` only in documentation
-3. rerun whitespace/path/commit-hygiene and targeted documentation checks
-4. confirm Vercel status and no unresolved PR review thread
-5. convert PR #54 to draft, then mark ready exactly once to trigger `ready_for_review` CI on the same frozen SHA
-6. require the `validate` job to pass on that exact SHA
-7. recheck head/base/mergeability
-8. integrate with exact-head protection, preferably squash merge with a `[skip ci]` release subject
-9. keep all hosted worker/runtime capability flags false/absent
-
-Do not create additional speculative RED CI runs.
-
-## After Phase 7 - Phase 8 broader implementation
-
-The methodology foundation from PR #50 already exists. Remaining non-UI Phase 8 work includes:
-
-- vulnerable/ground-truth labs and fixture corpora
-- precision/recall/false-positive measurement where technically meaningful
-- reproducible scanner benchmark methodology
-- regression datasets
-- limitations documentation
-- public technical validation reports
-
-Phase 8 must not overstate accuracy where ground truth is incomplete.
+Do not overstate accuracy where ground truth is incomplete.
 
 ## Separate production worker acceptance
 
@@ -55,11 +34,11 @@ Keep `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED=false` until the acquisition wo
 
 ### Phase 6C zero-egress scanning
 
-Keep `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED=false` until the dedicated scanner runtime has real execution-boundary acceptance for zero egress, read-only boundaries, resource enforcement, and cancellation/container termination.
+Keep `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED=false` until the dedicated scanner runtime has real execution-boundary acceptance for zero egress, read-only input/rootfs, resource enforcement, and cancellation/container termination.
 
 ### Phase 6D runtime workers
 
-Keep `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED=false` and `HOSTED_ACTIVE_CORS_WORKER_ENABLED=false` until each separately passes image/source identity, operational monitoring/rollback, and staged canary enablement.
+Keep `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED=false` and `HOSTED_ACTIVE_CORS_WORKER_ENABLED=false` until each separately passes source/image identity, operational monitoring/rollback, and staged canary enablement.
 
 Do not infer Phase 6D containment automatically authorizes 6B or 6C.
 
@@ -79,4 +58,4 @@ Accessibility/responsive QA should occur after dashboard V5 visual work is final
 
 ## UI isolation
 
-Dashboard V5/UI preview work is a separate branch/workstream. Do not edit, merge, replace, retarget, or deploy it from the non-UI roadmap. Reconcile only after both streams have stable acceptance evidence.
+Dashboard V5/UI preview work is a separate branch/workstream. Do not edit, merge, replace, retarget, or deploy it from the non-UI roadmap.

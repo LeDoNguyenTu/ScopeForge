@@ -2,19 +2,14 @@
 
 Last refreshed: 2026-09-05 (Asia/Singapore)
 
-Phase 7 Tasks 1-8 are implemented. This file now redirects active release work to `PHASE_7_RELEASE_STATE.md`.
+Phase 7 Community Security Packs v1 is complete.
 
-## Exact refs
+- merged PR: #54
+- final accepted PR head: `b10f04f87ff06a81106b585973c3e7872571bfa6`
+- final CI: #756, success
+- squash merge: `1e9a72e0c4a526b064d6d3729981b405fac6b2b1`
+- production deployment: `dpl_9dHDoELwaxXMgAerv8LufwDEjC8B`, READY
 
-- base: `main` at `4ec80199ed922a5d9c92041e5432a8355f4a4277`
-- branch: `feat/phase-7-community-security-packs-v1`
-- PR: #54
-- fully tested executable/source candidate: `e8bef81d36090402cab7af77e549e3ef268c4eef`
+Do not resume at Task 3 or recreate Tasks 1-9. See `PHASE_7_RELEASE_STATE.md` for final evidence.
 
-## Remaining
-
-Only Task 9 final documentation reconciliation, one exact-head non-root Linux CI confirmation, and protected PR integration remain.
-
-Do not resume at Task 3 and do not recreate completed Security Pack implementation work.
-
-Dashboard V5/UI is outside this stream and must remain untouched.
+The next non-UI implementation boundary is broader Phase 8 validation/public methodology. Dashboard V5/UI remains outside this stream.
