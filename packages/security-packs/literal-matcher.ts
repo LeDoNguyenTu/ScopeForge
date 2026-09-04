@@ -96,12 +96,10 @@ function earlierCandidate(
   return current;
 }
 
-export function matchStaticLiteral(
+export function matchStaticLiteralContent(
   rule: SecurityPackRuleV1,
-  file: string,
   bytes: Buffer,
 ): SecurityPackLiteralMatch | null {
-  if (!matchesPath(rule, file)) return null;
   assertCaseModeSupported(rule);
 
   const haystack = rule.matcher.caseSensitive ? bytes : asciiLowercaseBytes(bytes);
@@ -145,4 +143,13 @@ export function matchStaticLiteral(
     endLine: end.line,
     endColumn: end.column,
   };
+}
+
+export function matchStaticLiteral(
+  rule: SecurityPackRuleV1,
+  file: string,
+  bytes: Buffer,
+): SecurityPackLiteralMatch | null {
+  if (!matchesPath(rule, file)) return null;
+  return matchStaticLiteralContent(rule, bytes);
 }
