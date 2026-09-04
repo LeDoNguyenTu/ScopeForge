@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -13,6 +13,7 @@ import {
 } from "./task5-helpers";
 
 const repositoryRoots: string[] = [];
+const VALID_DOCKERFILE_WITH_PACK_LITERAL = "FROM node:22\n# UNSAFE_SETTING=1\n";
 
 function captureIo(): { io: CliIo; stdout: () => string; stderr: () => string } {
   let out = "";
@@ -30,7 +31,7 @@ function captureIo(): { io: CliIo; stdout: () => string; stderr: () => string } 
 async function repository(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "scopeforge-pack-cli-security-"));
   repositoryRoots.push(root);
-  await writeFile(join(root, "Dockerfile"), "UNSAFE_SETTING=1\n");
+  await writeFile(join(root, "Dockerfile"), VALID_DOCKERFILE_WITH_PACK_LITERAL);
   return root;
 }
 
@@ -110,7 +111,7 @@ describe("Security Pack CLI security regressions", () => {
     await writeFile(join(repositoryRoot, "scopeforge-pack.json"), manifest);
     const fixturePath = join(repositoryRoot, "fixtures", "positive", "repository");
     await mkdir(fixturePath, { recursive: true });
-    await writeFile(join(fixturePath, "Dockerfile"), "UNSAFE_SETTING=1\n");
+    await writeFile(join(fixturePath, "Dockerfile"), VALID_DOCKERFILE_WITH_PACK_LITERAL);
 
     const capture = captureIo();
     expect(await runCli(["scan", repositoryRoot, "--format", "json"], { io: capture.io }))
