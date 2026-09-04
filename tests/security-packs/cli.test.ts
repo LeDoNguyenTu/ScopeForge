@@ -12,6 +12,7 @@ import {
 } from "./task5-helpers";
 
 const repositoryRoots: string[] = [];
+const VALID_DOCKERFILE_WITH_PACK_LITERAL = "FROM node:22\n# UNSAFE_SETTING=1\n";
 
 function captureIo(): { io: CliIo; stdout: () => string; stderr: () => string } {
   let out = "";
@@ -45,7 +46,7 @@ afterEach(async () => {
 describe("Security Pack CLI workflows", () => {
   it("validates, inspects, and scans only explicitly selected packs", async () => {
     const packRoot = await createTask5Pack();
-    const repositoryRoot = await repository({ Dockerfile: "UNSAFE_SETTING=1\n" });
+    const repositoryRoot = await repository({ Dockerfile: VALID_DOCKERFILE_WITH_PACK_LITERAL });
 
     const validate = captureIo();
     expect(await runCli(["pack", "validate", packRoot], { io: validate.io })).toBe(SCAN_EXIT.SUCCESS);
@@ -87,7 +88,7 @@ describe("Security Pack CLI workflows", () => {
 
   it("resolves explicit pack paths against CLI cwd rather than the scanned repository", async () => {
     const packRoot = await createTask5Pack();
-    const repositoryRoot = await repository({ Dockerfile: "UNSAFE_SETTING=1\n" });
+    const repositoryRoot = await repository({ Dockerfile: VALID_DOCKERFILE_WITH_PACK_LITERAL });
     const capture = captureIo();
 
     expect(await runCli(
@@ -103,7 +104,7 @@ describe("Security Pack CLI workflows", () => {
   it("supports repeated explicitly selected packs without changing baseline creation semantics", async () => {
     const firstPack = await createTask5Pack();
     const secondPack = await createTask5Pack();
-    const repositoryRoot = await repository({ Dockerfile: "UNSAFE_SETTING=1\n" });
+    const repositoryRoot = await repository({ Dockerfile: VALID_DOCKERFILE_WITH_PACK_LITERAL });
 
     const selected = captureIo();
     const exit = await runCli([
