@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/print-lock-delta.mjs",
     "build": "next build",
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
@@ -25,6 +26,7 @@
     "next": "15.5.24",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "three": "^0.180.0",
     "yaml": "2.9.0"
   },
   "devDependencies": {
@@ -33,6 +35,7 @@
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.180.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.0"
