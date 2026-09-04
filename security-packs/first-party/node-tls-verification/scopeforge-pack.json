@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "packId": "org.scopeforge.node-tls",
+  "version": "1.0.0",
+  "name": "ScopeForge Node TLS Safety",
+  "summary": "Detects a static Node.js TLS verification override in Docker build configuration.",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/LeDoNguyenTu/ScopeForge",
+  "maintainers": [
+    "LeDoNguyenTu"
+  ],
+  "safety": "static",
+  "minimumScopeForgeVersion": "0.1.0",
+  "rules": [
+    {
+      "id": "node/tls-verification-disabled",
+      "version": "1.0.0",
+      "kind": "static_literal_v1",
+      "title": "Node TLS certificate verification disabled",
+      "summary": "A Dockerfile disables Node.js TLS certificate verification.",
+      "description": "Disabling Node.js TLS certificate verification removes server certificate authenticity checks.",
+      "severity": "high",
+      "confidence": "high",
+      "category": "configuration",
+      "mappings": {
+        "cwe": [
+          "CWE-295"
+        ],
+        "owasp": [
+          "A02:2021"
+        ],
+        "attack": [],
+        "nistCsf": [
+          "PR.DS-2"
+        ]
+      },
+      "explanations": {
+        "plain": "The application is configured to trust unverified encrypted connections.",
+        "developer": "Remove NODE_TLS_REJECT_UNAUTHORIZED=0 and install the required trusted certificate authority instead.",
+        "security": "The override disables certificate-chain verification for Node.js TLS clients in the resulting environment."
+      },
+      "remediation": {
+        "summary": "Restore TLS certificate verification.",
+        "guidance": "Remove the override and configure the correct CA trust bundle.",
+        "verification": "Rebuild and rescan; confirm the override is absent and TLS requests validate the intended certificate chain."
+      },
+      "preparedness": [
+        "Review outbound TLS trust configuration.",
+        "Check whether the image was used with sensitive credentials."
+      ],
+      "falsePositiveNotes": [
+        "A fixture explicitly marked test-only is excluded by the reviewed path boundary."
+      ],
+      "matcher": {
+        "include": [
+          "**/Dockerfile*"
+        ],
+        "exclude": [
+          "**/test-fixtures/**"
+        ],
+        "mode": "any",
+        "literals": [
+          "NODE_TLS_REJECT_UNAUTHORIZED=0"
+        ],
+        "absentLiterals": [
+          "scopeforge-reviewed-test-only"
+        ],
+        "caseSensitive": true
+      }
+    }
+  ]
+}
