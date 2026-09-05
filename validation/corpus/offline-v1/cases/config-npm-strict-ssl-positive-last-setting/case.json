@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "config-npm-strict-ssl-positive-last-setting",
+  "scanner": "iac",
+  "ruleId": "iac/config-npm-strict-ssl-disabled",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "A final strict-ssl=false overrides an earlier safe setting and leaves TLS certificate verification disabled.",
+  "expectedFiles": [".npmrc"],
+  "expectedSeverity": "medium",
+  "expectedConfidence": "high"
+}

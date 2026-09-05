@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "kubernetes-privileged-clean-omitted",
+  "scanner": "iac",
+  "ruleId": "iac/kubernetes-privileged-container",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The container does not explicitly enable privileged mode, and the rule does not infer absent hardening fields as findings.",
+  "expectedFiles": []
+}

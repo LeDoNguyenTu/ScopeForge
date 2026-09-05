@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "terraform-rds-positive-basic",
+  "scanner": "iac",
+  "ruleId": "iac/terraform-aws-public-rds",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The Terraform RDS resource explicitly enables public accessibility.",
+  "expectedFiles": ["main.tf"],
+  "expectedSeverity": "high",
+  "expectedConfidence": "high"
+}

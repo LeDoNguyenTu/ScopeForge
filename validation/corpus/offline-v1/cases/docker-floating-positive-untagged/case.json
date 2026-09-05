@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "docker-floating-positive-untagged",
+  "scanner": "iac",
+  "ruleId": "iac/docker-floating-base-image",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The Docker base image is untagged and therefore resolves through a floating reference.",
+  "expectedFiles": ["Dockerfile"],
+  "expectedSeverity": "medium",
+  "expectedConfidence": "high"
+}

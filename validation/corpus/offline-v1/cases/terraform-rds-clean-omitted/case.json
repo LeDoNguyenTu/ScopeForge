@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "terraform-rds-clean-omitted",
+  "scanner": "iac",
+  "ruleId": "iac/terraform-aws-public-rds",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The RDS resource does not explicitly enable public accessibility, and the rule does not infer an omitted value as vulnerable.",
+  "expectedFiles": []
+}

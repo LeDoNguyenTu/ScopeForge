@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "github-actions-write-all-positive-workflow",
+  "scanner": "iac",
+  "ruleId": "iac/github-actions-write-all-permissions",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The workflow explicitly grants write-all GITHUB_TOKEN permissions at the workflow level.",
+  "expectedFiles": [".github/workflows/ci.yml"],
+  "expectedSeverity": "medium",
+  "expectedConfidence": "high"
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "github-actions-write-all-clean-workflow-map",
+  "scanner": "iac",
+  "ruleId": "iac/github-actions-write-all-permissions",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The workflow explicitly grants only contents read permission instead of write-all.",
+  "expectedFiles": []
+}

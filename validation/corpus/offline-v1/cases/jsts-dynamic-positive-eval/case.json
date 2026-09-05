@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-dynamic-positive-eval",
+  "scanner": "jsts",
+  "ruleId": "jsts/dynamic-code-execution",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The source directly invokes the JavaScript global eval primitive.",
+  "expectedFiles": ["src/app.ts"],
+  "expectedSeverity": "medium",
+  "expectedConfidence": "high"
+}

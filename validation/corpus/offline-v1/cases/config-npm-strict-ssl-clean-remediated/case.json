@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "config-npm-strict-ssl-clean-remediated",
+  "scanner": "iac",
+  "ruleId": "iac/config-npm-strict-ssl-disabled",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "A later strict-ssl=true setting remediates an earlier disabled setting under npm last-setting-wins semantics.",
+  "expectedFiles": []
+}

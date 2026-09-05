@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "github-actions-write-all-clean-job-read",
+  "scanner": "iac",
+  "ruleId": "iac/github-actions-write-all-permissions",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The job uses read-all permissions rather than granting write access to every token permission.",
+  "expectedFiles": []
+}

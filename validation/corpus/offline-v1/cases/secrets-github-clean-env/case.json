@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "secrets-github-clean-env",
+  "scanner": "secrets",
+  "ruleId": "secrets/github-token",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "Reading a GitHub token from an environment variable does not embed a credential-shaped token value in source.",
+  "expectedFiles": []
+}

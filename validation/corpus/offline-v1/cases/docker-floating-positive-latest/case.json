@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "docker-floating-positive-latest",
+  "scanner": "iac",
+  "ruleId": "iac/docker-floating-base-image",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The Docker base image explicitly uses the mutable latest tag.",
+  "expectedFiles": ["Dockerfile"],
+  "expectedSeverity": "medium",
+  "expectedConfidence": "high"
+}

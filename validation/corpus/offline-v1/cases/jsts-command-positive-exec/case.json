@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-command-positive-exec",
+  "scanner": "jsts",
+  "ruleId": "jsts/command-injection",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "Express query input flows directly into child_process.exec.",
+  "expectedFiles": ["src/app.ts"],
+  "expectedSeverity": "high",
+  "expectedConfidence": "high"
+}

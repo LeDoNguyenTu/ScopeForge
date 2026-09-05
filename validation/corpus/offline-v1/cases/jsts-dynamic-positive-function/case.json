@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-dynamic-positive-function",
+  "scanner": "jsts",
+  "ruleId": "jsts/dynamic-code-execution",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The source directly constructs executable JavaScript with the global Function constructor.",
+  "expectedFiles": ["src/app.ts"],
+  "expectedSeverity": "medium",
+  "expectedConfidence": "high"
+}

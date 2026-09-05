@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "kubernetes-privileged-positive-container",
+  "scanner": "iac",
+  "ruleId": "iac/kubernetes-privileged-container",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "A workload container explicitly enables Kubernetes privileged mode.",
+  "expectedFiles": ["deployment.yaml"],
+  "expectedSeverity": "high",
+  "expectedConfidence": "high"
+}

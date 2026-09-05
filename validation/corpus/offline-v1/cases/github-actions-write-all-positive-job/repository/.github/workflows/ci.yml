@@ -1,0 +1,8 @@
+name: Privileged job
+on: push
+jobs:
+  release:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo scopeforge

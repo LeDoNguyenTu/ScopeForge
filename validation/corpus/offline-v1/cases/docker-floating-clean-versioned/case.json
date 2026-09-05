@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "docker-floating-clean-versioned",
+  "scanner": "iac",
+  "ruleId": "iac/docker-floating-base-image",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The Docker base image uses an explicit version tag instead of an untagged or latest reference.",
+  "expectedFiles": []
+}

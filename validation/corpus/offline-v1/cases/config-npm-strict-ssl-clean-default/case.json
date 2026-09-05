@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "config-npm-strict-ssl-clean-default",
+  "scanner": "iac",
+  "ruleId": "iac/config-npm-strict-ssl-disabled",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "Default npm registry configuration does not disable TLS certificate verification.",
+  "expectedFiles": []
+}

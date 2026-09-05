@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "secrets-github-clean-near-miss",
+  "scanner": "secrets",
+  "ruleId": "secrets/github-token",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "A short ghp_ lookalike does not satisfy the provider-specific GitHub token shape.",
+  "expectedFiles": []
+}

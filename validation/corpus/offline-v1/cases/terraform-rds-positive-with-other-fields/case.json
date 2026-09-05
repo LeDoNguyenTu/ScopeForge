@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "terraform-rds-positive-with-other-fields",
+  "scanner": "iac",
+  "ruleId": "iac/terraform-aws-public-rds",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The RDS resource remains explicitly public when surrounded by unrelated normal configuration fields.",
+  "expectedFiles": ["main.tf"],
+  "expectedSeverity": "high",
+  "expectedConfidence": "high"
+}
