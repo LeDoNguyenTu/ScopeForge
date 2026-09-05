@@ -15,6 +15,7 @@ export const VALIDATION_ACCURACY_LIMITS = Object.freeze({
 export type ValidationScannerFamily = "secrets" | "jsts" | "iac";
 export type ValidationCaseLabel = "vulnerable" | "clean";
 export type ValidationCaseOutcomeKind = "tp" | "fn" | "fp" | "tn" | "error" | "unsupported";
+export type ValidationContractMismatch = "confidence" | "cwe" | "severity";
 
 export interface ValidationCaseV1 {
   schemaVersion: 1;
@@ -52,6 +53,17 @@ export interface LoadedValidationCorpus {
   manifest: ValidationCorpusV1;
   cases: readonly LoadedValidationCase[];
   contentHash: string;
+}
+
+export interface ValidationCaseOutcome {
+  caseId: string;
+  scanner: ValidationScannerFamily;
+  ruleId: string;
+  label: ValidationCaseLabel;
+  kind: ValidationCaseOutcomeKind;
+  contractMismatches: readonly ValidationContractMismatch[];
+  unexpectedRuleIds: readonly string[];
+  diagnosticCodes: readonly string[];
 }
 
 export type ValidationAccuracyErrorCode =
