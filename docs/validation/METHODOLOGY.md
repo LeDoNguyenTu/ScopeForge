@@ -2,279 +2,296 @@
 
 ScopeForge publishes validation evidence so scanner behavior can be evaluated from reproducible tests rather than marketing claims.
 
-This document is the Phase 8 methodology foundation. It records what the repository can measure today, what it cannot yet measure honestly, and the acceptance rules for future public benchmark and vulnerable-lab reports.
+This document describes the implemented Phase 8A offline accuracy foundation, the existing scanner regression/performance evidence, and the rules for future Phase 8B/8C measurements.
 
 ## Principles
 
-1. **Reproducible before impressive.** A measurement must be rerunnable from committed code and fixtures before it is used as a public claim.
-2. **Detection quality and performance are separate measurements.** A fast scanner is not necessarily an accurate scanner, and an accurate fixture does not prove representative performance.
-3. **Negative fixtures matter.** Clean code and infrastructure fixtures are required to detect false-positive regressions.
-4. **Hostile-input safety is part of scanner quality.** A security scanner that executes target content, escapes the target tree, leaks source, or silently treats malformed coverage as clean is not acceptable even if its detection counts look good.
-5. **Output stability is testable.** Machine-readable and human-readable outputs are versioned behavior and should not drift accidentally.
-6. **No invented precision or recall.** ScopeForge will not publish precision, recall, F1, or false-positive rates until the corresponding labeled corpus and counting protocol are committed and reviewable.
-7. **Limitations are part of the result.** Unsupported languages, parser gaps, intentionally bounded analyses, disabled network lookups, and environment-dependent measurements must be stated beside the result.
+1. **Reproducible before impressive.** A measurement must be rerunnable from committed code and fixtures before it is used as a claim.
+2. **Detection quality and performance are separate measurements.** A fast scanner is not necessarily an accurate scanner, and a correct fixture does not prove representative performance.
+3. **Negative fixtures matter.** Clean and near-miss cases are required to expose false-positive regressions.
+4. **Hostile-input safety is part of scanner quality.** Scanner errors, skipped coverage, source execution, path escape, or data leakage cannot be converted into clean results.
+5. **Ground truth is independent of scanner output.** Labels live in committed case manifests and the evaluator has no mutation path back into the corpus.
+6. **Output stability is testable.** Machine-readable and Markdown reports are deterministic behavior.
+7. **Limitations are part of the result.** Unsupported behavior and intentionally bounded analyses must remain visible beside measurements.
+8. **No unsupported global accuracy claim.** Metrics from a bounded corpus describe that corpus only.
 
-## Current evidence baseline
+The exact Phase 8A interpretation string is:
 
-### Medium repository performance fixture
+> Metrics describe only the committed covered corpus and are not global ScopeForge accuracy.
 
-The repository contains `benchmarks/scanner-medium-fixture.mjs` and `benchmarks/scanner-medium.mjs`.
+## Implemented Phase 8A corpus
 
-The current fixture identity is:
+The first committed labeled corpus is:
 
-- fixture: `scanner-medium-v1`
-- expected analyzed files: `700`
-- source files: 310 TypeScript and 310 JavaScript modules
-- infrastructure files: 15 Dockerfiles, 15 Kubernetes manifests, 15 Terraform files, and 15 GitHub Actions workflows
-- configuration files: 8 `.npmrc` files and 8 Vercel configuration files
-- dependency manifests: one `package.json` and one `package-lock.json`
-- documentation files: two Markdown files
+- corpus ID: `scopeforge-offline-v1`
+- corpus version: `1.0.0`
+- cases: 32
+- represented scanner families: `iac`, `jsts`, `secrets`
+- represented rules: 8
+- network-backed SCA/OSV evaluation: excluded from this offline corpus
 
-The fixture is intentionally clean. A successful benchmark requires:
+The corpus is stored under `validation/corpus/offline-v1` and is loaded through the strict `packages/validation-accuracy` parser.
 
-- exactly 700 analyzed files
-- zero findings
-- zero scanner errors
-- valid scanner-reported duration metadata
-- no stderr output
-- successful scanner exit
-- wall time no greater than the catastrophic regression ceiling of 20,000 ms
+### Represented rules
 
-The benchmark records:
+The v1 corpus covers exactly:
 
-- fixture name
-- files analyzed
-- finding count
-- error count
-- scanner-reported duration
-- measured wall time
-- process RSS delta
-- configured wall-time ceiling
+- `iac/config-npm-strict-ssl-disabled`
+- `iac/docker-floating-base-image`
+- `iac/github-actions-write-all-permissions`
+- `iac/kubernetes-privileged-container`
+- `iac/terraform-aws-public-rds`
+- `jsts/command-injection`
+- `jsts/dynamic-code-execution`
+- `secrets/github-token`
 
-The 20-second value is a catastrophic regression guard, not a statement that 20 seconds is an acceptable product latency target.
+Each represented rule has four reviewed cases:
 
-Performance comparisons should record the exact commit, Node.js version, operating system, architecture, CPU allocation, memory allocation, cold/warm state where relevant, and the complete emitted `SCOPEFORGE_BENCHMARK` object. Results from materially different environments must not be presented as directly comparable without qualification.
+- two vulnerable cases
+- two clean or near-miss cases
 
-### Golden output continuity
+The corpus therefore contains 16 vulnerable and 16 clean cases.
 
-`tests/scanner/output/golden-output.test.ts` compares committed expected output against the actual serializers for:
+### Current covered-corpus result
 
-- native ScopeForge JSON
-- SARIF
-- terminal output
+Exact Task 5 acceptance on commit `398e645abda04e66d0f0c92d2238ad4df9f1c0c4` produced corpus content hash:
 
-The test uses a fixed scan result containing deterministic findings, inventory, errors, policy state, evidence, remediation metadata, fingerprints, locations, severity, confidence, CWE, and OWASP mappings.
+`3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
 
-Each serializer is also invoked twice and required to return the same output. This protects deterministic output behavior and catches accidental schema/text drift.
+Raw aggregate counts:
 
-Golden-output continuity does **not** measure finding accuracy. It measures representation stability.
+| Count | Value |
+| --- | ---: |
+| TP | 16 |
+| FN | 0 |
+| FP | 0 |
+| TN | 16 |
+| Error | 0 |
+| Unsupported | 0 |
+| Contract mismatch | 0 |
 
-### Hostile repository safety
+Derived metrics for this committed covered corpus:
 
-`tests/scanner/integration/phase3-hostile-repository.test.ts` builds a hostile repository containing:
+| Metric | Value |
+| --- | ---: |
+| Precision | 1.00 |
+| Recall | 1.00 |
+| False-positive rate | 0.00 |
+| F1 | 1.00 |
 
-- source code that would write a marker if executed
-- a malicious package lifecycle script
-- malformed package/configuration/infrastructure content
-- an oversized source file
-- a symlink to data outside the repository
-- sensitive sentinels that must not appear in output
+Every represented rule currently has `TP=2`, `FN=0`, `FP=0`, and `TN=2` within this corpus.
 
-The test requires ScopeForge to:
+These values are intentionally **not** presented as global ScopeForge accuracy. The corpus is small, curated, offline-first, and limited to eight deterministic rules. It is regression-quality evidence for the cases it contains.
 
-- never execute target source or package lifecycle content
-- perform no default scanner network request in the tested path
-- not follow the external symlink
-- report malformed scanner coverage as errors instead of clean success
-- record bounded skip reasons such as symlink and file-size exclusions
-- continue to detect an analyzable dynamic-code-execution finding
-- keep source/configuration/outside-secret sentinels out of JSON, terminal, and SARIF output
+## Counting protocol
 
-These tests are security-boundary tests. They are not a substitute for accuracy evaluation on labeled vulnerabilities.
+Phase 8A evaluates one case against one declared target rule.
 
-## Measurement classes
+For binary detection accuracy:
 
-ScopeForge Phase 8 reports will distinguish the following measurement classes.
+- **TP**: a vulnerable case produces the declared target rule in an expected file
+- **FN**: a vulnerable case does not produce the declared target rule in an expected file
+- **FP**: a clean case produces the declared target rule
+- **TN**: a clean case does not produce the declared target rule
 
-### 1. Functional regression
+A case contributes at most one TP/FN/FP/TN outcome even if the scanner emits duplicate target findings.
 
-Question: does a known scanner behavior still work?
+A target finding in the wrong file does not satisfy a vulnerable case. Findings from other rules are recorded as `unexpectedRuleIds` rather than silently credited to the target rule.
 
-Examples:
+Severity, confidence, and expected CWE differences are recorded as contract mismatches. A detection with a metadata mismatch remains a TP for detection counting, while the mismatch is counted separately.
 
-- expected rule fires on a fixed fixture
-- expected clean fixture remains clean
-- baseline classification remains stable
-- JSON/SARIF output remains deterministic
+Scanner or inventory failures never become FN/TN. They are reported as `error` or `unsupported` and excluded from the derived-metric denominators.
 
-A functional regression result is pass/fail and must not be represented as precision or recall.
+Known unsupported diagnostics are normalized to bounded diagnostic codes. Arbitrary scanner messages are not copied into validation output.
 
-### 2. Safety regression
+## Derived metrics
 
-Question: does hostile input preserve the scanner's authority and privacy boundaries?
-
-Examples:
-
-- target code is not executed
-- symlinks cannot escape the scan root
-- scanner output does not leak raw secrets or fixture sentinels
-- malformed content does not become a silent clean result
-- network access remains absent where the scanner contract says it is absent
-
-### 3. Performance regression
-
-Question: does a fixed workload remain within a stated resource envelope?
-
-At minimum reports should include wall time. Where available they should include process RSS delta and scanner-reported duration. A performance threshold must identify whether it is:
-
-- a catastrophic ceiling
-- a regression budget relative to a baseline
-- a product SLO
-
-Those categories must not be conflated.
-
-### 4. Detection accuracy
-
-Question: how often does a rule identify labeled vulnerable and non-vulnerable examples correctly?
-
-This class requires a labeled corpus. For a binary rule evaluation, ScopeForge will use:
-
-- **TP**: labeled vulnerable case detected by the expected rule
-- **FN**: labeled vulnerable case not detected by the expected rule
-- **FP**: labeled non-vulnerable case incorrectly detected by the rule
-- **TN**: labeled non-vulnerable case not detected by the rule
-
-Derived metrics, when denominators are non-zero:
+When denominators are non-zero:
 
 - precision = TP / (TP + FP)
 - recall = TP / (TP + FN)
 - false-positive rate = FP / (FP + TN)
-- F1 = 2 * precision * recall / (precision + recall)
+- F1 = 2TP / (2TP + FP + FN)
 
-A report must publish the raw TP/FN/FP/TN counts beside derived percentages.
+A zero denominator produces `null`, rendered as `n/a` in Markdown. The evaluator never invents a zero or perfect score for an undefined metric.
 
-## Labeled corpus rules
+Raw TP/FN/FP/TN/error/unsupported/contract-mismatch counts must accompany derived metrics.
 
-ScopeForge does not yet claim repository-wide precision/recall because a representative committed labeled corpus has not been completed.
+## Corpus integrity and hostile filesystem rules
 
-Future Phase 8 corpora must follow these rules:
+Corpus manifests and repository fixtures are treated as hostile local input even though the first-party corpus is committed.
 
-1. Every case has a stable identifier.
-2. Every case declares the expected scanner and rule ID.
-3. Every positive case states why it is vulnerable and where the relevant source/sink/configuration behavior exists.
-4. Every negative case states why the superficially similar construct is safe or outside rule scope.
-5. Fixtures contain no hidden network or package-install dependency unless the measurement explicitly evaluates such behavior.
-6. Expected labels are version-controlled separately from scanner output so scanner changes cannot silently rewrite ground truth.
-7. Scanner output is normalized before comparison, but normalization cannot erase rule identity or convert an unexpected rule into the expected rule.
-8. Duplicate findings from one root cause must follow a documented counting policy.
-9. Parser/scanner errors are not counted as true negatives.
-10. Unsupported cases remain unsupported and are excluded from the accuracy denominator with an explicit count and reason.
+The parser enforces:
 
-## Required negative-case design
+- exact v1 object shapes
+- duplicate-key rejection
+- stable identifiers and rule-ID syntax
+- raw-text deterministic ordering
+- bounded manifest/case/repository sizes
+- path traversal, absolute path, drive path, and backslash rejection
+- no symlinks
+- no hard links
+- no special files
+- identity-checked no-follow reads
+- complete repository-tree validation independent of `.gitignore` or `.scopeforgeignore`
+- deterministic SHA-256 content identity over manifest and repository bytes
 
-A useful accuracy corpus must contain more than obviously safe files. Negative cases should deliberately resemble vulnerable constructs.
+The committed Phase 8A corpus currently contains 97 files. Task 6 security tests hash the complete corpus before and after evaluation/report generation and require byte-for-byte equality.
 
-Examples include:
+Validation report output paths inside the corpus are rejected before either output file is created.
 
-- fixed arguments adjacent to shell execution APIs
-- sanitized or allow-listed values
-- unreachable or non-request-controlled values where the rule claims request-to-sink flow
-- secure Docker/Kubernetes/Terraform configurations near insecure variants
-- pinned or permission-restricted GitHub Actions variants
-- configuration files with safe CORS/TLS/security settings
-- strings that resemble secrets but fail provider structure or entropy requirements
+## Scanner ownership
 
-This is necessary to measure whether a detector distinguishes relevant context rather than only matching suspicious tokens.
+The offline-v1 evaluator constructs exactly one existing built-in scanner for each case and only for the eight represented rules.
 
-## Vulnerable-lab protocol
+Closed mapping:
 
-Phase 8 vulnerable labs should be small, deterministic, offline-first fixtures rather than production-like applications with unrelated behavior.
+- `secrets/github-token` -> secrets scanner
+- `jsts/dynamic-code-execution` -> JS/TS scanner
+- `jsts/command-injection` -> JS/TS scanner
+- the five represented `iac/*` rules -> IaC scanner
 
-Each lab should contain:
+Cross-family rule selection and unrepresented rules fail closed with `VALIDATION_RULE_INVALID`.
 
-- a README describing the vulnerability
-- one or more positive fixtures
-- at least one nearby negative/control fixture
-- the expected rule ID and severity/confidence contract
-- a remediation variant when practical
-- a verification step demonstrating that rescanning the remediated variant removes the expected finding without suppressing unrelated findings
+The evaluator does not construct SCA/OSV scanners, does not perform network access, and does not add scanner authority.
 
-Labs must not require real credentials, destructive operations, external targets, or uncontrolled exploit execution.
+## Validation package authority boundary
 
-## Rule-level reporting
+`packages/validation-accuracy` is local/offline measurement infrastructure.
 
-Public accuracy reports should be rule-level first. Aggregated scanner-wide statistics may be published only when the aggregation method is documented.
+Permanent architecture tests reject dependencies or primitives that would introduce:
 
-A rule report should include:
+- Next.js or React application authority
+- Supabase access
+- runtime network/observer/validator authority
+- worker/supervisor/control authority
+- hosted app/lib mutation modules
+- child processes or VM execution
+- Node HTTP/HTTPS/DNS/net/TLS/datagram APIs
+- worker threads
+- dynamic import
+- `eval` / `new Function`
+- `fetch` / WebSocket networking
 
-| Field | Required |
-| --- | --- |
-| ScopeForge commit | yes |
-| Rule ID and rule version | yes |
-| Fixture/corpus version | yes |
-| Positive cases | yes |
-| Negative cases | yes |
-| TP / FN / FP / TN | yes |
-| Precision / recall / FPR / F1 | when defined |
-| Unsupported/error count | yes |
-| Known blind spots | yes |
-| Environment | yes |
+Filesystem, path, and cryptographic primitives required for local validation are allowed.
 
-If a rule intentionally optimizes for precision over recall, that should be stated rather than hidden behind a single aggregate score.
+## Privacy-reduced validation output
 
-## Performance reporting protocol
+The normalized accuracy result contains only the evidence needed to reproduce counts and contracts. It does not copy target repository source or scanner internals.
 
-For reproducible scanner performance reports:
+Tests require JSON and Markdown reports to exclude:
 
-1. Build the CLI from the exact tested commit.
-2. Generate the committed benchmark fixture from source.
-3. Run the documented benchmark command without modifying fixture content.
-4. Record the complete emitted benchmark object.
-5. Record Node.js and host/runtime information.
-6. Repeat measurements when making comparative claims.
-7. Report individual runs plus the chosen summary statistic. Do not report only the fastest run.
-8. Keep correctness gates enabled. A fast run that skips files, emits errors, or changes expected findings is invalid.
+- fixture source contents
+- synthetic credential-shaped fixture values
+- absolute corpus/temp roots
+- scanner evidence snippets
+- arbitrary finding metadata
+- remediation text
+- scan start/completion timestamps
+- scan durations
 
-The existing `scanner-medium-v1` benchmark is a clean-repository throughput/regression fixture. It must not be used to claim performance on large monorepos, deeply nested dependency graphs, large lockfiles, or repositories dominated by complex AST/IaC inputs until separate fixtures cover those workloads.
+Provenance is deterministic and contains only:
+
+- ScopeForge version
+- exact commit SHA supplied by the developer runner
+- Node version
+- platform
+- architecture
+
+No timestamp is part of the normalized result.
+
+## Developer runner
+
+The local developer command is:
+
+```bash
+npm run validation:accuracy -- \
+  --corpus validation/corpus/offline-v1 \
+  --commit <40-hex-commit> \
+  --json <output.json> \
+  --markdown <output.md>
+```
+
+The runner requires all four arguments and rejects unknown, duplicate, or missing flags. It rejects invalid commit SHAs, aliased outputs, pre-existing/symlink outputs, and outputs inside the corpus.
+
+Writes are exclusive/no-follow. The ScopeForge version comes from the trusted repository `package.json`, not target repository content or environment claims.
+
+## Existing performance evidence
+
+The repository also contains `benchmarks/scanner-medium-fixture.mjs` and `benchmarks/scanner-medium.mjs`.
+
+The current fixture identity is `scanner-medium-v1` with 700 expected analyzed files and zero expected findings/errors. Its 20,000 ms wall-time threshold is a catastrophic regression ceiling, not a product latency SLO.
+
+Performance reports must record the exact commit, Node.js version, OS, architecture, fixture identity, scanner-reported duration, measured wall time, RSS delta where available, and the complete emitted benchmark object. Materially different environments must not be compared without qualification.
+
+The medium fixture is clean and synthetic. It does not establish large-monorepo, dependency-heavy, AST-heavy, or IaC-heavy performance. Phase 8B will add materially different workload shapes while preserving correctness gates.
+
+## Golden output continuity
+
+`tests/scanner/output/golden-output.test.ts` protects deterministic native JSON, SARIF, and terminal serialization against a fixed scan result.
+
+Golden output is representation-stability evidence, not finding-accuracy evidence.
+
+## Hostile repository safety
+
+`tests/scanner/integration/phase3-hostile-repository.test.ts` proves key scanner safety properties against target code, malicious package lifecycle content, malformed inputs, oversized files, symlinks, and source/privacy sentinels.
+
+The test requires ScopeForge not to execute target content, not to follow external symlinks, not to silently convert malformed coverage into clean success, and not to leak sentinels into output.
+
+These are security-boundary tests, not substitutes for labeled accuracy evaluation.
+
+## Ground-truth review rules
+
+Any future corpus change must preserve these rules:
+
+1. Stable case identity and explicit scanner/rule ownership.
+2. Vulnerable cases explain why the case is in rule scope and identify the expected file.
+3. Clean cases explain why a similar construct is safe or outside rule scope.
+4. Labels are version-controlled independently from scanner output.
+5. Scanner output cannot mutate labels or fixture bytes.
+6. Errors are never true negatives.
+7. Unsupported cases remain explicitly unsupported.
+8. Duplicate findings do not inflate one case into multiple statistical samples.
+9. Ground-truth changes require independent review rather than snapshot-style auto-acceptance.
+10. Real credentials, destructive targets, uncontrolled exploit execution, and hidden network/package-install dependencies are prohibited from ordinary offline corpora.
+
+If an FP/FN appears, reviewers must independently determine whether the scanner or the label/fixture is wrong. Labels must not be changed merely to make a score green.
 
 ## Reproducibility and provenance
 
-Every published Phase 8 result should be traceable to:
+A technical validation result should be traceable to:
 
 - repository commit SHA
-- fixture/corpus version
-- rule versions
+- corpus ID/version/content hash
+- represented rule IDs and rule versions
+- raw case outcomes/counts
+- derived metrics when defined
 - CLI/tool version
 - command used
-- relevant configuration
-- runtime environment
-- raw machine-readable result where practical
+- Node/OS/architecture
+- known limitations and unsupported cases
 
-A screenshot alone is not benchmark evidence.
+A screenshot alone is not benchmark or accuracy evidence.
 
 ## Current limitations
 
-As of this methodology foundation:
+Phase 8A materially improves the evidence baseline, but important limits remain:
 
-- ScopeForge has strong deterministic regression, hostile-input, output-continuity, and medium-fixture performance evidence.
-- The repository does not yet contain a complete representative labeled accuracy corpus across all scanners.
-- Therefore ScopeForge should not claim global precision, recall, F1, or false-positive percentages yet.
-- The medium benchmark is synthetic and clean by design.
-- RSS delta is a useful signal but is not a peak-memory measurement.
-- Wall-clock timing is environment-sensitive.
-- Optional network-backed dependency advisory behavior must be evaluated separately from offline scanner behavior.
-- Passing hostile-input tests does not prove absence of every possible parser, archive, filesystem, or sandbox vulnerability.
+- 32 cases are not representative of the full real-world input distribution.
+- only eight deterministic rules are represented.
+- SCA/OSV network-backed advisory accuracy is not evaluated here.
+- scanner-wide/global metrics remain unsupported.
+- the medium performance benchmark remains synthetic and clean.
+- wall-clock timing is environment-sensitive and RSS delta is not peak-memory measurement.
+- passing hostile-input tests does not prove absence of every parser/filesystem/security defect.
 
-## Phase 8 completion direction
+## Phase 8 continuation
 
-This methodology foundation is complete when it is present and reviewable. Phase 8 as a roadmap phase is **not** complete until ScopeForge also has:
+Phase 8A provides the accuracy foundation. Phase 8 is not complete.
 
-1. versioned vulnerable and negative-control labs for representative rule families
-2. machine-readable ground-truth labels
-3. an accuracy evaluator that emits raw confusion-matrix counts and derived metrics
-4. additional performance fixtures for materially different repository shapes
-5. regression thresholds with documented rationale
-6. public technical reports that include limitations and raw provenance
-7. review rules preventing benchmark/ground-truth changes from silently redefining success
+Next boundaries:
 
-Until those artifacts exist, public claims should stay within the evidence described in this document.
+1. **Phase 8B - performance matrix:** preserve `scanner-medium-v1` and add materially different generated source/AST-heavy, dependency/lockfile-heavy, and IaC-heavy workloads with correctness gates.
+2. **Phase 8C - reproducible technical publication:** produce deterministic machine-readable and Markdown reports with exact provenance, raw counts, benchmark evidence, limitations, and review policy.
+
+Production worker enablement, hosted scanning authority, dashboard V5/UI work, and Phase 9 hardening remain separate workstreams.
