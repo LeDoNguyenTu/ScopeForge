@@ -6,11 +6,14 @@ import type { RepositoryInventorySummary } from "../scanner-core/inventory/types
 import {
   type LoadedValidationCase,
   type LoadedValidationCorpus,
+  type ValidationAccuracyResult,
   type ValidationCaseOutcome,
   type ValidationCaseOutcomeKind,
   type ValidationCaseV1,
   type ValidationContractMismatch,
+  type ValidationProvenance,
 } from "./contracts";
+import { aggregateValidationResult } from "./metrics";
 import { createValidationScanner } from "./scanners";
 
 const UNSUPPORTED_DIAGNOSTIC_CODES = new Set([
@@ -187,4 +190,11 @@ export async function evaluateValidationCases(
     outcomes.push(await evaluateValidationCase(validationCase));
   }
   return Object.freeze(outcomes);
+}
+
+export async function evaluateValidationCorpus(
+  corpus: LoadedValidationCorpus,
+  provenance: ValidationProvenance,
+): Promise<ValidationAccuracyResult> {
+  return aggregateValidationResult(corpus, await evaluateValidationCases(corpus), provenance);
 }
