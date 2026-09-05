@@ -10,6 +10,7 @@
     "build": "next build",
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
+    "validation:accuracy": "npm run build:cli --silent && node .scopeforge-build/packages/validation-accuracy/cli.js",
     "benchmark:scanner": "node benchmarks/scanner-medium.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
