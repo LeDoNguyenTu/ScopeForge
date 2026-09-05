@@ -1,6 +1,6 @@
 import { link, mkdir, mkdtemp, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 export interface CasePatch {
   schemaVersion?: number;
@@ -76,7 +76,7 @@ export async function writeCorpus(
     await writeFile(join(caseDirectory, "case.json"), JSON.stringify(item.manifest));
     for (const [path, content] of Object.entries(item.files ?? { "src/app.ts": "eval(input);\n" })) {
       const absolute = join(caseDirectory, "repository", path);
-      await mkdir(join(absolute, ".."), { recursive: true });
+      await mkdir(dirname(absolute), { recursive: true });
       await writeFile(absolute, content);
     }
   }
