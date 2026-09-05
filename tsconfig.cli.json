@@ -16,7 +16,9 @@
     "packages/scanner-output/**/*.ts",
     "packages/scanner-secrets/**/*.ts",
     "packages/scanner-jsts/**/*.ts",
+    "packages/scanner-iac/**/*.ts",
     "packages/security-packs/**/*.ts",
+    "packages/validation-accuracy/**/*.ts",
     "packages/cli/**/*.ts"
   ],
   "exclude": ["node_modules", "tests", "app", "components", "lib"]
