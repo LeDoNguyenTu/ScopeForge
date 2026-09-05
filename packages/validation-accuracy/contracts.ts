@@ -66,6 +66,64 @@ export interface ValidationCaseOutcome {
   diagnosticCodes: readonly string[];
 }
 
+export interface ValidationCounts {
+  tp: number;
+  fn: number;
+  fp: number;
+  tn: number;
+  error: number;
+  unsupported: number;
+  contractMismatch: number;
+}
+
+export interface ValidationDerivedMetrics {
+  precision: number | null;
+  recall: number | null;
+  falsePositiveRate: number | null;
+  f1: number | null;
+}
+
+export interface ValidationProvenance {
+  scopeforgeVersion: string;
+  commitSha: string;
+  nodeVersion: string;
+  platform: string;
+  arch: string;
+}
+
+export interface ValidationRuleResult {
+  scanner: ValidationScannerFamily;
+  ruleId: string;
+  ruleVersion: string;
+  caseIds: readonly string[];
+  counts: ValidationCounts;
+  metrics: ValidationDerivedMetrics;
+}
+
+export interface ValidationCoverage {
+  totalCases: number;
+  representedScannerFamilies: readonly ValidationScannerFamily[];
+  representedRuleIds: readonly string[];
+}
+
+export interface ValidationAccuracyResult {
+  schemaVersion: 1;
+  provenance: ValidationProvenance;
+  corpus: {
+    id: string;
+    version: string;
+    contentHash: string;
+  };
+  coverage: ValidationCoverage;
+  aggregate: {
+    counts: ValidationCounts;
+    metrics: ValidationDerivedMetrics;
+  };
+  rules: readonly ValidationRuleResult[];
+  cases: readonly ValidationCaseOutcome[];
+  interpretation: "Metrics describe only the committed covered corpus and are not global ScopeForge accuracy.";
+}
+
 export type ValidationAccuracyErrorCode =
   | "VALIDATION_PATH_INVALID"
   | "VALIDATION_CORPUS_INVALID"
