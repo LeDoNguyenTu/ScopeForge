@@ -41,7 +41,7 @@ describe("scopeforge-offline-v1 corpus", () => {
     expect(second.contentHash).toBe(first.contentHash);
   });
 
-  it("evaluates every committed case without infrastructure, unsupported, or contract failures", async () => {
+  it("evaluates every committed case to its reviewed ground-truth label", async () => {
     const result = await evaluateValidationCorpus(
       await loadValidationCorpus(CORPUS_ROOT),
       PROVENANCE,
@@ -50,9 +50,15 @@ describe("scopeforge-offline-v1 corpus", () => {
     expect(result.coverage.totalCases).toBe(32);
     expect(result.coverage.representedScannerFamilies).toEqual(["iac", "jsts", "secrets"]);
     expect(result.coverage.representedRuleIds).toEqual(EXPECTED_RULE_IDS);
-    expect(result.aggregate.counts.error).toBe(0);
-    expect(result.aggregate.counts.unsupported).toBe(0);
-    expect(result.aggregate.counts.contractMismatch).toBe(0);
+    expect(result.aggregate.counts).toEqual({
+      tp: 16,
+      fn: 0,
+      fp: 0,
+      tn: 16,
+      error: 0,
+      unsupported: 0,
+      contractMismatch: 0,
+    });
     expect(result.cases).toHaveLength(32);
     expect(result.interpretation).toBe(
       "Metrics describe only the committed covered corpus and are not global ScopeForge accuracy.",
