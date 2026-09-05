@@ -18,9 +18,11 @@ const PROVENANCE: ValidationProvenance = {
 };
 
 describe("validation report privacy", () => {
-  it("does not leak source contents, synthetic secret-shaped values, or absolute roots", async () => {
+  it("does not leak fixture contents, synthetic credentials, scanner detail, or absolute roots", async () => {
     const sourceSentinel = "SOURCE_CONTENT_SENTINEL_DO_NOT_REPORT";
-    const syntheticSecret = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    const classicSynthetic = "ghp_0123456789abcdefghijklmnopqrstuvwxyz";
+    const fineGrainedSynthetic = "github_pat_0123456789abcdefghij";
+    const remediationText = "Remove direct dynamic code execution where practical.";
     const root = await writeCorpus([
       {
         directory: "cases/jsts-dynamic-positive-eval",
@@ -28,7 +30,8 @@ describe("validation report privacy", () => {
         files: {
           "src/app.ts": [
             `const marker = ${JSON.stringify(sourceSentinel)};`,
-            `const synthetic = ${JSON.stringify(syntheticSecret)};`,
+            `const classic = ${JSON.stringify(classicSynthetic)};`,
+            `const fineGrained = ${JSON.stringify(fineGrainedSynthetic)};`,
             "eval(input);",
           ].join("\n"),
         },
@@ -40,12 +43,16 @@ describe("validation report privacy", () => {
 
     for (const output of [json, markdown]) {
       expect(output).not.toContain(sourceSentinel);
-      expect(output).not.toContain(syntheticSecret);
+      expect(output).not.toContain(classicSynthetic);
+      expect(output).not.toContain(fineGrainedSynthetic);
       expect(output).not.toContain(root);
+      expect(output).not.toContain(remediationText);
       expect(output).not.toContain("redactedSnippet");
       expect(output).not.toContain("evidence");
       expect(output).not.toContain("metadata");
+      expect(output).not.toContain("remediation");
       expect(output).not.toContain("startedAt");
+      expect(output).not.toContain("completedAt");
       expect(output).not.toContain("durationMs");
     }
   });
