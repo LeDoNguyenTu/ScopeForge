@@ -135,6 +135,7 @@ export interface PublicationPerformanceEvidence {
 export interface PublicationSourceIdentity {
   repository: string;
   phase8aCommit: string;
+  phase8aTree: string;
   phase8bCommit: string;
   phase8bTree: string;
   scopeforgeVersion: string;
