@@ -1,80 +1,83 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-06 (Asia/Singapore)
+Last reconciled: 2026-09-07 (Asia/Singapore)
 
 ## Completed non-UI phases
 
 - Phase 7 Community Security Packs v1: complete, PR #54 merged.
-- Phase 8A offline accuracy foundation: complete, PR #55 merged as `8d766f5969427a2e4525f5232b5e28b0f93675bd`.
+- Phase 8A offline accuracy foundation: complete, PR #55 merged.
+- Phase 8B scanner performance matrix: complete, PR #56 merged as `226a20739871c15d0262d1779b3b013520f47fc6`.
 
-Do not recreate completed Phase 7 or Phase 8A tasks.
+Do not recreate completed Phase 7, Phase 8A, or Phase 8B tasks.
 
-## Immediate priority - finish Phase 8B release gates
+## Immediate non-UI priority - Phase 8C reproducible technical publication
 
-Active branch: `feat/phase-8b-performance-matrix-v1`.
+Build deterministic publication/reporting from the already-normalized Phase 8A accuracy evidence and Phase 8B benchmark evidence.
 
-Implemented profiles:
+Required publication content:
 
-1. `dependency-lockfile-heavy-v1` - SCA only, OSV false, exactly 5,000 resolved components in preflight, 3 analyzed files, zero findings/errors expected.
-2. `iac-heavy-v1` - 601 analyzed files, exact four sentinel findings across Docker/Kubernetes/Terraform/GitHub Actions.
-3. `source-ast-heavy-v1` - 1,201 analyzed files, exact four dynamic-code findings.
+- exact repository commit and tool version
+- Phase 8A corpus ID/version/content hash
+- represented scanner/rule scope
+- raw TP/FN/FP/TN/error/unsupported/contract-mismatch counts
+- derived precision/recall/FPR/F1 only where denominators are defined
+- explicit statement that the 32-case reviewed corpus is not global or real-world ScopeForge accuracy
+- Phase 8B profile identities and correctness contracts
+- every repeated benchmark run plus normalized min/median/max summaries
+- Node/OS/architecture/environment provenance
+- RSS delta labeled as observational, not peak memory unless a future measurement truly measures peak RSS
+- catastrophic ceilings labeled as regression guards, not product SLOs
+- errors, unsupported cases, limitations, and known blind spots
+- deterministic machine-readable output and a human-readable technical report
 
-Each profile runs exactly three times. Per-run correctness is required before timing is accepted. RSS delta is observational only. Catastrophic ceilings are not product SLOs.
+Implementation boundaries:
 
-CI cadence decision is complete:
+- publication must consume committed/normalized evidence rather than scrape screenshots or mutate labels
+- reports must be reproducible from an exact commit
+- no hidden network dependency is required for the ordinary publication path
+- do not add hosted scanner, worker, browser, arbitrary network, or Supabase authority merely to produce reports
+- preserve Phase 8A privacy reductions and ground-truth immutability
+- use TDD and preflight-first verification
 
-- measured exact candidate: `c28f4ef150b06adbce26c5836e1e47d00788c670`
-- total matrix wall: 15.561 s
-- threshold: <=30 s
-- result: ACCEPT permanent CI integration
-- workflow now runs `npm run benchmark:matrix` immediately after `npm run benchmark:scanner`
+## Phase 8B release reference
 
-Current focused evidence:
-
-- 6 benchmark test files / 31 tests passed
-- typecheck passed
-- CLI build passed
-- complete real matrix passed
-- all intermediate commits used `[skip ci]`; no substantive Actions run has been spent yet
-
-Remaining Phase 8B sequence:
-
-1. complete methodology/handoff reconciliation on the candidate branch
-2. run docs-sensitive benchmark/validation/architecture verification
-3. freeze one exact candidate SHA/tree
-4. run full disposable Linux preflight: full tests, typecheck, CLI build/version, historical benchmark, matrix, npm audit, production Next.js build
-5. review complete base-to-head diff for UI/Supabase/runtime/dependency/hygiene leakage
-6. open one draft PR against current `main`
-7. verify exact-head Vercel Preview READY
-8. create one tree-identical verification commit and mark PR ready
-9. require one substantive GitHub Actions run to pass, including the new matrix step
-10. squash-merge with expected-head protection
-11. verify exact merge SHA on `main` and production Vercel READY on `scopeforge.dev`
-12. post-merge docs-only `[skip ci]` checkpoint
-
-## Phase 8C - next after Phase 8B merge
-
-Build reproducible technical publication from normalized Phase 8A/8B evidence. Reports must include exact provenance, covered-corpus counts, benchmark raw runs/summaries, limitations, unsupported cases, and explicit scope. Do not claim repository-wide or real-world accuracy from the 32-case corpus.
+- PR #56
+- final PR head: `e09710560d2451039b493e4c777dcddf1e62a1cd`
+- squash merge: `226a20739871c15d0262d1779b3b013520f47fc6`
+- final PR CI: #760 success
+- post-merge main CI: #761 success
+- production deployment: `dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu`, READY on `scopeforge.dev`
+- release state: `docs/development/PHASE_8B_RELEASE_STATE.md`
 
 ## Separate production worker acceptance
 
-Keep these false/absent until their own operational acceptance gates pass:
+Code-complete is not production-enabled. Keep these false/absent until their own operational gates pass:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Phase 8 validation work does not authorize production worker enablement.
+Do not infer Phase 8 validation success authorizes any production worker.
 
 ## Phase 9 hardening
 
-Later non-UI hardening still includes leaked-password protection, abuse/threat review, production observability, private-schema defense-in-depth, incident/rollback procedures, and final public-launch security review.
+Remaining non-UI hardening includes:
+
+- enable/review Supabase leaked-password protection
+- abuse prevention and threat review
+- Turnstile/equivalent integration only if actually implemented
+- production observability and alerting
+- private-schema defense-in-depth without breaking RPC-only worker authority
+- incident/rollback procedures
+- release engineering and final public-launch security review
+
+Accessibility/responsive QA belongs after the separate Dashboard V5 visual stream is stable.
 
 ## UI isolation
 
-PR #49 and all active dashboard V5/UI branches remain separate. Do not mutate that stream from Phase 8 work.
+PR #49 and all active dashboard V5/UI branches remain separate. Do not edit, merge, replace, retarget, or deploy that stream from Phase 8 work.
 
 ## Branch cleanup
 
-Delete merged backend branches only via a genuine remote delete-ref operation. The connected GitHub tool surface currently has no such write action. Do not force-move refs to simulate deletion.
+Delete merged backend branches only with a true remote delete-ref mutation. The connected GitHub tooling currently exposes no branch-delete action. Never force-move a merged branch to simulate deletion.
