@@ -180,6 +180,6 @@ export interface ResolvedPublicationEvidenceV1 extends Omit<PublicationEvidenceV
   source: ResolvedPublicationSourceIdentity;
 }
 
-export interface NormalizedPublicationV1 extends ResolvedPublicationEvidenceV1 {
+export interface NormalizedPublicationV1 extends PublicationEvidenceV1 {
   schemaVersion: 1;
 }
