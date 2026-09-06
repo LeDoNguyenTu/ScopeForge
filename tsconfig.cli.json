@@ -19,6 +19,7 @@
     "packages/scanner-iac/**/*.ts",
     "packages/security-packs/**/*.ts",
     "packages/validation-accuracy/**/*.ts",
+    "packages/validation-publication/**/*.ts",
     "packages/cli/**/*.ts"
   ],
   "exclude": ["node_modules", "tests", "app", "components", "lib"]
