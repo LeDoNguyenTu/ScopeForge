@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+// @ts-expect-error - benchmark harness is intentionally authored as Node ESM JavaScript.
 import {
   countFindingRules,
   runBenchmarkProfile,
@@ -13,7 +14,14 @@ const profile = {
   maxWallMs: 1000,
 };
 
-function validParsed() {
+interface ParsedScan {
+  inventory: { filesAnalyzed: number };
+  findings: Array<{ ruleId: string }>;
+  errors: Array<{ code: string }>;
+  scan: { durationMs: number };
+}
+
+function validParsed(): ParsedScan {
   return {
     inventory: { filesAnalyzed: 3 },
     findings: [
