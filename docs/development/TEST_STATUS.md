@@ -2,96 +2,105 @@
 
 Last reconciled: 2026-09-06 (Asia/Singapore)
 
-## Phase 8A final release evidence
+## Phase 8A - released baseline
 
-Merged PR #55:
+PR #55 merged as `8d766f5969427a2e4525f5232b5e28b0f93675bd` after CI #758 passed 312/312 test files, 1,348/1,348 tests, typecheck, CLI build/version, historical scanner benchmark, and production Next.js build.
 
-- final accepted head: `9b1fd4a26924f8fff21ce5f9614b8fc4e0e20510`
-- validated PR merge ref: `479cffade6143852dfd9dabbd344271d729f6ba3`
-- squash merge on `main`: `8d766f5969427a2e4525f5232b5e28b0f93675bd`
-- exact final CI: #758, success
+The committed `scopeforge-offline-v1@1.0.0` corpus remains:
 
-GitHub Actions CI #758 ran on Ubuntu 24.04.4 with Node 22.23.2 and passed:
-
-- `npm ci --ignore-scripts --no-audit --no-fund`
-- `npm test`: 312/312 test files, 1,348/1,348 tests
-- `npm run typecheck`
-- `npm run build:cli`
-- compiled CLI version: `ScopeForge 0.1.0`
-- `npm run benchmark:scanner`: `scanner-medium-v1`, 700 files, 0 findings, 0 errors, 853 ms scanner duration, 910 ms wall time, 29,069,312 byte RSS delta, 20,000 ms ceiling
-- `npm run build`: success, including 9/9 static pages
-
-The draft synchronize workflow #757 was skipped by the workflow's draft guard. CI #758 was the one substantive final GitHub Actions validation run for Phase 8A.
-
-## Phase 8A corpus acceptance
-
-Corpus:
-
-- ID/version: `scopeforge-offline-v1@1.0.0`
-- content hash: `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
-- 32 cases
+- 32 reviewed cases
 - 16 vulnerable / 16 clean
-- 8 represented rules
-- 3 scanner families
-- 97 corpus files
+- TP 16 / FN 0 / FP 0 / TN 16
+- error 0 / unsupported 0 / contract mismatch 0
+- content hash `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
 
-Raw covered-corpus result:
+Covered-corpus precision/recall/F1 are 1.00 and FPR is 0.00, but these are not global ScopeForge accuracy metrics.
 
-- TP 16
-- FN 0
-- FP 0
-- TN 16
-- error 0
-- unsupported 0
-- contract mismatch 0
+## Phase 8B TDD checkpoints
 
-Derived covered-corpus metrics:
+Task 1 shared harness:
 
-- precision 1.00
-- recall 1.00
-- false-positive rate 0.00
-- F1 1.00
+- RED witnessed after correcting the plan's `.test.mjs` mismatch to the repository's `.test.ts` Vitest include pattern
+- GREEN: 20/20 harness tests
+- harness enforces exact files/findings/errors, three runs/profile, deterministic rule-count normalization, valid timing/RSS values, catastrophic wall ceilings, and cleanup
 
-These are **not global ScopeForge accuracy metrics**. They describe only the 32 reviewed cases in the committed corpus.
+Task 2 `source-ast-heavy-v1`:
 
-The first real corpus run produced 14 TP / 2 FN because two synthetic GitHub-token positives used low-variety repeated-character placeholders. Independent review confirmed the secret scanner correctly suppresses obvious placeholders. The fixture values, not scanner logic, were corrected to high-variety detector-shaped synthetic strings after a tightened exact-outcome test was witnessed RED.
+- deterministic 1,201-file JSTS-only fixture
+- exact expected findings: `jsts/dynamic-code-execution` x4
+- real compiled three-run probe passed with 0 errors
 
-The root TypeScript project initially tried to compile scanner-target repositories because `tsconfig.json` included every repository TypeScript file. A regression test was witnessed RED before `validation/corpus` was excluded from application typecheck. The corpus remains scanned by Phase 8A itself.
+Task 3 `dependency-lockfile-heavy-v1`:
 
-## Phase 8A security/preflight evidence
+- deterministic three-file SCA-only fixture
+- OSV explicitly disabled
+- compiled preflight requires exactly 5,000 resolved `package-lock.json` components with zero parser diagnostics
+- real compiled three-run probe passed with 0 findings/errors
 
-Before final CI, exact-tree preflight established:
+Task 4 `iac-heavy-v1`:
 
-- focused validation/architecture suite green
-- typecheck and CLI build/version green
-- validation JSON and Markdown byte-identical across repeated runs with identical provenance
-- `npm audit --audit-level=info`: zero vulnerabilities
-- local `scanner-medium-v1`: 700 files, 0 findings/errors, 355 ms wall time / 20,000 ms ceiling
-- complete 133-file base-to-head review: no trailing-whitespace additions, no conflict markers, no dashboard/V5 paths, no Supabase migration paths, no runtime-worker/network/repository-runtime paths
-- `package-lock.json` unchanged and no dependency additions
-- no forbidden hosted/runtime/network/dynamic-execution authority primitive in `packages/validation-accuracy`
-- complete 97-file ground-truth corpus byte-identical through evaluation/reporting
-- reports exclude fixture content, synthetic secret values, absolute roots, evidence, metadata, remediation text, and timing fields
+- deterministic 601-file IaC-only fixture
+- exact findings: one each for Docker floating base image, GitHub Actions write-all, Kubernetes privileged container, and Terraform public RDS
+- real compiled three-run probe passed with 0 errors
 
-## Production verification
+Task 5 matrix runner:
 
-Exact Phase 8A merge deployment:
+- `benchmark:matrix` package script added without dependency/lockfile changes
+- benchmark suite: 5 files / 30 tests passed before CI integration
+- typecheck passed after test-only ESM import typing was aligned
+- CLI build passed
+- complete three-profile matrix passed
 
-`dpl_BSfMBBxjgmFZHWmzAy5RN5N6Jvyj`
+Task 6 CI admission:
 
-State: READY. `aliasError=null`. Aliases include `scopeforge.dev`.
+- exact admission head: `c28f4ef150b06adbce26c5836e1e47d00788c670`
+- workflow-order test witnessed RED with matrix step absent
+- permanent workflow step added immediately after `npm run benchmark:scanner`
+- GREEN after workflow change: 6 benchmark files / 31 tests, typecheck, CLI build, full matrix
 
-## Historical Phase 8A TDD checkpoints
+## Exact Phase 8B admission measurement
 
-- Task 1 GREEN: `77a2f3c1223e416a4264453cdd48c7f4a13a09fa`
-- Task 2 GREEN: `5f22a7ae2856070159dd192c9426ef1f754bb5c7`
-- Task 3 GREEN: `afbffd9b66b424d08af6888340cdb149eda66fdb`
-- Task 4 GREEN: `90d0206437f97719898038a20907fbd8a9e46952`
-- Task 5 accepted corpus: `398e645abda04e66d0f0c92d2238ad4df9f1c0c4`
-- Task 6 authority/security GREEN: `593fc5655b538502dc3906d81794aa462f98022d`
-- frozen preflight tree: `c0b46ac5243b0592b5f33d8019a5f751606bf760`
-- tree-identical final verification head: `9b1fd4a26924f8fff21ce5f9614b8fc4e0e20510`
+Outer process on `c28f4ef150b06adbce26c5836e1e47d00788c670`:
+
+- wall time: 15.561 s
+- sampled peak benchmark child RSS: 61,712 KiB
+- CI admission threshold: <=30 s
+- decision: accepted into permanent CI
+
+Exact matrix output from that measurement:
+
+### `dependency-lockfile-heavy-v1`
+
+- run 1: scanner 2,486 ms / wall 2,498 ms / RSS delta 856,064 B
+- run 2: scanner 2,451 ms / wall 2,452 ms / RSS delta 2,551,808 B
+- run 3: scanner 2,296 ms / wall 2,297 ms / RSS delta 3,870,720 B
+- summary: min 2,297 / median 2,452 / max 2,498 ms wall; median scanner 2,451 ms
+- correctness: 3 files, 0 findings, 0 errors on every run; preflight exactly 5,000 components
+
+### `iac-heavy-v1`
+
+- run 1: scanner 540 ms / wall 566 ms / RSS delta 30,253,056 B
+- run 2: scanner 361 ms / wall 385 ms / RSS delta 1,421,312 B
+- run 3: scanner 342 ms / wall 362 ms / RSS delta 532,480 B
+- summary: min 362 / median 385 / max 566 ms wall; median scanner 361 ms
+- correctness: 601 files, exactly 4 expected findings, 0 errors on every run
+
+### `source-ast-heavy-v1`
+
+- run 1: scanner 1,395 ms / wall 1,419 ms / RSS delta 782,336 B
+- run 2: scanner 1,213 ms / wall 1,237 ms / RSS delta 540,672 B
+- run 3: scanner 1,201 ms / wall 1,224 ms / RSS delta 0 B
+- summary: min 1,224 / median 1,237 / max 1,419 ms wall; median scanner 1,213 ms
+- correctness: 1,201 files, exactly 4 dynamic-code findings, 0 errors on every run
+
+RSS delta is an observational memory signal and is not a memory ceiling. The per-profile wall ceilings are catastrophic regression guards, not product latency SLOs.
+
+## Current release status
+
+Phase 8B has not yet had its final full repository preflight or final GitHub Actions release gate. No intermediate RED/GREEN commit consumed the substantive Actions gate because commits used `[skip ci]`.
+
+Final release still requires full tests, typecheck, CLI build/version, historical benchmark, matrix, npm audit, production build, base-to-head review, Vercel Preview READY, one exact-head Actions gate, merge, and production verification.
 
 ## Production capability statement
 
-Phase 8A validation success is not permission to enable repository acquisition, hosted repository scanning, passive runtime workers, or active CORS workers. Those capabilities remain separately gated.
+Phase 8 validation evidence is not permission to enable repository acquisition, hosted repository scanning, passive runtime workers, or active CORS workers. Those remain separately gated.
