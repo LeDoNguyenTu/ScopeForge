@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "kubernetes-privileged-clean-false",
+  "scanner": "iac",
+  "ruleId": "iac/kubernetes-privileged-container",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The container explicitly sets privileged mode to false.",
+  "expectedFiles": []
+}

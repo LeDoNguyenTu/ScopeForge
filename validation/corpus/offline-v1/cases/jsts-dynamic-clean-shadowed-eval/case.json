@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-dynamic-clean-shadowed-eval",
+  "scanner": "jsts",
+  "ruleId": "jsts/dynamic-code-execution",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "A locally shadowed eval parameter is not the JavaScript global eval primitive.",
+  "expectedFiles": []
+}

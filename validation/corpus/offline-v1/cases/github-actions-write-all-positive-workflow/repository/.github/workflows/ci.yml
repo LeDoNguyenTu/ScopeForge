@@ -1,0 +1,8 @@
+name: Privileged workflow
+on: workflow_dispatch
+permissions: write-all
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo scopeforge

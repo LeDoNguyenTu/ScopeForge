@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "terraform-rds-clean-false",
+  "scanner": "iac",
+  "ruleId": "iac/terraform-aws-public-rds",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The RDS resource explicitly disables public accessibility.",
+  "expectedFiles": []
+}

@@ -1,50 +1,81 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-05 (Asia/Singapore)
+Last reconciled: 2026-09-06 (Asia/Singapore)
 
-This file is the authoritative non-UI current-state summary. Dashboard V5/UI work remains a separate active workstream and is intentionally excluded from mutation here.
+This file is the authoritative non-UI current-state summary. Dashboard V5/UI remains a separate active workstream and is intentionally excluded from mutation here.
 
 ## Repository state
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- Phase 7 release merge: `1e9a72e0c4a526b064d6d3729981b405fac6b2b1`
-- merged PR: #54, Phase 7 Community Security Packs v1
-- final accepted PR head: `b10f04f87ff06a81106b585973c3e7872571bfa6`
-- exact final CI: #756, success
-- production Vercel deployment: `dpl_9dHDoELwaxXMgAerv8LufwDEjC8B`, READY, aliased to `scopeforge.dev`
-
-This post-merge documentation checkpoint is a docs-only descendant of the Phase 7 release merge and does not change executable behavior.
+- production `main` at Phase 8A branch creation: `222d9591dbd5e357d179eb06407b0787a2efef7f`
+- Phase 7 Community Security Packs v1: merged through PR #54 as `1e9a72e0c4a526b064d6d3729981b405fac6b2b1`
+- active non-UI branch: `feat/phase-8a-accuracy-foundation-v1`
+- latest fully verified Phase 8A executable/security head before docs: `593fc5655b538502dc3906d81794aa462f98022d`
+- detailed handoff: `docs/development/PHASE_8_WORKING_STATE.md`
 
 ## Completed architecture boundaries
 
-Phases 1-5C are complete. Phase 6A worker foundation, Phase 6B acquisition code, Phase 6C isolated scanner code, Phase 6D dedicated network-worker code/release acceptance, and Phase 7 local-only Community Security Packs v1 are merged.
+Phases 1-5C are complete. Phase 6A worker foundation, 6B acquisition code, 6C isolated scanner code, 6D dedicated network-worker code/release acceptance, and Phase 7 local-only Community Security Packs v1 are merged.
 
 Code merge is not runtime authorization. Worker-backed production capabilities remain separate enablement gates.
 
-## Phase 7 final acceptance
+## Phase 8A candidate
 
-Community Security Packs v1 is complete for its approved local-only boundary:
+Phase 8A now implements the local/offline accuracy foundation described by the approved Phase 8 design.
 
-- strict bounded pack manifests
-- exactly `static_literal_v1`
-- bounded non-backtracking path matching
-- identity-checked byte reads
-- deterministic findings/fingerprints/order
-- safe fixture validation
-- CLI validate/inspect/explicit scan integration
-- native local output compatibility
-- permanent hosted-json rejection
-- first-party example pack and author/reviewer governance
+Implemented candidate capabilities:
 
-Final CI #756 validated the proposed PR merge tree on GitHub-hosted Ubuntu 24.04:
+- strict bounded ground-truth corpus/case schemas
+- hostile-safe no-follow corpus/repository reads
+- complete deterministic corpus content hashing
+- closed ownership for eight existing built-in rules
+- one-case-one-rule TP/FN/FP/TN classification
+- explicit error/unsupported/contract-mismatch accounting
+- null-safe precision/recall/FPR/F1 calculation
+- deterministic provenance without timestamps
+- deterministic privacy-reduced JSON and Markdown reports
+- strict local developer runner
+- committed `scopeforge-offline-v1@1.0.0`
+- permanent offline/authority/privacy/ground-truth-integrity guards
 
-- 299/299 test files, 1,282/1,282 tests passed
-- typecheck passed
-- CLI build/version passed (`ScopeForge 0.1.0`)
-- 700-file benchmark passed at 888 ms / 20,000 ms ceiling
-- production Next.js build passed with 9/9 static pages generated
+Phase 8A does not add Supabase, hosted scanner activation, worker/network authority, browser/dashboard UI, or SCA/OSV network-backed accuracy measurement.
 
-Preflight also recorded zero npm-audit vulnerabilities and a clean Phase 7 source/security review with no unresolved reportable finding.
+## Phase 8A covered-corpus evidence
+
+Corpus:
+
+- ID/version: `scopeforge-offline-v1@1.0.0`
+- content hash: `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
+- 32 cases
+- 16 vulnerable / 16 clean
+- 8 rules
+- scanner families: `iac`, `jsts`, `secrets`
+
+Exact Task 5 acceptance head: `398e645abda04e66d0f0c92d2238ad4df9f1c0c4`.
+
+Covered-corpus counts:
+
+- TP 16
+- FN 0
+- FP 0
+- TN 16
+- error 0
+- unsupported 0
+- contract mismatch 0
+
+Covered-corpus derived metrics are precision 1.00, recall 1.00, FPR 0.00, F1 1.00.
+
+**These metrics describe only the committed 32-case corpus and are not global ScopeForge accuracy.**
+
+## Phase 8A security evidence
+
+Exact Task 6 head `593fc5655b538502dc3906d81794aa462f98022d` passed:
+
+- 13/13 focused files
+- 66/66 tests
+- typecheck
+
+The guards prove the validation package remains local/offline and without hosted/runtime/network/worker authority, the complete 97-file ground-truth corpus remains byte-identical through evaluation/reporting, report paths inside the corpus fail closed, and normalized reports exclude source/evidence/metadata/remediation/timing details.
 
 ## Production Supabase
 
@@ -54,34 +85,31 @@ ScopeForge production Supabase project:
 
 Never confuse it with the separate Job Command Center project.
 
-The latest read-only reconciliation found no enabled Phase 6D worker fleet/activity. Existing deployed migrations are immutable; future corrections are forward-only.
-
-Outstanding hardening: Supabase leaked-password protection is disabled. Carry this into Phase 9 rather than treating it as a Phase 7 defect.
+Outstanding Phase 9 hardening: Supabase leaked-password protection remains disabled.
 
 ## Production runtime gates
 
-Keep false/absent unless their separate operational acceptance authorizes enablement:
+Keep false/absent unless separate operational acceptance authorizes enablement:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Phase 7 merge did not change these gates.
+Phase 8A does not change these gates.
 
 ## Vercel
 
 - project: `scopeforge` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
 - team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
 - production domain: `scopeforge.dev`
-- Phase 7 production deployment: `dpl_9dHDoELwaxXMgAerv8LufwDEjC8B`, READY, `aliasError=null`
 
-The earlier Preview failure was fixed by providing only browser-safe ScopeForge Supabase public configuration. No server/service-role secret was committed.
+Vercel deployment state is verified separately from scanner-validation evidence during final integration. Phase 8A does not require a production capability change.
 
 ## UI isolation
 
-The active dashboard V5/UI preview stream remains separate. Non-UI roadmap work must not edit, merge, replace, retarget, or deploy that branch. Reconcile only after both streams have independently stable acceptance evidence.
+The active dashboard V5/UI preview stream remains separate. Non-UI Phase 8A work must not edit, merge, replace, retarget, or deploy that branch.
 
 ## Next non-UI boundary
 
-Broader Phase 8 validation/benchmark/public-methodology implementation is next. Production acceptance for 6B/6C/6D worker runtimes and Phase 9 hardening remain separate workstreams.
+Finish Phase 8A exact-tree preflight, source/security review, one final CI run, and safe PR integration. After Phase 8A merges, Phase 8B performance-matrix work is next. Phase 8C technical publication, separate 6B/6C/6D production-runtime acceptance, and Phase 9 hardening remain later/separate workstreams.

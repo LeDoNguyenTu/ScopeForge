@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scopeforge-init-positive
+spec:
+  selector:
+    matchLabels:
+      app: scopeforge
+  template:
+    metadata:
+      labels:
+        app: scopeforge
+    spec:
+      initContainers:
+        - name: prepare
+          image: nginx:1.27.0
+          securityContext:
+            privileged: true
+      containers:
+        - name: app
+          image: nginx:1.27.0

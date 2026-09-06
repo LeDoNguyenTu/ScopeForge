@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-dynamic-clean-json-parse",
+  "scanner": "jsts",
+  "ruleId": "jsts/dynamic-code-execution",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "JSON.parse interprets structured data rather than executing JavaScript source.",
+  "expectedFiles": []
+}

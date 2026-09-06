@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "secrets-github-positive-classic",
+  "scanner": "secrets",
+  "ruleId": "secrets/github-token",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "Source contains a synthetic classic GitHub token-shaped value that matches the provider detector without being a real credential.",
+  "expectedFiles": ["src/config.ts"],
+  "expectedSeverity": "high",
+  "expectedConfidence": "high"
+}
