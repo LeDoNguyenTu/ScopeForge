@@ -5,10 +5,7 @@ import { join, relative } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 // @ts-expect-error - benchmark fixture is intentionally authored as Node ESM JavaScript.
-import {
-  IAC_HEAVY_PROFILE,
-  buildIacHeavyFixture,
-} from "../../benchmarks/matrix/iac-heavy-fixture.mjs";
+import { IAC_HEAVY_PROFILE, buildIacHeavyFixture } from "../../benchmarks/matrix/iac-heavy-fixture.mjs";
 
 const roots: string[] = [];
 
