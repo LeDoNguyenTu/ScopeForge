@@ -80,6 +80,7 @@ export function renderTechnicalPublicationMarkdown(result: NormalizedPublication
     `- Repository: \`${result.source.repository}\``,
     `- ScopeForge version: \`${result.source.scopeforgeVersion}\``,
     `- Phase 8A evidence commit: \`${result.source.phase8aCommit}\``,
+    `- Phase 8A evidence tree: \`${result.source.phase8aTree ?? "not recorded"}\``,
     `- Phase 8B executable commit: \`${result.source.phase8bCommit}\``,
     `- Phase 8B executable tree: \`${result.source.phase8bTree}\``,
     "",
