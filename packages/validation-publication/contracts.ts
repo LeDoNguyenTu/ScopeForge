@@ -135,10 +135,14 @@ export interface PublicationPerformanceEvidence {
 export interface PublicationSourceIdentity {
   repository: string;
   phase8aCommit: string;
-  phase8aTree: string;
+  phase8aTree?: string;
   phase8bCommit: string;
   phase8bTree: string;
   scopeforgeVersion: string;
+}
+
+export interface ResolvedPublicationSourceIdentity extends PublicationSourceIdentity {
+  phase8aTree: string;
 }
 
 export interface PublicationClaimBoundaries {
@@ -172,6 +176,10 @@ export interface PublicationEvidenceV1 {
   reproduction: PublicationReproduction;
 }
 
-export interface NormalizedPublicationV1 extends PublicationEvidenceV1 {
+export interface ResolvedPublicationEvidenceV1 extends Omit<PublicationEvidenceV1, "source"> {
+  source: ResolvedPublicationSourceIdentity;
+}
+
+export interface NormalizedPublicationV1 extends ResolvedPublicationEvidenceV1 {
   schemaVersion: 1;
 }
