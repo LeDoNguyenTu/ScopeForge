@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { PUBLICATION_EVIDENCE_LIMITS } from "./contracts";
 import { PublicationEvidenceError } from "./error";
 import { normalizePublicationEvidence } from "./normalize";
-import { parsePublicationEvidence } from "./parse";
+import { parsePublicationEvidence } from "./parse-publication";
 import { serializeTechnicalPublicationJson } from "./report-json";
 import { renderTechnicalPublicationMarkdown } from "./report-markdown";
 
