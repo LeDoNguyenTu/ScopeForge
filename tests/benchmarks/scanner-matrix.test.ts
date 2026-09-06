@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
-
+// @ts-expect-error - benchmark matrix is intentionally authored as Node ESM JavaScript.
 import {
   MATRIX_PROFILES,
   runBenchmarkMatrix,
@@ -29,7 +29,7 @@ function resultFor(id: string) {
 
 describe("Phase 8B benchmark matrix", () => {
   it("exports the three production profiles in deterministic raw-text ID order", () => {
-    expect(MATRIX_PROFILES.map((profile) => profile.id)).toEqual([
+    expect(MATRIX_PROFILES.map((profile: { id: string }) => profile.id)).toEqual([
       "dependency-lockfile-heavy-v1",
       "iac-heavy-v1",
       "source-ast-heavy-v1",
