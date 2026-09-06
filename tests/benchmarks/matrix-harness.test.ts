@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error - benchmark harness is intentionally authored as Node ESM JavaScript.
-import {
-  countFindingRules,
-  runBenchmarkProfile,
-  summarizeRuns,
-  validateTimedScan,
-} from "../../benchmarks/matrix/harness.mjs";
+import { countFindingRules, runBenchmarkProfile, summarizeRuns, validateTimedScan } from "../../benchmarks/matrix/harness.mjs";
 
 const profile = {
   id: "example-v1",
@@ -35,25 +30,21 @@ function validParsed(): ParsedScan {
 
 describe("Phase 8B benchmark harness", () => {
   it("counts finding rules deterministically", () => {
-    expect(
-      countFindingRules([
-        { ruleId: "z/rule" },
-        { ruleId: "a/rule" },
-        { ruleId: "z/rule" },
-      ]),
-    ).toEqual({ "a/rule": 1, "z/rule": 2 });
+    expect(countFindingRules([
+      { ruleId: "z/rule" },
+      { ruleId: "a/rule" },
+      { ruleId: "z/rule" },
+    ])).toEqual({ "a/rule": 1, "z/rule": 2 });
   });
 
   it("accepts exact files/findings/errors and normalizes the measurement", () => {
-    expect(
-      validateTimedScan({
-        profile,
-        parsed: validParsed(),
-        stderr: "",
-        wallMs: 15,
-        rssDeltaBytes: 1024,
-      }),
-    ).toEqual({
+    expect(validateTimedScan({
+      profile,
+      parsed: validParsed(),
+      stderr: "",
+      wallMs: 15,
+      rssDeltaBytes: 1024,
+    })).toEqual({
       filesAnalyzed: 3,
       findings: 2,
       errors: 0,
@@ -67,75 +58,55 @@ describe("Phase 8B benchmark harness", () => {
   it("rejects a missing expected finding", () => {
     const parsed = validParsed();
     parsed.findings.pop();
-    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow(
-      "finding contract changed",
-    );
+    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow("finding contract changed");
   });
 
   it("rejects an unexpected rule ID", () => {
     const parsed = validParsed();
     parsed.findings.push({ ruleId: "unexpected/rule" });
-    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow(
-      "finding contract changed",
-    );
+    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow("finding contract changed");
   });
 
   it("rejects scanner errors", () => {
     const parsed = validParsed();
     parsed.errors.push({ code: "broken" });
-    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow(
-      "emitted scanner errors",
-    );
+    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow("emitted scanner errors");
   });
 
   it("rejects stderr output", () => {
-    expect(() =>
-      validateTimedScan({ profile, parsed: validParsed(), stderr: "warning", wallMs: 15, rssDeltaBytes: 1 }),
-    ).toThrow("emitted stderr");
+    expect(() => validateTimedScan({ profile, parsed: validParsed(), stderr: "warning", wallMs: 15, rssDeltaBytes: 1 })).toThrow("emitted stderr");
   });
 
   it("rejects the wrong analyzed file count", () => {
     const parsed = validParsed();
     parsed.inventory.filesAnalyzed = 4;
-    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow(
-      "analyzed-file contract changed",
-    );
+    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow("analyzed-file contract changed");
   });
 
   it.each([[-1], [Number.NaN], [Number.POSITIVE_INFINITY]])("rejects invalid scan duration %s", (durationMs) => {
     const parsed = validParsed();
     parsed.scan.durationMs = durationMs;
-    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow(
-      "scan duration is invalid",
-    );
+    expect(() => validateTimedScan({ profile, parsed, stderr: "", wallMs: 15, rssDeltaBytes: 1 })).toThrow("scan duration is invalid");
   });
 
   it.each([[-1], [Number.NaN], [Number.POSITIVE_INFINITY]])("rejects invalid wall time %s", (wallMs) => {
-    expect(() => validateTimedScan({ profile, parsed: validParsed(), stderr: "", wallMs, rssDeltaBytes: 1 })).toThrow(
-      "wall time is invalid",
-    );
+    expect(() => validateTimedScan({ profile, parsed: validParsed(), stderr: "", wallMs, rssDeltaBytes: 1 })).toThrow("wall time is invalid");
   });
 
   it("rejects wall time above the catastrophic ceiling", () => {
-    expect(() =>
-      validateTimedScan({ profile, parsed: validParsed(), stderr: "", wallMs: 1001, rssDeltaBytes: 1 }),
-    ).toThrow("exceeded catastrophic wall ceiling");
+    expect(() => validateTimedScan({ profile, parsed: validParsed(), stderr: "", wallMs: 1001, rssDeltaBytes: 1 })).toThrow("exceeded catastrophic wall ceiling");
   });
 
   it.each([[-1], [Number.NaN], [Number.POSITIVE_INFINITY]])("rejects invalid RSS delta %s", (rssDeltaBytes) => {
-    expect(() => validateTimedScan({ profile, parsed: validParsed(), stderr: "", wallMs: 15, rssDeltaBytes })).toThrow(
-      "RSS delta is invalid",
-    );
+    expect(() => validateTimedScan({ profile, parsed: validParsed(), stderr: "", wallMs: 15, rssDeltaBytes })).toThrow("RSS delta is invalid");
   });
 
   it("summarizes exactly three integer runs", () => {
-    expect(
-      summarizeRuns([
-        { wallMs: 30, scanDurationMs: 20, rssDeltaBytes: 100 },
-        { wallMs: 10, scanDurationMs: 8, rssDeltaBytes: 300 },
-        { wallMs: 20, scanDurationMs: 15, rssDeltaBytes: 200 },
-      ]),
-    ).toEqual({
+    expect(summarizeRuns([
+      { wallMs: 30, scanDurationMs: 20, rssDeltaBytes: 100 },
+      { wallMs: 10, scanDurationMs: 8, rssDeltaBytes: 300 },
+      { wallMs: 20, scanDurationMs: 15, rssDeltaBytes: 200 },
+    ])).toEqual({
       minWallMs: 10,
       medianWallMs: 20,
       maxWallMs: 30,
@@ -145,9 +116,7 @@ describe("Phase 8B benchmark harness", () => {
   });
 
   it("rejects a run count other than three", () => {
-    expect(() => summarizeRuns([{ wallMs: 1, scanDurationMs: 1, rssDeltaBytes: 1 }])).toThrow(
-      "exactly 3 runs",
-    );
+    expect(() => summarizeRuns([{ wallMs: 1, scanDurationMs: 1, rssDeltaBytes: 1 }])).toThrow("exactly 3 runs");
   });
 
   it("builds once, preflights once, runs exactly three scans, and always removes the fixture", async () => {
