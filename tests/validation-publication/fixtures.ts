@@ -9,13 +9,14 @@ export const CLAIM_BOUNDARIES = {
   authority: "Validation publication does not authorize hosted repository acquisition, hosted scanning, passive runtime workers, active CORS workers, or any other production capability.",
 } as const;
 
-export function evidenceFixture() {
+export function evidenceFixture(): any {
   return {
     schemaVersion: 1,
     publicationId: "scopeforge-phase-8-release-v1",
     source: {
       repository: "LeDoNguyenTu/ScopeForge",
       phase8aCommit: "8d766f5969427a2e4525f5232b5e28b0f93675bd",
+      phase8aTree: "aa6d94c2a35973ee2c8ccbc038d22d7de4f48cc8",
       phase8bCommit: "226a20739871c15d0262d1779b3b013520f47fc6",
       phase8bTree: "50f17f44e770f1179ed2b40b7713e14e864958c0",
       scopeforgeVersion: "0.1.0",
