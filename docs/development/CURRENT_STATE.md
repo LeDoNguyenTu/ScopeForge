@@ -2,102 +2,112 @@
 
 Last reconciled: 2026-09-06 (Asia/Singapore)
 
-This file is the authoritative non-UI current-state summary. Dashboard V5/UI remains a separate active workstream and is intentionally excluded from mutation here.
+This is the authoritative non-UI current-state summary. Dashboard V5/UI remains a separate active workstream and is excluded from this branch.
 
 ## Repository state
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- production `main` Phase 8A merge: `8d766f5969427a2e4525f5232b5e28b0f93675bd`
-- merged PR: #55, Phase 8A offline accuracy foundation
-- final accepted PR head: `9b1fd4a26924f8fff21ce5f9614b8fc4e0e20510`
-- validated PR merge ref: `479cffade6143852dfd9dabbd344271d729f6ba3`
-- final GitHub Actions gate: CI #758, success
-- exact Phase 8A production deployment: `dpl_BSfMBBxjgmFZHWmzAy5RN5N6Jvyj`, READY, `aliasError=null`, aliased to `scopeforge.dev`
-- detailed Phase 8 handoff: `docs/development/PHASE_8_WORKING_STATE.md`
+- production `main`: `bf6a805030295875e5e124f5e17d2e3d79a2e6da`
+- Phase 8A merged PR: #55
+- Phase 8A squash merge: `8d766f5969427a2e4525f5232b5e28b0f93675bd`
+- active Phase 8B branch: `feat/phase-8b-performance-matrix-v1`
+- Phase 8B workflow-integrated candidate measured at: `c28f4ef150b06adbce26c5836e1e47d00788c670`
+- detailed resumable state: `docs/development/PHASE_8_WORKING_STATE.md`
 
-## Completed architecture boundaries
+## Completed boundaries
 
-Phases 1-5C are complete. Phase 6A worker foundation, 6B acquisition code, 6C isolated scanner code, 6D dedicated network-worker code/release acceptance, Phase 7 local-only Community Security Packs v1, and Phase 8A offline accuracy foundation are merged.
+Phases 1-5C, Phase 6A foundation, Phase 6B acquisition code, Phase 6C isolated scanner code, Phase 6D dedicated network-worker code/release acceptance, Phase 7 Community Security Packs v1, and Phase 8A offline accuracy foundation are complete in code.
 
-Code merge is not runtime authorization. Worker-backed production capabilities remain separate enablement gates.
+Code merge is not runtime authorization. Production worker capability flags remain separately gated.
 
 ## Phase 8A - complete
 
-Phase 8A provides local/offline validation infrastructure only:
+The committed `scopeforge-offline-v1@1.0.0` corpus remains the accuracy baseline:
 
-- strict bounded ground-truth corpus/case schemas
-- hostile-safe no-follow corpus/repository reads
-- deterministic complete corpus hashing
-- closed ownership for eight existing built-in rules
-- TP/FN/FP/TN plus error/unsupported/contract-mismatch accounting
-- null-safe precision/recall/FPR/F1 calculation
-- deterministic provenance without timestamps
-- deterministic privacy-reduced JSON and Markdown reports
-- strict local developer runner
-- committed `scopeforge-offline-v1@1.0.0`
-- permanent offline/authority/privacy/ground-truth-integrity guards
-
-Phase 8A adds no Supabase access/migration, hosted scanner activation, worker/network authority, browser/dashboard UI, executable plugins, or SCA/OSV network-backed accuracy measurement.
-
-## Phase 8A covered-corpus evidence
-
-- corpus: `scopeforge-offline-v1@1.0.0`
-- content hash: `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
-- 32 cases: 16 vulnerable / 16 clean
-- 8 rules across `iac`, `jsts`, and `secrets`
+- 32 reviewed cases
+- 16 vulnerable / 16 clean
+- 8 represented rules across `iac`, `jsts`, and `secrets`
 - TP 16 / FN 0 / FP 0 / TN 16
 - error 0 / unsupported 0 / contract mismatch 0
-- covered-corpus precision 1.00 / recall 1.00 / FPR 0.00 / F1 1.00
+- content hash `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
 
-**These metrics describe only the committed 32-case reviewed corpus and are not global or real-world ScopeForge accuracy.**
+These metrics describe only that committed corpus and are not global or real-world ScopeForge accuracy.
 
-## Final Phase 8A release evidence
+## Phase 8B - candidate in release preparation
 
-CI #758 validated the proposed PR merge tree `479cffade6143852dfd9dabbd344271d729f6ba3` on Ubuntu 24.04 / Node 22.23.2:
+Phase 8B adds a deterministic local/offline performance matrix while preserving `scanner-medium-v1` unchanged.
 
-- 312/312 test files passed
-- 1,348/1,348 tests passed
+Profiles:
+
+1. `dependency-lockfile-heavy-v1`
+   - 3 analyzed files
+   - exact 5,000-component compiled parser preflight
+   - SCA only, OSV explicitly disabled
+   - 0 findings / 0 errors expected
+   - 20,000 ms catastrophic per-run ceiling
+2. `iac-heavy-v1`
+   - 601 analyzed files
+   - exactly four sentinel findings, one each for Docker/Kubernetes/Terraform/GitHub Actions
+   - IaC only
+   - 30,000 ms catastrophic per-run ceiling
+3. `source-ast-heavy-v1`
+   - 1,201 analyzed files
+   - exactly four `jsts/dynamic-code-execution` findings
+   - JSTS only
+   - 30,000 ms catastrophic per-run ceiling
+
+Each profile runs exactly three times. Raw wall time, scanner duration, and RSS delta are recorded. RSS is observational and not a pass/fail gate. Catastrophic ceilings are regression guards, not product SLOs.
+
+Exact `c28f4ef...` admission measurement:
+
+- total matrix outer wall: 15.561 s
+- sampled peak child RSS: 61,712 KiB
+- dependency median wall: 2,452 ms
+- IaC median wall: 385 ms
+- source/AST median wall: 1,237 ms
+- every run satisfied exact files/findings/errors contracts
+
+Because total wall was <=30 s, the permanent CI step was accepted. `.github/workflows/ci.yml` now runs `npm run benchmark:matrix` immediately after the historical `npm run benchmark:scanner` step. The workflow-order regression test was witnessed RED before this change and is now GREEN.
+
+## Current Phase 8B verification
+
+On `c28f4ef...`:
+
+- benchmark tests: 6 files / 31 tests passed
 - typecheck passed
-- CLI build/version passed (`ScopeForge 0.1.0`)
-- scanner-medium-v1: 700 files, 0 findings, 0 errors, 910 ms wall time / 20,000 ms catastrophic ceiling
-- production Next.js build passed with 9/9 static pages generated
+- CLI build passed
+- real benchmark matrix passed
+- no GitHub Actions run was consumed for intermediate RED/GREEN work
 
-Preflight also established byte-identical repeated validation JSON/Markdown, zero npm-audit vulnerabilities, no dependency-lock drift, clean base-to-head hygiene/scope review, and no forbidden authority primitive in `packages/validation-accuracy`.
-
-## Production Supabase
-
-ScopeForge production Supabase project:
-
-`tdgpibrepzcvdivztkta`
-
-Never confuse it with the separate Job Command Center project.
-
-Outstanding Phase 9 hardening: Supabase leaked-password protection remains disabled.
+Full repository preflight, audit, production build, PR review, one final exact-head Actions gate, merge, and production verification are still pending.
 
 ## Production runtime gates
 
-Keep false/absent unless separate operational acceptance authorizes enablement:
+Keep false/absent unless separate operational acceptance authorizes them:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Phase 8A did not change these gates.
+Phase 8A/8B do not authorize any of these capabilities.
 
-## Vercel
+## Production services
 
-- project: `scopeforge` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
-- team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
-- production domain: `scopeforge.dev`
-- Phase 8A merge deployment: `dpl_BSfMBBxjgmFZHWmzAy5RN5N6Jvyj`, READY, `aliasError=null`
+ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
+
+Never confuse it with the Job Command Center Supabase project.
+
+Vercel project: `scopeforge`, production domain `scopeforge.dev`.
 
 ## UI isolation
 
-The active dashboard V5/UI preview stream remains separate. Non-UI roadmap work must not edit, merge, replace, retarget, or deploy that branch.
+PR #49 and every active Command Center/V5/UI branch remain separate. Phase 8 work must not edit, merge, retarget, replace, or deploy that UI stream.
 
 ## Next non-UI boundary
 
-Phase 8B performance-matrix work is next. Phase 8C technical publication, separate 6B/6C/6D production-runtime acceptance, and Phase 9 hardening remain later/separate workstreams.
+Finish Phase 8B release gates. After verified merge and production deployment, Phase 8C reproducible technical publication becomes the next Phase 8 boundary.
 
-The merged Phase 8A feature branch may be deleted only through a true branch delete-ref operation. The connected GitHub tooling currently exposes no such action, so the branch is intentionally left intact rather than force-moved.
+## Branch cleanup
+
+Merged backend branches should be deleted only through a true remote delete-ref operation. The current connected GitHub surface still exposes no branch-delete action, so merged refs are left intact rather than force-moved. Preserve all active V5/UI branches.

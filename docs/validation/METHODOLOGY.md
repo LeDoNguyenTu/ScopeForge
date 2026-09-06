@@ -2,39 +2,38 @@
 
 ScopeForge publishes validation evidence so scanner behavior can be evaluated from reproducible tests rather than marketing claims.
 
-This document describes the implemented Phase 8A offline accuracy foundation, the existing scanner regression/performance evidence, and the rules for future Phase 8B/8C measurements.
+This document defines the implemented Phase 8A offline accuracy protocol and the Phase 8B local/offline performance-matrix protocol.
 
 ## Principles
 
-1. **Reproducible before impressive.** A measurement must be rerunnable from committed code and fixtures before it is used as a claim.
-2. **Detection quality and performance are separate measurements.** A fast scanner is not necessarily an accurate scanner, and a correct fixture does not prove representative performance.
-3. **Negative fixtures matter.** Clean and near-miss cases are required to expose false-positive regressions.
-4. **Hostile-input safety is part of scanner quality.** Scanner errors, skipped coverage, source execution, path escape, or data leakage cannot be converted into clean results.
-5. **Ground truth is independent of scanner output.** Labels live in committed case manifests and the evaluator has no mutation path back into the corpus.
-6. **Output stability is testable.** Machine-readable and Markdown reports are deterministic behavior.
-7. **Limitations are part of the result.** Unsupported behavior and intentionally bounded analyses must remain visible beside measurements.
-8. **No unsupported global accuracy claim.** Metrics from a bounded corpus describe that corpus only.
+1. **Reproducible before impressive.** Measurements must be rerunnable from committed code and fixtures.
+2. **Accuracy and performance are separate.** Fast does not imply accurate, and a small correct corpus does not imply representative speed.
+3. **Correctness gates precede timing.** A benchmark cannot pass by skipping files, parsers, rules, or work.
+4. **Ground truth is independent of scanner output.** Scanner output cannot rewrite labels or fixture bytes.
+5. **Errors are not clean results.** Scanner/inventory failures never become FN/TN or benchmark success.
+6. **Negative and near-miss fixtures matter.** They expose false-positive regressions.
+7. **Hostile-input safety is part of quality.** Path escape, source execution, unsafe reads, or data leakage fail closed.
+8. **Limitations travel with results.** Unsupported behavior and bounded analyses must stay visible.
+9. **No unsupported global claims.** Corpus metrics describe the covered corpus only; benchmark ceilings are regression guards, not product SLOs.
 
-The exact Phase 8A interpretation string is:
+The Phase 8A interpretation string remains:
 
 > Metrics describe only the committed covered corpus and are not global ScopeForge accuracy.
 
-## Implemented Phase 8A corpus
+## Phase 8A offline accuracy protocol
 
-The first committed labeled corpus is:
+### Committed corpus
 
-- corpus ID: `scopeforge-offline-v1`
-- corpus version: `1.0.0`
-- cases: 32
-- represented scanner families: `iac`, `jsts`, `secrets`
-- represented rules: 8
-- network-backed SCA/OSV evaluation: excluded from this offline corpus
+`scopeforge-offline-v1@1.0.0` under `validation/corpus/offline-v1` contains:
 
-The corpus is stored under `validation/corpus/offline-v1` and is loaded through the strict `packages/validation-accuracy` parser.
+- 32 reviewed cases
+- 16 vulnerable / 16 clean
+- 8 represented rules
+- scanner families: `iac`, `jsts`, `secrets`
+- 97 corpus files
+- content hash `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
 
-### Represented rules
-
-The v1 corpus covers exactly:
+Represented rules:
 
 - `iac/config-npm-strict-ssl-disabled`
 - `iac/docker-floating-base-image`
@@ -45,20 +44,9 @@ The v1 corpus covers exactly:
 - `jsts/dynamic-code-execution`
 - `secrets/github-token`
 
-Each represented rule has four reviewed cases:
-
-- two vulnerable cases
-- two clean or near-miss cases
-
-The corpus therefore contains 16 vulnerable and 16 clean cases.
+Each represented rule has two vulnerable and two clean/near-miss cases.
 
 ### Current covered-corpus result
-
-Exact Task 5 acceptance on commit `398e645abda04e66d0f0c92d2238ad4df9f1c0c4` produced corpus content hash:
-
-`3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
-
-Raw aggregate counts:
 
 | Count | Value |
 | --- | ---: |
@@ -70,228 +58,244 @@ Raw aggregate counts:
 | Unsupported | 0 |
 | Contract mismatch | 0 |
 
-Derived metrics for this committed covered corpus:
+Derived metrics for this corpus:
 
-| Metric | Value |
-| --- | ---: |
-| Precision | 1.00 |
-| Recall | 1.00 |
-| False-positive rate | 0.00 |
-| F1 | 1.00 |
+- precision 1.00
+- recall 1.00
+- false-positive rate 0.00
+- F1 1.00
 
-Every represented rule currently has `TP=2`, `FN=0`, `FP=0`, and `TN=2` within this corpus.
+These are regression-quality values for the 32 committed reviewed cases only. They are not repository-wide, scanner-wide, or real-world accuracy claims.
 
-These values are intentionally **not** presented as global ScopeForge accuracy. The corpus is small, curated, offline-first, and limited to eight deterministic rules. It is regression-quality evidence for the cases it contains.
+### Counting protocol
 
-## Counting protocol
+For one case and one declared target rule:
 
-Phase 8A evaluates one case against one declared target rule.
+- TP: vulnerable case produces the target rule in an expected file
+- FN: vulnerable case does not produce the target rule in an expected file
+- FP: clean case produces the target rule
+- TN: clean case does not produce the target rule
 
-For binary detection accuracy:
+A case contributes at most one binary outcome even if duplicate target findings exist. A target finding in the wrong file does not satisfy a vulnerable case. Findings from other rules are recorded separately.
 
-- **TP**: a vulnerable case produces the declared target rule in an expected file
-- **FN**: a vulnerable case does not produce the declared target rule in an expected file
-- **FP**: a clean case produces the declared target rule
-- **TN**: a clean case does not produce the declared target rule
+Severity, confidence, or expected-CWE differences are contract mismatches. Detection can remain TP while metadata mismatch is counted separately.
 
-A case contributes at most one TP/FN/FP/TN outcome even if the scanner emits duplicate target findings.
+Scanner/inventory failures are `error` or `unsupported`, excluded from derived-metric denominators.
 
-A target finding in the wrong file does not satisfy a vulnerable case. Findings from other rules are recorded as `unexpectedRuleIds` rather than silently credited to the target rule.
-
-Severity, confidence, and expected CWE differences are recorded as contract mismatches. A detection with a metadata mismatch remains a TP for detection counting, while the mismatch is counted separately.
-
-Scanner or inventory failures never become FN/TN. They are reported as `error` or `unsupported` and excluded from the derived-metric denominators.
-
-Known unsupported diagnostics are normalized to bounded diagnostic codes. Arbitrary scanner messages are not copied into validation output.
-
-## Derived metrics
-
-When denominators are non-zero:
+Derived metrics use:
 
 - precision = TP / (TP + FP)
 - recall = TP / (TP + FN)
-- false-positive rate = FP / (FP + TN)
+- FPR = FP / (FP + TN)
 - F1 = 2TP / (2TP + FP + FN)
 
-A zero denominator produces `null`, rendered as `n/a` in Markdown. The evaluator never invents a zero or perfect score for an undefined metric.
+A zero denominator produces `null` and renders as `n/a`; the evaluator never fabricates zero or perfect scores.
 
-Raw TP/FN/FP/TN/error/unsupported/contract-mismatch counts must accompany derived metrics.
+### Corpus integrity
 
-## Corpus integrity and hostile filesystem rules
+The Phase 8A parser enforces:
 
-Corpus manifests and repository fixtures are treated as hostile local input even though the first-party corpus is committed.
-
-The parser enforces:
-
-- exact v1 object shapes
-- duplicate-key rejection
-- stable identifiers and rule-ID syntax
-- raw-text deterministic ordering
+- exact v1 object shapes and duplicate-key rejection
+- stable IDs and rule syntax
 - bounded manifest/case/repository sizes
-- path traversal, absolute path, drive path, and backslash rejection
-- no symlinks
-- no hard links
-- no special files
+- raw-text deterministic ordering
+- traversal/absolute/drive/backslash path rejection
+- no symlinks, hard links, or special files
 - identity-checked no-follow reads
-- complete repository-tree validation independent of `.gitignore` or `.scopeforgeignore`
-- deterministic SHA-256 content identity over manifest and repository bytes
+- complete repository-tree validation independent of ignore files
+- deterministic SHA-256 identity over corpus content
 
-The committed Phase 8A corpus currently contains 97 files. Task 6 security tests hash the complete corpus before and after evaluation/report generation and require byte-for-byte equality.
+Security tests hash the complete committed corpus before and after evaluation/report generation and require byte-for-byte equality.
 
-Validation report output paths inside the corpus are rejected before either output file is created.
+### Scanner ownership and authority
 
-## Scanner ownership
+The evaluator constructs exactly one existing built-in scanner for each represented case. Closed ownership maps the eight rules to `secrets`, `jsts`, or `iac` only.
 
-The offline-v1 evaluator constructs exactly one existing built-in scanner for each case and only for the eight represented rules.
+The accuracy package adds no SCA/OSV network evaluation, Supabase, hosted runtime, worker authority, browser authority, child process, VM execution, network APIs, dynamic import, `eval`, `new Function`, `fetch`, or WebSocket capability. Permanent architecture tests guard this boundary.
 
-Closed mapping:
+### Privacy-reduced accuracy output
 
-- `secrets/github-token` -> secrets scanner
-- `jsts/dynamic-code-execution` -> JS/TS scanner
-- `jsts/command-injection` -> JS/TS scanner
-- the five represented `iac/*` rules -> IaC scanner
+Normalized JSON/Markdown reports exclude fixture source, synthetic credential values, absolute roots, scanner evidence snippets, arbitrary metadata, remediation text, timestamps, and scanner timing.
 
-Cross-family rule selection and unrepresented rules fail closed with `VALIDATION_RULE_INVALID`.
+Deterministic provenance contains only the information needed to identify the tool/environment, including ScopeForge version, supplied commit SHA, Node version, platform, and architecture.
 
-The evaluator does not construct SCA/OSV scanners, does not perform network access, and does not add scanner authority.
+## Phase 8B performance-matrix protocol
 
-## Validation package authority boundary
+Phase 8B preserves `benchmarks/scanner-medium-fixture.mjs` and `benchmarks/scanner-medium.mjs` unchanged as the historical `scanner-medium-v1` benchmark.
 
-`packages/validation-accuracy` is local/offline measurement infrastructure.
-
-Permanent architecture tests reject dependencies or primitives that would introduce:
-
-- Next.js or React application authority
-- Supabase access
-- runtime network/observer/validator authority
-- worker/supervisor/control authority
-- hosted app/lib mutation modules
-- child processes or VM execution
-- Node HTTP/HTTPS/DNS/net/TLS/datagram APIs
-- worker threads
-- dynamic import
-- `eval` / `new Function`
-- `fetch` / WebSocket networking
-
-Filesystem, path, and cryptographic primitives required for local validation are allowed.
-
-## Privacy-reduced validation output
-
-The normalized accuracy result contains only the evidence needed to reproduce counts and contracts. It does not copy target repository source or scanner internals.
-
-Tests require JSON and Markdown reports to exclude:
-
-- fixture source contents
-- synthetic credential-shaped fixture values
-- absolute corpus/temp roots
-- scanner evidence snippets
-- arbitrary finding metadata
-- remediation text
-- scan start/completion timestamps
-- scan durations
-
-Provenance is deterministic and contains only:
-
-- ScopeForge version
-- exact commit SHA supplied by the developer runner
-- Node version
-- platform
-- architecture
-
-No timestamp is part of the normalized result.
-
-## Developer runner
-
-The local developer command is:
+The new matrix is local/offline and is executed with:
 
 ```bash
-npm run validation:accuracy -- \
-  --corpus validation/corpus/offline-v1 \
-  --commit <40-hex-commit> \
-  --json <output.json> \
-  --markdown <output.md>
+npm run build:cli
+npm run benchmark:matrix
 ```
 
-The runner requires all four arguments and rejects unknown, duplicate, or missing flags. It rejects invalid commit SHAs, aliased outputs, pre-existing/symlink outputs, and outputs inside the corpus.
+The matrix emits one line beginning with:
 
-Writes are exclusive/no-follow. The ScopeForge version comes from the trusted repository `package.json`, not target repository content or environment claims.
+`SCOPEFORGE_BENCHMARK_MATRIX `
 
-## Existing performance evidence
+The JSON payload has `schemaVersion: 1`, `runsPerProfile: 3`, and three deterministic profile results.
 
-The repository also contains `benchmarks/scanner-medium-fixture.mjs` and `benchmarks/scanner-medium.mjs`.
+### Shared measurement contract
 
-The current fixture identity is `scanner-medium-v1` with 700 expected analyzed files and zero expected findings/errors. Its 20,000 ms wall-time threshold is a catastrophic regression ceiling, not a product latency SLO.
+Every profile:
 
-Performance reports must record the exact commit, Node.js version, OS, architecture, fixture identity, scanner-reported duration, measured wall time, RSS delta where available, and the complete emitted benchmark object. Materially different environments must not be compared without qualification.
+- builds its deterministic fixture once
+- runs an explicit correctness preflight where required
+- performs exactly three timed scans sequentially
+- requires exact analyzed-file count
+- requires exact finding rule counts
+- requires zero scanner errors
+- requires empty stderr
+- requires valid non-negative scanner duration and wall time
+- requires valid non-negative RSS delta
+- rejects any run above its catastrophic wall ceiling
+- records every raw run before producing simple min/median/max summaries
 
-The medium fixture is clean and synthetic. It does not establish large-monorepo, dependency-heavy, AST-heavy, or IaC-heavy performance. Phase 8B will add materially different workload shapes while preserving correctness gates.
+The timed region covers only the local `runCli` scan call. Fixture generation and profile preflight are outside the timed scan region.
+
+RSS delta is an observational signal, not a peak-memory guarantee and not a pass/fail threshold.
+
+### `source-ast-heavy-v1`
+
+Purpose: stress JS/TS parsing and structural AST analysis while isolating one rule.
+
+Contract:
+
+- 1,201 analyzed files
+- 600 generated TypeScript files
+- 600 generated JavaScript files
+- root `.scopeforge.json`
+- scanner selection: `jsts`
+- rule selection: `jsts/dynamic-code-execution`
+- exact finding count: 4
+- scanner errors: 0
+- catastrophic wall ceiling: 30,000 ms/run
+
+The four sentinel findings come from two `eval(...)` and two `new Function(...)` constructs in known generated files.
+
+### `dependency-lockfile-heavy-v1`
+
+Purpose: stress deterministic npm lockfile parsing without network-backed advisory work.
+
+Contract:
+
+- 3 analyzed files: `.scopeforge.json`, `package.json`, `package-lock.json`
+- scanner selection: `sca`
+- `sca.osv.enabled = false`
+- timed findings: 0
+- scanner errors: 0
+- catastrophic wall ceiling: 20,000 ms/run
+
+Before timing, a compiled local preflight must prove:
+
+- exactly 5,000 parsed dependency components
+- every component comes from `package-lock.json`
+- every component has `certainty === "resolved"`
+- parser diagnostics: 0
+
+This preflight is the correctness proof that dependency work actually occurred even though OSV is deliberately disabled and the timed scan emits no vulnerability findings.
+
+### `iac-heavy-v1`
+
+Purpose: stress four IaC parser/rule families in one attributable profile.
+
+Contract:
+
+- 601 analyzed files
+- 150 Dockerfiles
+- 150 Kubernetes manifests
+- 150 Terraform files
+- 150 GitHub Actions workflows
+- root `.scopeforge.json`
+- scanner selection: `iac`
+- exact findings:
+  - `iac/docker-floating-base-image`: 1
+  - `iac/github-actions-write-all-permissions`: 1
+  - `iac/kubernetes-privileged-container`: 1
+  - `iac/terraform-aws-public-rds`: 1
+- scanner errors: 0
+- catastrophic wall ceiling: 30,000 ms/run
+
+### Exact CI-admission evidence
+
+The workflow-integrated Phase 8B candidate `c28f4ef150b06adbce26c5836e1e47d00788c670` produced:
+
+- full matrix outer wall: 15.561 s
+- sampled benchmark child peak RSS: 61,712 KiB
+- CI admission threshold: <=30 s
+- decision: accept permanent CI execution
+
+Per-profile median wall times from that run:
+
+- dependency: 2,452 ms
+- IaC: 385 ms
+- source/AST: 1,237 ms
+
+Every run satisfied its correctness contract and its catastrophic ceiling.
+
+Because the matrix stayed below the evidence-based 30-second admission threshold and reused the already compiled CLI, CI now runs `npm run benchmark:matrix` immediately after the historical `npm run benchmark:scanner` step. A workflow-order regression test was witnessed RED before the workflow change.
+
+This admission threshold controls CI cadence only. It is not a claim about acceptable product latency.
+
+## Performance provenance and comparison rules
+
+Performance evidence should identify:
+
+- exact repository commit SHA
+- fixture/profile ID
+- Node version
+- OS/platform
+- architecture
+- command
+- all three raw runs
+- scanner duration
+- measured wall time
+- RSS delta or sampled peak signal with its exact measurement method
+- catastrophic ceiling
+- correctness contract outcome
+
+Do not compare materially different machines/environments without qualification. Never publish only the fastest run. Do not present RSS delta as peak RSS. Do not treat catastrophic ceilings as customer-facing SLOs.
 
 ## Golden output continuity
 
-`tests/scanner/output/golden-output.test.ts` protects deterministic native JSON, SARIF, and terminal serialization against a fixed scan result.
-
-Golden output is representation-stability evidence, not finding-accuracy evidence.
+`tests/scanner/output/golden-output.test.ts` protects deterministic native JSON, SARIF, and terminal serialization. Golden output is representation-stability evidence, not accuracy evidence.
 
 ## Hostile repository safety
 
-`tests/scanner/integration/phase3-hostile-repository.test.ts` proves key scanner safety properties against target code, malicious package lifecycle content, malformed inputs, oversized files, symlinks, and source/privacy sentinels.
-
-The test requires ScopeForge not to execute target content, not to follow external symlinks, not to silently convert malformed coverage into clean success, and not to leak sentinels into output.
+Scanner hostile-repository integration tests prove key boundaries against malicious lifecycle content, malformed files, oversized inputs, symlinks, and privacy sentinels. ScopeForge must not execute target repository code, follow unsafe external links, silently convert malformed coverage into clean success, or leak protected fixture values.
 
 These are security-boundary tests, not substitutes for labeled accuracy evaluation.
 
-## Ground-truth review rules
+## Ground-truth review policy
 
-Any future corpus change must preserve these rules:
+Future corpus changes must preserve:
 
-1. Stable case identity and explicit scanner/rule ownership.
-2. Vulnerable cases explain why the case is in rule scope and identify the expected file.
-3. Clean cases explain why a similar construct is safe or outside rule scope.
-4. Labels are version-controlled independently from scanner output.
-5. Scanner output cannot mutate labels or fixture bytes.
-6. Errors are never true negatives.
-7. Unsupported cases remain explicitly unsupported.
-8. Duplicate findings do not inflate one case into multiple statistical samples.
-9. Ground-truth changes require independent review rather than snapshot-style auto-acceptance.
-10. Real credentials, destructive targets, uncontrolled exploit execution, and hidden network/package-install dependencies are prohibited from ordinary offline corpora.
-
-If an FP/FN appears, reviewers must independently determine whether the scanner or the label/fixture is wrong. Labels must not be changed merely to make a score green.
-
-## Reproducibility and provenance
-
-A technical validation result should be traceable to:
-
-- repository commit SHA
-- corpus ID/version/content hash
-- represented rule IDs and rule versions
-- raw case outcomes/counts
-- derived metrics when defined
-- CLI/tool version
-- command used
-- Node/OS/architecture
-- known limitations and unsupported cases
-
-A screenshot alone is not benchmark or accuracy evidence.
+1. stable case identity and explicit rule ownership
+2. documented vulnerable/clean rationale
+3. labels version-controlled independently from scanner output
+4. no auto-rewrite/snapshot acceptance of labels
+5. errors never counted as true negatives
+6. unsupported cases kept explicit
+7. duplicate findings not inflated into multiple statistical samples
+8. independent review of FP/FN before deciding scanner vs fixture/label fault
+9. no real credentials, destructive targets, uncontrolled exploit execution, or hidden package/network dependencies in ordinary offline corpora
 
 ## Current limitations
 
-Phase 8A materially improves the evidence baseline, but important limits remain:
-
-- 32 cases are not representative of the full real-world input distribution.
-- only eight deterministic rules are represented.
-- SCA/OSV network-backed advisory accuracy is not evaluated here.
-- scanner-wide/global metrics remain unsupported.
-- the medium performance benchmark remains synthetic and clean.
-- wall-clock timing is environment-sensitive and RSS delta is not peak-memory measurement.
-- passing hostile-input tests does not prove absence of every parser/filesystem/security defect.
+- 32 Phase 8A cases do not represent the full real-world input distribution.
+- Only eight deterministic rules are represented by the accuracy corpus.
+- SCA/OSV network-backed advisory accuracy is not evaluated in Phase 8A.
+- Global scanner/repository accuracy metrics remain unsupported.
+- Phase 8B fixtures are generated synthetic workloads, not a representative production repository sample.
+- Wall-clock timing is environment-sensitive.
+- RSS delta is not peak-memory measurement.
+- Passing hostile-input and architecture tests does not prove absence of every parser/filesystem/security defect.
 
 ## Phase 8 continuation
 
-Phase 8A provides the accuracy foundation. Phase 8 is not complete.
+Phase 8A provides the offline accuracy foundation. Phase 8B adds a correctness-gated local performance matrix. Phase 8B is not complete until its final repository-wide preflight, exact-head GitHub Actions gate, merge, and production verification succeed.
 
-Next boundaries:
-
-1. **Phase 8B - performance matrix:** preserve `scanner-medium-v1` and add materially different generated source/AST-heavy, dependency/lockfile-heavy, and IaC-heavy workloads with correctness gates.
-2. **Phase 8C - reproducible technical publication:** produce deterministic machine-readable and Markdown reports with exact provenance, raw counts, benchmark evidence, limitations, and review policy.
+After Phase 8B release integration, **Phase 8C** will produce reproducible technical publication from normalized Phase 8A/8B evidence with exact provenance, raw counts, benchmark results, limitations, and explicit scope.
 
 Production worker enablement, hosted scanning authority, dashboard V5/UI work, and Phase 9 hardening remain separate workstreams.
