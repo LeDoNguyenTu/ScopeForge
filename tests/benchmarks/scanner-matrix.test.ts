@@ -3,10 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 // @ts-expect-error - benchmark matrix is intentionally authored as Node ESM JavaScript.
-import {
-  MATRIX_PROFILES,
-  runBenchmarkMatrix,
-} from "../../benchmarks/scanner-matrix.mjs";
+import { MATRIX_PROFILES, runBenchmarkMatrix } from "../../benchmarks/scanner-matrix.mjs";
 
 function resultFor(id: string) {
   return {
