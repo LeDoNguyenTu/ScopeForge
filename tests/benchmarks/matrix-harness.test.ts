@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   countFindingRules,
+  runBenchmarkProfile,
   summarizeRuns,
   validateTimedScan,
 } from "../../benchmarks/matrix/harness.mjs";
@@ -139,5 +140,39 @@ describe("Phase 8B benchmark harness", () => {
     expect(() => summarizeRuns([{ wallMs: 1, scanDurationMs: 1, rssDeltaBytes: 1 }])).toThrow(
       "exactly 3 runs",
     );
+  });
+
+  it("builds once, preflights once, runs exactly three scans, and always removes the fixture", async () => {
+    const calls = { build: 0, preflight: 0, run: 0, remove: 0 };
+    const executionProfile = {
+      ...profile,
+      async buildFixture(root: string) {
+        expect(root).toBe("/tmp/phase8b-test");
+        calls.build += 1;
+      },
+      async preflight(root: string) {
+        expect(root).toBe("/tmp/phase8b-test");
+        calls.preflight += 1;
+      },
+    };
+
+    const result = await runBenchmarkProfile(executionProfile, {
+      makeTempRoot: async () => "/tmp/phase8b-test",
+      removeTempRoot: async (root: string) => {
+        expect(root).toBe("/tmp/phase8b-test");
+        calls.remove += 1;
+      },
+      runCliImpl: async (_argv: string[], options: { io: { stdout(value: string): void } }) => {
+        calls.run += 1;
+        options.io.stdout(`${JSON.stringify(validParsed())}\n`);
+        return 0;
+      },
+    });
+
+    expect(calls).toEqual({ build: 1, preflight: 1, run: 3, remove: 1 });
+    expect(result.fixture).toBe("example-v1");
+    expect(result.maxWallMs).toBe(1000);
+    expect(result.runs.map((run: { run: number }) => run.run)).toEqual([1, 2, 3]);
+    expect(result.runs.every((run: { findingRuleCounts: Record<string, number> }) => run.findingRuleCounts["jsts/dynamic-code-execution"] === 2)).toBe(true);
   });
 });
