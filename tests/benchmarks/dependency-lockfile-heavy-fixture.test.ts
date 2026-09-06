@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
-
+// @ts-expect-error - benchmark fixture is intentionally authored as Node ESM JavaScript.
 import {
   DEPENDENCY_COMPONENT_COUNT,
   DEPENDENCY_LOCKFILE_HEAVY_PROFILE,
