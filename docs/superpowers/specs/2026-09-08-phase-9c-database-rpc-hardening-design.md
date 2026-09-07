@@ -10,6 +10,8 @@ Baseline: `c4aaf76a08960d68159d9c96f053e38e7963a859`
 
 ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
 
+Live PostgreSQL engine at design time: `17.6`
+
 ## Purpose
 
 Phase 9C reduces unnecessary PostgreSQL function execution authority without disturbing the released RLS model, worker-control RPC boundary, authentication behavior, or Dashboard V5/UI stream.
@@ -24,7 +26,7 @@ The live database inventory shows that the current authorization model is mostly
 - public worker-control RPCs are explicitly service-role-only.
 - application-owned privileged functions use a pinned empty `search_path`.
 
-The confirmed defense-in-depth gap is that 17 private trigger-only functions still inherit default PostgreSQL `PUBLIC EXECUTE` privileges. Several are `SECURITY DEFINER`. They do not need direct invocation by browser roles because PostgreSQL triggers invoke them internally.
+The confirmed defense-in-depth gap is that 17 private trigger-only functions still inherit default PostgreSQL `PUBLIC EXECUTE` privileges. Several are `SECURITY DEFINER`. They do not need direct invocation by browser roles because their intended interface is through already-created triggers.
 
 Phase 9C closes that gap and changes application function defaults so future migrations do not silently recreate it.
 
@@ -70,6 +72,10 @@ Phase 9C closes that gap and changes application function defaults so future mig
 - worker/runtime production enablement
 
 ## Live privilege evidence
+
+### Engine
+
+At design time, the ScopeForge Supabase project reports PostgreSQL `17.6` on 64-bit Linux. Phase 9C must re-read the engine version immediately before the trigger-ACL canary and permanent migration. A managed-engine upgrade between design and execution is treated as drift that requires revalidation, not an assumption that prior behavior still applies.
 
 ### Schema boundary
 
@@ -159,7 +165,7 @@ For each of the 17 trigger-only functions, revoke execution from:
 - `authenticated`
 - `service_role`
 
-The functions remain owned by `postgres`, and their trigger bindings remain intact. PostgreSQL trigger execution does not require the invoking SQL role to hold direct `EXECUTE` privilege on the trigger function.
+The functions remain owned by `postgres`, and their trigger bindings remain intact. Current PostgreSQL behavior checks trigger-function `EXECUTE` authority when creating or replacing the trigger rather than requiring the DML caller to hold direct function execution authority on each firing. Phase 9C must nevertheless prove this behavior against the exact live Supabase PostgreSQL engine before any permanent ACL change.
 
 The migration changes ACLs only. It does not replace function bodies or triggers.
 
@@ -233,6 +239,21 @@ Before the migration is added, create a focused test that requires:
 7. no table grants are modified in the Phase 9C v1 migration
 
 The initial test commit must precede the migration commit.
+
+### Trigger-ACL engine canary
+
+Before applying permanent privilege DDL, run one transaction-scoped canary on the live ScopeForge PostgreSQL engine:
+
+1. re-read `server_version`
+2. begin one transaction
+3. create a uniquely named disposable canary table and trigger function owned by the migration role
+4. create a trigger while the owner has the required trigger-function execution authority
+5. revoke direct execution of the canary trigger function from a role used to perform the canary DML
+6. execute bounded canary DML and prove the existing trigger still fires
+7. roll back the entire transaction
+8. query system catalogs and prove no canary object remains
+
+The canary must not touch ScopeForge application tables or user data. If the trigger fails after revocation, stop Phase 9C and redesign the ACL approach before any permanent migration.
 
 ### Architecture regression coverage
 
@@ -312,19 +333,20 @@ The existing `auth_leaked_password_protection` warning is outside Phase 9C and m
 3. Commit test-first regression coverage with `[skip ci]`.
 4. Add the forward-only migration with `[skip ci]`.
 5. Perform static scope review before any live mutation.
-6. Re-query the live privilege baseline immediately before applying DDL to detect drift.
-7. Apply the reviewed forward migration to ScopeForge project `tdgpibrepzcvdivztkta` only.
-8. Execute all live privilege acceptance queries.
-9. Run Supabase security advisors.
-10. Verify no Dashboard V5/UI path, package dependency, worker-runtime flag, or unrelated provider setting changed.
-11. Verify exact-head Vercel Preview READY.
-12. Freeze one exact candidate.
-13. Run one substantive GitHub Actions validation against the frozen candidate.
-14. Recheck base/head, review threads, diff scope, and combined statuses.
-15. Squash-merge only the exact verified head.
-16. Verify independent post-merge main CI.
-17. Verify the exact production Vercel deployment.
-18. Write one docs-only `[skip ci]` release/handoff checkpoint.
+6. Re-query the live privilege baseline and PostgreSQL engine version immediately before any DDL to detect drift.
+7. Execute the transaction-scoped trigger-ACL engine canary and prove rollback cleanliness.
+8. Apply the reviewed forward migration to ScopeForge project `tdgpibrepzcvdivztkta` only.
+9. Execute all live privilege acceptance queries.
+10. Run Supabase security advisors.
+11. Verify no Dashboard V5/UI path, package dependency, worker-runtime flag, or unrelated provider setting changed.
+12. Verify exact-head Vercel Preview READY.
+13. Freeze one exact candidate.
+14. Run one substantive GitHub Actions validation against the frozen candidate.
+15. Recheck base/head, review threads, diff scope, and combined statuses.
+16. Squash-merge only the exact verified head.
+17. Verify independent post-merge main CI.
+18. Verify the exact production Vercel deployment.
+19. Write one docs-only `[skip ci]` release/handoff checkpoint.
 
 ## Rollback
 
@@ -366,7 +388,7 @@ Phase 9C v1 is complete only when all of the following are true:
 - all public RLS behavior remains intact
 - private worker tables remain inaccessible to browser roles
 - public worker-control RPCs remain inaccessible to browser roles
-- trigger bindings remain enabled
+- trigger bindings remain enabled and the engine canary proves they remain operational after direct-execution revocation
 - privileged function search paths remain pinned
 - future `postgres`-owned functions in `private` and `public` require explicit execution grants
 - no deployed migration was rewritten
