@@ -56,21 +56,69 @@ The release preserves exact Phase 8A/8B provenance, raw accuracy counts, all acc
 
 The 32-case corpus is not global or real-world accuracy. Catastrophic benchmark ceilings are not product SLOs. RSS delta is not peak-memory measurement.
 
-## Current resume action - Phase 9 security hardening
+## Current resume action - Phase 9A auth boundary
 
-Phase 9 is the next non-UI boundary and is not yet implemented by this handoff.
+Phase 9 has started on isolated branch `feat/phase-9-security-hardening-v1` from released main `d4f37b85738fc08ba3483bf98bb0e5e900184449`.
 
-Start by reconciling the current `main` release state and writing a security design/threat model before changing production controls. Planned areas include:
+Authoritative in-progress state:
 
-- Supabase leaked-password protection review
-- authentication/session/API abuse prevention
-- challenge/bot controls only when justified and actually implemented
-- production security observability and alerting
-- private-schema defense-in-depth without breaking RPC-only worker authority
-- incident response, credential rotation, rollback, containment, and recovery
-- release engineering and final public-launch security review
+`docs/development/PHASE_9_WORKING_STATE.md`
 
-Use explicit acceptance criteria, TDD for code changes, preflight-first verification, and exact-SHA evidence.
+Phase 9 design:
+
+`docs/superpowers/specs/2026-09-08-phase-9-security-hardening-design.md`
+
+Phase 9A implementation plan:
+
+`docs/superpowers/plans/2026-09-08-phase-9a-auth-boundary.md`
+
+Current executable/test checkpoint:
+
+`0fb9db1a72e4bb66bc049594fbee2c47a5b7a038`
+
+Current branch checkpoint after working-state docs:
+
+`2577efa0176629a53e1eadbd145f8a52bf54f1c6`
+
+Implemented Phase 9A controls:
+
+- one shared local-only auth return-path parser
+- same-origin success redirects for `/auth/callback` and `/auth/confirm`
+- rejection of absolute URLs, protocol-relative URLs, backslash confusion, control characters, malformed encodings, and decoded external-host forms
+- bounded browser-visible sign-in/sign-up failures
+- bounded retry guidance for rate-limit errors
+- regression tests and static architecture guards
+
+Exact executable/test head `0fb9db1...` has Vercel Preview `dpl_C14uBw9rw2N8XLRGMMNqKFHYM5v1` READY with `aliasError=null`, successful Next.js compilation, TypeScript validity checking, and 9/9 static generation.
+
+Final GitHub Actions execution has not yet been run. Do not claim Phase 9A release completion until the frozen candidate passes the focused/full test suite, typecheck, CLI build/version, audit, historical benchmark, Phase 8B matrix, and production build.
+
+The local harness has no repository checkout and cannot resolve github.com, so test-first commit ordering was preserved without consuming Actions for RED runs. Substantive test execution is reserved for the frozen candidate.
+
+## Phase 9 operational controls not changed yet
+
+Do not infer Phase 9A code implementation enabled production hardening controls.
+
+Still unchanged/pending:
+
+- Supabase leaked-password protection
+- Supabase Auth rate-limit configuration
+- Turnstile
+- Vercel WAF/rate-limit rules
+- private-schema/function privilege changes
+- CSP
+- security telemetry/alerts
+- incident/release hardening
+
+The live Supabase Security Advisor warning `auth_leaked_password_protection` remains a later Phase 9 acceptance item.
+
+## Next non-UI boundary after Phase 9A
+
+After Phase 9A is frozen, CI-verified, and merged, continue with Phase 9C database/RPC defense-in-depth.
+
+Begin Phase 9C with privilege inventory and regression evidence before proposing any forward-only migration. Do not blindly revoke `authenticated` schema usage because current RLS policies intentionally call private helper functions.
+
+Phase 9B provider-level Turnstile/WAF changes remain later and require their own operational acceptance.
 
 ## Separate operational queues
 
