@@ -32,8 +32,9 @@ describe("CommandCenterLandingHero", () => {
     expect(screen.getByText("523")).toBeInTheDocument();
     expect(screen.getAllByText("92")).toHaveLength(2);
     expect(screen.getByText("Attack Surface Overview")).toBeInTheDocument();
-    expect(screen.getByText("Top risk path")).toBeInTheDocument();
-    expect(screen.getByText("Pause monitoring")).toBeInTheDocument();
+    expect(screen.getByText("Illustrative risk path")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Illustrative attack surface/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pause monitoring" })).not.toBeInTheDocument();
   });
 
   it("labels all public metrics as illustrative instead of live workspace data", () => {

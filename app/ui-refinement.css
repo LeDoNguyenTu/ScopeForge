@@ -1,0 +1,340 @@
+/* Responsive composition shared by the public and authenticated command centers. */
+:root { --ui-muted: #a3b1ba; --ui-border: rgba(160, 190, 196, .18); }
+:where(a, button, summary, input, select, textarea):focus-visible { outline: 2px solid #68e4cf; outline-offset: 4px; }
+:where(button, input, select, textarea) { font: inherit; }
+.skipLink { position: fixed; top: 8px; left: 16px; z-index: 100; padding: 12px 18px; border-radius: 8px; background: #65e3c7; color: #06120e; transform: translateY(-160%); }
+.skipLink:focus { transform: translateY(0); }
+
+/* Normal flow prevents the headline and metrics from overlapping on short windows. */
+.commandPublicNav { max-width: 1280px; width: 100%; min-height: 78px; display: grid; grid-template-columns: minmax(210px, 1fr) minmax(360px, 1.5fr) minmax(250px, 1fr); gap: 24px; padding: 12px 26px; }
+.commandPublicHeader { padding: 20px 32px 0; }
+.commandPublicLinks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 0; }
+.commandPublicLinks a { justify-content: center; min-height: 44px; border-radius: 10px; }
+.commandPublicLinks a:hover { background: #91d9ce09; }
+.commandPublicLinks a[aria-current="page"] { color: #91e6d1; background: #91d9ce0c; }
+.commandPublicLinks a, .commandPublicAuth > a:first-child { font-size: 13px; color: #bac6c9; }
+.commandPublicAuth { display: flex; margin: 0; gap: 20px; justify-content: flex-end; }
+.commandMobileMenu { display: none; }
+.commandRequestAccess { font-size: 13px; white-space: nowrap; }
+.commandHero { width: min(1440px, 100%); height: auto; min-height: 0; padding: 58px 48px 36px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); grid-template-areas: "copy scene" "metrics scene" "metrics runtime"; gap: 26px 28px; overflow: visible; }
+.commandHeroCopy { grid-area: copy; position: relative; inset: auto; width: auto; align-self: start; }
+.commandHeroEyebrow { font-size: 11px; margin-bottom: 20px; }
+.commandHeroCopy h1 { font-size: clamp(42px, 4.4vw, 66px); line-height: 1.06; font-weight: 350; letter-spacing: -.05em; max-width: 640px; }
+.commandHeroLead { width: auto; max-width: 490px; margin-top: 22px; color: #acb9bf; font-size: 15px; line-height: 1.7; }
+.commandHeroActions { gap: 22px; margin-top: 26px; flex-wrap: wrap; }
+.commandHeroPrimary, .commandHeroSecondary { font-size: 13px; min-height: 48px; }
+.commandHeroSecondary { color: #c2cecf; }
+.commandHeroScene { grid-area: scene; position: relative; inset: auto; width: 100%; height: 100%; min-height: 520px; }
+.cinematicSurface { position: absolute; inset: -25px -22px -10px -35px; isolation: isolate; display: flex; align-items: center; }
+.cinematicArtboard { position: relative; width: 100%; aspect-ratio: 1730 / 1350; flex-shrink: 0; }
+.cinematicArtboard > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cinematicArtboard image { mask-image: radial-gradient(ellipse at 65% 50%, #000 45%, transparent 75%); }
+.cinematicConnector { color: #65dcca; }
+.cinematicConnector polyline { fill: none; stroke: currentColor; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: .7; }
+.cinematicConnector circle { fill: currentColor; }
+.cinematicConnectorRisk { color: #ff985c; }
+.cinematicSceneLabel { position: absolute; display: grid; gap: 5px; padding: 0; background: #060c1070; white-space: nowrap; }
+.cinematicSceneLabel strong { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.cinematicSceneLabel small { font-size: 11px; color: #75dcca; }
+.cinematicSceneLabelRisk small { color: #ffa776; }
+.commandMetricArea { grid-area: metrics; position: relative; inset: auto; width: 100%; }
+.commandIllustrativeLabel { color: #94a9af; font-size: 10px; letter-spacing: .1em; margin-bottom: 12px; }
+.commandMetricGrid { gap: 10px; }
+.commandMetricCard { min-width: 0; min-height: 108px; padding: 15px 12px; border-radius: 12px; gap: 9px; flex-wrap: wrap; }
+.commandMetricIcon { width: 26px; height: 26px; flex-basis: 26px; }
+.commandMetricCard strong { font-size: 25px; font-variant-numeric: tabular-nums; }
+.commandMetricCard span:not(.commandMetricIcon) { color: #b6c4c9; font-size: 12px; white-space: normal; }
+.commandMetricCard small { color: #92a5ad; font-size: 10px; white-space: normal; line-height: 1.5; }
+.commandOverviewPanel { display: block; margin-top: 12px; padding: 20px; border-radius: 14px; }
+.commandOverviewHeading { gap: 12px; flex-wrap: wrap; }
+.commandOverviewHeading > span { font-size: 14px; font-weight: 600; }
+.commandOverviewHeading small { color: #81c7b9; font-size: 10px; }
+.commandOverviewBody { grid-template-columns: minmax(130px, .8fr) minmax(0, 1fr); gap: 20px; }
+.commandExposureGauge p, .commandExposureGauge em { font-size: 11px; }
+.commandExposureRing small { transform: none; right: auto; top: 45px; font-size: 8px; }
+.commandExposureRing span { margin-top: -9px; }
+.commandOverviewList > div { font-size: 11px; color: #afbdc1; gap: 10px; }
+.commandRiskPath { grid-column: 1 / -1; min-height: 0; padding: 14px; border-radius: 9px; }
+.commandRiskPath > span, .commandRiskPath > div small { font-size: 11px; color: #99adb3; }
+.commandRiskPath > strong { font-size: 12px; white-space: normal; line-height: 1.6; }
+.commandRiskPath a { font-size: 12px; min-height: 40px; margin-top: 12px; border-radius: 7px; }
+.commandRuntimeBar { grid-area: runtime; position: relative; inset: auto; min-width: 0; width: 100%; min-height: 70px; padding: 14px 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: 12px; align-self: end; }
+.commandRuntimeBar > span { padding: 0 10px; }
+.commandRuntimeBar small { color: #94a9b0; font-size: 10px; }
+.commandRuntimeBar strong { color: #dce9e8; font-size: 13px; margin-top: 4px; }
+.commandLanding .forgePlatform { padding-top: 70px; }
+.forgeWorkflowCard { padding: 22px 18px; }
+.forgeWorkflowCard h3 { margin-top: 35px; font-size: 17px; }
+.forgeWorkflowCard p, .forgeSecurityCards p { color: #a3b1ba; font-size: 13px; line-height: 1.7; }
+.forgeSecurityCards strong { font-size: 15px; }
+.forgeSectionHeading p, .forgeSecurityIntro p { color: #a3b1ba; font-size: 15px; line-height: 1.7; }
+
+/* One navigation shell for every authenticated page. */
+.workspaceAppShell { min-height: 100vh; background: radial-gradient(ellipse at 70% 15%, #12313255, transparent 55%), #060b0f; }
+.workspaceContent { width: min(1400px, 100%); margin: 0 auto; padding: 36px 40px 48px; }
+.workspaceContent:focus { outline: none; }
+.immersiveDashboardHeader { padding: 18px 32px 0; }
+.immersiveDashboardNav { width: min(1320px, 100%); min-height: 72px; grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr); gap: 18px; padding: 12px 20px; border-color: var(--ui-border); background: #0a1117eb; }
+.immersiveDashboardLinks .sideNav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.immersiveDashboardLinks .sideLink span { display: inline; }
+.immersiveDashboardLinks a { min-height: 42px; font-size: 13px; padding: 0 14px; color: #abbac2; justify-content: center; }
+.immersiveDashboardLinks .sideLink.active { color: #85eed7; background: #5ce4c311; border: 1px solid #5ce4c330; box-shadow: none; }
+.immersiveWorkspaceIdentity span { font-size: 12px; color: #d1dddf; max-width: 190px; }
+.immersiveWorkspaceIdentity small { font-size: 10px; color: #8faaaf; }
+.immersiveSignOut { width: 42px; height: 42px; color: #b0c2ca; border-color: var(--ui-border); }
+.immersiveUserIdentity { font-size: 11px; width: 38px; height: 38px; }
+
+/* Real metrics first, followed by a spacious map and readable evidence panels. */
+.livingDashboardHero { display: grid; grid-template-columns: minmax(0, 1fr) 330px; grid-template-areas: "intro intro" "map panels"; gap: 24px; min-height: 0; border-radius: 0; overflow: visible; }
+.livingDashboardHero::before, .livingDashboardHero::after { display: none; }
+.livingDashboardEditorial { grid-area: intro; width: 100%; padding: 0; display: grid; grid-template-columns: 1fr auto; align-items: center; }
+.livingDashboardEyebrow { font-size: 11px; letter-spacing: .12em; }
+.livingDashboardEditorial > .livingDashboardEyebrow { grid-column: 1; }
+.livingDashboardEditorial h1 { grid-column: 1; margin: 12px 0 10px; max-width: none; font-size: clamp(30px, 3.3vw, 44px); line-height: 1.12; font-weight: 430; letter-spacing: -.04em; }
+.livingDashboardEditorial > p { grid-column: 1; max-width: none; color: var(--ui-muted); font-size: 14px; line-height: 1.65; }
+.livingDashboardActions { grid-column: 2; grid-row: 1 / 4; margin: 0 0 0 24px; justify-content: flex-end; }
+.livingPrimaryAction, .livingSecondaryAction { min-height: 44px; min-width: 0; font-size: 12px; padding: 0 18px; }
+.livingPrimaryAction { color: #081713; background: #69e4c6; border-color: #69e4c6; font-weight: 700; }
+.livingPrimaryAction:hover { background: #91efd7; color: #081713; }
+.livingSecondaryAction { color: #b8c7cd; border-color: var(--ui-border); }
+.livingMetricBand { grid-column: 1 / -1; width: 100%; max-width: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 28px; }
+.livingMetricCard { min-height: 106px; gap: 14px; padding: 21px; border-radius: 14px; border-color: var(--ui-border); background: linear-gradient(145deg, #102026c9, #0a1218eb); }
+.livingMetricIcon { width: 38px; height: 38px; border-radius: 11px; }
+.livingMetricCard strong { font-size: 32px; line-height: 1; font-weight: 540; font-variant-numeric: tabular-nums; }
+.livingMetricCard span:not(.livingMetricIcon) { font-size: 12px; color: #a4b7c0; margin-top: 9px; white-space: normal; overflow: visible; line-height: 1.4; }
+.livingDashboardScene { grid-area: map; position: relative; inset: auto; width: 100%; min-width: 0; height: auto; margin: 0; display: flex; flex-direction: column; border: 1px solid var(--ui-border); border-radius: 18px; overflow: hidden; background: radial-gradient(ellipse at center, #133b394d, transparent 70%), #081116; }
+.livingMapHeading { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 24px; border-bottom: 1px solid #9bbfc00f; }
+.livingMapHeading h2 { margin: 8px 0 0; font-size: 20px; font-weight: 500; letter-spacing: -.02em; }
+.livingMapHeading a { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #b2d8ce; min-height: 40px; }
+.livingMapCanvas { position: relative; min-height: 360px; flex: 1; }
+.webglAttackSurface { position: absolute; inset: 0; }
+.workspaceTopologyArt { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+.webglAttackLabel { margin-top: 45px; }
+.webglAttackLabel { max-width: 170px; padding: 9px 11px; background: #081116db; border-radius: 4px; }
+.webglAttackLabelKind { font-size: 9px; color: #98afb9; }
+.webglAttackLabel strong { font-size: 12px; color: #dce9eb; }
+.webglAttackLabel small { font-size: 10px; color: #a5bbb9; }
+.webglAttackLabel-pending small { color: #efbf77; }
+.webglAttackLabel-risk small { color: #ffa078; }
+.webglAttackLabel-healthy small { color: #81dcc6; }
+.webglAttackEmpty { width: min(310px, 80%); gap: 14px; }
+.webglAttackEmpty strong { font-size: 18px; }
+.webglAttackEmpty span { font-size: 13px; color: #9bb0ba; }
+.livingSceneStatus { position: relative; inset: auto; margin: 0; border: 0; border-top: 1px solid var(--ui-border); border-radius: 0; padding: 16px 24px; min-height: 50px; gap: 20px; flex-wrap: wrap; font-size: 10px; color: #9fb7bf; background: #0b161be6; }
+.livingDashboardLower { grid-area: panels; position: relative; inset: auto; width: 100%; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.livingOverviewPanel, .livingPriorityPanel, .livingNextPanel { padding: 21px; border: 1px solid var(--ui-border); border-radius: 14px; min-height: 0; background: linear-gradient(135deg, #102026c7, #091219eb); }
+.livingPanelHeading { flex-wrap: wrap; gap: 12px; }
+.livingPanelHeading span, .livingPriorityPanel > span, .livingNextPanel > span { font-size: 10px; line-height: 1.4; color: #9db4bd; letter-spacing: .08em; }
+.livingPanelHeading h2, .livingPriorityPanel h2, .livingNextPanel h2 { font-size: 17px; line-height: 1.4; font-weight: 550; color: #e0ebee; }
+.livingRealDataPill { font-size: 9px !important; }
+.livingOverviewContent { grid-template-columns: 76px 1fr; gap: 16px; margin-top: 20px; }
+.livingCoverageRing { width: 76px; height: 76px; }
+.livingCoverageRing > div { width: 62px; height: 62px; }
+.livingCoverageRing strong { font-size: 20px; }
+.livingCoverageRing span { color: #9bb1b8; font-size: 9px; }
+.livingOverviewRows { gap: 10px; }
+.livingOverviewRows > div { font-size: 11px; color: #a1b6be; align-items: flex-start; }
+.livingOverviewRows strong { font-size: 12px; color: #e1ebed; }
+.livingPriorityPanel h2, .livingNextPanel h2 { margin-top: 10px; overflow-wrap: anywhere; }
+.livingPriorityPanel p, .livingNextPanel p { font-size: 12px; line-height: 1.7; color: #9fb3bc; }
+.livingPriorityPanel a, .livingNextPanel a { font-size: 12px; min-height: 40px; margin-top: 10px; color: #8be5ce; }
+.livingPrioritySeverity { font-size: 10px; padding: 5px 9px; margin-top: 14px; }
+.livingPriorityEmpty { margin: 18px 0 2px; gap: 12px; }
+.livingPriorityEmpty svg { flex-shrink: 0; color: #83ccba; margin-top: 2px; }
+.livingPriorityEmpty h2 { margin: 0 0 6px; }
+.livingNextPanel { border-color: #69e4c639; background: linear-gradient(120deg, #15322e80, #091418); }
+.livingSafetyNote { width: 100%; font-size: 12px; color: #94aeb3; border: 0; background: none; padding: 18px 4px 0; margin-top: 8px; }
+
+/* Forms, lists and detail pages share a readable scale. */
+.workspaceContent .pageHeader h1 { font-weight: 500; font-size: 36px; }
+.workspaceContent .pageHeader h1, .workspaceContent .assetMain strong { overflow-wrap: anywhere; }
+.workspaceContent .pageHeader > .primaryButton { flex-shrink: 0; }
+.workspaceContent .pageHeader p { color: #a7b8c1; font-size: 14px; max-width: 760px; }
+.workspaceContent .panel, .workspaceContent .statCard { border-color: var(--ui-border); background: linear-gradient(135deg, #111d25c7, #0a131be8); }
+.workspaceContent .statCard { padding: 22px; min-width: 0; min-height: 138px; }
+.workspaceContent .statCard > div { font-size: 13px; gap: 8px; }
+.workspaceContent .statCard > div svg { flex-shrink: 0; color: #81b9b2; }
+.workspaceContent .statCard small { font-size: 11px; color: #96aab6; line-height: 1.5; }
+.workspaceContent .statCard strong { font-size: 32px; font-weight: 550; margin: 14px 0; }
+.workspaceContent .panel { padding: 24px; }
+.workspaceContent .panelTitle > div > span { font-size: 11px; color: #95aeb8; }
+.workspaceContent .panelTitle h2 { font-size: 19px; font-weight: 550; margin-top: 7px; }
+.workspaceContent .assetRow { min-height: 84px; padding: 16px; border-color: #91b4bc1f; }
+.workspaceContent .assetMain strong, .workspaceContent .assetState strong { font-size: 13px; }
+.workspaceContent .assetMain span, .workspaceContent .assetState small, .workspaceContent .assetKind { font-size: 11px; color: #99b0bd; }
+.workspaceContent .emptyState p { font-size: 14px; color: #a2b7c1; }
+.workspaceContent .assetForm label { font-size: 13px; }
+.workspaceContent .fieldHelp { font-size: 12px; color: #9bafbb; }
+.workspaceContent .formIntro p, .workspaceContent .safetyAside > p, .workspaceContent .verificationHeader p { font-size: 13px; }
+.workspaceContent .assetForm input, .workspaceContent .assetForm select { font-size: 16px; }
+.workspaceContent .detailList dt, .workspaceContent .detailList dd, .workspaceContent .instructionStep p, .workspaceContent .instructionStep code { font-size: 12px; }
+.findingRow { grid-template-columns: 10px minmax(0, 1fr) 110px 160px 145px 18px; }
+.authPage { background: radial-gradient(ellipse at 25% 20%, #143f3c55, transparent 55%), #060b10; padding: 56px 20px; }
+.authCard { width: min(100%, 470px); padding: 38px; background: linear-gradient(145deg, #122028ed, #0a121af7); border-color: #87b9b52e; border-radius: 24px; box-shadow: 0 28px 100px #0007, inset 0 1px #c1ffef08; }
+.authHeading { margin-top: 36px; }
+.authHeading h1 { font-size: 32px; font-weight: 550; }
+.authHeading p { color: #a7bcc5; font-size: 14px; }
+.authForm { gap: 20px; }
+.authForm label { font-size: 13px; }
+.authForm input { min-height: 50px; font-size: 16px; border-color: #54717d66; background: #071118; }
+.authForm input::placeholder { color: #8499a4; }
+.authSubmit { min-height: 48px; margin-top: 6px; }
+.authSwitch { font-size: 13px; margin-top: 24px; }
+.authFoot { display: flex; align-items: center; gap: 10px; color: #9cb2bc; font-size: 12px; margin-top: 28px; }
+.authFoot svg { color: #69dfc4; flex-shrink: 0; }
+.authBackLink { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 22px; min-height: 40px; font-size: 12px; color: #a8bdc5; }
+
+@media (max-width: 1180px) {
+  .commandPublicNav { grid-template-columns: auto minmax(310px, 1fr) auto; gap: 18px; padding-inline: 20px; }
+  .commandPublicBrand .scopeforgeWordmarkText { font-size: 12px; letter-spacing: .18em; }
+  .commandPublicAuth { gap: 14px; }
+  .commandRequestAccess { padding-inline: 16px; }
+  .commandHero { padding: 42px 30px 30px; gap: 24px; }
+  .commandMetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .commandMetricCard { flex-wrap: nowrap; }
+  .livingDashboardHero { grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; }
+  .livingMetricCard { padding: 18px 15px; gap: 10px; }
+  .livingDashboardActions { gap: 8px; }
+  .livingSecondaryAction { display: none; }
+  .findingRow { grid-template-columns: 10px minmax(0, 1fr) 140px 130px 18px; }
+  .findingRow .assetKind { display: none; }
+}
+@media (max-width: 1080px) {
+  .immersiveDashboardNav { grid-template-columns: 1fr auto; border-radius: 22px; gap: 10px; }
+  .immersiveDashboardLinks { display: flex; grid-column: 1 / -1; grid-row: 2; border-top: 1px solid #8bafb71a; padding-top: 8px; }
+  .immersiveDashboardLinks .sideNav { width: 100%; }
+  .immersiveDashboardIdentity { grid-column: 2; grid-row: 1; }
+}
+@media (max-width: 900px) {
+  .commandPublicHeader { padding: 14px 20px 0; }
+  .commandPublicNav { display: flex; gap: 12px; padding: 12px 20px; }
+  .commandPublicBrand .scopeforgeWordmarkText { font-size: 12px; letter-spacing: .18em; }
+  .commandPublicLinks { display: none; }
+  .commandPublicAuth { display: none; }
+  .commandMobileMenu { display: block; margin-left: auto; }
+  .commandMobileMenu summary { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+  .commandMobileMenuPanel a { min-height: 44px; }
+  .commandPublicAuth > a:first-child { display: none; }
+  .commandRequestAccess { padding: 0 14px; }
+  .workspaceContent { padding: 28px 24px 36px; }
+  .immersiveDashboardHeader { padding: 12px 20px 0; }
+  .immersiveWorkspaceIdentity { display: grid; }
+  .livingDashboardHero { grid-template-columns: 1fr; grid-template-areas: "intro" "map" "panels"; }
+  .livingDashboardLower { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .livingNextPanel { grid-column: 1 / -1; }
+  .livingMapCanvas { min-height: 370px; }
+}
+@media (max-width: 700px) {
+  .commandPublicHeader { padding: 12px 14px 0; }
+  .commandPublicNav { min-height: 62px; padding: 10px 16px; flex-wrap: nowrap; border-radius: 22px; }
+  .commandPublicLinks, .commandPublicAuth { display: none; }
+  .commandMobileMenu { display: block; margin-left: auto; }
+  .commandMobileMenu summary { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+  .commandMobileMenuPanel { width: min(290px, calc(100vw - 40px)); }
+  .commandMobileMenuPanel a { min-height: 44px; }
+  .commandHero { padding: 38px 22px 30px; grid-template-columns: 1fr; grid-template-areas: "copy" "scene" "runtime" "metrics"; gap: 24px; }
+  .commandHeroCopy h1 { font-size: clamp(39px, 10.4vw, 58px); }
+  .commandHeroEyebrow { margin-bottom: 20px; }
+  .commandHeroLead { margin-top: 22px; font-size: 15px; }
+  .commandHeroActions { display: flex; margin-top: 24px; gap: 12px; }
+  .commandHeroPrimary, .commandHeroSecondary { min-height: 48px; font-size: 12px; flex: 1 1 auto; padding-inline: 14px; }
+  .commandHeroScene { min-height: 340px; height: 340px; }
+  .cinematicSurface { inset: -20px -8px; }
+  .cinematicSceneLabel strong { font-size: 9px; }
+  .cinematicSceneLabel small { font-size: 10px; }
+  .commandOverviewPanel { padding: 18px; }
+  .commandOverviewBody { gap: 16px; }
+  .commandMetricCard { padding: 16px; min-height: 110px; }
+  .commandMetricCard strong { font-size: 26px; }
+  .commandRuntimeBar { min-height: 68px; padding: 10px 4px; }
+  .commandRuntimeBar > span { padding: 0 7px; column-gap: 5px; }
+  .commandRuntimeBar small { font-size: 9px; }
+  .commandRuntimeBar strong { font-size: 11px; }
+  .commandLanding .forgePlatform { padding-top: 44px; }
+  .workspaceContent { padding: 26px 16px 32px; }
+  .immersiveDashboardHeader { padding: 10px 12px 0; }
+  .immersiveDashboardNav { padding: 10px 12px; }
+  .immersiveDashboardLinks .sideNav { width: 100%; justify-content: space-between; }
+  .immersiveDashboardLinks a { padding: 8px 2px; font-size: 11px; gap: 7px; flex-direction: column; justify-content: center; }
+  .immersiveWorkspaceIdentity { display: none; }
+  .immersiveUserIdentity { display: grid; }
+  .livingDashboardEditorial { display: block; }
+  .livingDashboardEditorial h1 { font-size: 32px; }
+  .livingDashboardEditorial > p { font-size: 14px; }
+  .livingDashboardActions { margin: 20px 0 0; display: flex; justify-content: flex-start; }
+  .livingPrimaryAction { width: auto; }
+  .livingMetricBand { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 24px; gap: 10px; }
+  .livingMetricCard { min-height: 108px; padding: 16px 12px; gap: 10px; }
+  .livingMetricCard strong { font-size: 28px; }
+  .livingMetricIcon { width: 30px; height: 30px; }
+  .livingMetricCard span:not(.livingMetricIcon) { font-size: 11px; }
+  .livingMapHeading { padding: 20px 16px; }
+  .livingMapHeading h2 { font-size: 18px; }
+  .livingMapCanvas { min-height: 330px; }
+  .livingSceneStatus { padding: 14px 16px; gap: 12px; font-size: 9px; }
+  .livingSceneStatus span:nth-child(3) { display: inline-flex; }
+  .livingDashboardLower { grid-template-columns: 1fr; }
+  .livingOverviewPanel, .livingPriorityPanel, .livingNextPanel { padding: 22px; }
+  .livingPanelHeading { flex-wrap: nowrap; }
+  .webglAttackLabel { max-width: 125px; padding: 7px; }
+  .webglAttackLabelKind { font-size: 8px; }
+  .webglAttackLabel strong { font-size: 10px; }
+  .webglAttackLabel small { font-size: 9px; }
+  .workspaceContent .assetSummaryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspaceContent .statCard { padding: 16px; min-height: 140px; }
+  .workspaceContent .statCard > div { font-size: 12px; align-items: flex-start; }
+  .workspaceContent .panel { padding: 18px; }
+  .workspaceContent .assetRow { grid-template-columns: 10px minmax(0, 1fr) 18px; gap: 10px; }
+  .workspaceContent .assetRow .assetMain { grid-column: 2; }
+  .workspaceContent .assetRow > svg { grid-column: 3; grid-row: 1; }
+  .workspaceContent .assetRow .assetState { display: block; grid-column: 2; text-align: left; }
+  .workspaceContent .assetRow .assetKind { display: block; grid-column: 2; }
+  .workspaceContent .assetRow .assetState small { line-height: 1.5; overflow-wrap: anywhere; }
+  .workspaceContent .safetyAside { position: static; }
+  .authPage { padding: 24px 16px; }
+  .authCard { padding: 28px 24px; }
+}
+/* Useful destinations and downloadable artifacts in both navigation shells. */
+.publicResourceContent { width: min(1200px, 100%); margin: 0 auto; padding: 64px 40px 80px; }
+.resourceLibrary { display: grid; gap: 44px; }
+.resourceIntro { max-width: 660px; }
+.resourceIntro h1 { margin: 18px 0; font-size: clamp(36px, 4vw, 56px); font-weight: 450; letter-spacing: -.045em; line-height: 1.12; }
+.resourceIntro p { font-size: 15px; line-height: 1.75; color: var(--ui-muted); }
+.resourcePrimary { display: inline-flex; align-items: center; gap: 12px; margin-top: 24px; min-height: 44px; padding: 0 18px; background: #69e4c6; color: #081713; font-size: 13px; font-weight: 650; border-radius: 999px; }
+.resourceSectionHeading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+.resourceSectionHeading h2 { font-size: 20px; font-weight: 500; letter-spacing: -.02em; }
+.resourceSectionHeading > span { font-size: 12px; color: #93aaaf; }
+.resourceTemplateGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.resourceTemplate, .resourceGuide { display: flex; flex-direction: column; align-items: flex-start; padding: 28px; border: 1px solid var(--ui-border); border-radius: 16px; background: linear-gradient(145deg, #14282aab, #0a131bec); transition: border-color .18s, background .18s; }
+.resourceTemplate:hover, .resourceGuide:hover { border-color: #69e4c670; background: #122724; }
+.resourceCardTop { display: flex; align-items: center; gap: 12px; color: #81d9c4; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.resourceTemplate h3, .resourceGuide h3 { margin: 24px 0 10px; font-size: 20px; font-weight: 500; }
+.resourceTemplate p, .resourceGuide p { margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: var(--ui-muted); }
+.resourceCardAction { display: inline-flex; align-items: center; gap: 10px; margin-top: auto; font-size: 12px; color: #8be5ce; min-height: 28px; }
+.resourceGuideGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.resourceGuideNumber { font-family: ui-monospace, monospace; color: #6a908e; font-size: 12px; }
+.resourceGuide h3 { font-size: 17px; margin-top: 20px; }
+.dashboardResources { display: flex; align-items: center; gap: 24px; margin-top: 24px; padding: 22px 24px; border: 1px solid var(--ui-border); border-radius: 14px; background: #10202688; }
+.dashboardResources > div { display: flex; align-items: center; gap: 14px; margin-right: auto; }
+.dashboardResources > div > svg { color: #81d9c4; flex-shrink: 0; }
+.dashboardResources strong, .dashboardResources small { display: block; }
+.dashboardResources strong { font-size: 14px; font-weight: 500; }
+.dashboardResources small { font-size: 12px; color: var(--ui-muted); margin-top: 6px; line-height: 1.5; }
+.dashboardResources > a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 12px; color: #9de3d3; white-space: nowrap; }
+@media (max-width: 900px) {
+  .resourceGuideGrid { grid-template-columns: 1fr; }
+  .dashboardResources { flex-wrap: wrap; gap: 10px 24px; }
+  .dashboardResources > div { width: 100%; }
+}
+@media (max-width: 700px) {
+  .publicResourceContent { padding: 38px 22px 48px; }
+  .resourceLibrary { gap: 32px; }
+  .resourceTemplateGrid { grid-template-columns: 1fr; }
+  .resourceSectionHeading { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .resourceTemplate, .resourceGuide { padding: 24px; }
+  .dashboardResources { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: .01ms !important; }
+}

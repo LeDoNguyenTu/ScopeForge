@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, LockKeyhole } from "lucide-react";
+import { ArrowLeft, ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
 import { createClient } from "@/lib/supabase/client";
 
@@ -47,7 +47,7 @@ export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
   return (
     <div className="authCard">
-      <div className="authBrand"><ScopeForgeWordmark /></div>
+      <Link className="authBrand" href="/" aria-label="ScopeForge home"><ScopeForgeWordmark /></Link>
       <div className="authHeading">
         <span className="authIcon"><LockKeyhole size={18} /></span>
         <h1>{signUp ? "Create your workspace" : "Welcome back"}</h1>
@@ -61,7 +61,8 @@ export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       </form>
       {message && <div className="authMessage" role="status">{message}</div>}
       <p className="authSwitch">{signUp ? "Already have an account?" : "New to ScopeForge?"} <Link href={signUp ? "/auth/sign-in" : "/auth/sign-up"}>{signUp ? "Sign in" : "Create account"}</Link></p>
-      <p className="authFoot">Bot protection with Cloudflare Turnstile will be enabled before public trial access.</p>
+      <p className="authFoot"><ShieldCheck size={16} /> A dedicated workspace for the assets you control.</p>
+      <Link className="authBackLink" href="/"><ArrowLeft size={14} /> Back to ScopeForge</Link>
     </div>
   );
 }

@@ -5,17 +5,16 @@ import {
   Bug,
   CirclePlay,
   GitBranch,
-  Pause,
   Radar,
   ShieldCheck,
 } from "lucide-react";
-import CommandCenterSurface from "@/components/landing/CommandCenterSurface";
+import CinematicSurface from "@/components/landing/CinematicSurface";
 
 const metricCards = [
-  { icon: Box, value: "14,892", label: "Verified assets", trend: "↑ 12% this week", tone: "teal" },
-  { icon: Radar, value: "3,271", label: "Active findings", trend: "↓ 8% this week", tone: "teal" },
-  { icon: GitBranch, value: "523", label: "Risk paths", trend: "↑ 5 new", tone: "teal" },
-  { icon: ShieldCheck, value: "92", label: "Exposure score", trend: "Medium", tone: "amber" },
+  { icon: Box, value: "14,892", label: "Verified assets", trend: "Example inventory", tone: "teal" },
+  { icon: Radar, value: "3,271", label: "Active findings", trend: "Example findings", tone: "teal" },
+  { icon: GitBranch, value: "523", label: "Risk paths", trend: "Illustrative paths", tone: "teal" },
+  { icon: ShieldCheck, value: "92", label: "Exposure score", trend: "Example score", tone: "amber" },
 ] as const;
 
 export default function CommandCenterLandingHero() {
@@ -27,7 +26,7 @@ export default function CommandCenterLandingHero() {
         <span className="commandHeroEyebrow">LIVING ATTACK SURFACE</span>
         <h1 id="command-hero-title">Understand the risk before it becomes <span>an incident.</span></h1>
         <p className="commandHeroLead">
-          ScopeForge continuously discovers, verifies, and maps your digital attack surface so you can eliminate exposure paths attackers would use to reach you.
+          Discover your attack surface, understand the evidence, and move from exposure to a verified fix. One connected view of your security work.
         </p>
         <div className="commandHeroActions">
           <Link className="commandHeroPrimary" href="/auth/sign-up">Explore the platform <ArrowRight size={15} /></Link>
@@ -36,7 +35,7 @@ export default function CommandCenterLandingHero() {
       </div>
 
       <div className="commandHeroScene">
-        <CommandCenterSurface />
+        <CinematicSurface />
       </div>
 
       <div className="commandMetricArea">
@@ -57,7 +56,7 @@ export default function CommandCenterLandingHero() {
         <article className="commandOverviewPanel">
           <div className="commandOverviewHeading">
             <span>Attack Surface Overview</span>
-            <small><i /> Live illustration</small>
+            <small><i /> Example model</small>
           </div>
           <div className="commandOverviewBody">
             <div className="commandExposureGauge">
@@ -72,7 +71,7 @@ export default function CommandCenterLandingHero() {
               <div><span><i className="commandDot commandDotRisk" /> Third parties</span><strong>647</strong></div>
             </div>
             <div className="commandRiskPath">
-              <span>Top risk path</span>
+              <span>Illustrative risk path</span>
               <strong>Internet → Web App → IAM → Data Store <em>Critical</em></strong>
               <div><small>Likely impact <b>High</b></small><small>Exploitability <b>High</b></small></div>
               <Link href="/auth/sign-up">Investigate path <ArrowRight size={13} /></Link>
@@ -82,10 +81,9 @@ export default function CommandCenterLandingHero() {
       </div>
 
       <div className="commandRuntimeBar" aria-label="Illustrative runtime status">
-        <span><i className="commandRuntimePulse" /><small>Runtime</small><strong>24:07:18:42</strong></span>
-        <span><Radar size={15} /><small>Sensors</small><strong>182</strong></span>
-        <span><Bug size={15} /><small>Coverage</small><strong>98%</strong></span>
-        <button type="button"><Pause size={14} /> Pause monitoring</button>
+        <span><i className="commandRuntimePulse" /><small>Platform view</small><strong>Illustrative</strong></span>
+        <span><Radar size={15} /><small>Example sensors</small><strong>182</strong></span>
+        <span><Bug size={15} /><small>Example coverage</small><strong>98%</strong></span>
       </div>
     </section>
   );
