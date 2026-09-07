@@ -309,9 +309,9 @@ function source(value: unknown): PublicationSourceIdentity {
 
 function stringRecord<T extends readonly string[]>(value: unknown, keys: T, field: string): Record<T[number], string> {
   const object = exactObject(value, keys, field);
-  const result = {} as Record<T[number], string>;
+  const result: Record<string, string> = {};
   for (const key of keys) result[key] = boundedString(object[key], `${field}.${key}`);
-  return result;
+  return result as Record<T[number], string>;
 }
 
 function reproduction(value: unknown): PublicationReproduction {
