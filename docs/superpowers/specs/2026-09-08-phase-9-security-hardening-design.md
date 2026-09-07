@@ -257,11 +257,17 @@ Phase 9A is complete only when:
 
 ### 6.1 Supabase Auth CAPTCHA
 
-Use Supabase Auth's native CAPTCHA integration with Cloudflare Turnstile.
+Use Supabase Auth's native CAPTCHA integration with Cloudflare Turnstile. Current Supabase documentation states that Auth CAPTCHA protection covers sign-in, sign-up, and password-reset forms.
 
-The browser obtains a Turnstile token and passes it through Supabase Auth's supported `captchaToken` option. Supabase remains the verification authority for auth CAPTCHA.
+The browser obtains a Turnstile token and sends it through the exact CAPTCHA transport supported by the installed Supabase Auth client/API. The current lockfile resolves `@supabase/supabase-js` 2.112.4.
 
-Do not create an independent custom `/siteverify` authentication path unless Supabase's current supported integration proves insufficient.
+For sign-up, current Supabase documentation explicitly shows `options.captchaToken`.
+
+For password sign-in, implementation must verify the exact supported 2.112.4 client/API shape before changing production CAPTCHA settings. Do not assume the sign-up call shape applies to `signInWithPassword` merely because the provider-level feature covers sign-in. If the exact installed client cannot safely supply the provider-required CAPTCHA token for password sign-in, adapt the auth flow using an official Supabase-supported path before enabling project-wide CAPTCHA protection.
+
+Supabase remains the verification authority for auth CAPTCHA.
+
+Do not create an independent custom `/siteverify` authentication path unless the current official Supabase integration proves insufficient and the alternative is separately reviewed.
 
 ### 6.2 Dependency isolation
 
@@ -474,16 +480,20 @@ The final Phase 9 release gate must include evidence for the exact release SHA:
 - no Dashboard V5 contamination
 - rollback steps documented
 
-## 10. Implementation sequencing
+## 10. Implementation sequencing and plan decomposition
 
-Recommended order:
+Phase 9 is an umbrella security-hardening program. It is not implemented as one giant unchecked change set.
 
-1. Phase 9A safe auth redirect and auth error hardening
-2. Phase 9C database privilege regression coverage and minimum-privilege migration design
-3. Phase 9B Turnstile and abuse-control implementation
-4. Phase 9D telemetry and alert contracts
-5. Phase 9E incident/release engineering
+Each major subphase receives its own implementation plan and verification checkpoint before moving to the next subphase:
+
+1. Phase 9A - authentication and redirect boundary
+2. Phase 9C - database privilege regression coverage and minimum-privilege migration design
+3. Phase 9B - Turnstile and abuse-control implementation
+4. Phase 9D - telemetry and alert contracts
+5. Phase 9E - incident/release engineering
 6. CSP enforcement only after Dashboard V5 no longer conflicts
+
+The first implementation plan after this design is approved is Phase 9A only.
 
 Reasoning:
 
@@ -492,6 +502,8 @@ Reasoning:
 - add provider-level abuse controls after application auth semantics are stable
 - observability should describe stable controls, not moving targets
 - launch documentation should record the final system rather than assumptions
+
+No later subphase is implicitly approved for production configuration mutation by completion of an earlier subphase.
 
 ## 11. Branch and UI isolation
 
@@ -532,7 +544,7 @@ Use test-driven development for executable changes.
 ### Route/component tests
 
 - auth callback and confirmation redirects
-- sign-in/sign-up CAPTCHA token flow
+- sign-in/sign-up CAPTCHA token flow using the exact supported Supabase client/API shape
 - missing/expired CAPTCHA behavior
 - safe fallback behavior when protection configuration is absent in local/test environments
 
@@ -562,7 +574,7 @@ Any irreversible or availability-sensitive change needs its own verified precond
 
 Examples:
 
-- enabling CAPTCHA before the client supplies valid tokens can lock out auth
+- enabling CAPTCHA before every protected auth flow supplies the exact provider-required token can lock out authentication
 - tightening schema/function grants without proving RLS helper behavior can break legitimate access
 - aggressive WAF rules can block real users or trusted workers
 - CSP enforcement can break the active application if source requirements are incomplete
