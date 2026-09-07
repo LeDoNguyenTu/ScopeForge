@@ -1,53 +1,66 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-07 (Asia/Singapore)
+Last reconciled: 2026-09-08 (Asia/Singapore)
 
 ## Completed non-UI phases
 
 - Phase 7 Community Security Packs v1: complete, PR #54 merged.
 - Phase 8A offline accuracy foundation: complete, PR #55 merged.
-- Phase 8B scanner performance matrix: complete, PR #56 merged as `226a20739871c15d0262d1779b3b013520f47fc6`.
+- Phase 8B scanner performance matrix: complete, PR #56 merged.
+- Phase 8C reproducible technical publication: complete, PR #57 merged.
+- Phase 9A authentication boundary hardening: complete, PR #58 merged as `5c08003c8bf8cb920832431a346c9254aae92239`.
 
-Do not recreate completed Phase 7, Phase 8A, or Phase 8B tasks.
+Do not recreate completed Phase 7, Phase 8, or Phase 9A work.
 
-## Immediate non-UI priority - Phase 8C reproducible technical publication
+## Phase 9A release reference
 
-Build deterministic publication/reporting from the already-normalized Phase 8A accuracy evidence and Phase 8B benchmark evidence.
+- merged PR: #58
+- final verified PR head: `386308657bca0d8ba66f86074992d9983db600ba`
+- verified tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
+- final PR CI #767: success
+- squash merge: `5c08003c8bf8cb920832431a346c9254aae92239`
+- post-merge main CI #768: success
+- exact production deployment: `dpl_BePDHoKDzWPXU6L2PX3Rj8bpTTue`, READY on the merge SHA with `aliasError=null`
+- release state: `docs/development/PHASE_9A_RELEASE_STATE.md`
 
-Required publication content:
+Phase 9A changed application authentication boundaries only. It did not enable provider hardening, change database privileges, or authorize hosted workers.
 
-- exact repository commit and tool version
-- Phase 8A corpus ID/version/content hash
-- represented scanner/rule scope
-- raw TP/FN/FP/TN/error/unsupported/contract-mismatch counts
-- derived precision/recall/FPR/F1 only where denominators are defined
-- explicit statement that the 32-case reviewed corpus is not global or real-world ScopeForge accuracy
-- Phase 8B profile identities and correctness contracts
-- every repeated benchmark run plus normalized min/median/max summaries
-- Node/OS/architecture/environment provenance
-- RSS delta labeled as observational, not peak memory unless a future measurement truly measures peak RSS
-- catastrophic ceilings labeled as regression guards, not product SLOs
-- errors, unsupported cases, limitations, and known blind spots
-- deterministic machine-readable output and a human-readable technical report
+## Immediate non-UI priority - Phase 9C database/RPC defense-in-depth
 
-Implementation boundaries:
+Begin Phase 9C from the released Phase 9A baseline.
 
-- publication must consume committed/normalized evidence rather than scrape screenshots or mutate labels
-- reports must be reproducible from an exact commit
-- no hidden network dependency is required for the ordinary publication path
-- do not add hosted scanner, worker, browser, arbitrary network, or Supabase authority merely to produce reports
-- preserve Phase 8A privacy reductions and ground-truth immutability
-- use TDD and preflight-first verification
+The first Phase 9C work must be evidence-driven and read-only where possible:
 
-## Phase 8B release reference
+1. Inventory live schema usage, table grants, function ACLs, function kinds, `SECURITY DEFINER` status, search paths, and caller roles.
+2. Reconcile that live state against committed forward-only migration history.
+3. Add regression tests proving ordinary `anon` and `authenticated` clients cannot access private worker tables or execute worker-control RPCs.
+4. Preserve the RLS dependency on `private.is_workspace_member` and `private.has_workspace_role` unless a reviewed replacement is proven first.
+5. Identify private trigger/helper functions that retain unnecessary default `PUBLIC EXECUTE` privileges.
+6. If privilege reduction is justified, implement it only through a new forward-only migration, with explicit grants retained for required RLS helper functions.
+7. Verify any DDL change with focused tests, Supabase Security Advisor, exact privilege queries, full project verification, preview, frozen CI candidate, and post-merge validation.
 
-- PR #56
-- final PR head: `e09710560d2451039b493e4c777dcddf1e62a1cd`
-- squash merge: `226a20739871c15d0262d1779b3b013520f47fc6`
-- final PR CI: #760 success
-- post-merge main CI: #761 success
-- production deployment: `dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu`, READY on `scopeforge.dev`
-- release state: `docs/development/PHASE_8B_RELEASE_STATE.md`
+Do not solve Phase 9C by blindly revoking `USAGE ON SCHEMA private FROM authenticated`. That would break the current RLS helper model unless replaced safely.
+
+## Phase 9B remains separate
+
+Do not enable these merely because Phase 9A is released:
+
+- Supabase leaked-password protection
+- Supabase Auth rate-limit configuration changes
+- Cloudflare Turnstile
+- Vercel WAF/rate-limit rules
+
+The live Supabase Security Advisor currently still reports `auth_leaked_password_protection`. Phase 9B/provider hardening requires its own operational acceptance and rollback evidence.
+
+## Later Phase 9 boundaries
+
+After Phase 9C:
+
+- Phase 9B provider/edge abuse controls when its operational prerequisites are ready
+- Phase 9D security telemetry, alerting, and staged browser hardening
+- Phase 9E incident response, credential rotation, release-security, rollback, and public-launch acceptance
+
+Sequence may be adjusted only if evidence shows a more urgent security dependency. Do not mix unrelated subphases into one release candidate.
 
 ## Separate production worker acceptance
 
@@ -58,26 +71,12 @@ Code-complete is not production-enabled. Keep these false/absent until their own
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Do not infer Phase 8 validation success authorizes any production worker.
-
-## Phase 9 hardening
-
-Remaining non-UI hardening includes:
-
-- enable/review Supabase leaked-password protection
-- abuse prevention and threat review
-- Turnstile/equivalent integration only if actually implemented
-- production observability and alerting
-- private-schema defense-in-depth without breaking RPC-only worker authority
-- incident/rollback procedures
-- release engineering and final public-launch security review
-
-Accessibility/responsive QA belongs after the separate Dashboard V5 visual stream is stable.
+Do not infer Phase 8 validation or Phase 9 hardening authorizes any production worker.
 
 ## UI isolation
 
-PR #49 and all active dashboard V5/UI branches remain separate. Do not edit, merge, replace, retarget, or deploy that stream from Phase 8 work.
+PR #49 and all active Dashboard V5/UI branches remain separate. Do not edit, merge, replace, retarget, or deploy that stream from the non-UI hardening workstream.
 
 ## Branch cleanup
 
-Delete merged backend branches only with a true remote delete-ref mutation. The connected GitHub tooling currently exposes no branch-delete action. Never force-move a merged branch to simulate deletion.
+Delete merged backend branches only with a true remote delete-ref mutation. Never force-move a merged branch to simulate deletion. Preserve PR #49 and all active V5/UI branches.

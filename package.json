@@ -11,6 +11,7 @@
     "build:cli": "tsc -p tsconfig.cli.json",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
     "validation:accuracy": "npm run build:cli --silent && node .scopeforge-build/packages/validation-accuracy/cli.js",
+    "validation:publication": "npm run build:cli --silent && node .scopeforge-build/packages/validation-publication/cli.js",
     "benchmark:scanner": "node benchmarks/scanner-medium.mjs",
     "benchmark:matrix": "node benchmarks/scanner-matrix.mjs",
     "start": "next start",

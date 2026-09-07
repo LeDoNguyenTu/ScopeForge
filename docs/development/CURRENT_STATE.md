@@ -1,27 +1,28 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-07 (Asia/Singapore)
+Last reconciled: 2026-09-08 (Asia/Singapore)
 
 This is the authoritative non-UI current-state summary. Dashboard V5/UI remains a separate active workstream and is excluded from mutation here.
 
 ## Repository state
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- production executable baseline on `main`: `226a20739871c15d0262d1779b3b013520f47fc6`
-- Phase 8B merged PR: #56, `Phase 8B scanner performance matrix`
-- Phase 8B final PR head: `e09710560d2451039b493e4c777dcddf1e62a1cd`
-- CI-validated PR merge ref: `5636fdfea10534dea1a4e126113ba659168e208a`
-- executable tree: `50f17f44e770f1179ed2b40b7713e14e864958c0`
-- authoritative Phase 8 release state: `docs/development/PHASE_8B_RELEASE_STATE.md`
-- detailed resumable state: `docs/development/PHASE_8_WORKING_STATE.md`
+- current released non-UI baseline on `main`: `5c08003c8bf8cb920832431a346c9254aae92239`
+- released tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
+- latest merged non-UI PR: #58, `Phase 9A authentication boundary hardening`
+- Phase 9A final verified PR head: `386308657bca0d8ba66f86074992d9983db600ba`
+- Phase 9A final PR CI: #767, success
+- post-merge main CI: #768, success
+- authoritative Phase 9A release state: `docs/development/PHASE_9A_RELEASE_STATE.md`
+- broader Phase 9 design: `docs/superpowers/specs/2026-09-08-phase-9-security-hardening-design.md`
 
 ## Completed non-UI boundaries
 
-Phases 1-5C, Phase 6A foundation, Phase 6B acquisition code, Phase 6C isolated scanner code, Phase 6D dedicated network-worker code/release acceptance, Phase 7 Community Security Packs v1, Phase 8A offline accuracy foundation, and Phase 8B performance matrix are complete and merged.
+Phases 1-5C, Phase 6A foundation, Phase 6B acquisition code, Phase 6C isolated scanner code, Phase 6D dedicated network-worker code/release acceptance, Phase 7 Community Security Packs v1, Phase 8A offline accuracy foundation, Phase 8B performance matrix, Phase 8C reproducible technical publication, and Phase 9A authentication-boundary hardening are complete and merged.
 
 Code merge is not runtime authorization. Production worker capabilities remain separately gated.
 
-## Phase 8A accuracy baseline
+## Phase 8 validation baseline
 
 The committed `scopeforge-offline-v1@1.0.0` corpus remains:
 
@@ -33,35 +34,69 @@ The committed `scopeforge-offline-v1@1.0.0` corpus remains:
 
 Covered-corpus precision, recall, and F1 are 1.00 and FPR is 0.00. These values describe only the committed reviewed corpus and are not global or real-world ScopeForge accuracy.
 
-## Phase 8B - complete and released
+Phase 8B retains the deterministic local/offline performance matrix with exactly three runs per profile. RSS delta is observational only. Catastrophic benchmark ceilings are regression guards, not product SLOs.
 
-Phase 8B adds a deterministic local/offline performance matrix while preserving `scanner-medium-v1` unchanged.
+Phase 8C remains the released deterministic publication layer for those accepted measurements.
 
-Profiles:
+## Phase 9A - complete and released
 
-- `dependency-lockfile-heavy-v1`: SCA only, OSV disabled, exactly 5,000 resolved components in preflight, 3 analyzed files, 0 findings/errors, 20,000 ms catastrophic ceiling.
-- `iac-heavy-v1`: 601 analyzed files, exact four expected IaC findings, 0 errors, 30,000 ms catastrophic ceiling.
-- `source-ast-heavy-v1`: 1,201 analyzed files, exact `jsts/dynamic-code-execution` x4, 0 errors, 30,000 ms catastrophic ceiling.
+Phase 9A closes the browser authentication boundary without changing provider settings or production worker authority.
 
-Each profile runs exactly three times. RSS delta is observational only. Catastrophic ceilings are regression guards, not product SLOs.
+Released behavior:
 
-Permanent CI now runs `npm run benchmark:matrix` immediately after the historical `npm run benchmark:scanner` step.
+- one shared local-only parser validates post-auth return paths
+- `/auth/callback` and `/auth/confirm` no longer redirect to untrusted external `next` targets
+- absolute URLs, protocol-relative URLs, backslash host-confusion forms, control characters, malformed encodings, and decoded unsafe forms fall back to `/dashboard`
+- safe local paths retain query strings and fragments
+- browser-visible authentication failures no longer render raw Supabase provider messages
+- rate-limit failures retain bounded retry guidance without exposing provider details
+- focused behavior, route, component, and architecture regression tests are committed
 
-## Release evidence
+## Phase 9A release evidence
 
-Final PR CI #760 passed on the exact merge ref. Post-merge main CI #761 then passed on `226a20739871c15d0262d1779b3b013520f47fc6`:
+Final candidate:
 
-- 318/318 test files passed
-- 1,379/1,379 tests passed
-- typecheck passed
-- CLI build/version passed (`ScopeForge 0.1.0`)
-- historical `scanner-medium-v1`: 700 files, 0 findings/errors, 644 ms wall
-- Phase 8B matrix passed all repeated-run correctness contracts
-- production Next.js build passed with 9/9 static pages
+- PR: #58
+- PR head: `386308657bca0d8ba66f86074992d9983db600ba`
+- tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
+- PR CI #767: success
+- npm audit: success
+- full test suite: success
+- typecheck: success
+- CLI build/version: success
+- historical benchmark: success
+- Phase 8B matrix: success
+- production build: success
+- exact-head Vercel Preview `dpl_8KXQU6NguYtVPLv42EwKK7eEoyPP`: READY, `aliasError=null`
 
-Preflight npm audit reported 0 vulnerabilities.
+Release integration:
 
-Exact feature merge production deployment `dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu` is READY with `aliasError=null` and includes `scopeforge.dev` among its aliases.
+- squash merge: `5c08003c8bf8cb920832431a346c9254aae92239`
+- main tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
+- post-merge main CI #768: success
+- exact production deployment: `dpl_BePDHoKDzWPXU6L2PX3Rj8bpTTue`
+- deployment state: READY
+- deployment target: `production`
+- deployment Git SHA: `5c08003c8bf8cb920832431a346c9254aae92239`
+- production domain includes `scopeforge.dev`
+- `aliasError=null`
+
+## Phase 9 controls still pending
+
+Phase 9A did not change provider or database configuration.
+
+Still pending under their own reviewed subphase gates:
+
+- Supabase leaked-password protection
+- Supabase Auth rate-limit configuration review
+- Cloudflare Turnstile
+- Vercel WAF/rate-limit rules
+- database/private-function defense-in-depth
+- security telemetry and alerting
+- CSP hardening
+- incident/release hardening
+
+Current live Supabase Security Advisor still reports one warning: `auth_leaked_password_protection`.
 
 ## Production runtime gates
 
@@ -72,7 +107,7 @@ Keep false/absent unless separate operational acceptance authorizes them:
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Phase 8A/8B did not authorize any of these capabilities.
+Phase 8 validation and Phase 9A authentication hardening authorize none of these capabilities.
 
 ## Production services
 
@@ -84,12 +119,16 @@ Vercel project: `scopeforge`; production domain: `scopeforge.dev`.
 
 ## UI isolation
 
-PR #49 and all active dashboard V5/UI branches remain separate. Non-UI Phase 8 work must not edit, merge, replace, retarget, or deploy that UI stream.
+PR #49 and all active Dashboard V5/UI branches remain separate. Non-UI work must not edit, merge, replace, retarget, or deploy that UI stream.
 
 ## Next non-UI boundary
 
-Phase 8C reproducible technical publication is next. It must publish normalized Phase 8A/8B evidence with exact provenance, raw counts, benchmark runs/summaries, explicit limitations, unsupported cases, and scope. It must not turn the 32-case corpus into a global accuracy claim or add hosted/network/runtime authority merely to produce reports.
+Phase 9C database/RPC defense-in-depth is next.
+
+Start with live privilege inventory and executable regression evidence before proposing any forward-only migration. In particular, do not blindly revoke `authenticated` usage on schema `private`, because current RLS policies intentionally depend on private membership/role helper functions.
+
+Phase 9B Turnstile/WAF/provider changes remain separate and require their own operational acceptance.
 
 ## Branch cleanup
 
-Delete merged backend branches only through a genuine remote delete-ref operation. The connected GitHub tool surface does not currently expose branch deletion, so merged refs must remain intact rather than being force-moved. Preserve all V5/UI branches.
+Delete merged backend branches only through a genuine remote delete-ref operation. If the connected GitHub surface does not expose branch deletion, leave merged refs intact rather than force-moving them. Preserve all V5/UI branches.

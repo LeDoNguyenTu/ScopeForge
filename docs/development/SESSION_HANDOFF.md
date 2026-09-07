@@ -1,6 +1,6 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-07 (Asia/Singapore)
+Last refreshed: 2026-09-08 (Asia/Singapore)
 
 This is the fastest entry point for the current non-UI stream.
 
@@ -9,68 +9,89 @@ This is the fastest entry point for the current non-UI stream.
 - preflight before CI; do not use GitHub Actions as the first debugging loop
 - use `[skip ci]` for intermediate/docs-only checkpoints where Actions adds no executable evidence
 - reserve substantive CI for frozen executable/release candidates
-- do not modify, merge, retarget, replace, or deploy the active dashboard V5/UI stream from this workstream
+- do not modify, merge, retarget, replace, or deploy the active Dashboard V5/UI stream from this workstream
 - do not enable hosted worker/runtime capabilities as part of a code merge
 - do not rewrite deployed Supabase migrations; corrections are forward-only
 - never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
 - do not add AI co-author attribution
 - do not claim a test/build/audit/security gate without evidence tied to the relevant SHA
 
-## Current completed release - Phase 8B
+## Latest completed release - Phase 9A
 
-Phase 8B scanner performance matrix is complete, merged, CI-verified, and production-verified.
+Phase 9A authentication-boundary hardening is complete, merged, CI-verified, and production-verified.
 
-- merged PR: #56
-- final PR head: `e09710560d2451039b493e4c777dcddf1e62a1cd`
-- CI-validated PR merge ref: `5636fdfea10534dea1a4e126113ba659168e208a`
-- squash merge on `main`: `226a20739871c15d0262d1779b3b013520f47fc6`
-- executable tree: `50f17f44e770f1179ed2b40b7713e14e864958c0`
-- final PR CI #760: success
-- post-merge main CI #761: success
-- tests on main: 318 files / 1,379 tests passed
-- typecheck and CLI build/version passed
-- historical benchmark: 700 files, 0 findings/errors, 644 ms wall
-- Phase 8B matrix passed all correctness/timing regression guards
-- production deployment: `dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu`, READY with `aliasError=null`, aliased to `scopeforge.dev`
-- preflight npm audit: zero vulnerabilities
-- source/scope review: no dashboard/V5, Supabase migration, runtime-worker/repository authority, lockfile, dependency, or historical-medium-benchmark drift
+- merged PR: #58
+- final verified PR head: `386308657bca0d8ba66f86074992d9983db600ba`
+- verified tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
+- final PR CI #767: success
+- squash merge on `main`: `5c08003c8bf8cb920832431a346c9254aae92239`
+- post-merge main CI #768: success
+- exact production deployment: `dpl_BePDHoKDzWPXU6L2PX3Rj8bpTTue`
+- deployment: READY, target `production`, `aliasError=null`, includes `scopeforge.dev`
 
-Phase 8B remains local/offline validation infrastructure. It does not authorize production worker enablement.
+Released controls:
 
-## Existing Phase 8 accuracy baseline
+- local-only validation for post-auth `next` navigation
+- same-origin redirects from `/auth/callback` and `/auth/confirm`
+- rejection of absolute, protocol-relative, backslash-confused, control-character, malformed-encoding, and decoded unsafe return targets
+- bounded browser-visible sign-in/sign-up errors
+- bounded authentication rate-limit retry guidance without raw provider detail
+- focused and architecture regression tests
 
-Phase 8A is already merged and complete:
+Phase 9A did not change Supabase Auth settings, database privileges, Turnstile, Vercel WAF, CSP, or worker/runtime authority.
 
-- corpus `scopeforge-offline-v1@1.0.0`
-- 32 reviewed cases, 8 rules, 3 scanner families
-- TP 16 / FN 0 / FP 0 / TN 16
-- error 0 / unsupported 0 / contract mismatch 0
-- content hash `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
+Dedicated release state:
 
-These metrics apply only to that committed reviewed corpus.
+`docs/development/PHASE_9A_RELEASE_STATE.md`
 
-## Current resume action - Phase 8C
+## Phase 8 baseline remains authoritative
 
-Start reproducible technical publication from the normalized Phase 8A/8B evidence.
+Phase 8C publication remains released and unchanged:
 
-Before implementation:
+- merged PR #57
+- release merge `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`
+- publication evidence `validation/publication/phase-8-release-v1.evidence.json`
+- human report `docs/validation/reports/phase-8-release-v1.md`
 
-1. inspect current `main`, `docs/validation/METHODOLOGY.md`, validation packages, benchmark modules, and any existing report surfaces
-2. avoid recreating Phase 8A/8B logic; publication should consume their normalized evidence
-3. define exact versioned provenance and deterministic output contracts
-4. include raw accuracy counts, derived covered-corpus metrics, every benchmark run/summary, errors/unsupported cases, and limitations
-5. preserve privacy reductions, ground-truth immutability, and local/offline authority
-6. use TDD and exact-tree preflight before CI
-7. keep dashboard V5/UI completely separate
+The 32-case corpus is not global or real-world accuracy. Catastrophic benchmark ceilings are not product SLOs. RSS delta is not peak-memory measurement.
 
-Do not call the 32-case corpus global accuracy. Do not call catastrophic benchmark ceilings product SLOs. Do not add network/hosted/runtime authority merely to publish reports.
+## Current resume action - Phase 9C database/RPC defense-in-depth
+
+Phase 9C is the next non-UI implementation boundary.
+
+Start from the released Phase 9A `main` baseline, including the docs-only checkpoint that follows it.
+
+Begin with live read-only evidence and migration-history reconciliation before writing any DDL:
+
+- enumerate schema/table grants and RLS state
+- enumerate function ACLs, trigger functions, security-definer status, and search paths
+- identify ordinary-user dependencies on `private.is_workspace_member` and `private.has_workspace_role`
+- prove ordinary users cannot read private worker tables
+- prove ordinary users cannot execute worker-control RPCs
+- identify unnecessary `PUBLIC EXECUTE` privileges on private trigger/helper functions
+
+Do not blindly revoke `authenticated` usage on schema `private`. Existing public RLS policies intentionally call private helper functions.
+
+If privilege reduction is warranted, use a new forward-only migration only after exact callers and required grants are proven.
+
+## Phase 9 provider controls still pending
+
+The live Supabase Security Advisor still reports one warning:
+
+- `auth_leaked_password_protection`
+
+Do not describe this as fixed.
+
+Turnstile, Auth rate-limit changes, Vercel WAF/rate-limit rules, telemetry/alerts, CSP, and incident/release hardening remain later reviewed boundaries.
 
 ## Separate operational queues
 
 Production enablement for Phase 6B acquisition, 6C isolated scanning, and 6D passive/active runtime workers remains separately gated. All four hosted capability flags stay false/absent until their own acceptance/canary/rollback gates complete.
 
-Phase 9 hardening remains incomplete, including leaked-password protection, abuse controls, observability, private-schema defense-in-depth, incident readiness, and release engineering.
+## UI isolation
+
+PR #49 and all active Dashboard V5/UI branches remain independent. Do not edit, merge, replace, retarget, or deploy them from the Phase 9 non-UI stream.
 
 ## Cleanup
 
-The merged Phase 8B branch remains because the current connected GitHub write surface has no genuine branch delete-ref operation. Do not force-move the branch to simulate deletion. Preserve PR #49 and all active V5/UI branches.
+Merged backend refs may remain if the connected GitHub write surface has no genuine branch delete-ref operation. Do not force-move a branch to simulate deletion. Preserve PR #49 and all active V5/UI branches.
