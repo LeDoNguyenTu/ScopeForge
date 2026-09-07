@@ -1,4 +1,11 @@
-export const PUBLICATION_EVIDENCE_LIMITS = Object.freeze({
+export const PUBLICATION_EVIDENCE_LIMITS: Readonly<{
+  evidenceBytes: number;
+  narrativeBytes: number;
+  listItems: number;
+  profiles: number;
+  rules: number;
+  cases: number;
+}> = Object.freeze({
   evidenceBytes: 512 * 1024,
   narrativeBytes: 4 * 1024,
   listItems: 256,
