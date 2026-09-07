@@ -26,6 +26,7 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=info
       - run: npm test
       - run: npm run typecheck
       - run: npm run build:cli
