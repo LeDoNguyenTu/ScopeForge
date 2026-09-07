@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
+import { authErrorMessage } from "@/lib/auth/error-message";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
@@ -39,7 +40,7 @@ export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         window.location.assign("/dashboard");
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Authentication failed.");
+      setMessage(authErrorMessage(error, mode));
     } finally {
       setBusy(false);
     }
