@@ -10,7 +10,7 @@ describe("Phase 8 CI validation ordering", () => {
     const tests = workflow.indexOf("npm test");
     const historical = workflow.indexOf("npm run benchmark:scanner");
     const matrix = workflow.indexOf("npm run benchmark:matrix");
-    const build = workflow.indexOf("npm run build");
+    const build = workflow.indexOf("- run: npm run build\n");
 
     expect(audit).toBeGreaterThanOrEqual(0);
     expect(tests).toBeGreaterThan(audit);
