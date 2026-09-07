@@ -7,43 +7,60 @@ Last reconciled: 2026-09-08 (Asia/Singapore)
 - Phase 7 Community Security Packs v1: complete, PR #54 merged.
 - Phase 8A offline accuracy foundation: complete, PR #55 merged.
 - Phase 8B scanner performance matrix: complete, PR #56 merged.
-- Phase 8C reproducible technical publication: complete, PR #57 merged as `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`.
+- Phase 8C reproducible technical publication: complete, PR #57 merged.
+- Phase 9A authentication boundary hardening: complete, PR #58 merged as `5c08003c8bf8cb920832431a346c9254aae92239`.
 
-Do not recreate completed Phase 7 or Phase 8 work.
+Do not recreate completed Phase 7, Phase 8, or Phase 9A work.
 
-## Phase 8C release reference
+## Phase 9A release reference
 
-- merged PR: #57
-- final verified PR head: `1964d2b581d61190eb95a82e34f233aa36a5ee2a`
-- verified candidate tree: `68a8e502b40594778776d1fb627e6cf806158dca`
-- final PR CI #764: success
-- squash merge: `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`
-- post-merge main CI #765: success
-- production deployment: `dpl_HFrLZmrPAhFPYvq8SDCJQRYDjJpe`, READY on the exact merge SHA
-- release state: `docs/development/PHASE_8C_RELEASE_STATE.md`
-- publication methodology: `docs/validation/PUBLICATION.md`
-- committed evidence: `validation/publication/phase-8-release-v1.evidence.json`
-- human report: `docs/validation/reports/phase-8-release-v1.md`
+- merged PR: #58
+- final verified PR head: `386308657bca0d8ba66f86074992d9983db600ba`
+- verified tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
+- final PR CI #767: success
+- squash merge: `5c08003c8bf8cb920832431a346c9254aae92239`
+- post-merge main CI #768: success
+- exact production deployment: `dpl_BePDHoKDzWPXU6L2PX3Rj8bpTTue`, READY on the merge SHA with `aliasError=null`
+- release state: `docs/development/PHASE_9A_RELEASE_STATE.md`
 
-Phase 8C remains local/offline publication infrastructure. It does not authorize production workers, hosted scanning, repository acquisition, browser authority, arbitrary network access, or Supabase writes.
+Phase 9A changed application authentication boundaries only. It did not enable provider hardening, change database privileges, or authorize hosted workers.
 
-## Immediate non-UI priority - Phase 9 security hardening
+## Immediate non-UI priority - Phase 9C database/RPC defense-in-depth
 
-Phase 9 is the next non-UI boundary. It has not been started by the Phase 8C release checkpoint.
+Begin Phase 9C from the released Phase 9A baseline.
 
-Begin with a fresh security design and threat-model review against the released `main` baseline. Do not jump directly into operational changes before defining acceptance, rollback, and evidence requirements.
+The first Phase 9C work must be evidence-driven and read-only where possible:
 
-Planned hardening areas:
+1. Inventory live schema usage, table grants, function ACLs, function kinds, `SECURITY DEFINER` status, search paths, and caller roles.
+2. Reconcile that live state against committed forward-only migration history.
+3. Add regression tests proving ordinary `anon` and `authenticated` clients cannot access private worker tables or execute worker-control RPCs.
+4. Preserve the RLS dependency on `private.is_workspace_member` and `private.has_workspace_role` unless a reviewed replacement is proven first.
+5. Identify private trigger/helper functions that retain unnecessary default `PUBLIC EXECUTE` privileges.
+6. If privilege reduction is justified, implement it only through a new forward-only migration, with explicit grants retained for required RLS helper functions.
+7. Verify any DDL change with focused tests, Supabase Security Advisor, exact privilege queries, full project verification, preview, frozen CI candidate, and post-merge validation.
 
-1. Review and, where appropriate, enable Supabase leaked-password protection without weakening existing authentication behavior.
-2. Review authentication, session, API, worker, and public-surface abuse cases and define rate-limit/abuse-control requirements.
-3. Add Turnstile or an equivalent challenge only where the threat model and actual implementation justify it. Do not document a control as present before it exists.
-4. Define production observability and alerting for security-relevant failures, worker health, authorization failures, and abnormal traffic.
-5. Strengthen private-schema and database defense-in-depth while preserving the RPC-only worker authority model.
-6. Document incident response, credential rotation, rollback, containment, and recovery procedures.
-7. Perform release-engineering and final public-launch security review with explicit evidence and rollback gates.
+Do not solve Phase 9C by blindly revoking `USAGE ON SCHEMA private FROM authenticated`. That would break the current RLS helper model unless replaced safely.
 
-Phase 9 should remain evidence-driven and TDD-first where code changes are involved. Prefer local/disposable validation before consuming GitHub Actions.
+## Phase 9B remains separate
+
+Do not enable these merely because Phase 9A is released:
+
+- Supabase leaked-password protection
+- Supabase Auth rate-limit configuration changes
+- Cloudflare Turnstile
+- Vercel WAF/rate-limit rules
+
+The live Supabase Security Advisor currently still reports `auth_leaked_password_protection`. Phase 9B/provider hardening requires its own operational acceptance and rollback evidence.
+
+## Later Phase 9 boundaries
+
+After Phase 9C:
+
+- Phase 9B provider/edge abuse controls when its operational prerequisites are ready
+- Phase 9D security telemetry, alerting, and staged browser hardening
+- Phase 9E incident response, credential rotation, release-security, rollback, and public-launch acceptance
+
+Sequence may be adjusted only if evidence shows a more urgent security dependency. Do not mix unrelated subphases into one release candidate.
 
 ## Separate production worker acceptance
 
@@ -54,13 +71,11 @@ Code-complete is not production-enabled. Keep these false/absent until their own
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Do not infer Phase 8 validation success or Phase 9 hardening work authorizes any production worker.
+Do not infer Phase 8 validation or Phase 9 hardening authorizes any production worker.
 
 ## UI isolation
 
 PR #49 and all active Dashboard V5/UI branches remain separate. Do not edit, merge, replace, retarget, or deploy that stream from the non-UI hardening workstream.
-
-Accessibility/responsive QA remains part of the separate UI stream once its visual implementation is stable.
 
 ## Branch cleanup
 

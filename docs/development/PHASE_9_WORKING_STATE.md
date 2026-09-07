@@ -2,101 +2,97 @@
 
 Last reconciled: 2026-09-08 (Asia/Singapore)
 
-## Branch and baseline
+## Current Phase 9 status
 
-- repository: `LeDoNguyenTu/ScopeForge`
-- branch: `feat/phase-9-security-hardening-v1`
-- released `main` baseline: `d4f37b85738fc08ba3483bf98bb0e5e900184449`
-- Phase 9 design: `docs/superpowers/specs/2026-09-08-phase-9-security-hardening-design.md`
-- Phase 9A plan: `docs/superpowers/plans/2026-09-08-phase-9a-auth-boundary.md`
-- current executable/test checkpoint before this document: `0fb9db1a72e4bb66bc049594fbee2c47a5b7a038`
+- Phase 9 design: approved and committed
+- Phase 9A authentication boundary: complete and released
+- Phase 9B provider/edge abuse controls: pending separate operational acceptance
+- Phase 9C database/RPC defense-in-depth: next implementation boundary
+- Phase 9D telemetry/browser hardening: pending
+- Phase 9E incident/release hardening: pending
 
 Dashboard V5/UI PR #49 remains a separate workstream and has not been modified by Phase 9.
 
-## Phase 9A - implemented, final CI pending
+## Phase 9A released state
 
-Phase 9A closes the authentication redirect boundary and removes raw provider-error rendering from the browser UI.
+Released main:
 
-Implemented:
+- commit: `5c08003c8bf8cb920832431a346c9254aae92239`
+- tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
+- PR: #58
+- final PR head: `386308657bca0d8ba66f86074992d9983db600ba`
+- PR CI #767: success
+- post-merge main CI #768: success
+- exact production deployment: `dpl_BePDHoKDzWPXU6L2PX3Rj8bpTTue`, READY, `aliasError=null`
 
-- `lib/auth/return-path.ts`
-  - accepts only local application paths beginning with `/`
-  - rejects absolute URLs, protocol-relative URLs, backslashes, encoded backslashes, control characters, malformed percent encoding, and decoded host-confusion forms
-  - unsafe values fall back to `/dashboard`
-  - safe local query strings and fragments are retained
-- `app/auth/callback/route.ts`
-  - successful OAuth/PKCE callback navigation now uses the shared safe return-path parser
-- `app/auth/confirm/route.ts`
-  - successful OTP/email confirmation navigation now uses the same parser
-- `lib/auth/error-message.ts`
-  - provider details are not echoed to browser users
-  - sign-in and sign-up use bounded generic messages
-  - rate-limit errors map to bounded retry guidance
-- `components/AuthForm.tsx`
-  - no longer renders `error.message` directly
-- focused tests and architecture guards cover the above boundaries
+Released behavior:
 
-## Test-first history
+- safe local-only post-auth return paths
+- same-origin auth callback/confirmation redirects
+- bounded browser-visible auth failures
+- bounded rate-limit retry guidance
+- regression tests and architecture guards
 
-Executable changes were committed test-first with `[skip ci]`:
+Phase 9A made no Supabase project setting, schema, grant, WAF, Turnstile, CSP, or worker-authority change.
 
-1. `f1c07d5f86fb04147a0de7b1163cddc48da44dde` - return-path behavior test before helper implementation
-2. `be0bbe94fbd376c6e104f01eab7bdc49883eddc2` - return-path helper
-3. `5fffa4822e2c9473ad2bc25ce4f9b4337b3e3588` - auth route regression tests before route fixes
-4. `0d66d7ae3c4a4b4241c8b9092c66288f876b67f0` - callback fix
-5. `44e325b7c607f3ae17cc7e6e9fc3bfeb3ae83d50` - confirmation fix
-6. `6a9eca57ec629ca70b362cd761bf2044b5459b08` - auth error-message tests before helper implementation
-7. `fd5623609f6e074ab68ff48741a2e2ea1c7e83e5` - bounded auth-error helper
-8. `47fdd9441c5942b8444a8bdffe97fbdff04bfae6` - AuthForm leakage regressions before UI integration
-9. `e4a92536c17f37e5d4ae6dda7b68c93db40426aa` - AuthForm integration
-10. `0fb9db1a72e4bb66bc049594fbee2c47a5b7a038` - static Phase 9A architecture guard
+## Phase 9C starting boundary
 
-The current harness has no local repository checkout and its container cannot resolve github.com, so RED/GREEN tests could not be executed locally without spending GitHub Actions. The test-first commit ordering is preserved, while real test execution is reserved for the frozen candidate as required by the CI discipline.
+Phase 9C must begin evidence-first.
 
-## Verification already completed
+Required initial evidence:
 
-For exact executable/test head `0fb9db1a72e4bb66bc049594fbee2c47a5b7a038`:
+1. live public/private schema grants
+2. table RLS and ordinary-client table privileges
+3. function ACLs and callable roles
+4. trigger-vs-callable function classification
+5. `SECURITY DEFINER` and fixed `search_path` status
+6. exact RLS dependencies on private helper functions
+7. current migration-history intent for those grants
 
-- Vercel Preview: `dpl_C14uBw9rw2N8XLRGMMNqKFHYM5v1`
-- preview state: READY
-- alias error: null
-- Next.js production compile: success
-- TypeScript validity check: success
-- static generation: 9/9 pages
-- branch is based on unchanged `main` `d4f37b85738fc08ba3483bf98bb0e5e900184449`
-- base-to-head diff contains only Phase 9 auth code/tests/docs
-- no `package.json`, `package-lock.json`, migration, worker/runtime, `app/layout.tsx`, or Dashboard V5 file changes
+Known live facts from the Phase 9 design pass:
 
-## Verification still required before Phase 9A release
+- all exposed `public` tables have RLS enabled
+- private worker tables have no direct ordinary-client table grants
+- `authenticated` has `USAGE` on schema `private`
+- public RLS policies intentionally depend on `private.is_workspace_member` and `private.has_workspace_role`
+- critical worker-control RPCs are restricted to service-role execution
+- many private trigger/helper functions appear to retain default `PUBLIC EXECUTE`, which requires exact classification before any revocation proposal
 
-A frozen candidate must still execute:
+Do not blindly revoke `USAGE ON SCHEMA private FROM authenticated`.
 
-- Phase 9A focused tests
-- full Vitest suite
+Do not assume every `PUBLIC EXECUTE` grant is exploitable merely because it exists. Determine whether the function is trigger-only, directly callable, privilege-defining, and dependent on caller context before changing ACLs.
+
+Any justified privilege reduction must use a new forward-only migration. Never rewrite deployed migration history.
+
+## Phase 9C acceptance shape
+
+Before a Phase 9C merge candidate is considered safe, require at least:
+
+- focused database/RPC privilege regression tests
+- exact live privilege queries before and after any DDL change
+- proof ordinary clients cannot read private worker state
+- proof ordinary clients cannot execute worker-control RPCs
+- preserved RLS behavior for valid workspace members/admins/owners
+- Supabase Security Advisor after DDL
+- generated TypeScript types if schema-visible signatures change
+- full test suite
 - typecheck
-- CLI build/version smoke
-- historical scanner benchmark
-- Phase 8B matrix
+- CLI build/version
+- historical and matrix benchmarks
 - npm audit
 - production Next.js build
 - exact-head Vercel Preview READY
-- exact base/head recheck immediately before merge
+- one frozen GitHub Actions candidate
+- exact base/head review before merge
+- post-merge main CI and production deployment verification
 
-Do not claim Phase 9A release completion until those gates execute successfully on the exact candidate.
+## Pending provider hardening
 
-## Production settings deliberately unchanged
+Live Supabase Security Advisor currently still reports:
 
-Phase 9A has not changed:
+- `auth_leaked_password_protection`
 
-- Supabase Auth settings
-- leaked-password protection setting
-- Supabase schema, grants, policies, or migrations
-- Cloudflare Turnstile
-- Vercel WAF/rate-limit configuration
-- CSP
-- worker/runtime authority
-
-The live Supabase Security Advisor warning `auth_leaked_password_protection` therefore remains an explicit later Phase 9 operational acceptance item.
+That belongs to the separate provider-hardening acceptance stream. Do not silently mix it into Phase 9C database privilege work unless a reviewed dependency makes that necessary.
 
 ## Runtime authority boundary
 
@@ -107,12 +103,4 @@ Keep false/absent unless separately authorized:
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Phase 9A does not authorize any hosted worker capability.
-
-## Next boundary after Phase 9A
-
-After the Phase 9A release is independently verified and merged, the next non-UI hardening boundary is Phase 9C database/RPC defense-in-depth.
-
-Phase 9C begins with regression evidence and privilege inventory, not a blind migration. In particular, `authenticated` currently requires access to private helper functions used by RLS, so `USAGE ON SCHEMA private` must not be revoked without proving the replacement access model.
-
-Do not start Phase 9B production Turnstile/WAF changes merely because Phase 9A is complete.
+Phase 9 hardening does not itself authorize hosted execution.
