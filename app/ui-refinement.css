@@ -24,19 +24,21 @@
 .commandHeroActions { gap: 22px; margin-top: 26px; flex-wrap: wrap; }
 .commandHeroPrimary, .commandHeroSecondary { font-size: 13px; min-height: 48px; }
 .commandHeroSecondary { color: #c2cecf; }
-.commandHeroScene { grid-area: scene; position: relative; inset: auto; width: 100%; height: 100%; min-height: 520px; }
+.commandHeroScene { grid-area: scene; position: relative; inset: auto; width: 100%; height: 100%; min-height: 520px; filter: none; mix-blend-mode: lighten; opacity: 1; }
 .cinematicSurface { position: absolute; inset: -25px -22px -10px -35px; isolation: isolate; display: flex; align-items: center; }
-.cinematicArtboard { position: relative; width: 100%; aspect-ratio: 1730 / 1350; flex-shrink: 0; }
-.cinematicArtboard > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.cinematicArtboard image { mask-image: radial-gradient(ellipse at 65% 50%, #000 45%, transparent 75%); }
+.cinematicArtboard { position: relative; width: 100%; aspect-ratio: 1730 / 1500; flex-shrink: 0; }
+.cinematicArtboard > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
 .cinematicConnector { color: #65dcca; }
 .cinematicConnector polyline { fill: none; stroke: currentColor; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: .7; }
 .cinematicConnector circle { fill: currentColor; }
 .cinematicConnectorRisk { color: #ff985c; }
-.cinematicSceneLabel { position: absolute; display: grid; gap: 5px; padding: 0; background: #060c1070; white-space: nowrap; }
+.cinematicSceneLabel { position: absolute; display: grid; gap: 5px; padding: 0; background: transparent; white-space: nowrap; }
 .cinematicSceneLabel strong { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .cinematicSceneLabel small { font-size: 11px; color: #75dcca; }
 .cinematicSceneLabelRisk small { color: #ffa776; }
+@media (max-width: 360px) {
+  .cinematicSceneLabelCloud { max-width: 35%; white-space: normal; }
+}
 .commandMetricArea { grid-area: metrics; position: relative; inset: auto; width: 100%; }
 .commandIllustrativeLabel { color: #94a9af; font-size: 10px; letter-spacing: .1em; margin-bottom: 12px; }
 .commandMetricGrid { gap: 10px; }
@@ -333,6 +335,10 @@
   .resourceSectionHeading { align-items: flex-start; flex-direction: column; gap: 8px; }
   .resourceTemplate, .resourceGuide { padding: 24px; }
   .dashboardResources { padding: 20px; }
+}
+@media (max-width: 360px) {
+  .commandMetricCard { flex-direction: column; align-items: flex-start; padding: 14px 12px; }
+  .commandMetricCard strong { font-size: 23px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
