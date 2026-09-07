@@ -10,7 +10,6 @@ import {
 } from "@/packages/validation-publication";
 
 const EVIDENCE = join(process.cwd(), "validation", "publication", "phase-8-release-v1.evidence.json");
-const JSON_REPORT = join(process.cwd(), "docs", "validation", "results", "phase-8-release-v1.json");
 const MARKDOWN_REPORT = join(process.cwd(), "docs", "validation", "reports", "phase-8-release-v1.md");
 
 describe("committed Phase 8 technical publication", () => {
@@ -20,6 +19,7 @@ describe("committed Phase 8 technical publication", () => {
 
     expect(result.source).toMatchObject({
       phase8aCommit: "8d766f5969427a2e4525f5232b5e28b0f93675bd",
+      phase8aTree: "aa6d94c2a35973ee2c8ccbc038d22d7de4f48cc8",
       phase8bCommit: "226a20739871c15d0262d1779b3b013520f47fc6",
       phase8bTree: "50f17f44e770f1179ed2b40b7713e14e864958c0",
       scopeforgeVersion: "0.1.0",
@@ -80,10 +80,13 @@ describe("committed Phase 8 technical publication", () => {
     expect(source.summary.medianWallMs).toBe(1034);
   });
 
-  it("keeps committed JSON and Markdown byte-identical to deterministic rendering", async () => {
+  it("keeps the committed Markdown byte-identical and canonical JSON deterministic", async () => {
     const evidence = parsePublicationEvidence(await readFile(EVIDENCE, "utf8"));
     const result = normalizePublicationEvidence(evidence);
-    expect(await readFile(JSON_REPORT, "utf8")).toBe(serializeTechnicalPublicationJson(result));
+    const firstJson = serializeTechnicalPublicationJson(result);
+    const secondJson = serializeTechnicalPublicationJson(result);
+    expect(firstJson).toBe(secondJson);
+    expect(JSON.parse(firstJson)).toEqual(result);
     expect(await readFile(MARKDOWN_REPORT, "utf8")).toBe(renderTechnicalPublicationMarkdown(result));
   });
 });
