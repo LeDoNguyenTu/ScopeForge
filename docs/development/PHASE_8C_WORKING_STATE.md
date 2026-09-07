@@ -1,64 +1,27 @@
 # ScopeForge Phase 8C Working State
 
-Last reconciled: 2026-09-07 (Asia/Singapore)
+Last reconciled: 2026-09-08 (Asia/Singapore)
 
-This document is the authoritative resumable state for the non-UI Phase 8C reproducible technical publication workstream. Dashboard V5/UI remains completely separate.
+Status: released and archived.
 
-## Branch and base
+This file previously tracked the resumable Phase 8C implementation state. Phase 8C is now complete, merged, CI-verified, and production-verified. Use `docs/development/PHASE_8C_RELEASE_STATE.md` as the authoritative release record.
 
-- repository: `LeDoNguyenTu/ScopeForge`
-- implementation branch: `feat/phase-8c-reproducible-publication-v1`
-- base `main`: `f896280aa8e3ee65faf8ffb4b053915390aef7d4`
-- base has not advanced during Phase 8C implementation
-- PR #49 and all Dashboard V5/UI branches remain untouched
+## Released identity
 
-## Implemented Phase 8C surface
+- merged PR: #57
+- final verified PR head: `1964d2b581d61190eb95a82e34f233aa36a5ee2a`
+- verified tree: `68a8e502b40594778776d1fb627e6cf806158dca`
+- final PR CI #764: success
+- squash merge: `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`
+- post-merge main CI #765: success
+- production deployment: `dpl_HFrLZmrPAhFPYvq8SDCJQRYDjJpe`
+- production state: READY on the exact merge SHA
 
-Phase 8C now contains:
+## Released Phase 8C surface
 
-- versioned publication evidence contracts
-- strict unique-key bounded JSON parsing
-- exact Phase 8A and Phase 8B commit/tree provenance
-- deterministic accuracy normalization and cross-checks
-- deterministic Phase 8B benchmark-profile/run/summary cross-checks
-- canonical JSON serialization
-- deterministic Markdown rendering
-- safe local developer CLI
-- privacy/path leakage guards
-- local/offline architecture/authority guards
-- committed v1 evidence bundle
-- committed human-readable technical report
-- publication methodology and reproducibility instructions
+Phase 8C provides deterministic local/offline technical publication of the accepted Phase 8A accuracy evidence and Phase 8B performance evidence, including exact provenance, raw counts, all benchmark runs, deterministic summaries, limitations, unsupported scenarios, privacy guards, reproducibility instructions, and explicit claim boundaries.
 
-The implementation adds no new dependency and does not modify `package-lock.json`.
-
-## Exact evidence identity
-
-Phase 8A:
-
-- release commit: `8d766f5969427a2e4525f5232b5e28b0f93675bd`
-- release tree: `aa6d94c2a35973ee2c8ccbc038d22d7de4f48cc8`
-- corpus: `scopeforge-offline-v1@1.0.0`
-- corpus content hash: `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
-- cases: 32
-- TP 16 / FN 0 / FP 0 / TN 16
-- error 0 / unsupported 0 / contract mismatch 0
-
-These metrics describe only the committed reviewed corpus and are not global or real-world ScopeForge accuracy.
-
-Phase 8B:
-
-- executable commit: `226a20739871c15d0262d1779b3b013520f47fc6`
-- executable tree: `50f17f44e770f1179ed2b40b7713e14e864958c0`
-- accepted post-merge CI evidence: #761
-- Node 22.23.2 / Ubuntu 24.04.4 / Linux x64
-- all three raw runs retained for every matrix profile
-
-Catastrophic benchmark ceilings are regression guards, not product latency SLOs. RSS delta remains observational only.
-
-## Publication artifacts
-
-Machine-readable evidence source:
+Machine-readable evidence:
 
 `validation/publication/phase-8-release-v1.evidence.json`
 
@@ -70,55 +33,32 @@ Methodology:
 
 `docs/validation/PUBLICATION.md`
 
-Renderer:
+## Release boundary
 
-```bash
-npm run validation:publication -- --evidence validation/publication/phase-8-release-v1.evidence.json --json phase-8-release-v1.reproduced.json --markdown phase-8-release-v1.reproduced.md
-```
+Phase 8C adds no production runtime authorization. It does not enable hosted repository acquisition, hosted scanning, runtime networking, browser execution, Supabase writes, passive/active workers, or worker-control authority.
 
-Canonical JSON is generated deterministically from the committed evidence. The evidence remains the committed machine-readable source of truth, avoiding a second committed copy of the same normalized data.
-
-## Authority result
-
-Phase 8C remains local/offline publication infrastructure. It adds no:
-
-- Supabase migration or client authority
-- hosted repository acquisition
-- hosted scanning authority
-- runtime networking
-- arbitrary HTTP/network access
-- child-process or VM execution
-- browser authority
-- passive or active runtime-worker authority
-- supervisor/control authority
-- dashboard V5/UI mutation
-
-Keep these false/absent unless separately accepted operationally:
+Keep these false/absent until separate operational acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-## Current verification limitation
+The 32-case corpus remains a covered-corpus result only. Benchmark ceilings remain regression guards rather than product SLOs, and RSS delta remains observational rather than peak-memory measurement.
 
-The current ChatGPT container cannot resolve GitHub for a local clone, so an executable local/disposable preflight is unavailable in this harness. GitHub Actions has intentionally not been used as a RED/debug loop.
+## No remaining Phase 8C gates
 
-Implementation used test-first commits and static review. The remaining executable verification will be performed on the frozen release candidate through the final GitHub Actions gate, with any failure diagnosed before a rerun.
+All Phase 8C implementation and release gates are complete. Do not recreate the Phase 8C branch plan or rerun release work merely because older conversation context describes it as pending.
 
-## Remaining release gates
+## Next non-UI boundary
 
-Before Phase 8C can be called complete:
+Phase 9 security hardening is next and has not been started by this archive update.
 
-1. freeze exact branch head
-2. inspect exact base-to-head diff for scope, privacy, determinism, dependency, and authority drift
-3. verify exact-head Vercel Preview READY
-4. run focused/full tests, typecheck, CLI build/version, Phase 8A regressions, Phase 8B regressions, npm audit, and production build through the final candidate validation
-5. verify canonical repeated render comparison
-6. verify GitHub Actions success on the exact candidate/integration head
-7. recheck exact base/head and PR mergeability
-8. squash-merge only the verified head
-9. verify post-merge main CI
-10. verify exact production deployment READY
-11. create docs-only `[skip ci]` Phase 8C release/handoff checkpoint
-12. make Phase 9 hardening the next non-UI boundary without starting or modifying the UI stream
+Use these handoff files for the next session:
+
+- `docs/development/CURRENT_STATE.md`
+- `docs/development/NEXT_STEPS.md`
+- `docs/development/SESSION_HANDOFF.md`
+- `docs/development/PHASE_8C_RELEASE_STATE.md`
+
+PR #49 and all Dashboard V5/UI branches remain separate and must stay untouched by the non-UI Phase 9 stream.

@@ -1,6 +1,6 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-07 (Asia/Singapore)
+Last refreshed: 2026-09-08 (Asia/Singapore)
 
 This is the fastest entry point for the current non-UI stream.
 
@@ -9,68 +9,77 @@ This is the fastest entry point for the current non-UI stream.
 - preflight before CI; do not use GitHub Actions as the first debugging loop
 - use `[skip ci]` for intermediate/docs-only checkpoints where Actions adds no executable evidence
 - reserve substantive CI for frozen executable/release candidates
-- do not modify, merge, retarget, replace, or deploy the active dashboard V5/UI stream from this workstream
+- do not modify, merge, retarget, replace, or deploy the active Dashboard V5/UI stream from this workstream
 - do not enable hosted worker/runtime capabilities as part of a code merge
 - do not rewrite deployed Supabase migrations; corrections are forward-only
 - never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
 - do not add AI co-author attribution
 - do not claim a test/build/audit/security gate without evidence tied to the relevant SHA
 
-## Current completed release - Phase 8B
+## Current completed release - Phase 8C
 
-Phase 8B scanner performance matrix is complete, merged, CI-verified, and production-verified.
+Phase 8C reproducible technical publication is complete, merged, CI-verified, and production-verified.
 
-- merged PR: #56
-- final PR head: `e09710560d2451039b493e4c777dcddf1e62a1cd`
-- CI-validated PR merge ref: `5636fdfea10534dea1a4e126113ba659168e208a`
-- squash merge on `main`: `226a20739871c15d0262d1779b3b013520f47fc6`
-- executable tree: `50f17f44e770f1179ed2b40b7713e14e864958c0`
-- final PR CI #760: success
-- post-merge main CI #761: success
-- tests on main: 318 files / 1,379 tests passed
+- merged PR: #57
+- final verified PR head: `1964d2b581d61190eb95a82e34f233aa36a5ee2a`
+- verified tree: `68a8e502b40594778776d1fb627e6cf806158dca`
+- final PR CI #764: success
+- squash merge on `main`: `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`
+- post-merge main CI #765: success
+- npm audit gate passed
+- full test suite passed
 - typecheck and CLI build/version passed
-- historical benchmark: 700 files, 0 findings/errors, 644 ms wall
-- Phase 8B matrix passed all correctness/timing regression guards
-- production deployment: `dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu`, READY with `aliasError=null`, aliased to `scopeforge.dev`
-- preflight npm audit: zero vulnerabilities
-- source/scope review: no dashboard/V5, Supabase migration, runtime-worker/repository authority, lockfile, dependency, or historical-medium-benchmark drift
+- historical benchmark and Phase 8B matrix passed
+- production Next.js build passed
+- production deployment: `dpl_HFrLZmrPAhFPYvq8SDCJQRYDjJpe`
+- production deployment target: `production`
+- production deployment state: READY
+- production deployment Git SHA: `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`
 
-Phase 8B remains local/offline validation infrastructure. It does not authorize production worker enablement.
+The first release candidate CI #763 failed only because the new workflow-order regression test searched for `npm run build` and matched the earlier `npm run build:cli` step. The assertion was corrected to match the exact production-build workflow line, the repaired tree reached Vercel READY, and replacement candidate CI #764 passed every gate. Do not treat #763 as a product or publication-runtime defect.
 
-## Existing Phase 8 accuracy baseline
+## Released Phase 8 publication
 
-Phase 8A is already merged and complete:
+Committed machine-readable source of truth:
 
-- corpus `scopeforge-offline-v1@1.0.0`
-- 32 reviewed cases, 8 rules, 3 scanner families
-- TP 16 / FN 0 / FP 0 / TN 16
-- error 0 / unsupported 0 / contract mismatch 0
-- content hash `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
+`validation/publication/phase-8-release-v1.evidence.json`
 
-These metrics apply only to that committed reviewed corpus.
+Human-readable report:
 
-## Current resume action - Phase 8C
+`docs/validation/reports/phase-8-release-v1.md`
 
-Start reproducible technical publication from the normalized Phase 8A/8B evidence.
+Publication methodology:
 
-Before implementation:
+`docs/validation/PUBLICATION.md`
 
-1. inspect current `main`, `docs/validation/METHODOLOGY.md`, validation packages, benchmark modules, and any existing report surfaces
-2. avoid recreating Phase 8A/8B logic; publication should consume their normalized evidence
-3. define exact versioned provenance and deterministic output contracts
-4. include raw accuracy counts, derived covered-corpus metrics, every benchmark run/summary, errors/unsupported cases, and limitations
-5. preserve privacy reductions, ground-truth immutability, and local/offline authority
-6. use TDD and exact-tree preflight before CI
-7. keep dashboard V5/UI completely separate
+The release preserves exact Phase 8A/8B provenance, raw accuracy counts, all accepted benchmark runs, deterministic summaries, limitations, unsupported scenarios, privacy reductions, and explicit claim boundaries.
 
-Do not call the 32-case corpus global accuracy. Do not call catastrophic benchmark ceilings product SLOs. Do not add network/hosted/runtime authority merely to publish reports.
+The 32-case corpus is not global or real-world accuracy. Catastrophic benchmark ceilings are not product SLOs. RSS delta is not peak-memory measurement.
+
+## Current resume action - Phase 9 security hardening
+
+Phase 9 is the next non-UI boundary and is not yet implemented by this handoff.
+
+Start by reconciling the current `main` release state and writing a security design/threat model before changing production controls. Planned areas include:
+
+- Supabase leaked-password protection review
+- authentication/session/API abuse prevention
+- challenge/bot controls only when justified and actually implemented
+- production security observability and alerting
+- private-schema defense-in-depth without breaking RPC-only worker authority
+- incident response, credential rotation, rollback, containment, and recovery
+- release engineering and final public-launch security review
+
+Use explicit acceptance criteria, TDD for code changes, preflight-first verification, and exact-SHA evidence.
 
 ## Separate operational queues
 
 Production enablement for Phase 6B acquisition, 6C isolated scanning, and 6D passive/active runtime workers remains separately gated. All four hosted capability flags stay false/absent until their own acceptance/canary/rollback gates complete.
 
-Phase 9 hardening remains incomplete, including leaked-password protection, abuse controls, observability, private-schema defense-in-depth, incident readiness, and release engineering.
+## UI isolation
+
+PR #49 and all active Dashboard V5/UI branches remain independent. Do not edit, merge, replace, retarget, or deploy them from the Phase 9 non-UI stream.
 
 ## Cleanup
 
-The merged Phase 8B branch remains because the current connected GitHub write surface has no genuine branch delete-ref operation. Do not force-move the branch to simulate deletion. Preserve PR #49 and all active V5/UI branches.
+Merged backend refs may remain if the connected GitHub write surface has no genuine branch delete-ref operation. Do not force-move a branch to simulate deletion. Preserve PR #49 and all active V5/UI branches.

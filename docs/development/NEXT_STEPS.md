@@ -1,53 +1,49 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-07 (Asia/Singapore)
+Last reconciled: 2026-09-08 (Asia/Singapore)
 
 ## Completed non-UI phases
 
 - Phase 7 Community Security Packs v1: complete, PR #54 merged.
 - Phase 8A offline accuracy foundation: complete, PR #55 merged.
-- Phase 8B scanner performance matrix: complete, PR #56 merged as `226a20739871c15d0262d1779b3b013520f47fc6`.
+- Phase 8B scanner performance matrix: complete, PR #56 merged.
+- Phase 8C reproducible technical publication: complete, PR #57 merged as `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`.
 
-Do not recreate completed Phase 7, Phase 8A, or Phase 8B tasks.
+Do not recreate completed Phase 7 or Phase 8 work.
 
-## Immediate non-UI priority - Phase 8C reproducible technical publication
+## Phase 8C release reference
 
-Build deterministic publication/reporting from the already-normalized Phase 8A accuracy evidence and Phase 8B benchmark evidence.
+- merged PR: #57
+- final verified PR head: `1964d2b581d61190eb95a82e34f233aa36a5ee2a`
+- verified candidate tree: `68a8e502b40594778776d1fb627e6cf806158dca`
+- final PR CI #764: success
+- squash merge: `a8feb63a8ca00dcbbc52b0eb32c6880cb38670d1`
+- post-merge main CI #765: success
+- production deployment: `dpl_HFrLZmrPAhFPYvq8SDCJQRYDjJpe`, READY on the exact merge SHA
+- release state: `docs/development/PHASE_8C_RELEASE_STATE.md`
+- publication methodology: `docs/validation/PUBLICATION.md`
+- committed evidence: `validation/publication/phase-8-release-v1.evidence.json`
+- human report: `docs/validation/reports/phase-8-release-v1.md`
 
-Required publication content:
+Phase 8C remains local/offline publication infrastructure. It does not authorize production workers, hosted scanning, repository acquisition, browser authority, arbitrary network access, or Supabase writes.
 
-- exact repository commit and tool version
-- Phase 8A corpus ID/version/content hash
-- represented scanner/rule scope
-- raw TP/FN/FP/TN/error/unsupported/contract-mismatch counts
-- derived precision/recall/FPR/F1 only where denominators are defined
-- explicit statement that the 32-case reviewed corpus is not global or real-world ScopeForge accuracy
-- Phase 8B profile identities and correctness contracts
-- every repeated benchmark run plus normalized min/median/max summaries
-- Node/OS/architecture/environment provenance
-- RSS delta labeled as observational, not peak memory unless a future measurement truly measures peak RSS
-- catastrophic ceilings labeled as regression guards, not product SLOs
-- errors, unsupported cases, limitations, and known blind spots
-- deterministic machine-readable output and a human-readable technical report
+## Immediate non-UI priority - Phase 9 security hardening
 
-Implementation boundaries:
+Phase 9 is the next non-UI boundary. It has not been started by the Phase 8C release checkpoint.
 
-- publication must consume committed/normalized evidence rather than scrape screenshots or mutate labels
-- reports must be reproducible from an exact commit
-- no hidden network dependency is required for the ordinary publication path
-- do not add hosted scanner, worker, browser, arbitrary network, or Supabase authority merely to produce reports
-- preserve Phase 8A privacy reductions and ground-truth immutability
-- use TDD and preflight-first verification
+Begin with a fresh security design and threat-model review against the released `main` baseline. Do not jump directly into operational changes before defining acceptance, rollback, and evidence requirements.
 
-## Phase 8B release reference
+Planned hardening areas:
 
-- PR #56
-- final PR head: `e09710560d2451039b493e4c777dcddf1e62a1cd`
-- squash merge: `226a20739871c15d0262d1779b3b013520f47fc6`
-- final PR CI: #760 success
-- post-merge main CI: #761 success
-- production deployment: `dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu`, READY on `scopeforge.dev`
-- release state: `docs/development/PHASE_8B_RELEASE_STATE.md`
+1. Review and, where appropriate, enable Supabase leaked-password protection without weakening existing authentication behavior.
+2. Review authentication, session, API, worker, and public-surface abuse cases and define rate-limit/abuse-control requirements.
+3. Add Turnstile or an equivalent challenge only where the threat model and actual implementation justify it. Do not document a control as present before it exists.
+4. Define production observability and alerting for security-relevant failures, worker health, authorization failures, and abnormal traffic.
+5. Strengthen private-schema and database defense-in-depth while preserving the RPC-only worker authority model.
+6. Document incident response, credential rotation, rollback, containment, and recovery procedures.
+7. Perform release-engineering and final public-launch security review with explicit evidence and rollback gates.
+
+Phase 9 should remain evidence-driven and TDD-first where code changes are involved. Prefer local/disposable validation before consuming GitHub Actions.
 
 ## Separate production worker acceptance
 
@@ -58,26 +54,14 @@ Code-complete is not production-enabled. Keep these false/absent until their own
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Do not infer Phase 8 validation success authorizes any production worker.
-
-## Phase 9 hardening
-
-Remaining non-UI hardening includes:
-
-- enable/review Supabase leaked-password protection
-- abuse prevention and threat review
-- Turnstile/equivalent integration only if actually implemented
-- production observability and alerting
-- private-schema defense-in-depth without breaking RPC-only worker authority
-- incident/rollback procedures
-- release engineering and final public-launch security review
-
-Accessibility/responsive QA belongs after the separate Dashboard V5 visual stream is stable.
+Do not infer Phase 8 validation success or Phase 9 hardening work authorizes any production worker.
 
 ## UI isolation
 
-PR #49 and all active dashboard V5/UI branches remain separate. Do not edit, merge, replace, retarget, or deploy that stream from Phase 8 work.
+PR #49 and all active Dashboard V5/UI branches remain separate. Do not edit, merge, replace, retarget, or deploy that stream from the non-UI hardening workstream.
+
+Accessibility/responsive QA remains part of the separate UI stream once its visual implementation is stable.
 
 ## Branch cleanup
 
-Delete merged backend branches only with a true remote delete-ref mutation. The connected GitHub tooling currently exposes no branch-delete action. Never force-move a merged branch to simulate deletion.
+Delete merged backend branches only with a true remote delete-ref mutation. Never force-move a merged branch to simulate deletion. Preserve PR #49 and all active V5/UI branches.
