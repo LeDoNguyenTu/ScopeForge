@@ -1,5 +1,6 @@
 import { RepositoryScanError } from "@/lib/repository-scans/types";
 import { RepositorySnapshotError } from "@/lib/repository-snapshots/types";
+import { writeSecurityTelemetry, type WorkerSecurityRoute } from "@/lib/security/telemetry";
 import { WorkerBrokerAuthError } from "./auth";
 import { WorkerControlError } from "./types";
 import { WorkerTransportError } from "./transport";
@@ -82,6 +83,38 @@ function statusForRepositoryScanError(code: RepositoryScanError["code"]): number
   }
 }
 
+function writeWorkerEvent(input: {
+  event: "worker.authentication_rejected" | "worker.access_rejected" | "worker.rate_limited" | "worker.request_failed";
+  severity: "warning" | "error";
+  route: WorkerSecurityRoute;
+  code: string;
+  status: number;
+}): void {
+  writeSecurityTelemetry({
+    schema: "scopeforge.security.v1",
+    event: input.event,
+    severity: input.severity,
+    route: input.route,
+    code: input.code,
+    status: input.status,
+  });
+}
+
+function emitControlSecurityTelemetry(code: WorkerControlError["code"], route: WorkerSecurityRoute, status: number): void {
+  switch (code) {
+    case "WORKER_DISABLED":
+    case "WORKER_NOT_AVAILABLE":
+    case "RUNTIME_WORKER_ACCESS_DENIED":
+      writeWorkerEvent({ event: "worker.access_rejected", severity: "warning", route, code, status });
+      return;
+    case "RUNTIME_WORKER_ACTIVE_LIMIT":
+      writeWorkerEvent({ event: "worker.rate_limited", severity: "warning", route, code, status });
+      return;
+    default:
+      return;
+  }
+}
+
 export function workerJson(data: unknown, status = 200): Response {
   return Response.json(data, {
     status,
@@ -89,15 +122,24 @@ export function workerJson(data: unknown, status = 200): Response {
   });
 }
 
-export function workerRouteError(error: unknown): Response {
+export function workerRouteError(error: unknown, route: WorkerSecurityRoute): Response {
   if (error instanceof WorkerBrokerAuthError) {
+    writeWorkerEvent({
+      event: "worker.authentication_rejected",
+      severity: "warning",
+      route,
+      code: error.code,
+      status: 401,
+    });
     return workerJson({ error: { code: error.code } }, 401);
   }
   if (error instanceof WorkerTransportError) {
     return workerJson({ error: { code: error.code } }, error.status);
   }
   if (error instanceof WorkerControlError) {
-    return workerJson({ error: { code: error.code } }, statusForControlError(error.code));
+    const status = statusForControlError(error.code);
+    emitControlSecurityTelemetry(error.code, route, status);
+    return workerJson({ error: { code: error.code } }, status);
   }
   if (error instanceof RepositorySnapshotError) {
     return workerJson({ error: { code: error.code } }, statusForRepositorySnapshotError(error.code));
@@ -105,5 +147,12 @@ export function workerRouteError(error: unknown): Response {
   if (error instanceof RepositoryScanError) {
     return workerJson({ error: { code: error.code } }, statusForRepositoryScanError(error.code));
   }
+  writeWorkerEvent({
+    event: "worker.request_failed",
+    severity: "error",
+    route,
+    code: "WORKER_REQUEST_FAILED",
+    status: 500,
+  });
   return workerJson({ error: { code: "WORKER_REQUEST_FAILED" } }, 500);
 }
