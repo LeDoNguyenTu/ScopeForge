@@ -1,125 +1,88 @@
 # ScopeForge Phase 9 Working State
 
-Last reconciled: 2026-09-08 (Asia/Singapore)
+Last reconciled: 2026-09-09 (Asia/Singapore)
 
 ## Phase status
 
 - Phase 9 architecture: approved
 - Phase 9A authentication boundary: complete and released
-- Phase 9B provider/edge abuse controls: implementation complete through checkpoint, release validation pending
+- Phase 9B provider/auth hardening code: complete and released; external provider activation remains pending verification
 - Phase 9C database/RPC defense-in-depth: complete and released
-- Phase 9D security telemetry/browser hardening: pending after 9B
+- Phase 9D security telemetry/browser hardening: next implementation boundary
 - Phase 9E incident/release hardening: pending after 9D
 
 ## Authoritative production baseline
 
-Current production docs checkpoint:
+Current production executable release:
 
-`fc7c4369c7075d22c3ad918bea3e17b1e1df5c2b`
+`f203168e6ae25455743849f08511e371d3964153`
 
-Its parent is the Phase 9C executable release:
+Current production tree:
 
-- merge `0869767401011cd32dcd3e3b2976201461655e02`
-- tree `ca68a0559af93fc3b2143fdec387b84e418bb141`
-- main CI #771 success
-- production deployment `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N` READY on `scopeforge.dev`
+`9980aa5a58014998fd26ae7084bd97c992bc1a82`
+
+Release evidence:
+
+- PR #60 squash merge `f203168e6ae25455743849f08511e371d3964153`
+- frozen candidate `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`
+- candidate tree `9980aa5a58014998fd26ae7084bd97c992bc1a82`
+- candidate CI #773, run `34236014666`, success
+- post-merge main CI #774, run `34236559722`, success
+- exact production deployment `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`, READY
+- deployment Git SHA exactly `f203168e6ae25455743849f08511e371d3964153`
+- production alias includes `scopeforge.dev`
+- `aliasError=null`
 
 The current production UI is authoritative. PR #49 remains an open draft legacy UI branch and is out of scope.
 
-## Phase 9B current branch
+## Phase 9B release
 
-Branch:
+Dedicated release state:
 
-`feat/phase-9b-provider-edge-hardening-v1`
+`docs/development/PHASE_9B_RELEASE_STATE.md`
 
-Checkpoint head before this document update:
+Released behavior:
 
-`7824fa7834a0b9756e639c9c9a28e8a687451f63`
+- dependency-free Cloudflare Turnstile wrapper using explicit rendering
+- public configuration boundary is `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- absent/blank site key preserves existing auth behavior
+- configured challenge disables submit until a token exists
+- sign-in forwards `options.captchaToken`
+- sign-up preserves display metadata and forwards `captchaToken`
+- token stays in React component memory
+- failed/non-redirecting configured attempts invalidate the token and remount the challenge
+- expiry/provider errors clear the token
+- cleanup removes the widget
+- narrow auth cards use compact sizing; wider cards use flexible sizing
+- Phase 9A bounded auth errors remain intact
 
-Checkpoint Vercel Preview:
+No package dependency, database/RLS/function ACL, hosted runtime, dashboard, landing, CSP, or telemetry change was part of the Phase 9B executable release.
 
-- deployment `dpl_EUkCryrKh4ge5nKszriLm2Ua98Dv`
-- Git SHA `7824fa7834a0b9756e639c9c9a28e8a687451f63`
-- READY
-- `aliasError=null`
+## Phase 9B merge/UI reconciliation result
 
-Branch scope from production checkpoint is exactly eight Phase 9B files:
+The user required concurrent UI changes to be preserved.
 
-- `components/AuthForm.tsx`
-- `components/auth/TurnstileChallenge.tsx`
-- `tests/components/AuthForm.test.tsx`
-- `tests/components/TurnstileChallenge.test.tsx`
-- `tests/architecture/phase-9b-provider-edge-hardening.test.ts`
-- `docs/security/PHASE_9B_PROVIDER_CONTROLS.md`
-- Phase 9B design spec
-- Phase 9B implementation plan
+The exact current `main` SHA was re-read before freeze, before CI release, and immediately before merge. PR #60 remained `mergeable=true`; the Phase 9B executable file set was disjoint from the current production landing/dashboard changes. No real Git conflict surfaced, so no synthetic reconciliation commit was created.
 
-No package dependency, dashboard, landing, database, runtime, CSP, telemetry, or PR #49 file changed.
+The merge operation pinned expected head `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`. GitHub accepted the merge against the unchanged CI-tested base, and the squash merge preserved the frozen candidate tree exactly.
 
-## Phase 9B implemented behavior
+For future phases, continue to re-read `main` before freeze/merge and preserve the newest production UI whenever overlaps appear.
 
-The application now has a dependency-free local Cloudflare Turnstile wrapper using the official explicit-render script.
+## Live provider truth
 
-Auth behavior is configuration-gated:
+Fresh ScopeForge Supabase Security Advisor after release reports exactly one warning:
 
-- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` absent/blank: existing sign-in/sign-up behavior and Supabase call shapes remain unchanged
-- site key present: submit stays disabled until a challenge token is available
-- sign-in passes `options.captchaToken`
-- sign-up passes display metadata plus `captchaToken`
-- CAPTCHA token stays only in React component memory
-- configured failed/non-redirecting attempts invalidate the token and remount the challenge
-- the wrapper clears tokens on expiry/error and removes its widget on cleanup
-- narrow auth cards use compact Turnstile sizing; wider cards use flexible sizing
+`auth_leaked_password_protection`
 
-Phase 9A bounded auth error behavior remains intact by design.
+Claims that remain intentionally NOT made:
 
-## Test-first history
+- leaked-password protection is not enabled
+- production Turnstile enforcement is not claimed until external provider/site-key configuration is directly verified
+- Vercel project-specific WAF custom-rule enforcement is not claimed without direct evidence
 
-The branch preserves test-first ordering:
+Supabase native Auth rate limiting remains the primary auth-endpoint limiter.
 
-- `6ff038465a521fc3043ff5d3733b569b71570ecd` - Turnstile component contract
-- `573621cbe134261f203ea6dc9597c6766a4b49fc` - Turnstile wrapper implementation
-- `9393ce7c77e9ff516b3ab2830cd7d2430c6b21a5` - AuthForm CAPTCHA contract before AuthForm implementation
-- `de2399a1db6ef39292f5a6e0da2547a790c0d324` - narrow-screen sizing regression contract
-- `59c9544bd81fddc76cecf246ec249bbbe3cd9cff` - narrow-screen wrapper fix
-- `27b3e248f1ad1765e7852f547db96867861ca9ca` - AuthForm CAPTCHA integration
-- `cda7e6a5af7177f7e5dbe9d3f3407d7d1b61b7d8` - provider-boundary architecture guard before operational-state document
-- `7824fa7834a0b9756e639c9c9a28e8a687451f63` - provider operational truth document
-
-This harness has no executable repository checkout, so focused Vitest RED/GREEN was structural rather than locally executed. The frozen GitHub Actions candidate is the required executable proof.
-
-## Live provider preflight
-
-ScopeForge Supabase:
-
-- project `tdgpibrepzcvdivztkta`
-- status `ACTIVE_HEALTHY`
-- PostgreSQL `17.6.1.155`
-- organization plan `free`
-- Security Advisor still reports exactly `auth_leaked_password_protection`
-
-Provider truth:
-
-- leaked-password protection is NOT ENABLED on the current Free plan
-- Supabase native Auth rate limiting remains the auth-endpoint protection
-- production Turnstile enforcement is PENDING external provider configuration
-- Vercel WAF custom rule state is NOT CLAIMED
-- no billing upgrade is authorized
-
-Operational activation and rollback order is recorded in `docs/security/PHASE_9B_PROVIDER_CONTROLS.md`.
-
-## Remaining Phase 9B release gates
-
-1. create a tree-identical freeze commit
-2. require exact-head Vercel Preview READY
-3. open draft PR against the actual current `main`
-4. run one substantive candidate CI and require audit, full tests, typecheck, CLI build/version, historical benchmark, Phase 8B matrix, and production Next build success
-5. review exact PR head/base/scope/reviews/threads
-6. squash merge only the verified head
-7. independently verify post-merge main CI and exact production Vercel deployment
-8. write a docs-only Phase 9B release checkpoint with no redundant Actions run
-
-Production CAPTCHA enforcement may remain pending after code release. Do not describe Turnstile, leaked-password protection, or WAF as enforced without direct provider evidence.
+Activation and rollback guidance remains in `docs/security/PHASE_9B_PROVIDER_CONTROLS.md`.
 
 ## Phase 9C release
 
@@ -131,7 +94,22 @@ Do not rewrite the deployed Phase 9C migration and do not apply a global `postgr
 
 ## Phase 9D direction
 
-Reuse existing durable audit infrastructure for security-significant events and privacy-reduced structured server logs for high-frequency operational signals. Preserve current headers. Stage CSP only after compatibility proof with the actual production UI/WebGL runtime.
+Phase 9D is next.
+
+Reuse existing durable audit infrastructure for security-significant events and privacy-reduced structured server logs for high-frequency operational signals.
+
+Design constraints:
+
+- passwords, tokens, API keys, credentials, cookies, authorization headers, worker lease tokens, source content, and raw executor output must never enter security telemetry
+- durable audit storage is for significant security/account/workspace events, not high-volume request telemetry
+- structured server logs must use bounded allowlisted fields and privacy-reduced values
+- preserve the existing security-header baseline unless a reviewed change is justified
+- stage CSP only after compatibility proof with the exact current production Next.js/WebGL UI
+- do not use broad `unsafe-inline` merely to claim CSP coverage
+- do not couple telemetry to visual components
+- do not touch PR #49
+
+Before implementation, re-read the current audit writer/schema, logging paths, middleware, `next.config.ts`, and security-relevant routes, then complete the detailed Phase 9D design/plan workflow.
 
 ## Phase 9E direction
 

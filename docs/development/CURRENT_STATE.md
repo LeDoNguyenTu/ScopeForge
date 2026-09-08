@@ -1,20 +1,21 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-08 (Asia/Singapore)
+Last reconciled: 2026-09-09 (Asia/Singapore)
 
 ## Repository and production baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- current released `main`: `0869767401011cd32dcd3e3b2976201461655e02`
-- current released tree: `ca68a0559af93fc3b2143fdec387b84e418bb141`
-- latest merged hardening PR: #59, Phase 9C database/RPC hardening
-- post-merge main CI: #771, success
-- exact production deployment: `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N`, READY, `aliasError=null`
+- current released `main`: `f203168e6ae25455743849f08511e371d3964153`
+- current released tree: `9980aa5a58014998fd26ae7084bd97c992bc1a82`
+- latest merged hardening PR: #60, Phase 9B provider/auth hardening
+- frozen candidate CI: #773, success
+- post-merge main CI: #774, success
+- exact production deployment: `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`, READY, `aliasError=null`
 - production domain: `scopeforge.dev`
 
-The actual production `main` tree is the integration baseline for all remaining hardening work. It includes the current production landing/dashboard UI plus the released Phase 9A and Phase 9C security changes.
+The actual production `main` tree is the integration baseline for all remaining hardening work. It contains the current production landing/dashboard UI plus the released Phase 9A, 9B, and 9C security changes.
 
-PR #49 remains an open draft legacy UI branch. Do not merge, rebase, retarget, replace, or use it as the baseline for Phase 9B/9D/9E unless the user separately requests that work.
+PR #49 remains an open draft legacy UI branch. Do not merge, rebase, retarget, replace, or use it as the baseline for Phase 9D/9E unless the user separately requests that work.
 
 ## Completed product/security phases
 
@@ -30,9 +31,10 @@ Completed and released:
 - Phase 8B deterministic scanner performance matrix
 - Phase 8C reproducible technical publication
 - Phase 9A authentication-boundary hardening
+- Phase 9B Turnstile-capable provider/auth hardening code
 - Phase 9C database/RPC defense-in-depth
 
-Code release does not authorize hosted worker execution.
+Code release does not authorize hosted worker execution or prove external provider enforcement.
 
 ## Phase 9A released boundary
 
@@ -45,6 +47,30 @@ Phase 9A provides:
 - bounded retry guidance without raw provider detail
 
 Released via PR #58 and independently CI/production verified.
+
+## Phase 9B released boundary
+
+Phase 9B released via PR #60.
+
+- frozen candidate: `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`
+- candidate tree: `9980aa5a58014998fd26ae7084bd97c992bc1a82`
+- candidate preview `dpl_FcFdrKhr31kgQHWjS723yZ4D49AT`: READY
+- candidate CI #773: success
+- squash merge: `f203168e6ae25455743849f08511e371d3964153`
+- main CI #774: success
+- production deployment `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`: READY
+- dedicated release state: `docs/development/PHASE_9B_RELEASE_STATE.md`
+
+Released code provides a dependency-free Turnstile challenge wrapper and configuration-gated CAPTCHA token forwarding to Supabase Auth while preserving existing behavior when no site key is configured.
+
+The release did not modify package dependencies, database ACLs, dashboard/landing composition, CSP, telemetry, or hosted worker authority.
+
+Provider truth remains separate from code release:
+
+- production Turnstile enforcement is not claimed until external provider configuration is directly verified
+- leaked-password protection remains disabled according to the current Supabase Security Advisor
+- Vercel project-specific WAF custom-rule enforcement is not claimed without direct evidence
+- Supabase native Auth rate limiting remains the auth-endpoint limiter
 
 ## Phase 9C released boundary
 
@@ -67,18 +93,17 @@ Future application function ACLs are protected by a repository migration archite
 
 ## Production UI baseline
 
-The immediate pre-Phase-9C production UI baseline was `86d342216cf05d2951fd9ed427d35b6d575e7765`. Phase 9C merged on top without editing the UI file set.
+The current production UI is part of tree `9980aa5a58014998fd26ae7084bd97c992bc1a82` and is authoritative for all remaining Phase 9 work.
 
-Current UI-relevant facts for remaining security work:
+Current UI-relevant facts:
 
 - `app/layout.tsx` is the live global CSS integration point for the landing/dashboard system
 - current `next.config.ts` already sets nosniff, strict-origin referrer policy, `X-Frame-Options: DENY`, restrictive Permissions Policy, HSTS, and disables the powered-by header
 - middleware remains intentionally thin and delegates session handling to `lib/supabase/middleware`
-- `components/AuthForm.tsx` uses the current production visual structure/classes and Phase 9A normalized errors
-- Turnstile is not implemented yet
+- `components/AuthForm.tsx` includes Phase 9A bounded errors plus the Phase 9B configuration-gated Turnstile boundary
 - CSP is not enabled yet
 
-Remaining security changes must preserve the current landing/dashboard/auth visual behavior and must be verified against the production UI tree.
+Remaining security changes must preserve current landing/dashboard/auth behavior and be verified against the actual production tree.
 
 ## Phase 8 validation claim boundary
 
@@ -90,27 +115,23 @@ Phase 8B catastrophic benchmark ceilings are regression guards, not product SLOs
 
 Next implementation order:
 
-1. Phase 9B provider/edge abuse controls
-2. Phase 9D security telemetry and browser hardening
-3. Phase 9E incident/release/public-launch hardening
+1. Phase 9D security telemetry and browser hardening
+2. Phase 9E incident/release/public-launch hardening
 
-Pending Phase 9B items include:
-
-- Supabase leaked-password protection
-- Auth rate-limit configuration review
-- Cloudflare Turnstile for sign-in/sign-up
-- Vercel WAF/rate-limit operational controls
+Phase 9B operational provider activation remains a tracked launch prerequisite but is not evidence of active enforcement until directly verified.
 
 Pending Phase 9D items include:
 
 - privacy-reduced structured security telemetry
 - durable security-significant audit coverage
+- event-shape and metadata-safety tests
 - alert/rollback signals
-- staged CSP hardening that is proven compatible with the current Next.js/WebGL UI
+- preservation of the existing security-header baseline
+- staged CSP hardening proven compatible with the current Next.js/WebGL UI before enforcement
 
 Pending Phase 9E includes incident response, disclosure, credential rotation, rollback and release-security procedures.
 
-Live Supabase Security Advisor still reports `auth_leaked_password_protection`.
+Fresh Supabase Security Advisor still reports exactly `auth_leaked_password_protection`.
 
 ## Production runtime gates
 

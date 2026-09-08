@@ -1,6 +1,6 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-08 (Asia/Singapore)
+Last refreshed: 2026-09-09 (Asia/Singapore)
 
 Use this as the fastest resume point for ScopeForge Phase 9 hardening.
 
@@ -19,133 +19,118 @@ Use this as the fastest resume point for ScopeForge Phase 9 hardening.
 - do not enable hosted worker/runtime capability flags as part of Phase 9 hardening
 - PR #49 remains a legacy draft UI branch and is not the hardening baseline
 
-## Released Phase 9C baseline
+## Current released production baseline
 
-Production docs checkpoint before Phase 9B:
+Executable release:
 
-`fc7c4369c7075d22c3ad918bea3e17b1e1df5c2b`
+`f203168e6ae25455743849f08511e371d3964153`
 
-Its parent is the Phase 9C executable release:
+Tree:
 
-- PR #59
-- squash merge `0869767401011cd32dcd3e3b2976201461655e02`
-- tree `ca68a0559af93fc3b2143fdec387b84e418bb141`
-- post-merge CI #771 success
-- exact production deployment `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N` READY on `scopeforge.dev`
+`9980aa5a58014998fd26ae7084bd97c992bc1a82`
 
-The docs checkpoint itself deployed as `dpl_2bHVe72K97rMmfdGkfPmavPaBZQ9`, READY, with no redundant GitHub Actions run.
+Exact production evidence:
 
-Phase 9C live migration history includes:
+- PR #60 squash merge `f203168e6ae25455743849f08511e371d3964153`
+- post-merge main CI #774, run `34236559722`, success
+- production deployment `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`
+- deployment Git SHA exactly `f203168e6ae25455743849f08511e371d3964153`
+- target production
+- READY
+- `scopeforge.dev` alias present
+- `aliasError=null`
+
+This tree contains the current production UI plus released Phase 9A, 9B, and 9C hardening.
+
+## Released Phase 9B
+
+Dedicated state:
+
+`docs/development/PHASE_9B_RELEASE_STATE.md`
+
+Release identity:
+
+- frozen candidate `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`
+- frozen tree `9980aa5a58014998fd26ae7084bd97c992bc1a82`
+- preview `dpl_FcFdrKhr31kgQHWjS723yZ4D49AT`, READY, `aliasError=null`
+- candidate CI #773, run `34236014666`, success
+- squash merge `f203168e6ae25455743849f08511e371d3964153`
+- post-merge CI #774, success
+- production `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`, READY
+
+Released code:
+
+- dependency-free Cloudflare Turnstile explicit-render wrapper
+- optional public key boundary `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- absent/blank key preserves existing auth behavior
+- configured challenge gates submit until a token exists
+- CAPTCHA tokens are forwarded directly to Supabase Auth and kept only in React memory
+- failed/non-redirecting configured attempts invalidate/remount the challenge
+- expiry/provider errors clear the token
+- widget cleanup is explicit
+- narrow auth cards use compact sizing
+- Phase 9A bounded error behavior remains intact
+
+No dependency, database, hosted-runtime, dashboard, landing, CSP, or telemetry executable file changed in Phase 9B.
+
+## UI/merge-conflict result
+
+The user required all concurrent UI drift to be reconciled before release.
+
+Before freeze and merge, `main` was repeatedly refreshed. PR #60 remained `mergeable=true`, and its executable auth file set was disjoint from the current production landing/dashboard changes. No actual conflict surfaced, so no artificial reconciliation commit was needed.
+
+The final merge was pinned to expected head `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`, and the squash merge preserved the candidate tree exactly.
+
+For all future Phase 9 work, repeat the same rule: newest `main` UI wins, then reapply only the reviewed security delta if a true overlap appears.
+
+## Live provider truth
+
+Fresh Supabase Security Advisor reports exactly:
+
+`auth_leaked_password_protection`
+
+Therefore:
+
+- leaked-password protection is NOT enabled
+- production Turnstile enforcement is NOT claimed until provider/site-key configuration is directly verified
+- Vercel project-specific WAF custom rules are NOT claimed as active without inspected evidence
+- Supabase native Auth rate limiting remains in place
+
+Provider activation/rollback guidance:
+
+`docs/security/PHASE_9B_PROVIDER_CONTROLS.md`
+
+Do not treat code capability as proof of active provider enforcement.
+
+## Released Phase 9C
+
+Dedicated state:
+
+`docs/development/PHASE_9C_RELEASE_STATE.md`
+
+Live migration history includes:
 
 `20260908084554_phase_9c_function_acl_hardening`
 
 Do not rewrite that migration or apply a global `postgres` default-function revoke.
 
-## Active Phase 9B branch
+## Next task - Phase 9D
 
-Branch:
+Phase 9D security telemetry/browser hardening is next.
 
-`feat/phase-9b-provider-edge-hardening-v1`
+Approved direction:
 
-Implementation checkpoint before handoff-doc commit:
+- reuse `audit_events` and `lib/audit/write-audit-event.ts` for durable security-significant events
+- use privacy-reduced structured server logs for high-frequency operational security signals
+- never log secrets, credentials, cookies, authorization headers, worker lease tokens, source content, or raw executor output
+- add metadata-safety/event-shape tests before implementation
+- define alert/rollback signals using real available platform evidence
+- preserve the existing browser-header baseline
+- treat CSP as a separate compatibility gate against the exact current Next.js/WebGL production UI
+- do not ship broad `unsafe-inline` merely to claim CSP
+- do not touch PR #49
 
-`7824fa7834a0b9756e639c9c9a28e8a687451f63`
-
-Exact preview:
-
-- `dpl_EUkCryrKh4ge5nKszriLm2Ua98Dv`
-- Git SHA `7824fa7834a0b9756e639c9c9a28e8a687451f63`
-- READY
-- `aliasError=null`
-
-Phase 9B currently changes only:
-
-- `components/AuthForm.tsx`
-- `components/auth/TurnstileChallenge.tsx`
-- focused component and architecture tests
-- Phase 9B design/plan/provider-state docs
-
-No package dependency, database, runtime, dashboard, landing, CSP, or telemetry file is part of the Phase 9B implementation checkpoint.
-
-## Implemented Phase 9B code
-
-- dependency-free Cloudflare Turnstile wrapper using explicit rendering
-- public key boundary is `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-- no configured site key means existing production auth behavior remains unchanged
-- configured challenge disables auth submit until a token exists
-- sign-in passes `options.captchaToken`
-- sign-up passes display metadata plus `captchaToken`
-- challenge tokens stay in React component memory only
-- failed/non-redirecting configured attempts invalidate the token and remount the challenge
-- expiry and widget errors clear the token
-- narrow auth cards use compact provider sizing; wider cards use flexible sizing
-- Phase 9A bounded auth errors remain in place
-
-Test-first history is preserved. This harness has no local executable checkout, so focused RED/GREEN was structural. The frozen GitHub Actions candidate must be the first executable proof of the complete focused tests.
-
-## Live provider truth
-
-ScopeForge Supabase project:
-
-`tdgpibrepzcvdivztkta`
-
-Current live facts at checkpoint:
-
-- status `ACTIVE_HEALTHY`
-- PostgreSQL `17.6.1.155`
-- organization plan `free`
-- Security Advisor reports only `auth_leaked_password_protection`
-
-Claims:
-
-- leaked-password protection: NOT ENABLED
-- production Turnstile enforcement: PENDING
-- Supabase native Auth rate limiting: retained
-- Vercel WAF custom rule state: NOT CLAIMED
-- no automatic billing upgrade authorized
-
-Activation and rollback order is documented in `docs/security/PHASE_9B_PROVIDER_CONTROLS.md`.
-
-## Merge-conflict rule for current UI work
-
-The user has an independent UI task that may advance `main` while Phase 9B is active.
-
-Before freeze/PR release:
-
-1. re-read the exact current `main` SHA
-2. compare `main` to the Phase 9B branch
-3. if files overlap, use the newest `main` UI file as the base and reapply only the reviewed Phase 9B auth/security delta
-4. never resolve by taking the older Phase 9B UI wholesale
-5. preserve all new UI tests/styles unless they directly contradict the approved auth security contract
-6. create an explicit merge/reconciliation commit on the Phase 9B branch
-7. require a fresh exact-head Vercel Preview after reconciliation
-8. freeze and run CI only after conflicts are fully resolved
-
-The release candidate is not frozen while the concurrent UI update is unresolved or not yet visible through GitHub.
-
-## Remaining Phase 9B release work
-
-- reconcile the newest `main` UI update when it becomes visible
-- update the Phase 9B branch without losing either UI or security behavior
-- verify exact merged diff scope
-- create a tree-identical freeze commit
-- exact-head Vercel Preview READY
-- open draft PR against actual current `main`
-- one substantive full CI run
-- review exact head/base/scope/reviews/threads
-- squash merge only the verified head
-- independent post-merge main CI
-- exact production deployment verification
-- docs-only Phase 9B release checkpoint
-
-Production provider activation can remain pending after code release if no supported provider-management surface is available. Never claim enforcement is active without direct evidence.
-
-## Then Phase 9D
-
-- reuse existing audit infrastructure for durable security-significant events
-- use privacy-reduced structured server logs for high-frequency security signals
-- preserve current header baseline
-- stage CSP only after compatibility proof with the actual production UI/WebGL runtime
+Before touching Phase 9D code, re-read the current audit writer/schema, logging paths, middleware, security-relevant routes, `next.config.ts`, and current production `main`; then complete the detailed Phase 9D design/plan workflow.
 
 ## Then Phase 9E
 
