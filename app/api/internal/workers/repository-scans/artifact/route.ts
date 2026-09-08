@@ -48,6 +48,6 @@ export async function POST(request: Request): Promise<Response> {
 
     return workerJson({ ok: true, data: result });
   } catch (error) {
-    return workerRouteError(error);
+    return workerRouteError(error, "worker.repository_scan_artifact");
   }
 }
