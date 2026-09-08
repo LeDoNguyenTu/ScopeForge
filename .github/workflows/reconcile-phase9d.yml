@@ -1,0 +1,70 @@
+name: Reconcile Phase 9D
+
+on:
+  push:
+    branches:
+      - reconcile/phase-9d-v5-main
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Apply Vitest 4 test-helper typing fixes
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const replacements = [
+            [
+              'tests/repository-scans/supervisor.test.ts',
+              'function preparer(cleanup = vi.fn(async () => undefined)): RepositoryScanPreparer {',
+              'function preparer(cleanup = vi.fn(async (): Promise<void> => undefined)): RepositoryScanPreparer {'
+            ],
+            [
+              'tests/repository-snapshots/cleanup.test.ts',
+              'function objectStore(deleteObject = vi.fn(async () => undefined)): RepositorySnapshotObjectStore {',
+              'function objectStore(deleteObject = vi.fn(async (): Promise<void> => undefined)): RepositorySnapshotObjectStore {'
+            ]
+          ];
+          for (const [file, before, after] of replacements) {
+            const source = fs.readFileSync(file, 'utf8');
+            if (!source.includes(before)) throw new Error(`Expected source pattern missing in ${file}`);
+            fs.writeFileSync(file, source.replace(before, after));
+          }
+          NODE
+      - name: Regenerate audited lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=info
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build:cli
+      - run: node .scopeforge-build/packages/cli/index.js version
+      - run: npm run benchmark:scanner
+      - run: npm run benchmark:matrix
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      - name: Commit validated reconciliation
+        run: |
+          git config user.name "Brian Le"
+          git config user.email "188601252+LeDoNguyenTu@users.noreply.github.com"
+          git add package-lock.json tests/repository-scans/supervisor.test.ts tests/repository-snapshots/cleanup.test.ts
+          if git diff --cached --quiet; then
+            echo "No generated reconciliation changes"
+            exit 0
+          fi
+          git commit -m "fix: complete Phase 9D dependency compatibility [skip ci]"
+          git push origin HEAD:${GITHUB_REF_NAME}
