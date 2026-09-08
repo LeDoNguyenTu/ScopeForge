@@ -47,6 +47,6 @@ export async function POST(request: Request): Promise<Response> {
         }, dependencies);
     return workerJson({ ok: true, data: result });
   } catch (error) {
-    return workerRouteError(error);
+    return workerRouteError(error, "worker.finalize");
   }
 }
