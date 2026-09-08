@@ -2,9 +2,9 @@
 
 ## Scope
 
-The public landing page uses a data-driven SVG topology with the reference's dark, teal and orange styling. The authenticated application uses a compact SaaS workspace: persistent desktop navigation, responsive mobile navigation, linked metrics, a recommended action, a searchable work queue, workflow guidance, and an optional attack-surface map.
+The public landing page restores the approved cinematic artwork from preview commit `f015aff`, with its edge blending, complete foreground branch and attached labels. The authenticated application uses a compact SaaS workspace: persistent desktop navigation, responsive mobile navigation, linked metrics, a recommended action, a searchable work queue, workflow guidance, and an optional attack-surface map.
 
-- The seven sample assets, three sample findings and Web application → Identity → Data store path live in `lib/landing/sample-surface.ts`. SVG nodes, finding badges, edge endpoints, labels, counters and the ownership ring derive from this model. The before/after control closes sample findings and removes the exposure path without changing ownership verification. Dotted spokes represent workspace membership, not asserted network access.
+- The seven sample assets, three sample findings and Web application → Identity → Data store scenario live in `lib/landing/sample-surface.ts`. Labels, counters and the ownership ring derive from this model. The before/after control closes sample findings and changes risk highlights without changing ownership verification. The cinematic image is illustrative artwork, not a literal network map.
 - The risk explanation uses a plain-language potential exposure scenario without unsupported severity, impact or exploitability scores. Public data remains explicitly synthetic. Workflow numbers have high-contrast 38px badges; workflow icons are 28px and section icons are 24px. Security-card icon and text groups are vertically centered.
 - Public navigation uses equal-width links with real destinations. Resources pages include downloadable asset-readiness and finding-review templates and project documentation.
 - Dashboard filters combine search with severity or verification state. Findings support priority/recency sorting and six-row pagination. Links open existing authenticated asset and finding routes. The dashboard discloses the 250-record recent-finding window when the total is larger.
@@ -24,4 +24,4 @@ The earlier full-suite comparison at `222d959` had 21 identical Windows baseline
 
 The browser extension can inject `bis_skin_checked` attributes and trigger development hydration warnings. Warnings were not suppressed. The Aikido public site was consulted for workflow inspiration; its direct CDN image was blocked by browser policy, and that block was not bypassed.
 
-The current landing graph contains no raster image: its geometry is drawn from the sample records. The older artwork remains available as a historical asset. Sample data does not access Supabase or execute security workflows.
+The graph uses `public/command-center-cinematic.webp` from the approved preview. The rejected simplified vector replacement is removed. Sample data does not access Supabase or execute security workflows.

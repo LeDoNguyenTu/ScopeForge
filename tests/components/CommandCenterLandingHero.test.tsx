@@ -40,20 +40,20 @@ describe("CommandCenterLandingHero", () => {
     expect(screen.getByText(/Interactive example · Sample data/i)).toBeInTheDocument();
   });
 
-  it("updates graph edges, finding badges, and counts together while preserving ownership coverage", () => {
+  it("preserves the approved artwork and updates its labels with sample counts", () => {
     const { container } = render(<CommandCenterLandingHero />);
     expect(container.querySelectorAll('[data-asset-node]')).toHaveLength(7);
-    expect([...container.querySelectorAll('[data-exposure-edge]')].map(edge => edge.getAttribute('data-exposure-edge'))).toEqual(['web-identity', 'identity-store']);
-    expect(screen.getByText('2 open findings')).toBeInTheDocument();
+    expect(container.querySelector('image')).toHaveAttribute('href', '/command-center-cinematic.webp');
+    expect(screen.getByText('2 findings · example')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'After verified fix' }));
     expect(screen.getByRole('status')).toHaveTextContent('0 open findings across 0 assets');
-    expect(container.querySelectorAll('[data-exposure-edge]')).toHaveLength(0);
+    expect(container.querySelector('.cinematicSurfaceRemediated')).toBeInTheDocument();
     expect(container.querySelectorAll('[data-asset-node]')).toHaveLength(7);
-    expect(screen.queryByText('2 open findings')).not.toBeInTheDocument();
+    expect(screen.queryByText('2 findings · example')).not.toBeInTheDocument();
     expect(screen.getByText('86%')).toBeInTheDocument();
-    expect(screen.getByText('Needs ownership proof')).toBeInTheDocument();
+    expect(screen.getByText('Needs proof')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Before remediation' }));
     expect(screen.getByRole('status')).toHaveTextContent('3 open findings across 2 assets');
-    expect(container.querySelectorAll('[data-exposure-edge]')).toHaveLength(2);
+    expect(screen.getByText('2 findings · example')).toBeInTheDocument();
   });
 });

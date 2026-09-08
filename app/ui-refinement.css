@@ -36,6 +36,7 @@
 .cinematicSceneLabel strong { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .cinematicSceneLabel small { font-size: 11px; color: #75dcca; }
 .cinematicSceneLabelRisk small { color: #ffa776; }
+.cinematicSurfaceRemediated image { filter: grayscale(1) sepia(.45) hue-rotate(100deg) saturate(2); }
 @media (max-width: 360px) {
   .cinematicSceneLabelCloud { max-width: 35%; white-space: normal; }
 }
@@ -360,7 +361,7 @@
 .sampleScenarioControls button[aria-pressed="true"] { color: #09221a; background: #82e6c8; border-color: #82e6c8; font-weight: 650; }
 .sampleGraphLegend { display: flex; flex-wrap: wrap; gap: 12px 20px; color: #b1c2c5; font-size: 11px; }
 .sampleGraphLegend span { display: inline-flex; align-items: center; gap: 8px; }
-.sampleGraphLegend i { width: 23px; border-top: 2px dotted #74908f; }
+.sampleGraphLegend i { width: 23px; border-top: 2px solid #75dcca; }
 .sampleGraphLegend span:last-child i { border-top: 2px solid #ffab70; }
 .sampleUpdate { display: block; margin-top: 14px; color: #b9cbc7; font-size: 12px; line-height: 1.5; }
 .sampleRiskExplanation { grid-column: 1 / -1; padding-top: 18px; border-top: 1px solid var(--ui-border); }

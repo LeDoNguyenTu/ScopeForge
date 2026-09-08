@@ -35,9 +35,9 @@ export default function LandingDataIllustration() {
       </article>
     </div>
     <div className="sampleScenarioPanel">
-      <div className="sampleScenarioHeading"><strong>Explore the sample</strong><span>Watch the graph and counts change together.</span></div>
+      <div className="sampleScenarioHeading"><strong>Explore the sample</strong><span>Compare the findings before and after a verified fix.</span></div>
       <div className="sampleScenarioControls" role="group" aria-label="Example remediation state"><button type="button" aria-pressed={!remediated} onClick={() => setRemediated(false)}>Before remediation</button><button type="button" aria-pressed={remediated} onClick={() => setRemediated(true)}>After verified fix</button></div>
-      <div className="sampleGraphLegend"><span><i/> Workspace membership</span><span><i/> Potential exposure path</span></div>
+      <div className="sampleGraphLegend"><span><i/> Asset labels</span><span><i/> Example risk highlights</span></div>
       <span className="sampleUpdate" role="status">{metrics.findings} open findings across {metrics.affected} assets. {model.path.length ? "1 potential path shown." : "No open sample path."}</span>
     </div>
   </>;
