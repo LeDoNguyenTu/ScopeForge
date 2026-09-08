@@ -35,6 +35,10 @@ beforeEach(() => {
     return "widget-1";
   });
 
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 1024
+  });
   Object.defineProperty(window, "turnstile", {
     configurable: true,
     value: {
@@ -54,6 +58,18 @@ describe("TurnstileChallenge", () => {
 
     act(() => turnstile.options?.callback("token-123"));
     expect(onToken).toHaveBeenLastCalledWith("token-123");
+  });
+
+  it("uses the compact widget on very narrow production viewports", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 360
+    });
+
+    render(<TurnstileChallenge siteKey="site-key" onToken={vi.fn()} />);
+
+    await waitFor(() => expect(turnstile.render).toHaveBeenCalledTimes(1));
+    expect(turnstile.options).toMatchObject({ sitekey: "site-key", size: "compact" });
   });
 
   it("clears the token when the challenge expires", async () => {
