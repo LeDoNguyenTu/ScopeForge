@@ -10,10 +10,15 @@ function statusForControlError(code: WorkerControlError["code"]): number {
       return 401;
     case "WORKER_DISABLED":
     case "WORKER_NOT_AVAILABLE":
+    case "RUNTIME_WORKER_ACCESS_DENIED":
       return 403;
+    case "RUNTIME_WORKER_ACTIVE_LIMIT":
+      return 429;
     case "WORKER_LEASE_INVALID":
     case "WORKER_TERMINAL_CONFLICT":
     case "WORKER_JOB_STATE_CONFLICT":
+    case "RUNTIME_WORKER_TASK_INVALID":
+    case "RUNTIME_WORKER_CLASS_MISMATCH":
     case "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED":
     case "REPOSITORY_SCAN_PUBLICATION_REQUIRED":
     case "REPOSITORY_SCAN_ARTIFACT_NOT_AVAILABLE":

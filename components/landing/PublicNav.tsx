@@ -1,10 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowRight, Github, Menu } from "lucide-react";
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
 
-const githubUrl = "https://github.com/LeDoNguyenTu/ScopeForge";
-
 export default function PublicNav() {
+  const pathname = usePathname();
   return (
     <header className="forgePublicHeader commandPublicHeader">
       <nav className="forgePublicNav commandPublicNav" aria-label="Public navigation">
@@ -13,9 +15,10 @@ export default function PublicNav() {
         </Link>
 
         <div className="forgePublicLinks commandPublicLinks">
-          <a href="#platform">Product</a>
-          <a href="#security-model">Security model</a>
-          <a href={githubUrl} target="_blank" rel="noreferrer"><Github size={14} /> GitHub</a>
+          <Link href="/#platform">Product</Link>
+          <Link href="/#security-model">Security</Link>
+          <Link href="/resources" aria-current={pathname === "/resources" ? "page" : undefined}>Resources</Link>
+          <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer"><Github size={14} /> GitHub</a>
         </div>
 
         <div className="commandPublicAuth">
@@ -23,12 +26,24 @@ export default function PublicNav() {
           <Link className="commandRequestAccess" href="/auth/sign-up">Create workspace <ArrowRight size={14} /></Link>
         </div>
 
-        <details className="forgeMobileMenu commandMobileMenu">
+        <details
+          className="forgeMobileMenu commandMobileMenu"
+          onClick={(event) => {
+            if (event.target instanceof Element && event.target.closest("a")) event.currentTarget.open = false;
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.currentTarget.open = false;
+              event.currentTarget.querySelector("summary")?.focus();
+            }
+          }}
+        >
           <summary aria-label="Open navigation menu"><Menu size={20} /></summary>
           <div className="forgeMobileMenuPanel commandMobileMenuPanel">
-            <a href="#platform">Product</a>
-            <a href="#security-model">Security model</a>
-            <a href={githubUrl} target="_blank" rel="noreferrer"><Github size={15} /> GitHub</a>
+            <Link href="/#platform">Product</Link>
+            <Link href="/#security-model">Security</Link>
+            <Link href="/resources" aria-current={pathname === "/resources" ? "page" : undefined}>Resources</Link>
+            <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer">GitHub</a>
             <Link href="/auth/sign-in">Sign in</Link>
             <Link className="commandRequestAccess" href="/auth/sign-up">Create workspace <ArrowRight size={14} /></Link>
           </div>

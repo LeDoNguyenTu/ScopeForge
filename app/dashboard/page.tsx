@@ -35,7 +35,7 @@ export default async function DashboardPage() {
       .in("lifecycle_state", [...ACTIVE_FINDING_STATES]),
     supabase
       .from("security_findings")
-      .select("asset_id,severity,title,lifecycle_state,last_seen_at")
+      .select("finding_id,asset_id,severity,title,lifecycle_state,last_seen_at")
       .eq("workspace_id", workspace.id)
       .in("lifecycle_state", [...ACTIVE_FINDING_STATES])
       .order("last_seen_at", { ascending: false })
@@ -100,6 +100,8 @@ export default async function DashboardPage() {
     >
       <ImmersiveDashboardExperience
         model={surfaceModel}
+        assets={workspaceAssets}
+        findings={findingSample ?? []}
         nextAction={{
           href: nextHref,
           label: nextActionLabel,

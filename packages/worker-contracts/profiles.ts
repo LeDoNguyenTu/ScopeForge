@@ -48,6 +48,36 @@ const PHASE3_REPOSITORY_SCAN_NO_EGRESS_V1: WorkerExecutionProfile = Object.freez
   }),
 });
 
+const PASSIVE_RUNTIME_OBSERVATION_V1: WorkerExecutionProfile = Object.freeze({
+  executionClass: "passive_runtime_observation_v1",
+  networkPolicy: "passive_runtime_target_bound_v1",
+  budget: Object.freeze({
+    maxWallTimeMs: 30_000,
+    maxCpuTimeMs: 15_000,
+    maxMemoryBytes: 268_435_456,
+    maxProcesses: 1,
+    maxInputFiles: 0,
+    maxInputBytes: 65_536,
+    maxScratchBytes: 16_777_216,
+    maxOutputBytes: 131_072,
+  }),
+});
+
+const ACTIVE_CORS_VALIDATION_V1: WorkerExecutionProfile = Object.freeze({
+  executionClass: "active_cors_validation_v1",
+  networkPolicy: "active_cors_target_bound_v1",
+  budget: Object.freeze({
+    maxWallTimeMs: 20_000,
+    maxCpuTimeMs: 10_000,
+    maxMemoryBytes: 268_435_456,
+    maxProcesses: 1,
+    maxInputFiles: 0,
+    maxInputBytes: 32_768,
+    maxScratchBytes: 8_388_608,
+    maxOutputBytes: 65_536,
+  }),
+});
+
 export function workerExecutionProfile(
   executionClass: WorkerExecutionClass,
 ): WorkerExecutionProfile {
@@ -58,6 +88,10 @@ export function workerExecutionProfile(
       return REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1;
     case "phase3_repository_scan_no_egress_v1":
       return PHASE3_REPOSITORY_SCAN_NO_EGRESS_V1;
+    case "passive_runtime_observation_v1":
+      return PASSIVE_RUNTIME_OBSERVATION_V1;
+    case "active_cors_validation_v1":
+      return ACTIVE_CORS_VALIDATION_V1;
   }
 
   const unreachable: never = executionClass;

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-command-clean-numeric",
+  "scanner": "jsts",
+  "ruleId": "jsts/command-injection",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The modeled request value is converted through Number before reaching the shell sink, which is a supported numeric sanitizer.",
+  "expectedFiles": []
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "docker-floating-clean-digest",
+  "scanner": "iac",
+  "ruleId": "iac/docker-floating-base-image",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "The Docker base image is pinned by an immutable digest rather than a floating reference.",
+  "expectedFiles": []
+}

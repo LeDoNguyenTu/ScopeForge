@@ -1,5 +1,7 @@
 import type {
+  ActiveCorsValidationInput,
   FoundationProbeInput,
+  PassiveRuntimeObservationInput,
   RepositoryScanInput,
   RepositorySnapshotInput,
   WorkerAttemptMetrics,
@@ -46,6 +48,26 @@ export interface FoundationProbeEnqueueResult {
   absoluteDeadlineAt: string;
 }
 
+export interface RuntimeWorkerEnqueueInput {
+  workspaceId: string;
+  scanJobId: string;
+  actorId: string;
+}
+
+export type RuntimeWorkerEnqueueResult =
+  | {
+      scanJobId: string;
+      taskId: string;
+      executionClass: "passive_runtime_observation_v1";
+      absoluteDeadlineAt: string;
+    }
+  | {
+      scanJobId: string;
+      taskId: string;
+      executionClass: "active_cors_validation_v1";
+      absoluteDeadlineAt: string;
+    };
+
 export interface WorkerClaimInput {
   workerId: string;
 }
@@ -85,6 +107,31 @@ export type WorkerPersistenceClaimResult =
   | FoundationWorkerPersistenceClaim
   | RepositorySnapshotWorkerPersistenceClaim
   | RepositoryScanWorkerPersistenceClaim
+  | null;
+
+export interface PassiveRuntimeWorkerPersistenceClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "passive_runtime_observation_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: PassiveRuntimeObservationInput;
+}
+
+export interface ActiveCorsWorkerPersistenceClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "active_cors_validation_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: ActiveCorsValidationInput;
+}
+
+export type RuntimeWorkerPersistenceClaimResult =
+  | PassiveRuntimeWorkerPersistenceClaim
+  | ActiveCorsWorkerPersistenceClaim
   | null;
 
 export type WorkerClaimResult = WorkerTaskContract | null;
@@ -132,11 +179,28 @@ export interface WorkerFleetTaskCounts {
   cancelled: number;
 }
 
+export interface RuntimeWorkerFleetClassHealth<
+  TExecutionClass extends "passive_runtime_observation_v1" | "active_cors_validation_v1",
+> {
+  executionClass: TExecutionClass;
+  enabledNodeCount: number;
+  leasedCount: number;
+  capacity: number;
+  available: boolean;
+  saturated: boolean;
+}
+
+export interface RuntimeWorkerFleetHealth {
+  passiveRuntime: RuntimeWorkerFleetClassHealth<"passive_runtime_observation_v1">;
+  activeCors: RuntimeWorkerFleetClassHealth<"active_cors_validation_v1">;
+}
+
 export interface WorkerFleetSnapshot {
   generatedAt: string;
   nodes: readonly WorkerFleetNodeSnapshot[];
   taskCounts: WorkerFleetTaskCounts;
   activeLeaseCount: number;
+  runtimeClasses: RuntimeWorkerFleetHealth;
 }
 
 export type WorkerControlErrorCode =
@@ -163,6 +227,10 @@ export type WorkerControlErrorCode =
   | "REPOSITORY_ARCHIVE_UNSAFE"
   | "REPOSITORY_ARCHIVE_BUDGET_EXCEEDED"
   | "REPOSITORY_ARTIFACT_UPLOAD_FAILED"
+  | "RUNTIME_WORKER_ACCESS_DENIED"
+  | "RUNTIME_WORKER_ACTIVE_LIMIT"
+  | "RUNTIME_WORKER_TASK_INVALID"
+  | "RUNTIME_WORKER_CLASS_MISMATCH"
   | "WORKER_CONTROL_FAILED";
 
 export class WorkerControlError extends Error {

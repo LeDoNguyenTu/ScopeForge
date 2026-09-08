@@ -2,6 +2,7 @@ import { lstat, rm } from "node:fs/promises";
 import path from "node:path";
 import {
   materializeRepositorySnapshotBundle,
+  removeMaterializedRepositorySnapshot,
   type MaterializedRepositorySnapshot,
   type RepositorySnapshotReadExpectation,
 } from "@/packages/repository-snapshot";
@@ -112,10 +113,9 @@ export async function stageRepositoryScanSnapshot(
     });
   } catch (error) {
     await rm(artifactPath, { force: true }).catch(() => undefined);
-    await rm(path.join(input.workDirectory, "materialized-source"), {
-      recursive: true,
-      force: true,
-    }).catch(() => undefined);
+    await removeMaterializedRepositorySnapshot(
+      path.join(input.workDirectory, "materialized-source"),
+    ).catch(() => undefined);
     throw error;
   }
 }

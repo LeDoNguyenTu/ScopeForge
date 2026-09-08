@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "caseId": "negative-excluded",
+  "ruleId": "node/tls-verification-disabled",
+  "classification": "negative",
+  "expected": [],
+  "rationale": "Proves the reviewed test-fixtures path exclusion suppresses the same literal without broadening scanner authority."
+}

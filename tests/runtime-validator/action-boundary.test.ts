@@ -8,17 +8,18 @@ const actionPath = path.resolve(
 );
 
 describe("active validation server action authority", () => {
-  it("keeps profile, target policy, request configuration, and budget server-controlled", async () => {
+  it("routes the hosted request through the closed Phase 6D request boundary", async () => {
     const source = await readFile(actionPath, "utf8");
 
-    expect(source).toContain("ACTIVE_VALIDATION_MAX_BUDGET");
-    expect(source).toContain("enqueueActiveValidation");
-    expect(source).toContain("executeActiveValidation");
+    expect(source).toContain("requestActiveCorsRuntimeWorker");
+    expect(source).not.toContain("executeActiveValidation");
+    expect(source).not.toContain("enqueueActiveValidation");
     expect(source).toContain("explicitConsent");
     expect(source).toMatch(/runCorsOriginPolicyValidation\(\s*assetId: string,\s*explicitConsent: boolean/);
-    expect(source).not.toMatch(/export async function runCorsOriginPolicyValidation\([^)]*(url|origin|headers|method|profile|budget)/i);
+    expect(source).not.toMatch(/export async function runCorsOriginPolicyValidation\([^)]*(url|origin|headers|method|profile|budget|worker|executionClass)/i);
     expect(source).not.toContain("SCOPEFORGE_SYNTHETIC_ORIGIN");
     expect(source).not.toContain("TrustedRuntimeRequestPlan");
+    expect(source).not.toMatch(/runtime-network|node:https|node:tls|node:dns|\bfetch\s*\(/);
   });
 
   it("uses a separate cancellation action scoped by job id only", async () => {

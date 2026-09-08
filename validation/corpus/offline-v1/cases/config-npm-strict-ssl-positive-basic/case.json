@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "config-npm-strict-ssl-positive-basic",
+  "scanner": "iac",
+  "ruleId": "iac/config-npm-strict-ssl-disabled",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "The effective npm configuration explicitly disables TLS certificate verification.",
+  "expectedFiles": [".npmrc"],
+  "expectedSeverity": "medium",
+  "expectedConfidence": "high"
+}

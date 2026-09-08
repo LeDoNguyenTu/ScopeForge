@@ -48,6 +48,52 @@ describe("Phase 6A worker contracts", () => {
     });
   });
 
+  it("accepts cancellation without a worker-supplied failure code", () => {
+    const taskId = "11111111-1111-4111-8111-111111111111";
+    const attemptId = "22222222-2222-4222-8222-222222222222";
+    expect(validateWorkerTerminalEnvelope({
+      schemaVersion: 1,
+      taskId,
+      attemptId,
+      executionClass: "foundation_no_egress_v1",
+      outcome: "cancelled",
+      failureCode: null,
+      metrics: {
+        wallTimeMs: 1,
+        cpuTimeMs: 1,
+        peakMemoryBytes: 1,
+        inputBytes: 0,
+        outputBytes: 0,
+      },
+      result: null,
+    }, {
+      taskId,
+      attemptId,
+      executionClass: "foundation_no_egress_v1",
+    })).toMatchObject({ outcome: "cancelled", failureCode: null });
+
+    expect(() => validateWorkerTerminalEnvelope({
+      schemaVersion: 1,
+      taskId,
+      attemptId,
+      executionClass: "foundation_no_egress_v1",
+      outcome: "cancelled",
+      failureCode: "WORKER_EXECUTION_FAILED",
+      metrics: {
+        wallTimeMs: 1,
+        cpuTimeMs: 1,
+        peakMemoryBytes: 1,
+        inputBytes: 0,
+        outputBytes: 0,
+      },
+      result: null,
+    }, {
+      taskId,
+      attemptId,
+      executionClass: "foundation_no_egress_v1",
+    })).toThrow(/failure code/i);
+  });
+
   it("rejects unexpected execution-authority fields", () => {
     expect(() => validateWorkerTerminalEnvelope({
       schemaVersion: 1,

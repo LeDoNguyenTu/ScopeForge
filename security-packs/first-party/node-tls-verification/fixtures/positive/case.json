@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "caseId": "positive",
+  "ruleId": "node/tls-verification-disabled",
+  "classification": "positive",
+  "expected": [
+    {
+      "file": "Dockerfile",
+      "startLine": 2,
+      "startColumn": 5
+    }
+  ],
+  "rationale": "Proves the reviewed static Dockerfile override is detected at the exact expected location."
+}

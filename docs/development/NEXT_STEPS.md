@@ -1,108 +1,100 @@
 # ScopeForge Next Steps
 
-## Current boundary
+Last reconciled: 2026-09-09 (Asia/Singapore)
 
-Phase 6C isolated zero-egress Phase 3 scanning is complete and merged through PR #39.
+## Completed boundaries
 
-- exact verified Phase 6C head: `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b`
-- Phase 6C merge commit: `7a329dc2796a142102af2392ee461f205daa1b78`
-- deployment-readiness docs merge: PR #40, merge commit `415428ebc510a7a8e890d3a03ebc4ffb8194252a`
-- repository acquisition public runtime gate: PR #41, merge commit `07c6bc8580314b73c633a7b704e5f7557ceccb4d`
-- ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
+Do not recreate these released phases:
 
-Phase 6B repository acquisition and Phase 6C hosted repository scanning are both implemented as closed worker boundaries, but neither worker-backed operation is enabled in the public control plane until its production runtime acceptance gate is proven.
+- Phase 7 Community Security Packs v1
+- Phase 8A offline accuracy foundation
+- Phase 8B scanner performance matrix
+- Phase 8C reproducible technical publication
+- Phase 9A authentication-boundary hardening
+- Phase 9B Turnstile-capable provider/auth hardening code
+- Phase 9C database/RPC defense-in-depth
 
-## Phase 6C verification evidence
+Current production `main` baseline:
 
-The exact Phase 6C head was verified outside GitHub Actions with the deterministic dependency lock:
+`f203168e6ae25455743849f08511e371d3964153`
 
-- lock SHA-256: `3bbc74fa07cf06b379058c741423974f30b46f5c4469694750e1b973fbccda7d`
-- lock Git blob: `881bbdeedb0ee7a7cb8c171ca93b14f6e528d33d`
-- `npm ci` passed
-- `npm run typecheck` passed
-- 227 test files and 952 tests passed
-- `npm run build:cli` passed
-- CLI version check returned `ScopeForge 0.1.0`
-- scanner benchmark passed with 700 files and zero errors
-- production Next.js build passed with the ScopeForge public production configuration
-- `npm audit` reported zero vulnerabilities at every severity
+Current production tree:
 
-The subsequent Phase 6B acquisition runtime gate was independently verified on exact head `f1e67a07250f194f315d5be1081b780f62da4f26` with 227 test files and 955 tests, production build success, and zero audit vulnerabilities before PR #41 merged.
+`9980aa5a58014998fd26ae7084bd97c992bc1a82`
 
-## Runtime gates that must remain closed
+This tree includes the current production UI plus released Phase 9A/9B/9C security work. All remaining implementation must start from the actual current `main` rather than any historical security baseline or PR #49.
 
-### Repository acquisition
+## Immediate priority - Phase 9D security telemetry and browser hardening
 
-`HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` remains `false`.
+Phase 9D is the next implementation boundary.
 
-Do not enable hosted repository acquisition until the separate acquisition worker and private artifact store are deployed and acceptance-tested. Existing immutable snapshot history may remain readable while acquisition is unavailable.
+Approved direction:
 
-### Hosted repository scanning
+- reuse `audit_events` and `lib/audit/write-audit-event.ts` for durable workspace security-significant events
+- use structured privacy-reduced server logs for high-frequency operational security signals
+- never log passwords, tokens, API keys, credentials, cookies, authorization headers, worker lease tokens, source content, or raw executor output
+- preserve the current security-header baseline
+- stage CSP carefully and require compatibility proof with the actual production Next.js/WebGL UI before enforcement
+- do not ship a broad `unsafe-inline` CSP merely to claim CSP coverage
+- do not couple security telemetry to visual components
 
-`HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED` remains `false`.
+Required Phase 9D sequence:
 
-Do not enable hosted repository scanning until a real Linux rootless-Podman/cgroup-v2 acceptance environment demonstrates all of the following:
+1. Re-read the current production audit writer, audit-event schema, security-relevant routes/RPC boundaries, middleware, `next.config.ts`, and current logging patterns.
+2. Define a narrow security-event taxonomy and decide which events are durable audit events versus high-frequency operational logs.
+3. Define privacy-reduced log/event fields, explicit secret-key deny rules, size bounds, and failure behavior.
+4. Add failing tests for metadata safety, event-shape allowlists, and any new security-significant audit coverage before implementation.
+5. Add structured operational logging only where it improves detection/rollback without flooding durable audit storage.
+6. Define observable alert/rollback signals using available Vercel runtime evidence rather than inventing an unverified external alerting system.
+7. Preserve current browser headers unless a concrete weakness is being corrected.
+8. Treat CSP as a separate compatibility gate: first produce and test a candidate policy against the exact current production UI/WebGL behavior, then enforce only if the compatibility evidence is clean.
+9. Do not edit or resurrect PR #49.
+10. Freeze an exact candidate only after current `main` drift is reconciled and the production UI is preserved.
+11. Require exact-head preview, one substantive candidate CI, post-merge main CI, exact production deployment verification, and a docs-only release checkpoint.
 
-- zero network access from the scanner container
-- read-only scanner input and root filesystem boundaries
-- enforceable CPU, memory, process, scratch, input, output, and wall-time limits
-- cancellation and hard deadlines terminate the underlying container
-- fixed reviewed image and command, with no caller-controlled image, command, environment, scanner selection, or network policy
-- immutable snapshot size/content/artifact digest verification before scanner use
+Before Phase 9D implementation, follow the repository design/plan workflow and keep the approved Phase 9 architecture boundaries explicit.
 
-Repository code remains data only. Package lifecycle scripts, project commands, hooks, build systems, nested container definitions, arbitrary dynamic imports, and target-provided execution are not scanner authority.
+## Phase 9B operational provider follow-up
 
-## Production deployment
+Phase 9B code is released, but provider enforcement remains a separate launch prerequisite.
 
-The next operational priority is the ScopeForge web control-plane deployment to Vercel and `scopeforge.dev` while both worker-backed repository features remain gated off.
+Current truth:
 
-Production deployment requirements:
+- leaked-password protection remains disabled according to Supabase Security Advisor
+- production Turnstile enforcement is not claimed until external provider configuration is directly verified
+- Vercel project-specific WAF custom-rule state is not claimed without direct inspected evidence
+- Supabase native Auth rate limiting remains the auth-endpoint limiter
 
-- deploy the exact reviewed `main` tree
-- keep Cloudflare authoritative for DNS
-- keep Vercel application A/CNAME records DNS-only in Cloudflare
-- let Vercel manage application TLS
-- set `NEXT_PUBLIC_SUPABASE_URL` to the ScopeForge Supabase project
-- set the active ScopeForge `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- set `NEXT_PUBLIC_SITE_URL=https://scopeforge.dev`
-- set the ScopeForge server-only `SUPABASE_SECRET_KEY`
-- do not place Supabase secret/service credentials in browser-visible variables
-- R2 credentials are not required to enable the public web control plane while acquisition/scanning remain disabled
-- verify HTTPS, auth routes, dashboard behavior, runtime errors, and production logs before describing the launch as healthy
+Do not silently add billing, provider secrets, or external firewall rules. Any provider activation must use a supported inspected surface, record rollback, and be verified after change.
 
-Turnstile remains a separate production-hardening item until it is actually wired into the authentication implementation. Do not document a configured captcha as active merely because environment names exist in deployment guidance.
+## Phase 9E after Phase 9D
 
-## Phase 6D boundary
+Complete incident and release readiness:
 
-Phase 6D dedicated network-enabled worker execution remains a separately reviewed architecture boundary. Do not treat Phase 6B GitHub networking as generic egress authority.
+- private vulnerability disclosure workflow
+- severity/triage procedure
+- containment and worker-disable procedure
+- credential rotation runbook
+- Supabase/Vercel rollback procedures
+- impact assessment and recovery checks
+- post-incident validation
+- final security release checklist and exact deployment evidence
 
-Before implementation, Phase 6D requires its own threat model and approved design covering at minimum:
+## Outstanding database review item
 
-- separate closed worker classes for passive runtime observation and bounded active CORS validation
-- preservation of the existing authorization snapshot plus immediate pre-network reauthorization model
-- verified target, DNS/IP, redirect, TLS, and request-shape policy
-- owner/admin consent for active validation
-- fixed profiles and budgets
-- queue quotas and backpressure
-- cancellation and hard-deadline termination
-- artifact/privacy boundaries
-- fleet operational controls
-- deterministic trusted persistence semantics
+Legacy broad SQL grants on `profiles`, `workspaces`, and `workspace_members` remain a separate review point. RLS is enabled and Phase 9C did not change these grants. Do not silently mix cleanup into Phase 9D unless the reviewed design explicitly expands scope.
 
-No generic URL executor or caller-configurable networking primitive may be introduced.
+## Runtime authority
 
-## GitHub Actions constraint
+Keep false/absent until their own operational acceptance:
 
-Do not use, trigger, rerun, or depend on GitHub Actions while the user's monthly allowance remains exhausted.
+- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
+- `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
+- `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Continue using `[skip ci]` on implementation, test, migration, dependency, and documentation commits. Verification must be performed in an independent runnable environment and tied to the exact SHA being reviewed or merged.
+## UI baseline rule
 
-## Resume protocol
+The production `main` tree is authoritative. Before freezing or merging remaining security work, re-read `main` and resolve any concurrent UI drift first. Preserve the newest production UI and reapply only the reviewed security delta when overlaps occur.
 
-1. Re-check exact `main` and any active branch before mutation.
-2. Read `CURRENT_STATE.md`, `TEST_STATUS.md`, this file, `docs/ARCHITECTURE.md`, and `docs/PHASES.md`.
-3. Keep the ScopeForge Supabase project `tdgpibrepzcvdivztkta` separate from every other project.
-4. Never rewrite deployed migrations. Use forward migrations only.
-5. Keep worker credentials, private R2 object keys, Supabase secret credentials, and lease credentials outside browser code.
-6. Preserve cancellation-first publication, exact lease binding, immutable snapshot provenance, artifact digest binding, and worker-class separation.
-7. Do not enable either hosted repository worker feature until its stated production acceptance evidence exists.
+PR #49 remains an open draft legacy UI branch and must remain untouched unless separately requested.
