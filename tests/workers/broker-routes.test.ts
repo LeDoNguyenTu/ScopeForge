@@ -6,7 +6,22 @@ const routePaths = {
   claim: path.resolve(process.cwd(), "app/api/internal/workers/claim/route.ts"),
   heartbeat: path.resolve(process.cwd(), "app/api/internal/workers/heartbeat/route.ts"),
   finalize: path.resolve(process.cwd(), "app/api/internal/workers/finalize/route.ts"),
+  repositoryScanArtifact: path.resolve(process.cwd(), "app/api/internal/workers/repository-scans/artifact/route.ts"),
+  repositoryScanFinalize: path.resolve(process.cwd(), "app/api/internal/workers/repository-scans/finalize/route.ts"),
+  runtimePrepare: path.resolve(process.cwd(), "app/api/internal/workers/runtime/prepare/route.ts"),
+  runtimeFinalize: path.resolve(process.cwd(), "app/api/internal/workers/runtime/finalize/route.ts"),
 };
+
+const expectedRouteIds = {
+  claim: "worker.claim",
+  heartbeat: "worker.heartbeat",
+  finalize: "worker.finalize",
+  repositoryScanArtifact: "worker.repository_scan_artifact",
+  repositoryScanFinalize: "worker.repository_scan_finalize",
+  runtimePrepare: "worker.runtime_prepare",
+  runtimeFinalize: "worker.runtime_finalize",
+} as const;
+
 const transportPath = path.resolve(process.cwd(), "lib/worker-control/transport.ts");
 
 describe("worker broker routes", () => {
@@ -29,6 +44,19 @@ describe("worker broker routes", () => {
     expect(transport).toContain("WORKER_REQUEST_TOO_LARGE");
     expect(heartbeat).toContain("readBoundedWorkerJson");
     expect(finalize).toContain("readBoundedWorkerJson");
+  });
+
+  it("pins a fixed compile-time telemetry identity for every worker route", async () => {
+    for (const [name, file] of Object.entries(routePaths) as Array<[keyof typeof routePaths, string]>) {
+      const source = await readFile(file, "utf8");
+      expect(source).toContain(`workerRouteError(error, \"${expectedRouteIds[name]}\")`);
+    }
+  });
+
+  it("does not derive telemetry route identity from untrusted request values", async () => {
+    const sources = await Promise.all(Object.values(routePaths).map((file) => readFile(file, "utf8")));
+    const combined = sources.join("\n");
+    expect(combined).not.toMatch(/request\.url|new\s+URL\(request\.url/i);
   });
 
   it("does not expose worker-selected execution or network configuration", async () => {
