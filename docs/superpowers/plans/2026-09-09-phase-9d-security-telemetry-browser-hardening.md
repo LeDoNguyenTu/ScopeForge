@@ -2,50 +2,55 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add privacy-reduced, typed security telemetry to the centralized worker HTTP boundary, strengthen durable audit metadata safety, pin the released browser-header baseline, and publish evidence-driven alert/CSP guidance without adding a second telemetry store or enforcing an unproven CSP.
+**Goal:** Add privacy-reduced typed security telemetry to the centralized worker HTTP boundary, strengthen durable audit metadata safety, pin the released browser-header baseline, and publish evidence-driven alert/CSP guidance without adding another telemetry store or enforcing an unproven CSP.
 
-**Architecture:** Phase 9D keeps two distinct channels. Low-frequency workspace history continues through `public.audit_events`; high-frequency operational security signals use one server-only, closed-union logger whose JSON lines are captured by Vercel Runtime Logs. Worker classification happens only at `workerRouteError`, while browser hardening in this release is limited to regression tests and a production-origin/CSP inventory - CSP enforcement remains a separate future sub-gate.
+**Architecture:** Phase 9D keeps two channels. Low-frequency workspace history continues through `public.audit_events`; high-frequency operational security signals use one server-only closed-union logger whose bounded JSON lines are captured by Vercel Runtime Logs. Worker classification happens only at `workerRouteError`; browser hardening in this release is regression coverage plus production-origin/CSP inventory, not CSP enforcement.
 
-**Tech Stack:** Next.js 15.5, TypeScript, Vitest, Supabase, Vercel Runtime Logs, Node.js console transport.
+**Tech Stack:** Next.js 15.5, TypeScript 5.8, Vitest 3.2, Supabase, Vercel Runtime Logs, Node.js console transport.
 
 **Spec:** `docs/superpowers/specs/2026-09-09-phase-9d-security-telemetry-browser-hardening-design.md`
 
 ## Global Constraints
 
-- Start from branch `feat/phase-9d-security-telemetry-browser-hardening-v1`, whose approved written-spec head is `f0466e3596f82f220a6bcc865b9c4c8313c54ef9`.
-- Production baseline at branch creation is `2af9a92b68c224d290a9597ff1907e5f1098791e`.
-- Use TDD ordering: commit the focused failing contract before its implementation.
-- If this harness still has no executable repository checkout, explicitly record RED as structural only; do not claim a test ran. The frozen GitHub Actions candidate is the required executable proof.
-- Use `[skip ci]` on every intermediate implementation/documentation commit. Reserve one substantive Actions run for the frozen candidate.
-- Add no runtime or development package.
-- Add no database migration or second telemetry/audit table.
-- Do not modify `app/layout.tsx`, landing/dashboard visual files, PR #49, package files, Supabase Auth provider settings, Vercel WAF settings, or hosted worker capability flags.
-- Preserve the exact worker HTTP status/body/cache behavior while adding telemetry.
-- Do not log request objects, headers, cookies, authorization values, request/response bodies, raw `Error` objects, repository source, executor output, environment dumps, worker IDs, task IDs, workspace IDs, user IDs, asset IDs, IP addresses, or email addresses.
-- Operational telemetry schema is `scopeforge.security.v1`, flat, allowlisted, and at most 1024 UTF-8 bytes per serialized event.
-- Do not enforce Content Security Policy in this implementation plan. This release produces compatibility evidence and a target policy only; enforcement requires its own later approved sub-gate after browser proof.
-- Keep these false/absent: `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`, `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`, `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`, `HOSTED_ACTIVE_CORS_WORKER_ENABLED`.
-- Before freeze and before merge, re-read the exact current `main`. If concurrent UI work has moved it, preserve the newest `main` UI and reapply only the Phase 9D security delta where overlap exists.
+- Work on `feat/phase-9d-security-telemetry-browser-hardening-v1`; approved spec head is `f0466e3596f82f220a6bcc865b9c4c8313c54ef9`.
+- Branch base is production docs checkpoint `2af9a92b68c224d290a9597ff1907e5f1098791e`.
+- Use TDD ordering. Commit each focused failing contract before its implementation.
+- This harness historically has no executable repository checkout. If that remains true, call RED structural only and do not claim a test ran. The frozen candidate CI is the first required executable proof.
+- Every intermediate code/docs commit uses `[skip ci]`. Spend substantive Actions only on the frozen candidate.
+- Add no runtime or development dependency and no database migration/table.
+- Do not modify `app/layout.tsx`, landing/dashboard visual files, package files, Supabase Auth provider settings, Vercel WAF settings, or PR #49.
+- Preserve worker response status, body shape, cache headers, authentication semantics, task state, and lease state.
+- Never log request objects, headers, cookies, authorization values, bodies, raw `Error` objects, repository source, executor output, environment dumps, IDs, IPs, or emails.
+- Telemetry schema is exactly `scopeforge.security.v1`; event objects are flat, allowlisted, and at most 1024 UTF-8 bytes serialized.
+- This plan does not enforce CSP. It documents the observed origin requirements and target policy; enforcement requires a separate later approved compatibility sub-gate.
+- Keep false/absent: `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`, `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`, `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`, `HOSTED_ACTIVE_CORS_WORKER_ENABLED`.
+- Before freeze and merge, refresh `main`. If concurrent UI work overlaps, preserve newest `main` and reapply only the Phase 9D security delta, then rerun preview/candidate validation.
 
 ---
 
-### Task 1: Define the closed operational security telemetry contract
+### Task 1: Closed operational telemetry contract
 
 **Files:**
 - Create: `tests/security/security-telemetry.test.ts`
 - Create: `lib/security/telemetry.ts`
 
 **Interfaces:**
-- Produces:
-  - `type WorkerSecurityRoute = "worker.claim" | "worker.heartbeat" | "worker.finalize" | "worker.repository_scan_artifact" | "worker.repository_scan_finalize" | "worker.runtime_prepare" | "worker.runtime_finalize"`
-  - `type SecurityTelemetryEvent` as a closed flat discriminated union
-  - `writeSecurityTelemetry(event: SecurityTelemetryEvent): void`
-- `writeSecurityTelemetry` emits one JSON line through `console.warn` for warning events and `console.error` for error events.
-- Invalid/oversized telemetry emits nothing and throws nothing.
+- Produces `WorkerSecurityRoute`:
+  - `worker.claim`
+  - `worker.heartbeat`
+  - `worker.finalize`
+  - `worker.repository_scan_artifact`
+  - `worker.repository_scan_finalize`
+  - `worker.runtime_prepare`
+  - `worker.runtime_finalize`
+- Produces a closed `SecurityTelemetryEvent` union.
+- Produces `writeSecurityTelemetry(event: SecurityTelemetryEvent): void`.
+- Warning events use `console.warn(serializedJson)`; error events use `console.error(serializedJson)`.
+- Invalid/oversized input emits nothing and throws nothing.
 
-- [ ] **Step 1: Write the failing telemetry contract test**
+- [ ] **Step 1: Write the failing unit contract**
 
-Create `tests/security/security-telemetry.test.ts` with focused cases equivalent to:
+Create `tests/security/security-telemetry.test.ts`:
 
 ```ts
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -54,9 +59,8 @@ import { writeSecurityTelemetry } from "@/lib/security/telemetry";
 afterEach(() => vi.restoreAllMocks());
 
 describe("security telemetry", () => {
-  it("writes one bounded warning JSON object for worker authentication rejection", () => {
+  it("writes one bounded warning JSON object", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
     writeSecurityTelemetry({
       schema: "scopeforge.security.v1",
       event: "worker.authentication_rejected",
@@ -65,7 +69,6 @@ describe("security telemetry", () => {
       code: "WORKER_AUTHENTICATION_FAILED",
       status: 401,
     });
-
     expect(warn).toHaveBeenCalledTimes(1);
     const serialized = String(warn.mock.calls[0]?.[0]);
     expect(Buffer.byteLength(serialized, "utf8")).toBeLessThanOrEqual(1024);
@@ -79,7 +82,7 @@ describe("security telemetry", () => {
     });
   });
 
-  it("uses error output for unexpected worker failures", () => {
+  it("uses error output for unexpected worker failure", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     writeSecurityTelemetry({
       schema: "scopeforge.security.v1",
@@ -92,10 +95,9 @@ describe("security telemetry", () => {
     expect(error).toHaveBeenCalledTimes(1);
   });
 
-  it("emits no secondary log when runtime validation rejects an invalid event", () => {
+  it("silently drops runtime-invalid input", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
-
     writeSecurityTelemetry({
       schema: "scopeforge.security.v1",
       event: "worker.authentication_rejected",
@@ -104,16 +106,13 @@ describe("security telemetry", () => {
       code: "X".repeat(200),
       status: 401,
     } as never);
-
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });
 });
 ```
 
-Also add compile-time/source-shape assertions in this test file or the architecture test later proving there is no `metadata`, `details`, `message`, `request`, `headers`, `body`, `error`, or generic `Record<string, unknown>` escape hatch in the public telemetry input.
-
-- [ ] **Step 2: Run the focused test and verify RED**
+- [ ] **Step 2: Verify RED**
 
 Run:
 
@@ -121,20 +120,20 @@ Run:
 npx vitest run tests/security/security-telemetry.test.ts
 ```
 
-Expected: FAIL because `@/lib/security/telemetry` does not exist yet.
+Expected: FAIL because `@/lib/security/telemetry` is absent.
 
-If no local checkout exists, verify instead that the test commit imports the absent module, record that RED is structural, and do not claim execution.
+If no local checkout exists, verify the committed test imports the absent module and record RED as structural only.
 
-- [ ] **Step 3: Commit the RED contract alone**
+- [ ] **Step 3: Commit RED**
 
 ```bash
 git add tests/security/security-telemetry.test.ts
 git commit -m "test: define Phase 9D security telemetry contract [skip ci]"
 ```
 
-- [ ] **Step 4: Implement the minimum telemetry module**
+- [ ] **Step 4: Implement the minimum logger**
 
-Create `lib/security/telemetry.ts` with a closed type model. Use this shape:
+Create `lib/security/telemetry.ts` using the Next.js server-only marker and this type model:
 
 ```ts
 import "server-only";
@@ -172,19 +171,20 @@ type ControlMisconfigurationEvent = {
 export type SecurityTelemetryEvent = WorkerSecurityEvent | ControlMisconfigurationEvent;
 ```
 
-Runtime validation must enforce:
+Runtime validation must require:
 
-- schema exactly `scopeforge.security.v1`
-- event/severity combinations exactly as defined
-- route from the fixed union
-- worker `code` matches `^[A-Z0-9_]{1,80}$`
-- worker `status` is an integer from 400 through 599
-- control matches `^[a-z0-9_.-]{1,64}$`
-- serialized event <= 1024 UTF-8 bytes
+```text
+schema == scopeforge.security.v1
+worker route in the fixed union
+worker code matches ^[A-Z0-9_]{1,80}$
+worker status is integer 400..599
+control matches ^[a-z0-9_.-]{1,64}$
+serialized normalized object <= 1024 UTF-8 bytes
+```
 
-Build a fresh normalized object from allowlisted fields before serialization. Never serialize the caller object directly. Wrap validation/serialization/output in an internal `try/catch` that silently drops invalid telemetry without logging the rejected object or exception.
+Construct a new normalized object from allowlisted fields. Never stringify the caller object. Wrap validation, serialization, and output in an internal `try/catch`; rejected input produces no secondary log.
 
-- [ ] **Step 5: Run the focused test and verify GREEN**
+- [ ] **Step 5: Verify GREEN**
 
 ```bash
 npx vitest run tests/security/security-telemetry.test.ts
@@ -192,7 +192,7 @@ npx vitest run tests/security/security-telemetry.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit the telemetry implementation**
+- [ ] **Step 6: Commit implementation**
 
 ```bash
 git add lib/security/telemetry.ts tests/security/security-telemetry.test.ts
@@ -201,23 +201,23 @@ git commit -m "feat: add bounded security telemetry logger [skip ci]"
 
 ---
 
-### Task 2: Strengthen durable audit metadata safety without breaking valid callers
+### Task 2: Durable audit metadata hardening
 
 **Files:**
 - Create: `tests/security/audit-metadata.test.ts`
 - Modify: `lib/audit/write-audit-event.ts`
 
 **Interfaces:**
-- Produces: `assertSafeAuditMetadata(value: Json, path?: string): void`
-- `writeAuditEvent` continues to use the same public input contract and existing 8 KiB size ceiling.
-- Existing valid metadata such as `{ kind, hostname }`, `{ method, expires_at }`, `{ jobId, details }`, and controlled reason strings must remain accepted.
+- Produces `assertSafeAuditMetadata(value: Json, path?: string): void`.
+- `writeAuditEvent` retains its current public input and 8 KiB serialized metadata limit.
+- Valid existing fields such as `sourceType`, `reasonCode`, `kind`, `hostname`, `method`, `expires_at`, `jobId`, and bounded `details` remain legal.
 
-- [ ] **Step 1: Write failing audit-safety regression tests**
+- [ ] **Step 1: Write failing metadata tests**
 
-Create `tests/security/audit-metadata.test.ts` that imports `assertSafeAuditMetadata` and verifies rejection for nested variants of:
+Create `tests/security/audit-metadata.test.ts` with nested rejection cases for:
 
 ```ts
-[
+const forbiddenKeys = [
   "accessToken",
   "refresh_token",
   "captchaToken",
@@ -237,44 +237,39 @@ Create `tests/security/audit-metadata.test.ts` that imports `assertSafeAuditMeta
   "environment",
   "headers",
   "privateKey",
-]
+];
 ```
 
-Example:
+Representative expectations:
 
 ```ts
 expect(() => assertSafeAuditMetadata({ nested: { requestBody: "payload" } })).toThrow(/Sensitive audit metadata key/);
-```
-
-Add positive cases proving these remain legal:
-
-```ts
 expect(() => assertSafeAuditMetadata({ sourceType: "repository", reasonCode: "DENIED" })).not.toThrow();
 expect(() => assertSafeAuditMetadata({ details: { redirectCount: 2, elapsedMs: 15 } })).not.toThrow();
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [ ] **Step 2: Verify RED**
 
 ```bash
 npx vitest run tests/security/audit-metadata.test.ts
 ```
 
-Expected: FAIL because the pure validator is not exported and current matching does not cover the complete content-field denylist.
+Expected: FAIL because the validator is not exported and current runtime matching does not cover all content-bearing keys.
 
-- [ ] **Step 3: Commit the RED audit contract**
+- [ ] **Step 3: Commit RED**
 
 ```bash
 git add tests/security/audit-metadata.test.ts
 git commit -m "test: expand audit metadata safety contract [skip ci]"
 ```
 
-- [ ] **Step 4: Harden the runtime validator minimally**
+- [ ] **Step 4: Harden the validator**
 
 In `lib/audit/write-audit-event.ts`:
 
-- rename/export the validator as `assertSafeAuditMetadata`
-- retain credential-like substring matching for token/secret/password/credential/authorization/cookie/API-key/private-key concepts
-- add a separate normalized exact-key denylist for content-bearing keys:
+- export/rename the pure recursive validator to `assertSafeAuditMetadata`
+- retain credential-like substring detection for token, secret, password, credential, authorization, cookie, API key, and private key
+- add an exact normalized denylist for content fields:
 
 ```ts
 const FORBIDDEN_CONTENT_KEYS = new Set([
@@ -289,23 +284,24 @@ const FORBIDDEN_CONTENT_KEYS = new Set([
 ]);
 ```
 
-Normalize only key spelling for the exact-key check, for example lowercase and remove `_` / `-`. Do not reject `sourceType`, `resourceSource`, or other benign keys solely because they contain the substring `source`.
+Normalize a key with lowercasing plus `_`/`-` removal only for the exact-set check. Do not reject benign keys such as `sourceType`.
 
-Keep recursive traversal and the existing 8 KiB limit unchanged.
+- [ ] **Step 5: Verify focused and representative callers**
 
-- [ ] **Step 5: Run focused audit tests plus representative existing audit callers**
-
-Run:
+Run exactly:
 
 ```bash
-npx vitest run tests/security/audit-metadata.test.ts tests/assets tests/runtime-observations tests/active-validation
+npx vitest run \
+  tests/security/audit-metadata.test.ts \
+  tests/assets \
+  tests/runtime-observations \
+  tests/runtime-validator/service.test.ts \
+  tests/workers/runtime-request.test.ts
 ```
 
-If one of the directory names does not exist, use the exact existing test paths discovered in the repo and record the substitution in the working-state checkpoint.
+Expected: PASS and no existing controlled audit metadata rejected.
 
-Expected: PASS with no valid caller rejected.
-
-- [ ] **Step 6: Commit the audit hardening**
+- [ ] **Step 6: Commit implementation**
 
 ```bash
 git add lib/audit/write-audit-event.ts tests/security/audit-metadata.test.ts
@@ -314,81 +310,78 @@ git commit -m "fix: harden audit metadata redaction boundary [skip ci]"
 
 ---
 
-### Task 3: Classify worker failures centrally without changing responses
+### Task 3: Central worker security classification
 
 **Files:**
 - Create: `tests/workers/worker-route-telemetry.test.ts`
 - Modify: `lib/worker-control/http-response.ts`
-- Consumes: `writeSecurityTelemetry`, `WorkerSecurityRoute`
 
 **Interfaces:**
-- Changes `workerRouteError` from:
-  - `workerRouteError(error: unknown): Response`
-- To:
-  - `workerRouteError(error: unknown, route: WorkerSecurityRoute): Response`
-- Returned status/body/cache headers remain byte/shape-compatible with existing behavior.
+- Consumes `writeSecurityTelemetry` and `WorkerSecurityRoute`.
+- Changes `workerRouteError(error: unknown): Response` to `workerRouteError(error: unknown, route: WorkerSecurityRoute): Response`.
+- Response status, JSON body, and `cache-control: no-store` remain unchanged.
 
-- [ ] **Step 1: Write the failing classification test**
+- [ ] **Step 1: Write failing classification tests**
 
-Create `tests/workers/worker-route-telemetry.test.ts` using `vi.spyOn(console, "warn")` / `console.error` around direct `workerRouteError` calls.
+Create `tests/workers/worker-route-telemetry.test.ts`. Use actual constructors `new WorkerBrokerAuthError()` and `new WorkerControlError(code)` and spy on console output.
 
 Required cases:
 
-- `new WorkerBrokerAuthError()` on `worker.claim` -> 401 response and one `worker.authentication_rejected` warning
-- `new WorkerControlError("RUNTIME_WORKER_ACCESS_DENIED")` -> unchanged 403 and one `worker.access_rejected` warning
-- `new WorkerControlError("RUNTIME_WORKER_ACTIVE_LIMIT")` -> unchanged 429 and one `worker.rate_limited` warning
-- representative expected 400 and 409 domain errors -> unchanged response and zero telemetry output
-- `new Error("must never be serialized")` -> unchanged `{ error: { code: "WORKER_REQUEST_FAILED" } }` 500 and one `worker.request_failed` error line that does not contain the raw message
+```text
+WorkerBrokerAuthError -> 401 + worker.authentication_rejected warning
+RUNTIME_WORKER_ACCESS_DENIED -> 403 + worker.access_rejected warning
+WORKER_DISABLED -> 403 + worker.access_rejected warning
+WORKER_NOT_AVAILABLE -> 403 + worker.access_rejected warning
+RUNTIME_WORKER_ACTIVE_LIMIT -> 429 + worker.rate_limited warning
+representative 400/409 errors -> unchanged response + zero telemetry
+unknown Error("must never be serialized") -> 500 + worker.request_failed error, raw message absent
+```
 
-Use the actual constructor signatures from `lib/worker-control/types.ts`; do not invent test-only production constructors.
+Also parse the Response JSON and assert it remains `{ error: { code: ... } }`.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [ ] **Step 2: Verify RED**
 
 ```bash
 npx vitest run tests/workers/worker-route-telemetry.test.ts
 ```
 
-Expected: FAIL because `workerRouteError` does not yet accept route identity or emit telemetry.
+Expected: FAIL because route identity/telemetry do not exist on `workerRouteError` yet.
 
-- [ ] **Step 3: Commit the RED worker-classification test**
+- [ ] **Step 3: Commit RED**
 
 ```bash
 git add tests/workers/worker-route-telemetry.test.ts
 git commit -m "test: define worker security telemetry classification [skip ci]"
 ```
 
-- [ ] **Step 4: Implement classification in the shared HTTP boundary**
+- [ ] **Step 4: Implement classification in `http-response.ts`**
 
-In `lib/worker-control/http-response.ts`:
+Keep existing status helper functions. Add a private classifier which receives only the bounded route, known code, and mapped status. Never pass an error message, request, or error object into `writeSecurityTelemetry`.
 
-- import `writeSecurityTelemetry` and `WorkerSecurityRoute`
-- keep all existing status helper functions
-- add a small private `emitWorkerSecurityTelemetry(error, route, status, code)` classifier
-- call it only after the response code/status are known
-- never pass `error.message`, request data, or the error object into telemetry
-- ensure telemetry cannot change the Response path
-
-Classification rules:
+Classification:
 
 ```text
-WorkerBrokerAuthError -> worker.authentication_rejected / warning / 401
-WorkerControlError code RUNTIME_WORKER_ACCESS_DENIED, WORKER_DISABLED, WORKER_NOT_AVAILABLE -> worker.access_rejected / warning / mapped 403
-WorkerControlError code RUNTIME_WORKER_ACTIVE_LIMIT -> worker.rate_limited / warning / 429
-unknown exception -> worker.request_failed / error / 500
-all ordinary 400/409 domain and transport/state conflicts -> no security telemetry
+WorkerBrokerAuthError -> authentication_rejected / warning
+WorkerControlError RUNTIME_WORKER_ACCESS_DENIED, WORKER_DISABLED, WORKER_NOT_AVAILABLE -> access_rejected / warning
+WorkerControlError RUNTIME_WORKER_ACTIVE_LIMIT -> rate_limited / warning
+unknown exception -> request_failed / error / WORKER_REQUEST_FAILED / 500
+ordinary 400/409 domain and transport/state conflicts -> no security telemetry
 ```
 
-Do not classify malformed transport input as a security event in this first release unless it already maps to one of the explicit categories above.
+Telemetry failure must not change the returned response.
 
-- [ ] **Step 5: Run focused worker tests**
+- [ ] **Step 5: Verify worker boundary**
 
 ```bash
-npx vitest run tests/workers/worker-route-telemetry.test.ts tests/workers/broker-routes.test.ts tests/workers/broker-auth.test.ts
+npx vitest run \
+  tests/workers/worker-route-telemetry.test.ts \
+  tests/workers/broker-routes.test.ts \
+  tests/workers/broker-auth.test.ts
 ```
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit the centralized integration**
+- [ ] **Step 6: Commit implementation**
 
 ```bash
 git add lib/worker-control/http-response.ts tests/workers/worker-route-telemetry.test.ts
@@ -397,9 +390,10 @@ git commit -m "feat: classify worker security failures centrally [skip ci]"
 
 ---
 
-### Task 4: Give every worker route a fixed compile-time telemetry identity
+### Task 4: Fixed route identities for all worker endpoints
 
 **Files:**
+- Modify: `tests/workers/broker-routes.test.ts`
 - Modify: `app/api/internal/workers/claim/route.ts`
 - Modify: `app/api/internal/workers/heartbeat/route.ts`
 - Modify: `app/api/internal/workers/finalize/route.ts`
@@ -407,15 +401,12 @@ git commit -m "feat: classify worker security failures centrally [skip ci]"
 - Modify: `app/api/internal/workers/repository-scans/finalize/route.ts`
 - Modify: `app/api/internal/workers/runtime/prepare/route.ts`
 - Modify: `app/api/internal/workers/runtime/finalize/route.ts`
-- Modify: `tests/workers/broker-routes.test.ts`
 
-**Interfaces:**
-- Every route calls `workerRouteError(error, <literal WorkerSecurityRoute>)`.
-- No route derives telemetry identity from `request.url`, pathname parsing, headers, query strings, or request body.
+**Interfaces:** Every catch block calls `workerRouteError(error, <fixed literal>)`. Route identity is never derived from request data.
 
-- [ ] **Step 1: Extend the route architecture test first**
+- [ ] **Step 1: Extend route tests first**
 
-Update `tests/workers/broker-routes.test.ts` to cover all seven current worker endpoints and assert each source contains its required literal:
+Add all seven files to `routePaths` and require these exact literals:
 
 ```ts
 const expectedRouteIds = {
@@ -429,26 +420,26 @@ const expectedRouteIds = {
 } as const;
 ```
 
-Also assert the combined route source does not contain telemetry derivation from `request.url`, `new URL(request.url)`, `location`, or arbitrary route strings.
+Assert combined route sources do not derive telemetry identity from `request.url`, `new URL(request.url)`, query values, or headers.
 
-- [ ] **Step 2: Run route tests and verify RED**
+- [ ] **Step 2: Verify RED**
 
 ```bash
 npx vitest run tests/workers/broker-routes.test.ts
 ```
 
-Expected: FAIL because current route catch blocks still call `workerRouteError(error)` without a route literal.
+Expected: FAIL because current catch blocks call `workerRouteError(error)`.
 
-- [ ] **Step 3: Commit the RED route identity contract**
+- [ ] **Step 3: Commit RED**
 
 ```bash
 git add tests/workers/broker-routes.test.ts
 git commit -m "test: pin worker telemetry route identities [skip ci]"
 ```
 
-- [ ] **Step 4: Update all seven catch blocks**
+- [ ] **Step 4: Update only the seven catch blocks**
 
-Examples:
+Example:
 
 ```ts
 } catch (error) {
@@ -456,9 +447,9 @@ Examples:
 }
 ```
 
-and corresponding fixed literals for the other six endpoints. Do not make any other route behavior change.
+Apply the matching literal to each route. Make no other route behavior change.
 
-- [ ] **Step 5: Run worker route and telemetry tests**
+- [ ] **Step 5: Verify route/telemetry tests**
 
 ```bash
 npx vitest run tests/workers/broker-routes.test.ts tests/workers/worker-route-telemetry.test.ts
@@ -466,7 +457,7 @@ npx vitest run tests/workers/broker-routes.test.ts tests/workers/worker-route-te
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit fixed route identities**
+- [ ] **Step 6: Commit implementation**
 
 ```bash
 git add app/api/internal/workers tests/workers/broker-routes.test.ts
@@ -475,84 +466,87 @@ git commit -m "feat: attach fixed worker telemetry route ids [skip ci]"
 
 ---
 
-### Task 5: Pin the browser security baseline and publish alert/CSP evidence
+### Task 5: Browser-header regression guard and alert/CSP truth document
 
 **Files:**
 - Create: `tests/architecture/phase-9d-security-telemetry-browser-hardening.test.ts`
 - Create: `docs/security/PHASE_9D_TELEMETRY_AND_CSP.md`
-- Read only: `next.config.ts`, `middleware.ts`, `components/auth/TurnstileChallenge.tsx`, `components/AuthForm.tsx`, current landing/WebGL imports, Supabase client modules, `package.json`
+- Read only: `next.config.ts`, `middleware.ts`, `components/AuthForm.tsx`, `components/auth/TurnstileChallenge.tsx`, landing/WebGL imports, Supabase client modules, `package.json`
 
-**Interfaces:**
-- No browser runtime interface changes.
-- No CSP header is added in this task.
-- Document is the operational truth source for alert thresholds, telemetry fields, current CSP state, target directives, preview verification, and rollback.
+**Interfaces:** No browser runtime interface changes and no CSP header.
 
-- [ ] **Step 1: Write the failing architecture contract first**
+- [ ] **Step 1: Write the failing architecture guard**
 
-Create `tests/architecture/phase-9d-security-telemetry-browser-hardening.test.ts` that reads the relevant sources and requires:
+Require:
 
-1. `lib/security/telemetry.ts` contains the fixed schema and five event names and does not expose generic `metadata`, `details`, `message`, `headers`, `body`, or `Record<string, unknown>` event fields.
-2. `next.config.ts` still contains:
-   - `X-Content-Type-Options: nosniff`
-   - `Referrer-Policy: strict-origin-when-cross-origin`
-   - `X-Frame-Options: DENY`
-   - current restrictive `Permissions-Policy`
-   - current HSTS value
-   - `poweredByHeader: false`
-3. `next.config.ts` does not claim an enforced `Content-Security-Policy` in this initial plan.
-4. `package.json` has no newly introduced logging/telemetry dependency pattern such as `sentry`, `datadog`, `pino`, `winston`, `opentelemetry`, or another log store SDK.
-5. `docs/security/PHASE_9D_TELEMETRY_AND_CSP.md` records all four alert thresholds and states CSP enforcement is pending/not active.
-6. Phase 9D code does not reference hosted worker capability environment variables.
+```text
+telemetry module has schema + all five event names
+telemetry public source has no generic metadata/details/message/headers/body/Record<string, unknown> escape hatch
+next.config.ts retains nosniff
+next.config.ts retains strict-origin-when-cross-origin
+next.config.ts retains X-Frame-Options DENY
+next.config.ts retains current restrictive Permissions-Policy
+next.config.ts retains HSTS max-age=63072000; includeSubDomains; preload
+poweredByHeader remains false
+next.config.ts does not add Content-Security-Policy in this release
+package.json contains no new logging/telemetry SDK package
+operations document states CSP NOT ENFORCED and Vercel automated alerts NOT CLAIMED
+operations document contains the four exact threshold contracts
+Phase 9D sources do not reference hosted runtime capability variables
+```
 
-- [ ] **Step 2: Run the architecture test and verify RED**
+- [ ] **Step 2: Verify RED**
 
 ```bash
 npx vitest run tests/architecture/phase-9d-security-telemetry-browser-hardening.test.ts
 ```
 
-Expected: FAIL because the Phase 9D operational/CSP document does not exist yet.
+Expected: FAIL because `docs/security/PHASE_9D_TELEMETRY_AND_CSP.md` is absent.
 
-- [ ] **Step 3: Commit the RED architecture guard**
+- [ ] **Step 3: Commit RED**
 
 ```bash
 git add tests/architecture/phase-9d-security-telemetry-browser-hardening.test.ts
 git commit -m "test: guard Phase 9D telemetry and browser boundaries [skip ci]"
 ```
 
-- [ ] **Step 4: Inventory the actual current production-origin requirements**
+- [ ] **Step 4: Inventory observed production resource/origin needs**
 
-Before writing the document, inspect the exact branch source and record only observed requirements. At minimum establish:
+Inspect the exact branch source and record only observed requirements for:
 
-- Next.js scripts are local framework assets
-- current landing/WebGL resources and whether they are local or remote
-- image/font origins actually referenced in source/CSS
-- Supabase connection origin from `NEXT_PUBLIC_SUPABASE_URL` contract and whether browser code requires HTTPS and/or WSS
-- Turnstile script/frame origin `https://challenges.cloudflare.com` when configured
-- analytics/provider origins actually present in `package.json` or source
+```text
+Next.js local framework scripts
+current local/remote landing and WebGL resources
+image/font origins referenced by source/CSS
+Supabase browser HTTPS/WSS origin contract
+Turnstile https://challenges.cloudflare.com script/frame behavior when configured
+analytics/provider origins actually present in package/source
+```
 
-Do not invent an origin merely because a library might support it.
+Do not add a generic origin merely because a dependency could use it.
 
-- [ ] **Step 5: Write the Phase 9D operational/CSP truth document**
+- [ ] **Step 5: Write `docs/security/PHASE_9D_TELEMETRY_AND_CSP.md`**
 
-Create `docs/security/PHASE_9D_TELEMETRY_AND_CSP.md` with these explicit sections:
+It must include:
 
-- released/current baseline SHA
-- two-channel telemetry model
-- exact allowed event fields and forbidden data
-- alert contracts:
-  - auth rejection: >=10 in 5 minutes
-  - unexpected worker failures: >=3 in 5 minutes or sustained after deploy
-  - worker throttling: >=20 in 10 minutes per route/deployment context
-  - security-control misconfiguration: any production event actionable
-- responder/rollback actions for each alert
-- current Vercel alert automation state: `NOT CLAIMED` unless directly configured and verified through a supported mutation surface
-- current CSP state: `NOT ENFORCED`
-- observed production origin/resource inventory
-- target CSP properties from the spec
-- explicit statement that no broad `unsafe-inline`, `unsafe-eval`, or wildcard policy is approved
-- CSP enforcement prerequisites and rollback expectations
+```text
+current executable/docs baseline
+exact two-channel model
+allowed operational fields + forbidden data
+worker.authentication_rejected >= 10 in 5 minutes
+worker.request_failed >= 3 in 5 minutes or sustained after deployment
+worker.rate_limited >= 20 in 10 minutes per route/deployment context
+security.control_misconfigured: any production occurrence actionable
+response/rollback actions for each signal
+Vercel automated alert state: NOT CLAIMED
+CSP state: NOT ENFORCED
+observed origin/resource inventory
+target CSP properties from the approved spec
+no wildcard, unsafe-eval, or broad unsafe-inline approval
+CSP compatibility/enforcement prerequisites and rollback
+```
 
-- [ ] **Step 6: Run the architecture test and focused Phase 9D tests**
+- [ ] **Step 6: Verify Phase 9D focused suite**
 
 ```bash
 npx vitest run \
@@ -565,7 +559,7 @@ npx vitest run \
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit browser/operational evidence**
+- [ ] **Step 7: Commit evidence**
 
 ```bash
 git add tests/architecture/phase-9d-security-telemetry-browser-hardening.test.ts docs/security/PHASE_9D_TELEMETRY_AND_CSP.md
@@ -574,99 +568,68 @@ git commit -m "docs: record Phase 9D telemetry and CSP evidence [skip ci]"
 
 ---
 
-### Task 6: Build the resumable Phase 9D checkpoint and preflight the exact branch
+### Task 6: Resumable checkpoint and exact-head preview
 
 **Files:**
 - Modify: `docs/development/PHASE_9_WORKING_STATE.md`
 - Modify: `docs/development/SESSION_HANDOFF.md`
 
-**Interfaces:**
-- Checkpoint must distinguish local/structural test evidence from executed CI evidence.
-- Checkpoint must not describe CSP, alerts, Turnstile provider enforcement, leaked-password protection, or WAF as active without direct proof.
+- [ ] **Step 1: Refresh actual `main` and compare branch scope**
 
-- [ ] **Step 1: Re-read actual `main` and compare branch scope**
+Require no unexpected overlap. If current `main` changed an overlapping file, merge/reconcile by retaining newest `main` content and reapplying only reviewed Phase 9D changes, then rerun focused tests/preview before proceeding.
 
-Use GitHub branch/compare APIs. Require:
+- [ ] **Step 2: Require exact-head Vercel Preview**
 
-- no unexpected `main` drift in files Phase 9D modifies
-- if UI drift overlaps, preserve newest `main` and reapply only Phase 9D delta before proceeding
-- no package, database migration, layout, landing/dashboard visual, Supabase provider config, WAF, or hosted-runtime change
+Require metadata for the branch head and build logs proving compile/type validation/build success, deployment `READY`, and `aliasError=null`.
 
-- [ ] **Step 2: Run exact-head Vercel Preview build**
+- [ ] **Step 3: Update working/handoff docs**
 
-Require the branch head preview to reach `READY` with `aliasError=null` and build logs to show successful compile/type validation/static generation as applicable.
+Record exact head/tree, changed files, test-first history, exact preview deployment, CSP `NOT ENFORCED`, automated alerts `NOT CLAIMED`, and remaining Runtime Log/candidate CI gates.
 
-- [ ] **Step 3: Write the working checkpoint**
-
-Record:
-
-- exact branch/head/tree
-- changed file list
-- test-first commit history
-- exact preview deployment
-- CSP state `NOT ENFORCED`
-- automated alert state `NOT CLAIMED`
-- provider controls still separate
-- remaining runtime-log acceptance and candidate CI gates
-
-- [ ] **Step 4: Commit checkpoint docs only**
+- [ ] **Step 4: Commit checkpoint**
 
 ```bash
 git add docs/development/PHASE_9_WORKING_STATE.md docs/development/SESSION_HANDOFF.md
 git commit -m "docs: checkpoint Phase 9D security telemetry [skip ci]"
 ```
 
-- [ ] **Step 5: Verify `[skip ci]` and preview**
+- [ ] **Step 5: Verify checkpoint**
 
-Confirm zero Actions runs for the checkpoint SHA and a READY Vercel Preview for the exact checkpoint head.
+Require zero GitHub Actions runs for the checkpoint SHA and an exact-head Vercel Preview `READY` with `aliasError=null`.
 
 ---
 
-### Task 7: Prove real preview telemetry without leaking request secrets
+### Task 7: Real preview Runtime Log acceptance
 
-**Files:**
-- No production code change unless this acceptance test reveals a real defect.
-- Update checkpoint docs only after evidence is obtained.
+**Files:** No production code change unless the acceptance uncovers a real defect; then use systematic debugging and a new test-first repair cycle.
 
-**Interfaces:**
-- Acceptance target: preview deployment only.
-- Request: intentionally unauthenticated `POST` to `/api/internal/workers/claim` with no valid worker credential and no request body.
-- Expected HTTP result: bounded worker authentication failure, normally 401.
-- Expected Runtime Log: one `scopeforge.security.v1` `worker.authentication_rejected` event for route `worker.claim`.
+**Interfaces:** Intentionally unauthenticated POST to the exact preview `/api/internal/workers/claim`; expected bounded 401 and one warning telemetry event.
 
-- [ ] **Step 1: Execute one harmless POST against the exact preview**
+- [ ] **Step 1: Issue one harmless preview POST**
 
-Preferred command when container networking can reach the preview:
+Use:
 
 ```bash
 curl -sS -i -X POST 'https://<exact-preview-host>/api/internal/workers/claim'
 ```
 
-If Vercel deployment protection requires authentication, use the connected Vercel access mechanism or an authenticated browser-capable tool to issue the POST. Do not add a production debug endpoint merely to manufacture evidence.
+If Vercel deployment protection is active, use the connected Vercel access mechanism or a browser-capable authenticated execution surface to issue the same POST. Do not add a debug endpoint.
 
-Expected response: 401 with the existing bounded error body and no persistent mutation.
+If no available execution surface can issue POST to the protected preview, stop release acceptance here and report that exact blocker. Do not substitute source inspection.
 
-If no available tool can issue an HTTP POST to the protected preview, treat this as a release acceptance blocker. Do not replace it with a source-only assertion or claim runtime-log verification occurred.
+Expected: 401 bounded worker auth response and no persistent state mutation.
 
-- [ ] **Step 2: Query Vercel Runtime Logs for the exact preview**
+- [ ] **Step 2: Query exact-deployment Runtime Logs**
 
-Filter by deployment ID, recent time window, warning/error severity, and/or query `scopeforge.security.v1`.
+Filter the connected Vercel Runtime Logs to the preview deployment and recent warning/error events; search for `scopeforge.security.v1`.
 
-Verify the event contains only the allowlisted telemetry fields and specifically does not contain:
+Require one event containing only allowed fields and no authorization value, cookie, raw headers, body, query string, IDs, secret, or raw error message.
 
-- authorization header values
-- cookies
-- raw headers
-- request body
-- raw URL query string
-- worker IDs or secrets
-- raw error messages
+- [ ] **Step 3: Record exact runtime evidence in working/handoff docs**
 
-- [ ] **Step 3: Record preview runtime acceptance evidence**
+Record deployment ID, HTTP status, schema/event/route, and privacy verification only. Do not record any test credential.
 
-Update the Phase 9D working checkpoint with exact preview deployment ID, response status, event name, route, and verification result. Do not paste secret values into docs even if testing used any.
-
-- [ ] **Step 4: Commit evidence docs only**
+- [ ] **Step 4: Commit evidence docs**
 
 ```bash
 git add docs/development/PHASE_9_WORKING_STATE.md docs/development/SESSION_HANDOFF.md
@@ -675,46 +638,38 @@ git commit -m "docs: record Phase 9D runtime telemetry acceptance [skip ci]"
 
 ---
 
-### Task 8: Freeze, validate, merge, and independently verify the Phase 9D release
+### Task 8: Freeze, PR, merge, post-merge verification, release checkpoint
 
-**Files:**
-- No new executable scope after freeze.
-- Final release docs after successful post-merge verification:
-  - Create: `docs/development/PHASE_9D_RELEASE_STATE.md`
-  - Modify: `docs/development/CURRENT_STATE.md`
-  - Modify: `docs/development/NEXT_STEPS.md`
-  - Modify: `docs/development/PHASE_9_WORKING_STATE.md`
-  - Modify: `docs/development/SESSION_HANDOFF.md`
+**Files after successful release verification:**
+- Create: `docs/development/PHASE_9D_RELEASE_STATE.md`
+- Modify: `docs/development/CURRENT_STATE.md`
+- Modify: `docs/development/NEXT_STEPS.md`
+- Modify: `docs/development/PHASE_9_WORKING_STATE.md`
+- Modify: `docs/development/SESSION_HANDOFF.md`
 
-**Interfaces:**
-- Frozen candidate tree must be identical to the reviewed implementation/checkpoint tree.
-- Next engineering handoff after release is Phase 9E incident/release engineering, with CSP enforcement still separately pending unless later proven/approved.
+- [ ] **Step 1: Final pre-freeze refresh**
 
-- [ ] **Step 1: Perform final pre-freeze scope review**
+Refresh `main`; reconcile any late overlapping UI drift first. Require a new exact-head preview after any reconciliation.
 
-Refresh `main` again. Compare base/head. If concurrent UI work changed overlapping files, reconcile it first, require a new exact-head preview, and only then freeze.
+- [ ] **Step 2: Freeze the reviewed tree without modifying it**
 
-- [ ] **Step 2: Create a tree-identical freeze commit**
-
-Commit message:
+Create a tree-identical commit:
 
 ```text
 chore: freeze Phase 9D release candidate
 ```
 
-Do not alter the tree while freezing.
+- [ ] **Step 3: Verify exact frozen preview**
 
-- [ ] **Step 3: Require exact-candidate Vercel Preview READY**
+Require exact SHA metadata, `READY`, successful production build output, and `aliasError=null`.
 
-Confirm the preview metadata points to the exact frozen SHA and reaches READY with `aliasError=null`.
+- [ ] **Step 4: Open draft PR against actual current `main` and inspect the complete file list**
 
-- [ ] **Step 4: Open draft PR against the actual current `main` and inspect scope**
+Scope must contain only approved Phase 9D implementation/tests/docs plus explicit reconciliation edits needed to preserve newer `main`.
 
-The PR must contain only the reviewed Phase 9D telemetry/audit/worker-route/tests/docs files plus any explicit conflict-resolution edits needed to preserve newer `main`.
+- [ ] **Step 5: Mark ready and spend one substantive candidate CI run**
 
-- [ ] **Step 5: Release the draft and run one substantive CI candidate**
-
-Require the permanent workflow gates:
+Require success for:
 
 ```text
 npm ci --ignore-scripts --no-audit --no-fund
@@ -728,57 +683,30 @@ npm run benchmark:matrix
 npm run build
 ```
 
-Every step must conclude success on the exact frozen candidate. No blind reruns.
+Do not blindly rerun a failure; use systematic debugging first.
 
-- [ ] **Step 6: Perform immutable pre-merge verification**
+- [ ] **Step 6: Immutable pre-merge verification**
 
-Require:
+Require exact frozen head, CI-tested base, mergeable PR, no unresolved review/thread blocker, exact preview READY, recorded runtime-log acceptance, Supabase Security Advisor truth, CSP still not claimed enforced, and automated alerts still not claimed unless separately proven.
 
-- current PR head still equals frozen candidate SHA
-- current `main` is still the CI-tested base or has been reconciled and revalidated
-- PR mergeable
-- review submissions/threads contain no unresolved blocker
-- exact preview READY
-- Runtime Log acceptance already recorded
-- no CSP enforcement claim
-- no automated Vercel alert claim
-- Supabase Security Advisor checked and any unrelated existing warning reported truthfully
+- [ ] **Step 7: Squash merge with `expected_head_sha` pinned**
 
-- [ ] **Step 7: Squash merge with expected head SHA pinned**
-
-Use the GitHub merge API with `expected_head_sha=<frozen SHA>`. If GitHub rejects due to branch movement, stop and reconcile rather than forcing.
+If head/base moves, reconcile/revalidate instead of forcing.
 
 - [ ] **Step 8: Independently verify merged `main`**
 
-Require:
+Require post-merge main CI success on the exact squash SHA and exact Vercel production deployment `READY`, `scopeforge.dev` alias present, `aliasError=null`, plus no new Supabase Security Advisor regression.
 
-- post-merge main CI success on exact squash SHA
-- exact Vercel production deployment for the squash SHA READY
-- production alias includes `scopeforge.dev`
-- `aliasError=null`
-- no new Supabase Security Advisor regression
+- [ ] **Step 9: Create one atomic five-file docs release checkpoint**
 
-- [ ] **Step 9: Write one atomic docs-only release checkpoint**
-
-The five release docs must record:
-
-- PR and frozen candidate identity
-- candidate CI and preview
-- squash merge and released tree
-- post-merge CI and production deployment
-- exact telemetry privacy contract
-- real preview runtime-log acceptance evidence
-- CSP `NOT ENFORCED`
-- Vercel automated alerts `NOT CLAIMED` unless separately verified
-- existing Phase 9B provider truth
-- Phase 9E as next implementation boundary
+Record PR/candidate/tree/CI/preview, squash release identity, post-merge CI/production deployment, telemetry privacy contract, real preview runtime evidence, CSP `NOT ENFORCED`, automated alerts `NOT CLAIMED` unless directly proven, provider truth, and Phase 9E as next implementation boundary.
 
 Commit:
 
-```bash
-git commit -m "docs: record Phase 9D release and Phase 9E handoff [skip ci]"
+```text
+docs: record Phase 9D release and Phase 9E handoff [skip ci]
 ```
 
-- [ ] **Step 10: Verify the docs checkpoint itself**
+- [ ] **Step 10: Verify docs checkpoint**
 
-Require exactly the intended documentation files, zero GitHub Actions runs for the docs SHA, and its normal Vercel production deployment READY. Keep executable Phase 9D release identity separately pinned to the squash merge SHA/tree.
+Require exactly those five docs files, zero GitHub Actions runs for the docs SHA, and the normal docs production deployment `READY`. Keep executable Phase 9D release identity pinned separately to the squash merge SHA/tree.
