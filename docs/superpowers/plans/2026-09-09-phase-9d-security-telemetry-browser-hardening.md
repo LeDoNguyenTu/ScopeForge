@@ -296,7 +296,7 @@ npx vitest run \
   tests/assets \
   tests/runtime-observations \
   tests/runtime-validator/service.test.ts \
-  tests/workers/runtime-request.test.ts
+  tests/runtime-workers/request.test.ts
 ```
 
 Expected: PASS and no existing controlled audit metadata rejected.
@@ -580,11 +580,11 @@ Require no unexpected overlap. If current `main` changed an overlapping file, me
 
 - [ ] **Step 2: Require exact-head Vercel Preview**
 
-Require metadata for the branch head and build logs proving compile/type validation/build success, deployment `READY`, and `aliasError=null`.
+Require metadata for the branch head and build logs proving compile/type validation/build success, deployment `READY`, and `aliasError=null`. Record the exact preview URL as `PHASE9D_PREVIEW_URL` for Task 7.
 
 - [ ] **Step 3: Update working/handoff docs**
 
-Record exact head/tree, changed files, test-first history, exact preview deployment, CSP `NOT ENFORCED`, automated alerts `NOT CLAIMED`, and remaining Runtime Log/candidate CI gates.
+Record exact head/tree, changed files, test-first history, exact preview deployment/URL, CSP `NOT ENFORCED`, automated alerts `NOT CLAIMED`, and remaining Runtime Log/candidate CI gates.
 
 - [ ] **Step 4: Commit checkpoint**
 
@@ -603,17 +603,18 @@ Require zero GitHub Actions runs for the checkpoint SHA and an exact-head Vercel
 
 **Files:** No production code change unless the acceptance uncovers a real defect; then use systematic debugging and a new test-first repair cycle.
 
-**Interfaces:** Intentionally unauthenticated POST to the exact preview `/api/internal/workers/claim`; expected bounded 401 and one warning telemetry event.
+**Interfaces:** Consumes the exact `PHASE9D_PREVIEW_URL` from Task 6. Intentionally unauthenticated POST to `/api/internal/workers/claim`; expected bounded 401 and one warning telemetry event.
 
 - [ ] **Step 1: Issue one harmless preview POST**
 
-Use:
+Set the exact URL returned by Task 6 and issue:
 
 ```bash
-curl -sS -i -X POST 'https://<exact-preview-host>/api/internal/workers/claim'
+export PHASE9D_PREVIEW_URL='https://the-exact-preview-host-returned-by-vercel'
+curl -sS -i -X POST "$PHASE9D_PREVIEW_URL/api/internal/workers/claim"
 ```
 
-If Vercel deployment protection is active, use the connected Vercel access mechanism or a browser-capable authenticated execution surface to issue the same POST. Do not add a debug endpoint.
+The shell value must be replaced with the exact URL returned by the connected Vercel deployment metadata before execution. If deployment protection is active, use the connected Vercel access mechanism or an authenticated browser-capable execution surface to issue the same POST. Do not add a debug endpoint.
 
 If no available execution surface can issue POST to the protected preview, stop release acceptance here and report that exact blocker. Do not substitute source inspection.
 
@@ -621,7 +622,7 @@ Expected: 401 bounded worker auth response and no persistent state mutation.
 
 - [ ] **Step 2: Query exact-deployment Runtime Logs**
 
-Filter the connected Vercel Runtime Logs to the preview deployment and recent warning/error events; search for `scopeforge.security.v1`.
+Filter connected Vercel Runtime Logs to the preview deployment and recent warning/error events; search for `scopeforge.security.v1`.
 
 Require one event containing only allowed fields and no authorization value, cookie, raw headers, body, query string, IDs, secret, or raw error message.
 
