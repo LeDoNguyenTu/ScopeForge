@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
 
@@ -7,9 +7,9 @@ beforeEach(() => {
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
-    value: vi.fn().mockImplementation(() => ({
-      matches: true,
-      media: "(prefers-reduced-motion: reduce)",
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("max-width"),
+      media: query,
       onchange: null,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -21,39 +21,34 @@ beforeEach(() => {
 });
 
 describe("CommandCenterLandingHero", () => {
-  it("matches the approved command-center information architecture", () => {
+  it("exposes independently authored desktop and mobile compositions", () => {
     render(<CommandCenterLandingHero />);
+    expect(screen.getByTestId("command-center-v5-desktop")).toBeInTheDocument();
+    expect(screen.getByTestId("command-center-v5-mobile")).toBeInTheDocument();
+    expect(screen.getAllByTestId("command-copy")).toHaveLength(2);
+    expect(screen.getAllByTestId("command-scene")).toHaveLength(2);
+  });
 
-    expect(screen.getByText("LIVING ATTACK SURFACE")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Understand the risk before it becomes an incident/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Explore the platform/i })).toBeInTheDocument();
-    expect(screen.getByText("86%")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "6 of 7 assets have verified ownership" })).toBeInTheDocument();
-    expect(screen.getByText("Attack Surface Overview")).toBeInTheDocument();
-    expect(screen.getByText("How an exposure could spread")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /Sample attack surface: 7 assets, 3 open findings, 2 affected assets/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Pause monitoring" })).not.toBeInTheDocument();
+  it("preserves the public command-center information hierarchy and real destinations", () => {
+    render(<CommandCenterLandingHero />);
+    expect(screen.getAllByText(/Living attack surface/i)).toHaveLength(2);
+    expect(screen.getAllByRole("heading", { name: /Understand the risk before it becomes an incident/i })).toHaveLength(2);
+    const platformLinks = screen.getAllByRole("link", { name: /Explore the platform/i });
+    expect(platformLinks).toHaveLength(2);
+    platformLinks.forEach((link) => expect(link).toHaveAttribute("href", "/auth/sign-up"));
+    expect(screen.getAllByText("Attack surface overview")).toHaveLength(2);
+    expect(screen.getAllByText("Top illustrative risk path")).toHaveLength(2);
   });
 
   it("labels all public metrics as illustrative instead of live workspace data", () => {
     render(<CommandCenterLandingHero />);
-    expect(screen.getByText(/Interactive example · Sample data/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Illustrative platform telemetry/i)).toHaveLength(2);
+    expect(screen.getAllByText(/Illustrative risk topology/i)).toHaveLength(2);
+    expect(screen.getAllByLabelText(/Illustrative scene runtime status/i)).toHaveLength(2);
   });
 
-  it("preserves the approved artwork and updates its labels with sample counts", () => {
-    const { container } = render(<CommandCenterLandingHero />);
-    expect(container.querySelectorAll('[data-asset-node]')).toHaveLength(7);
-    expect(container.querySelector('image')).toHaveAttribute('href', '/command-center-cinematic.webp');
-    expect(screen.getByText('2 findings · example')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'After verified fix' }));
-    expect(screen.getByRole('status')).toHaveTextContent('0 open findings across 0 assets');
-    expect(container.querySelector('.cinematicSurfaceRemediated')).toBeInTheDocument();
-    expect(container.querySelectorAll('[data-asset-node]')).toHaveLength(7);
-    expect(screen.queryByText('2 findings · example')).not.toBeInTheDocument();
-    expect(screen.getByText('86%')).toBeInTheDocument();
-    expect(screen.getByText('Needs proof')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Before remediation' }));
-    expect(screen.getByRole('status')).toHaveTextContent('3 open findings across 2 assets');
-    expect(screen.getByText('2 findings · example')).toBeInTheDocument();
+  it("keeps the animation pause control available in each art-directed composition", () => {
+    render(<CommandCenterLandingHero />);
+    expect(screen.getAllByRole("button", { name: /Pause animation/i })).toHaveLength(2);
   });
 });
