@@ -1,7 +1,10 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migrationPath = "supabase/migrations/20260908170000_phase_9c_function_acl_hardening.sql";
+const phase9cMigrationName = path.basename(migrationPath);
+const migrationsDirectory = "supabase/migrations";
 
 const triggerOnlyFunctions = [
   "enforce_trial_asset_limit",
@@ -48,15 +51,40 @@ describe("Phase 9C database and RPC hardening", () => {
     expect(sql).toMatch(/revoke\s+all\s+on\s+schema\s+private\s+from\s+public,\s*anon,\s*service_role/i);
   });
 
-  it("makes future postgres-owned public and private functions explicit-grant only", async () => {
+  it("does not widen database-wide function defaults or managed-role defaults", async () => {
     const sql = await migration();
-    for (const schema of ["private", "public"]) {
-      expect(sql).toMatch(
-        new RegExp(
-          `alter\\s+default\\s+privileges\\s+for\\s+role\\s+postgres\\s+in\\s+schema\\s+${schema}\\s+revoke\\s+execute\\s+on\\s+functions\\s+from\\s+public,\\s*anon,\\s*authenticated,\\s*service_role`,
-          "i",
+    expect(sql).not.toMatch(
+      /alter\s+default\s+privileges\s+for\s+role\s+postgres\s+revoke\s+execute\s+on\s+functions\s+from\s+public/i,
+    );
+    expect(sql).not.toMatch(/alter\s+default\s+privileges\s+for\s+role\s+supabase_admin/i);
+  });
+
+  it("requires every future public or private function migration to revoke direct execution explicitly", async () => {
+    const migrationFiles = (await readdir(migrationsDirectory))
+      .filter((file) => file.endsWith(".sql") && file > phase9cMigrationName)
+      .sort();
+
+    for (const file of migrationFiles) {
+      const sql = await readFile(path.join(migrationsDirectory, file), "utf8");
+      const createdFunctions = [
+        ...sql.matchAll(
+          /create\s+(?:or\s+replace\s+)?function\s+(public|private)\.([a-zA-Z0-9_]+)\s*\(/gi,
         ),
-      );
+      ];
+
+      for (const match of createdFunctions) {
+        const schema = match[1];
+        const functionName = match[2];
+        expect(
+          sql,
+          `${file} creates ${schema}.${functionName} without an explicit function revoke`,
+        ).toMatch(
+          new RegExp(
+            `revoke\\s+(?:all|execute)\\s+on\\s+function\\s+${schema}\\.${functionName}\\s*\\(`,
+            "i",
+          ),
+        );
+      }
     }
   });
 
