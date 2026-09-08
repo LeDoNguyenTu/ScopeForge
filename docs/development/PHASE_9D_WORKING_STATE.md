@@ -4,7 +4,7 @@ Last reconciled: 2026-09-09 (Asia/Singapore)
 
 ## Status
 
-Phase 9D implementation is complete through the first exact-head Preview build. Release validation is not complete yet.
+Phase 9D implementation is complete through exact-head Preview build and pre-release review. The next commit containing this document is the frozen release-candidate trigger and intentionally omits `[skip ci]` so the permanent CI gate executes once on the reviewed tree.
 
 Branch:
 
@@ -14,7 +14,7 @@ Production base:
 
 `2af9a92b68c224d290a9597ff1907e5f1098791e`
 
-Implementation/evidence head before this checkpoint:
+Implementation/evidence head before the canonical documentation checkpoint:
 
 `dfcd0403d84a01e2833d971e549323a03b67c094`
 
@@ -22,9 +22,13 @@ Tree:
 
 `35d0307799fe964c5e33447ee987ba7809f4254c`
 
+Canonical reviewed checkpoint before candidate freeze:
+
+`d6a1631d2df0bb4afddc358c11890349c7973510`
+
 ## Exact Preview evidence
 
-Vercel Preview:
+Implementation/evidence Preview:
 
 - deployment `dpl_8xMam5rVMmJnYQFMAgxpad2PB1A2`
 - URL `https://scopeforge-flzp766z2-itsbrian.vercel.app`
@@ -36,11 +40,20 @@ Vercel Preview:
 - TypeScript validity check succeeded
 - 10/10 static pages generated
 
-This preview proves compile/type/build compatibility only. It does not prove the new Vitest contracts because this harness has no local repository checkout and intermediate GitHub Actions were deliberately suppressed.
+Canonical checkpoint Preview:
+
+- deployment `dpl_2AP7FnpTAPSrdJDRhJGC9DsACJnw`
+- URL `https://scopeforge-mkv90kmz6-itsbrian.vercel.app`
+- Git SHA `d6a1631d2df0bb4afddc358c11890349c7973510`
+- target preview
+- state READY
+- `aliasError=null`
+
+These previews prove compile/type/build compatibility only. They do not prove the new Vitest contracts because this harness has no local executable repository checkout and intermediate GitHub Actions were deliberately suppressed.
 
 ## Scope from production base
 
-The implementation/evidence head is 22 commits ahead and 0 behind the production base.
+The reviewed checkpoint is 27 commits ahead and 0 behind the production base.
 
 Changed files are limited to:
 
@@ -50,15 +63,16 @@ Changed files are limited to:
 - `lib/worker-control/http-response.ts`
 - focused security/worker/architecture tests
 - Phase 9D spec and implementation plan
-- `docs/security/PHASE_9D_TELEMETRY_AND_CSP.md`
+- Phase 9D security/working-state documentation
+- canonical Phase 9 and session handoff documentation
 
 No package file, database migration, RLS policy, Supabase provider setting, Vercel WAF setting, `app/layout.tsx`, landing/dashboard visual file, or hosted-runtime flag changed.
 
-Current `main` was refreshed immediately before this checkpoint and remains exactly:
+Current `main` was refreshed during preflight and remained exactly:
 
 `2af9a92b68c224d290a9597ff1907e5f1098791e`
 
-Therefore no UI merge conflict exists at this checkpoint.
+PR #61 is mergeable and has no submitted reviews or inline review threads at the freeze boundary. PR #49 remains untouched.
 
 ## Implemented operational telemetry
 
@@ -131,6 +145,8 @@ The runtime boundary continues rejecting credential-like metadata keys and now a
 
 Benign descriptors such as `sourceType` remain allowed. The existing 8 KiB serialized metadata ceiling remains unchanged.
 
+A pre-freeze compatibility review checked existing audit metadata keys used by runtime and active-validation flows, including `failureCode`, `requestCount`, `redirectCount`, `reasonCode`, `profileId`, `profileVersion`, `authorizationGrantedAt`, `assetKind`, `jobKind`, `findingCount`, and `status`. None are rejected by the hardened key policy.
+
 A syntax error was caught during implementation in an intermediate commit: an invalid JavaScript regex `x` flag. Systematic debugging isolated it to the regex literal syntax and corrected it in `5aba9084b6de7bf7cfc468ebeef48b8ea4914cbe`. The complete `dfcd040...` Preview compiled successfully afterward.
 
 ## Test-first evidence
@@ -149,7 +165,7 @@ Test-first ordering is preserved:
 - `7667509b441ea37f24918e39edf226cda0127a43` - Phase 9D architecture/browser contract before operations document
 - `dfcd0403d84a01e2833d971e549323a03b67c094` - telemetry/CSP operational evidence document
 
-Because this harness has no local executable repository checkout, focused RED/GREEN is structural rather than executed. Do not claim these new Vitest tests pass until the frozen GitHub Actions candidate executes them.
+Because this harness has no local executable repository checkout, focused RED/GREEN is structural rather than executed. The frozen GitHub Actions candidate is the first claimed executable proof for these new Vitest contracts.
 
 ## Browser-hardening evidence
 
@@ -190,6 +206,19 @@ Documented responder thresholds:
 
 These remain operational contracts until an alert mutation surface is used and directly verified.
 
+## Runtime acceptance tooling limitation
+
+The planned release gate includes one harmless unauthenticated POST to the exact Preview `/api/internal/workers/claim`, followed by inspection of that exact deployment's Runtime Logs for a bounded `worker.authentication_rejected` event.
+
+This chat environment cannot currently execute that POST:
+
+- the local container cannot resolve external DNS
+- the connected Vercel fetch action is read-only/GET-oriented
+- the browser-automation skill is documented but its executable browser resource is not loaded in this chat
+- no installed HTTP/REST request plugin is available
+
+Therefore the real Preview request/log observation remains explicitly NOT VERIFIED. The candidate CI must not be described as proving this separate runtime-observability gate.
+
 ## Provider/runtime truth
 
 Still true:
@@ -207,18 +236,23 @@ Keep false/absent:
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-## Remaining Phase 9D gates
+## Frozen candidate gate
 
-1. verify this checkpoint itself has zero GitHub Actions runs and an exact-head READY Preview
-2. issue one harmless unauthenticated POST to the exact checkpoint Preview `/api/internal/workers/claim`
-3. require bounded 401 response
-4. inspect exact-deployment Vercel Runtime Logs and prove one `scopeforge.security.v1` `worker.authentication_rejected` event with only allowlisted fields
-5. record runtime acceptance evidence
-6. refresh `main` and reconcile any late UI overlap
-7. freeze a tree-identical release candidate
-8. require exact-candidate Preview READY
-9. open/review PR against actual current `main`
-10. run one substantive candidate CI and require all permanent gates success
-11. squash merge only the exact verified head
-12. independently verify post-merge main CI and exact production deployment
-13. write a docs-only Phase 9D release checkpoint and Phase 9E handoff
+This documentation-only freeze commit intentionally changes no executable source. Its exact Git SHA and tree are captured from GitHub immediately after creation and become the only candidate identities accepted for this release attempt.
+
+Required candidate evidence:
+
+1. exact candidate Vercel Preview READY with `aliasError=null`
+2. one substantive GitHub Actions `CI / validate` run on the exact PR integration candidate
+3. `npm audit --audit-level=info` success
+4. full Vitest suite success, including all new Phase 9D contracts
+5. TypeScript typecheck success
+6. CLI build/version success
+7. historical scanner benchmark success
+8. Phase 8B benchmark matrix success
+9. production Next.js build success
+10. refresh `main`, mergeability, review submissions, and review threads before integration
+11. squash merge only with expected-head protection on the exact verified candidate
+12. independently verify post-merge `main` CI and exact production deployment
+13. keep the Preview POST/Runtime Log acceptance gate explicitly unresolved until directly observed
+14. write a docs-only Phase 9D release/checkpoint record that does not overclaim unresolved evidence
