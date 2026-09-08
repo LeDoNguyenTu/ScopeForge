@@ -29,7 +29,7 @@ export default function CinematicSurface({ model = buildSampleSurface() }: { mod
         <ellipse cx={center.x} cy={center.y} rx="85" ry="48" fill="none" stroke="#5ce3c7" strokeOpacity=".5"/>
         <path d="M390 297 L418 311 L414 341 L390 360 L366 341 L362 311 Z" fill="#102f32" stroke="#87efd8" strokeWidth="2"/>
         <path d="M380 329 L388 337 L403 317" fill="none" stroke="#a6f7e2" strokeWidth="3"/>
-        <text x="390" y="395" textAnchor="middle" className="dataSurfaceCenter">WORKSPACE</text>
+        <text x="390" y="418" textAnchor="middle" className="dataSurfaceCenter">WORKSPACE</text>
       </g>
       {model.nodes.map(node => {
         const color = node.onPath ? "#ffa46a" : node.verified ? "#6de5ca" : "#e9c17c";
