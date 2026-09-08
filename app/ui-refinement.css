@@ -341,6 +341,21 @@
   .commandMetricCard { flex-direction: column; align-items: flex-start; padding: 14px 12px; }
   .commandMetricCard strong { font-size: 23px; }
 }
+.publicFooter { width: min(1280px, calc(100% - 64px)); margin: 0 auto; padding: 28px 0 32px; border-top: 1px solid var(--ui-border); display: flex; align-items: center; justify-content: space-between; gap: 24px 40px; }
+.publicFooterBrand { min-width: 0; }
+.publicFooterBrand > a { display: inline-flex; align-items: center; min-height: 44px; }
+.publicFooterBrand p { margin: 10px 0 0; color: #abbcc3; font-size: 12px; line-height: 1.7; }
+.publicFooter nav { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.publicFooter nav a { display: inline-flex; align-items: center; min-height: 44px; color: #c6d5da; font-size: 14px; white-space: nowrap; text-decoration: none; }
+.publicFooter nav a:hover { color: #98ecd7; }
+.publicFooter a:focus-visible { outline: 2px solid #98ecd7; outline-offset: 5px; border-radius: 4px; }
+@media (max-width: 900px) {
+  .publicFooter { align-items: flex-start; flex-direction: column; gap: 16px; }
+}
+@media (max-width: 700px) {
+  .publicFooter { width: calc(100% - 44px); padding: 24px 0; }
+  .publicFooter nav { gap: 4px 20px; }
+}
 /* Data-driven public example: every node, route and metric shares one model. */
 .commandMetricGrid .commandMetricCard { flex-direction: column; gap: 10px; }
 .commandHeroScene:has(.dataSurface) { display: flex; align-items: center; mix-blend-mode: normal; min-height: 580px; }

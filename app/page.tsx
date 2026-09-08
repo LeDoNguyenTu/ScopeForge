@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
 import PublicNav from "@/components/landing/PublicNav";
+import PublicFooter from "@/components/landing/PublicFooter";
 
 const workflow = [
   [Boxes, "Discover", "Inventory the applications, APIs, repositories and services that belong to your workspace."],
@@ -24,8 +25,9 @@ const workflow = [
 
 export default function Home() {
   return (
-    <main className="forgeLanding commandLanding">
+    <div className="forgeLanding commandLanding">
       <PublicNav />
+      <main>
       <CommandCenterLandingHero />
 
       <section id="platform" className="forgePlatform commandBelowFold">
@@ -58,6 +60,8 @@ export default function Home() {
           <article><CircleCheck size={28} /><div><strong>Verify the fix</strong><p>Remediation closes only through fresh trusted evidence and a reviewable lifecycle, not a status toggle alone.</p></div></article>
         </div>
       </section>
-    </main>
+      </main>
+      <PublicFooter />
+    </div>
   );
 }
