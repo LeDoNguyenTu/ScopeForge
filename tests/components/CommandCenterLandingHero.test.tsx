@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
 
@@ -27,18 +27,33 @@ describe("CommandCenterLandingHero", () => {
     expect(screen.getByText("LIVING ATTACK SURFACE")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Understand the risk before it becomes an incident/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Explore the platform/i })).toBeInTheDocument();
-    expect(screen.getByText("14,892")).toBeInTheDocument();
-    expect(screen.getByText("3,271")).toBeInTheDocument();
-    expect(screen.getByText("523")).toBeInTheDocument();
-    expect(screen.getAllByText("92")).toHaveLength(2);
+    expect(screen.getByText("86%")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "6 of 7 assets have verified ownership" })).toBeInTheDocument();
     expect(screen.getByText("Attack Surface Overview")).toBeInTheDocument();
-    expect(screen.getByText("Illustrative risk path")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /Illustrative attack surface/i })).toBeInTheDocument();
+    expect(screen.getByText("How an exposure could spread")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Sample attack surface: 7 assets, 3 open findings, 2 affected assets/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Pause monitoring" })).not.toBeInTheDocument();
   });
 
   it("labels all public metrics as illustrative instead of live workspace data", () => {
     render(<CommandCenterLandingHero />);
-    expect(screen.getByText(/Illustrative platform telemetry/i)).toBeInTheDocument();
+    expect(screen.getByText(/Interactive example · Sample data/i)).toBeInTheDocument();
+  });
+
+  it("updates graph edges, finding badges, and counts together while preserving ownership coverage", () => {
+    const { container } = render(<CommandCenterLandingHero />);
+    expect(container.querySelectorAll('[data-asset-node]')).toHaveLength(7);
+    expect([...container.querySelectorAll('[data-exposure-edge]')].map(edge => edge.getAttribute('data-exposure-edge'))).toEqual(['web-identity', 'identity-store']);
+    expect(screen.getByText('2 open findings')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'After verified fix' }));
+    expect(screen.getByRole('status')).toHaveTextContent('0 open findings across 0 assets');
+    expect(container.querySelectorAll('[data-exposure-edge]')).toHaveLength(0);
+    expect(container.querySelectorAll('[data-asset-node]')).toHaveLength(7);
+    expect(screen.queryByText('2 open findings')).not.toBeInTheDocument();
+    expect(screen.getByText('86%')).toBeInTheDocument();
+    expect(screen.getByText('Needs ownership proof')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Before remediation' }));
+    expect(screen.getByRole('status')).toHaveTextContent('3 open findings across 2 assets');
+    expect(container.querySelectorAll('[data-exposure-edge]')).toHaveLength(2);
   });
 });

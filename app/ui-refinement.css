@@ -340,6 +340,70 @@
   .commandMetricCard { flex-direction: column; align-items: flex-start; padding: 14px 12px; }
   .commandMetricCard strong { font-size: 23px; }
 }
+/* Data-driven public example: every node, route and metric shares one model. */
+.commandHeroScene:has(.dataSurface) { display: flex; align-items: center; mix-blend-mode: normal; min-height: 580px; }
+.dataSurface { position: relative; width: 100%; aspect-ratio: 800 / 710; }
+.dataSurface > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.dataSurfaceCenter { fill: #aacbc5; font-size: 13px; letter-spacing: 3px; }
+.dataNodeLabel { position: absolute; transform: translateX(-50%); display: grid; gap: 5px; text-align: center; width: 145px; pointer-events: none; }
+.dataNodeLabel strong { color: #e0eeeb; font-size: 12px; font-weight: 600; }
+.dataNodeLabel small { color: #7edcc6; font-size: 11px; line-height: 1.4; }
+.dataNodeRisk small { color: #ffb485; }
+.dataNodePending small { color: #e9c17c; }
+.sampleScenarioPanel { grid-area: runtime; padding: 20px; align-self: end; border: 1px solid var(--ui-border); border-radius: 14px; background: #0b151ac7; }
+.sampleScenarioHeading { display: grid; gap: 7px; }
+.sampleScenarioHeading strong { font-size: 15px; color: #e0eeeb; }
+.sampleScenarioHeading span { font-size: 12px; color: #a6b8bf; line-height: 1.5; }
+.sampleScenarioControls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 16px 0; }
+.sampleScenarioControls button { min-height: 44px; padding: 9px 12px; border: 1px solid #45625f; border-radius: 8px; background: transparent; color: #b7c9c8; font-size: 12px; cursor: pointer; }
+.sampleScenarioControls button[aria-pressed="true"] { color: #09221a; background: #82e6c8; border-color: #82e6c8; font-weight: 650; }
+.sampleGraphLegend { display: flex; flex-wrap: wrap; gap: 12px 20px; color: #b1c2c5; font-size: 11px; }
+.sampleGraphLegend span { display: inline-flex; align-items: center; gap: 8px; }
+.sampleGraphLegend i { width: 23px; border-top: 2px dotted #74908f; }
+.sampleGraphLegend span:last-child i { border-top: 2px solid #ffab70; }
+.sampleUpdate { display: block; margin-top: 14px; color: #b9cbc7; font-size: 12px; line-height: 1.5; }
+.sampleRiskExplanation { grid-column: 1 / -1; padding-top: 18px; border-top: 1px solid var(--ui-border); }
+.samplePathKicker { display: block; color: #d4e6e0; font-size: 13px; font-weight: 650; }
+.sampleRiskExplanation ol { list-style: none; display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 14px 0; padding: 0; }
+.sampleRiskExplanation li { color: #ffd3b4; font-size: 12px; line-height: 1.6; }
+.sampleRiskExplanation li + li::before { content: "→"; color: #91aaa6; margin-right: 16px; }
+.sampleRiskExplanation h3 { color: #a7e9d3; font-size: 16px; margin: 12px 0; }
+.sampleRiskExplanation p { font-size: 13px; color: #b5c4c9; line-height: 1.7; margin: 12px 0 8px; }
+.sampleRiskExplanation small { display: block; color: #9cadb4; font-size: 11px; line-height: 1.6; }
+.sampleRiskExplanation a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 8px; color: #9be4d0; font-size: 12px; }
+.commandExposureRing span { margin: 0; font-size: 19px; }
+.commandExposureGauge em { color: #e9c17c; }
+.commandMetricCard:last-child small { color: #a8beb7; }
+.commandLanding .forgeEyebrow { font-size: 14px; line-height: 1.5; letter-spacing: .08em; color: #98ecd7; gap: 12px; }
+.commandLanding .forgeEyebrow svg { width: 24px; height: 24px; flex-shrink: 0; }
+.forgeWorkflowTop > span { display: grid; place-items: center; min-width: 38px; height: 38px; font: 700 15px/1 ui-monospace, monospace; color: #d0f5ea; background: #15332e; border: 1px solid #3d7669; border-radius: 10px; letter-spacing: .02em; }
+.forgeWorkflowTop svg { width: 28px; height: 28px; }
+.forgeWorkflowCard h3 { margin-top: 27px; font-size: 18px; }
+.forgeSecurityModel { align-items: center; }
+.forgeSecurityCards { gap: 12px; grid-auto-rows: 1fr; }
+.forgeSecurityCards article { grid-template-columns: 36px minmax(0, 1fr); align-items: center; align-content: center; column-gap: 16px; min-height: 148px; padding: 24px; }
+.forgeSecurityCards svg { width: 28px; height: 28px; margin: 0; }
+.forgeSecurityCards strong { display: block; font-size: 17px; line-height: 1.4; }
+.forgeSecurityCards p { font-size: 14px; margin-top: 8px; }
+@media (max-width: 700px) {
+  .commandHeroScene:has(.dataSurface) { min-height: 0; height: auto; padding: 20px 0 8px; }
+  .dataSurface { margin-inline: -8px; width: calc(100% + 16px); }
+  .dataNodeLabel { width: 104px; gap: 3px; }
+  .dataNodeLabel strong { font-size: 10px; }
+  .dataNodeLabel small { font-size: 9px; }
+  .sampleScenarioPanel { padding: 16px; }
+  .commandLanding .forgeEyebrow { font-size: 12px; letter-spacing: .05em; }
+  .forgeSecurityCards article { padding: 22px 18px; }
+  .commandOverviewBody { grid-template-columns: 1fr; }
+  .commandExposureGauge { grid-template-columns: 76px 1fr; }
+  .commandOverviewList { gap: 12px; }
+  .sampleRiskExplanation ol { flex-direction: column; gap: 8px; }
+  .sampleRiskExplanation li + li::before { content: "↓"; }
+}
+@media (max-width: 360px) {
+  .dataNodeLabel { width: 88px; }
+  .dataNodeLabel small { font-size: 8px; }
+}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; }
