@@ -2,124 +2,154 @@
 
 Last refreshed: 2026-09-08 (Asia/Singapore)
 
-Use this as the fastest resume point for ScopeForge hardening.
+Use this as the fastest resume point for ScopeForge Phase 9 hardening.
 
 ## Hard execution rules
 
-- production `main` is the authoritative UI + backend baseline
-- preflight before CI; do not use GitHub Actions as the debugging loop
-- use `[skip ci]` for intermediate/docs-only checkpoints where Actions adds no executable evidence
+- production `main` is always the authoritative integration baseline
+- before freezing or merging a Phase 9 branch, re-read `main` and resolve any UI-stream drift first
+- preserve the newest production UI when resolving overlaps; reapply only the reviewed security change
+- preflight before CI; do not use GitHub Actions as a debugging loop
+- use `[skip ci]` for intermediate and docs-only commits
 - reserve substantive CI for frozen release candidates
-- never rewrite deployed Supabase migrations; corrections are forward-only
+- never rewrite deployed Supabase migrations
 - never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
 - do not add AI co-author attribution
-- do not claim a test/build/audit/security/deployment gate without exact evidence
-- do not enable hosted worker/runtime capabilities as part of Phase 9 hardening
-- leave PR #49 and its legacy UI branch untouched unless separately requested
+- do not claim tests, provider state, WAF state, or production enforcement without exact evidence
+- do not enable hosted worker/runtime capability flags as part of Phase 9 hardening
+- PR #49 remains a legacy draft UI branch and is not the hardening baseline
 
-## Current production baseline
+## Released Phase 9C baseline
 
-Released `main`:
+Production docs checkpoint before Phase 9B:
 
-`0869767401011cd32dcd3e3b2976201461655e02`
+`fc7c4369c7075d22c3ad918bea3e17b1e1df5c2b`
 
-Released tree:
-
-`ca68a0559af93fc3b2143fdec387b84e418bb141`
-
-Post-merge main CI:
-
-- #771
-- run `34227543168`
-- success
-- npm audit, full tests, typecheck, CLI build/version, historical benchmark, Phase 8B matrix, and production Next.js build all passed
-
-Exact production deployment:
-
-`dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N`
-
-- exact Git SHA `0869767401011cd32dcd3e3b2976201461655e02`
-- target production
-- READY
-- includes `scopeforge.dev`
-- `aliasError=null`
-
-This release sits directly on top of the finished production UI baseline `86d342216cf05d2951fd9ed427d35b6d575e7765`. Do not restore older UI assumptions.
-
-## Latest security release - Phase 9C
-
-Phase 9C database/RPC defense-in-depth is complete and released.
+Its parent is the Phase 9C executable release:
 
 - PR #59
-- frozen candidate `421dcb3b1a7a6243fdaac546f362653937254878`
-- candidate tree `780be0767723abdaf4b7f67012050c836f15d736`
-- candidate Vercel Preview `dpl_HMm9qAXPTBpi1HKPTWxDbtYgTja6` READY
-- candidate CI #770 success
 - squash merge `0869767401011cd32dcd3e3b2976201461655e02`
-- main CI #771 success
-- production deployment `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N` READY
+- tree `ca68a0559af93fc3b2143fdec387b84e418bb141`
+- post-merge CI #771 success
+- exact production deployment `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N` READY on `scopeforge.dev`
 
-Dedicated release state:
+The docs checkpoint itself deployed as `dpl_2bHVe72K97rMmfdGkfPmavPaBZQ9`, READY, with no redundant GitHub Actions run.
 
-`docs/development/PHASE_9C_RELEASE_STATE.md`
-
-Live ScopeForge Supabase migration history includes:
+Phase 9C live migration history includes:
 
 `20260908084554_phase_9c_function_acl_hardening`
 
-Do not rewrite `supabase/migrations/20260908170000_phase_9c_function_acl_hardening.sql`.
+Do not rewrite that migration or apply a global `postgres` default-function revoke.
 
-Live Phase 9C guarantees:
+## Active Phase 9B branch
 
-- 17 reviewed trigger-only private functions no longer expose direct execution to broad application roles
-- `private.is_workspace_member` and `private.has_workspace_role` remain authenticated-only RLS helpers
-- private worker tables remain inaccessible to `anon`/`authenticated`
-- privileged public worker/control RPCs remain inaccessible to browser roles
-- target triggers and pinned `SECURITY DEFINER` search paths remain intact
-- repository tests require explicit ACL revocation for future application-function migrations
+Branch:
 
-Do not apply a global `postgres` default-function revoke. It was rejected after live blast-radius analysis showed `postgres` also owns managed extension functions.
+`feat/phase-9b-provider-edge-hardening-v1`
 
-## Immediate resume action - Phase 9B
+Implementation checkpoint before handoff-doc commit:
 
-Start from the latest `main`, not the historical Phase 9A branch and not PR #49.
+`7824fa7834a0b9756e639c9c9a28e8a687451f63`
 
-Phase 9B provider/edge abuse controls are next.
+Exact preview:
 
-Current provider/UI facts:
+- `dpl_EUkCryrKh4ge5nKszriLm2Ua98Dv`
+- Git SHA `7824fa7834a0b9756e639c9c9a28e8a687451f63`
+- READY
+- `aliasError=null`
 
-- Supabase Security Advisor still reports `auth_leaked_password_protection`
-- production AuthForm has no Turnstile yet
-- production AuthForm already uses Phase 9A normalized errors
-- current AuthForm styling/classes should be preserved
-- Supabase native Auth rate limiting should remain primary for auth endpoints
-- Vercel WAF/rate-limit state must be inspected before any claim or mutation
+Phase 9B currently changes only:
 
-Phase 9B implementation priorities:
+- `components/AuthForm.tsx`
+- `components/auth/TurnstileChallenge.tsx`
+- focused component and architecture tests
+- Phase 9B design/plan/provider-state docs
 
-1. inspect live Supabase Auth config/rate limits and available config-write capabilities
-2. enable leaked-password protection if supported with rollback evidence
-3. implement Turnstile in the current sign-in/sign-up UI without redesigning it
-4. configure provider secret/site-key boundaries safely
-5. inspect/apply Vercel WAF/rate-limit controls only through supported surfaces
-6. keep worker/control endpoints out of generic interactive challenge rules
-7. add regression tests first
-8. preview, freeze, CI, merge, production-verify, and record the release
+No package dependency, database, runtime, dashboard, landing, CSP, or telemetry file is part of the Phase 9B implementation checkpoint.
 
-If production provider configuration cannot be mutated through the connected surface, complete all code/config work that can be safely shipped, document the exact remaining operational gate, and never claim it was enabled.
+## Implemented Phase 9B code
+
+- dependency-free Cloudflare Turnstile wrapper using explicit rendering
+- public key boundary is `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- no configured site key means existing production auth behavior remains unchanged
+- configured challenge disables auth submit until a token exists
+- sign-in passes `options.captchaToken`
+- sign-up passes display metadata plus `captchaToken`
+- challenge tokens stay in React component memory only
+- failed/non-redirecting configured attempts invalidate the token and remount the challenge
+- expiry and widget errors clear the token
+- narrow auth cards use compact provider sizing; wider cards use flexible sizing
+- Phase 9A bounded auth errors remain in place
+
+Test-first history is preserved. This harness has no local executable checkout, so focused RED/GREEN was structural. The frozen GitHub Actions candidate must be the first executable proof of the complete focused tests.
+
+## Live provider truth
+
+ScopeForge Supabase project:
+
+`tdgpibrepzcvdivztkta`
+
+Current live facts at checkpoint:
+
+- status `ACTIVE_HEALTHY`
+- PostgreSQL `17.6.1.155`
+- organization plan `free`
+- Security Advisor reports only `auth_leaked_password_protection`
+
+Claims:
+
+- leaked-password protection: NOT ENABLED
+- production Turnstile enforcement: PENDING
+- Supabase native Auth rate limiting: retained
+- Vercel WAF custom rule state: NOT CLAIMED
+- no automatic billing upgrade authorized
+
+Activation and rollback order is documented in `docs/security/PHASE_9B_PROVIDER_CONTROLS.md`.
+
+## Merge-conflict rule for current UI work
+
+The user has an independent UI task that may advance `main` while Phase 9B is active.
+
+Before freeze/PR release:
+
+1. re-read the exact current `main` SHA
+2. compare `main` to the Phase 9B branch
+3. if files overlap, use the newest `main` UI file as the base and reapply only the reviewed Phase 9B auth/security delta
+4. never resolve by taking the older Phase 9B UI wholesale
+5. preserve all new UI tests/styles unless they directly contradict the approved auth security contract
+6. create an explicit merge/reconciliation commit on the Phase 9B branch
+7. require a fresh exact-head Vercel Preview after reconciliation
+8. freeze and run CI only after conflicts are fully resolved
+
+The release candidate is not frozen while the concurrent UI update is unresolved or not yet visible through GitHub.
+
+## Remaining Phase 9B release work
+
+- reconcile the newest `main` UI update when it becomes visible
+- update the Phase 9B branch without losing either UI or security behavior
+- verify exact merged diff scope
+- create a tree-identical freeze commit
+- exact-head Vercel Preview READY
+- open draft PR against actual current `main`
+- one substantive full CI run
+- review exact head/base/scope/reviews/threads
+- squash merge only the verified head
+- independent post-merge main CI
+- exact production deployment verification
+- docs-only Phase 9B release checkpoint
+
+Production provider activation can remain pending after code release if no supported provider-management surface is available. Never claim enforcement is active without direct evidence.
 
 ## Then Phase 9D
 
-- durable security-significant events through existing `audit_events`
-- privacy-reduced structured operational security logs
-- sensitive metadata/value protection and tests
-- alerts/rollback signals
+- reuse existing audit infrastructure for durable security-significant events
+- use privacy-reduced structured server logs for high-frequency security signals
 - preserve current header baseline
-- stage CSP only with current UI/WebGL compatibility proof
+- stage CSP only after compatibility proof with the actual production UI/WebGL runtime
 
 ## Then Phase 9E
 
-Complete vulnerability disclosure, incident handling, credential rotation, rollback, recovery validation, and final release-security/public-launch procedures.
+Complete disclosure, incident response, credential rotation, rollback, impact assessment, recovery validation, and final public-launch security procedures.
 
 ## Hosted runtime flags
 
@@ -129,7 +159,3 @@ Keep all four false/absent until their independent operational acceptance:
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
-
-## Legacy UI branch
-
-PR #49 remains open/draft but is no longer the production hardening baseline. Do not merge, rebase, retarget, or modify it from Phase 9 work.
