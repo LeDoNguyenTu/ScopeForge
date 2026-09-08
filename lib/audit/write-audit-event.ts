@@ -1,17 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/database.types";
 
-const SENSITIVE_CREDENTIAL_KEY = /(
-  token
-  |secret
-  |password
-  |credential
-  |authorization
-  |cookie
-  |api[_-]?key
-  |private[_-]?key
-  |service[_-]?role[_-]?key
-)/ix;
+const SENSITIVE_CREDENTIAL_KEY = /(token|secret|password|credential|authorization|cookie|api[_-]?key|private[_-]?key|service[_-]?role[_-]?key)/i;
 
 const FORBIDDEN_CONTENT_KEYS = new Set([
   "requestbody",
