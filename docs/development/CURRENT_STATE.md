@@ -2,101 +2,115 @@
 
 Last reconciled: 2026-09-08 (Asia/Singapore)
 
-This is the authoritative non-UI current-state summary. Dashboard V5/UI remains a separate active workstream and is excluded from mutation here.
-
-## Repository state
+## Repository and production baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- current released non-UI baseline on `main`: `5c08003c8bf8cb920832431a346c9254aae92239`
-- released tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
-- latest merged non-UI PR: #58, `Phase 9A authentication boundary hardening`
-- Phase 9A final verified PR head: `386308657bca0d8ba66f86074992d9983db600ba`
-- Phase 9A final PR CI: #767, success
-- post-merge main CI: #768, success
-- authoritative Phase 9A release state: `docs/development/PHASE_9A_RELEASE_STATE.md`
-- broader Phase 9 design: `docs/superpowers/specs/2026-09-08-phase-9-security-hardening-design.md`
+- current released `main`: `0869767401011cd32dcd3e3b2976201461655e02`
+- current released tree: `ca68a0559af93fc3b2143fdec387b84e418bb141`
+- latest merged hardening PR: #59, Phase 9C database/RPC hardening
+- post-merge main CI: #771, success
+- exact production deployment: `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N`, READY, `aliasError=null`
+- production domain: `scopeforge.dev`
 
-## Completed non-UI boundaries
+The actual production `main` tree is the integration baseline for all remaining hardening work. It includes the current production landing/dashboard UI plus the released Phase 9A and Phase 9C security changes.
 
-Phases 1-5C, Phase 6A foundation, Phase 6B acquisition code, Phase 6C isolated scanner code, Phase 6D dedicated network-worker code/release acceptance, Phase 7 Community Security Packs v1, Phase 8A offline accuracy foundation, Phase 8B performance matrix, Phase 8C reproducible technical publication, and Phase 9A authentication-boundary hardening are complete and merged.
+PR #49 remains an open draft legacy UI branch. Do not merge, rebase, retarget, replace, or use it as the baseline for Phase 9B/9D/9E unless the user separately requests that work.
 
-Code merge is not runtime authorization. Production worker capabilities remain separately gated.
+## Completed product/security phases
 
-## Phase 8 validation baseline
+Completed and released:
 
-The committed `scopeforge-offline-v1@1.0.0` corpus remains:
+- Phases 1-5C
+- Phase 6A foundation
+- Phase 6B repository acquisition code
+- Phase 6C isolated scanning code
+- Phase 6D dedicated network-worker implementation/release acceptance
+- Phase 7 Community Security Packs v1
+- Phase 8A offline accuracy foundation
+- Phase 8B deterministic scanner performance matrix
+- Phase 8C reproducible technical publication
+- Phase 9A authentication-boundary hardening
+- Phase 9C database/RPC defense-in-depth
 
-- 32 reviewed cases: 16 vulnerable / 16 clean
-- 8 represented rules across `iac`, `jsts`, and `secrets`
-- TP 16 / FN 0 / FP 0 / TN 16
-- error 0 / unsupported 0 / contract mismatch 0
-- content hash `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
+Code release does not authorize hosted worker execution.
 
-Covered-corpus precision, recall, and F1 are 1.00 and FPR is 0.00. These values describe only the committed reviewed corpus and are not global or real-world ScopeForge accuracy.
+## Phase 9A released boundary
 
-Phase 8B retains the deterministic local/offline performance matrix with exactly three runs per profile. RSS delta is observational only. Catastrophic benchmark ceilings are regression guards, not product SLOs.
+Phase 9A provides:
 
-Phase 8C remains the released deterministic publication layer for those accepted measurements.
+- local-only validation for post-auth return paths
+- same-origin auth callback/confirmation redirects
+- rejection of unsafe absolute/protocol-relative/backslash/control-character/malformed return targets
+- bounded browser-visible authentication failures
+- bounded retry guidance without raw provider detail
 
-## Phase 9A - complete and released
+Released via PR #58 and independently CI/production verified.
 
-Phase 9A closes the browser authentication boundary without changing provider settings or production worker authority.
+## Phase 9C released boundary
 
-Released behavior:
+Phase 9C released via PR #59.
 
-- one shared local-only parser validates post-auth return paths
-- `/auth/callback` and `/auth/confirm` no longer redirect to untrusted external `next` targets
-- absolute URLs, protocol-relative URLs, backslash host-confusion forms, control characters, malformed encodings, and decoded unsafe forms fall back to `/dashboard`
-- safe local paths retain query strings and fragments
-- browser-visible authentication failures no longer render raw Supabase provider messages
-- rate-limit failures retain bounded retry guidance without exposing provider details
-- focused behavior, route, component, and architecture regression tests are committed
+- final candidate: `421dcb3b1a7a6243fdaac546f362653937254878`
+- candidate CI #770: success
+- squash merge: `0869767401011cd32dcd3e3b2976201461655e02`
+- main CI #771: success
+- production deployment `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N`: READY
+- dedicated release state: `docs/development/PHASE_9C_RELEASE_STATE.md`
 
-## Phase 9A release evidence
+Live ScopeForge Supabase migration history includes:
 
-Final candidate:
+`20260908084554_phase_9c_function_acl_hardening`
 
-- PR: #58
-- PR head: `386308657bca0d8ba66f86074992d9983db600ba`
-- tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
-- PR CI #767: success
-- npm audit: success
-- full test suite: success
-- typecheck: success
-- CLI build/version: success
-- historical benchmark: success
-- Phase 8B matrix: success
-- production build: success
-- exact-head Vercel Preview `dpl_8KXQU6NguYtVPLv42EwKK7eEoyPP`: READY, `aliasError=null`
+The 17 reviewed private trigger-only functions no longer expose direct execution to broad application roles. The authenticated RLS helper boundary remains operational. Private worker tables and privileged public worker/control RPCs remain closed to ordinary browser roles.
 
-Release integration:
+Future application function ACLs are protected by a repository migration architecture guard requiring explicit same-migration revocation instead of a risky global PostgreSQL default-privilege mutation.
 
-- squash merge: `5c08003c8bf8cb920832431a346c9254aae92239`
-- main tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
-- post-merge main CI #768: success
-- exact production deployment: `dpl_BePDHoKDzWPXU6L2PX3Rj8bpTTue`
-- deployment state: READY
-- deployment target: `production`
-- deployment Git SHA: `5c08003c8bf8cb920832431a346c9254aae92239`
-- production domain includes `scopeforge.dev`
-- `aliasError=null`
+## Production UI baseline
 
-## Phase 9 controls still pending
+The immediate pre-Phase-9C production UI baseline was `86d342216cf05d2951fd9ed427d35b6d575e7765`. Phase 9C merged on top without editing the UI file set.
 
-Phase 9A did not change provider or database configuration.
+Current UI-relevant facts for remaining security work:
 
-Still pending under their own reviewed subphase gates:
+- `app/layout.tsx` is the live global CSS integration point for the landing/dashboard system
+- current `next.config.ts` already sets nosniff, strict-origin referrer policy, `X-Frame-Options: DENY`, restrictive Permissions Policy, HSTS, and disables the powered-by header
+- middleware remains intentionally thin and delegates session handling to `lib/supabase/middleware`
+- `components/AuthForm.tsx` uses the current production visual structure/classes and Phase 9A normalized errors
+- Turnstile is not implemented yet
+- CSP is not enabled yet
+
+Remaining security changes must preserve the current landing/dashboard/auth visual behavior and must be verified against the production UI tree.
+
+## Phase 8 validation claim boundary
+
+The committed `scopeforge-offline-v1@1.0.0` corpus remains 32 reviewed cases with TP 16 / FN 0 / FP 0 / TN 16 across 8 represented rules. Those measurements describe only the committed reviewed corpus and are not global or real-world ScopeForge accuracy.
+
+Phase 8B catastrophic benchmark ceilings are regression guards, not product SLOs. RSS delta remains observational rather than peak-memory measurement.
+
+## Remaining Phase 9 boundaries
+
+Next implementation order:
+
+1. Phase 9B provider/edge abuse controls
+2. Phase 9D security telemetry and browser hardening
+3. Phase 9E incident/release/public-launch hardening
+
+Pending Phase 9B items include:
 
 - Supabase leaked-password protection
-- Supabase Auth rate-limit configuration review
-- Cloudflare Turnstile
-- Vercel WAF/rate-limit rules
-- database/private-function defense-in-depth
-- security telemetry and alerting
-- CSP hardening
-- incident/release hardening
+- Auth rate-limit configuration review
+- Cloudflare Turnstile for sign-in/sign-up
+- Vercel WAF/rate-limit operational controls
 
-Current live Supabase Security Advisor still reports one warning: `auth_leaked_password_protection`.
+Pending Phase 9D items include:
+
+- privacy-reduced structured security telemetry
+- durable security-significant audit coverage
+- alert/rollback signals
+- staged CSP hardening that is proven compatible with the current Next.js/WebGL UI
+
+Pending Phase 9E includes incident response, disclosure, credential rotation, rollback and release-security procedures.
+
+Live Supabase Security Advisor still reports `auth_leaked_password_protection`.
 
 ## Production runtime gates
 
@@ -107,28 +121,10 @@ Keep false/absent unless separate operational acceptance authorizes them:
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Phase 8 validation and Phase 9A authentication hardening authorize none of these capabilities.
-
 ## Production services
 
-ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
+- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
+- Vercel project: `scopeforge`
+- production: `scopeforge.dev`
 
-Never confuse it with the separate Job Command Center Supabase project.
-
-Vercel project: `scopeforge`; production domain: `scopeforge.dev`.
-
-## UI isolation
-
-PR #49 and all active Dashboard V5/UI branches remain separate. Non-UI work must not edit, merge, replace, retarget, or deploy that UI stream.
-
-## Next non-UI boundary
-
-Phase 9C database/RPC defense-in-depth is next.
-
-Start with live privilege inventory and executable regression evidence before proposing any forward-only migration. In particular, do not blindly revoke `authenticated` usage on schema `private`, because current RLS policies intentionally depend on private membership/role helper functions.
-
-Phase 9B Turnstile/WAF/provider changes remain separate and require their own operational acceptance.
-
-## Branch cleanup
-
-Delete merged backend branches only through a genuine remote delete-ref operation. If the connected GitHub surface does not expose branch deletion, leave merged refs intact rather than force-moving them. Preserve all V5/UI branches.
+Never confuse the ScopeForge Supabase project with the separate Job Command Center project.

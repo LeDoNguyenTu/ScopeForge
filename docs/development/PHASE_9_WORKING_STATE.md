@@ -2,199 +2,123 @@
 
 Last reconciled: 2026-09-08 (Asia/Singapore)
 
-## Current Phase 9 status
+## Phase status
 
-- Phase 9 design: approved and committed
+- Phase 9 architecture: approved
 - Phase 9A authentication boundary: complete and released
-- Phase 9B provider/edge abuse controls: pending separate operational acceptance
-- Phase 9C database/RPC defense-in-depth: implemented in production database, release candidate preparation in progress
-- Phase 9D telemetry/browser hardening: pending
-- Phase 9E incident/release hardening: pending
+- Phase 9B provider/edge abuse controls: next implementation boundary
+- Phase 9C database/RPC defense-in-depth: complete and released
+- Phase 9D security telemetry/browser hardening: pending after 9B
+- Phase 9E incident/release hardening: pending after 9D
 
-Dashboard V5/UI PR #49 remains a separate workstream and has not been modified by Phase 9.
+## Authoritative integration baseline
 
-## Phase 9A released state
+Current production `main`:
 
-Released main:
+`0869767401011cd32dcd3e3b2976201461655e02`
 
-- commit: `5c08003c8bf8cb920832431a346c9254aae92239`
-- tree: `6c62f5223269597171bdb5caa39f647b4106a03f`
-- PR: #58
-- final PR head: `386308657bca0d8ba66f86074992d9983db600ba`
-- PR CI #767: success
-- post-merge main CI #768: success
-- production deployment: `dpl_BePDHoKDzWPXU6L2PX3Rj8bpTTue`, READY, `aliasError=null`
+Current production tree:
 
-## Phase 9C branch state
+`ca68a0559af93fc3b2143fdec387b84e418bb141`
 
-Branch:
+Current production deployment:
 
-`feat/phase-9c-database-rpc-hardening-v1`
+`dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N`
 
-Released baseline:
+It is READY on `scopeforge.dev` with `aliasError=null`.
 
-`c4aaf76a08960d68159d9c96f053e38e7963a859`
+The current production UI is part of this baseline and must be preserved by Phase 9B/9D/9E. PR #49 remains an open draft legacy UI branch and is not the implementation baseline.
 
-Approved design:
+## Phase 9A release
 
-`docs/superpowers/specs/2026-09-08-phase-9c-database-rpc-hardening-design.md`
+Phase 9A remains released via PR #58. It provides safe local-only post-auth navigation, same-origin callback/confirmation redirects, hostile return-target rejection, and bounded browser-visible authentication errors.
 
-Corrective design amendment after live PostgreSQL validation:
+## Phase 9C release
 
-`docs/superpowers/specs/2026-09-08-phase-9c-default-acl-amendment.md`
+Dedicated release state:
 
-Implementation plans:
+`docs/development/PHASE_9C_RELEASE_STATE.md`
 
-- `docs/superpowers/plans/2026-09-08-phase-9c-database-rpc-hardening.md`
-- `docs/superpowers/plans/2026-09-08-phase-9c-default-acl-amendment.md`
+Release identity:
 
-### Test-first ordering
+- PR #59
+- frozen candidate `421dcb3b1a7a6243fdaac546f362653937254878`
+- candidate tree `780be0767723abdaf4b7f67012050c836f15d736`
+- candidate CI #770 success
+- squash merge `0869767401011cd32dcd3e3b2976201461655e02`
+- merge tree `ca68a0559af93fc3b2143fdec387b84e418bb141`
+- post-merge main CI #771 success
+- production deployment `dpl_CGFqqSx8qC1PVd6hRT6KT5WtQQ1N` READY
 
-Architecture test-only commit:
-
-`72d5d75ecf5e16e775eaa95ed7ac9ddb083a95ef`
-
-At that exact commit the required migration path did not exist, providing structural RED evidence. This harness has no local checkout, so Vitest RED was not executed and must not be described as executed.
-
-Initial ACL migration commit:
-
-`849109b14dc741d75c3d8f43983127de01bb90d4`
-
-Architecture correction guard commit:
-
-`906fd1e3313eac2769f4575dcd2111b69e82ff59`
-
-The correction guard enforces explicit same-migration function revocation for every future `public` or `private` function migration and rejects global `postgres` default-function revocation or `supabase_admin` default changes.
-
-## Live Supabase Phase 9C evidence
-
-Project:
-
-`tdgpibrepzcvdivztkta`
-
-PostgreSQL engine during preflight and canary:
-
-`17.6`
-
-Live migration history entry:
+Live migration history:
 
 `20260908084554_phase_9c_function_acl_hardening`
 
-Repository migration source:
+Live acceptance remains:
 
-`supabase/migrations/20260908170000_phase_9c_function_acl_hardening.sql`
+- 17 target trigger-only functions have no direct execution for broad application roles
+- two authenticated RLS helper functions remain operational
+- private worker tables remain closed to ordinary browser roles
+- privileged public worker/control RPCs remain closed to `anon` and `authenticated`
+- target triggers remain enabled
+- relevant `SECURITY DEFINER` functions retain pinned empty search paths
+- authenticated RLS membership/role evaluation passed
 
-### Preflight
+The permanent future-function guard is repository-level explicit revocation in each later application-function migration. Do not apply a global `postgres` default-function revoke and do not change `supabase_admin` defaults.
 
-Immediately before DDL:
+## Phase 9B starting state
 
-- all nine private worker tables had no SELECT/INSERT/UPDATE/DELETE privilege for `anon` or `authenticated`
-- `authenticated` had intentional `USAGE` on schema `private`
-- `private.is_workspace_member` and `private.has_workspace_role` were the intentional authenticated private helpers
-- all 17 target trigger-only functions still had unnecessary inherited direct execution
-- public privileged worker/control RPCs were inaccessible to `anon` and `authenticated`
-- relevant `SECURITY DEFINER` functions had pinned empty search paths
-- target trigger bindings existed and were enabled
+Current live Supabase Security Advisor still reports:
 
-### Trigger ACL canary
+`auth_leaked_password_protection`
 
-A transaction-scoped disposable canary was executed before permanent migration:
+Current production `components/AuthForm.tsx`:
 
-- a private canary table, trigger function, and trigger were created
-- direct function execution was revoked from `PUBLIC`, `anon`, `authenticated`, and `service_role`
-- DML was executed under `authenticated`
-- the trigger still fired and changed the canary marker to `fired`
-- the transaction was rolled back
-- catalog cleanup proof returned NULL for both canary table and function
+- uses current production visual structure/classes
+- uses direct Supabase `signUp` / `signInWithPassword`
+- uses Phase 9A normalized browser-visible errors
+- has no Turnstile integration yet
 
-No application table or user data was modified by the canary.
+Phase 9B must preserve the current AuthForm design while adding provider/edge protection.
 
-### Permanent ACL result
+Approved direction:
 
-The live migration successfully removed direct execution for all 17 target trigger-only functions from:
+- Supabase native Auth rate limits remain primary auth endpoint rate limiting
+- leaked-password protection becomes an explicit provider acceptance gate
+- Cloudflare Turnstile protects sign-in/sign-up before public trial access
+- browser gets only the Turnstile site key; secret remains server/provider-side
+- Vercel WAF/rate limiting handles broad HTTP/IP abuse when supported
+- worker/control endpoints remain outside generic interactive browser challenge rules
+- no new application limiter datastore/package without demonstrated need
 
-- `PUBLIC`
-- `anon`
-- `authenticated`
-- `service_role`
+Do not change CSP, telemetry, database grants, or hosted runtime flags in Phase 9B unless a reviewed dependency proves it necessary.
 
-Post-migration acceptance shows:
+## Phase 9D direction
 
-- target execution violations: zero
-- private worker-table privilege violations: zero
-- public privileged RPC browser-role violations: zero
-- missing/disabled target triggers: zero
-- bad `SECURITY DEFINER` search paths: zero
-- `authenticated` private-schema usage: preserved
-- `private.is_workspace_member`: authenticated-only execution preserved
-- `private.has_workspace_role`: authenticated-only execution preserved
+The current `lib/audit/write-audit-event.ts` already blocks sensitive metadata-key categories and caps metadata at 8 KiB. Reuse this durable audit path rather than adding another audit database.
 
-A real transaction-scoped `authenticated` RLS check using an existing membership returned only booleans and proved:
+High-frequency operational security signals should use structured, privacy-reduced server logs instead of flooding `audit_events`.
 
-- a workspace was visible through RLS
-- `private.is_workspace_member` was operational
-- `private.has_workspace_role` was operational
+Current browser-hardening baseline in `next.config.ts` already includes:
 
-No identifying user or workspace data was returned by the acceptance result.
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Frame-Options: DENY`
+- restrictive Permissions Policy
+- HSTS
+- `poweredByHeader: false`
 
-## Default ACL correction
+CSP is not enabled. Any Phase 9D CSP enforcement must first prove compatibility with the actual current Next.js/UI/WebGL runtime. Do not add a permissive fake CSP or risk breaking production rendering.
 
-Initial live acceptance found that schema-scoped `ALTER DEFAULT PRIVILEGES ... REVOKE EXECUTE ... FROM PUBLIC` does not override PostgreSQL's hard-wired global `PUBLIC EXECUTE` default for functions.
+## Phase 9E direction
 
-A global owner default revoke was rejected after live blast-radius analysis showed role `postgres` also owns managed extension functions outside ScopeForge application schemas. Phase 9C therefore does not alter global `postgres` defaults or any `supabase_admin` defaults.
-
-Future application function hardening is enforced at the repository migration boundary instead:
-
-- any later migration that creates or replaces a `public` or `private` function must contain an explicit same-migration function revoke
-- intentionally callable functions must then add only the narrow explicit grant required
-
-The schema-local default ACL statements already recorded in deployed migration history are not treated as evidence for future-function denial. Deployed migration history remains immutable.
-
-## Security Advisor
-
-After Phase 9C DDL, the Supabase Security Advisor still reports exactly one warning:
-
-- `auth_leaked_password_protection`
-
-This is a pre-existing Phase 9 provider-control item and is not a Phase 9C database regression.
-
-## Remaining Phase 9C release gates
-
-Before merge/release completion:
-
-1. update resumable handoff docs - in progress
-2. verify branch diff scope
-3. verify exact-head Vercel Preview READY
-4. freeze one exact candidate
-5. execute one substantive GitHub Actions validation on that candidate
-6. require npm audit, full Vitest suite, typecheck, CLI build/version, historical benchmark, Phase 8B matrix, and production Next build to pass
-7. recheck exact base/head, PR review state, combined status, and scope
-8. squash-merge exact verified head
-9. independently verify main CI and exact production Vercel deployment
-10. write one docs-only Phase 9C release checkpoint
-
-Vitest has not yet executed for Phase 9C in this harness. Final frozen CI is the first executable test gate for the new architecture test.
-
-## Pending provider hardening
-
-Still pending outside Phase 9C:
-
-- leaked-password protection
-- Turnstile
-- Auth rate-limit changes
-- Vercel WAF/rate limits
-- telemetry/alerts
-- CSP
-- incident/release hardening
-- legacy `anon` table-grant cleanup on `profiles`, `workspaces`, and `workspace_members`
+Complete incident response, disclosure, credential rotation, rollback, impact assessment, recovery validation, and final release-security/public-launch procedures.
 
 ## Runtime authority boundary
 
-Keep false/absent unless separately authorized:
+Keep false/absent unless separately authorized by their own operational gates:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
-
-Phase 9C does not authorize hosted execution.
