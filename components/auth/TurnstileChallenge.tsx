@@ -8,7 +8,7 @@ type TurnstileOptions = {
   callback: (token: string) => void;
   "expired-callback": () => void;
   "error-callback": () => void;
-  size: "flexible";
+  size: "flexible" | "compact";
 };
 
 type TurnstileApi = {
@@ -36,10 +36,11 @@ export default function TurnstileChallenge({
     const api = (window as TurnstileWindow).turnstile;
     if (!api) return;
 
+    const size = window.innerWidth <= 380 ? "compact" : "flexible";
     onToken(null);
     widgetIdRef.current = api.render(containerRef.current, {
       sitekey: siteKey,
-      size: "flexible",
+      size,
       callback: (token) => onToken(token),
       "expired-callback": () => onToken(null),
       "error-callback": () => onToken(null)
@@ -64,7 +65,11 @@ export default function TurnstileChallenge({
         strategy="afterInteractive"
         onLoad={renderWidget}
       />
-      <div ref={containerRef} data-turnstile-container />
+      <div
+        ref={containerRef}
+        data-turnstile-container
+        style={{ display: "flex", justifyContent: "center", minWidth: 0, width: "100%" }}
+      />
     </>
   );
 }
