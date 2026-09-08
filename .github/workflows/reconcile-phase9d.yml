@@ -42,8 +42,15 @@ jobs:
             fs.writeFileSync(file, source.replace(before, after));
           }
           NODE
-      - name: Regenerate audited lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Generate lockfile with npm 12
+        run: |
+          npm install --global npm@12.0.2
+          npm --version
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Restore CI npm version
+        run: |
+          npm install --global npm@10.9.8
+          test "$(npm --version)" = "10.9.8"
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm audit --audit-level=info
       - run: npm test
