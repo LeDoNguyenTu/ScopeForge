@@ -168,6 +168,42 @@ async function main() {
 
     await navigate(sessionId, "/preview/dashboard");
     await waitFor(sessionId, "approved immersive dashboard", "return Boolean(document.querySelector('.livingDashboard') && document.querySelector('.livingDashboardHero') && document.querySelector('.livingDashboardScene')); ");
+    await sleep(1200);
+    const dashboardDiagnostic = await execute(sessionId, `
+      const topology = document.querySelector('[data-testid="webgl-attack-surface"]');
+      const canvas = topology?.querySelector('canvas');
+      const scene = document.querySelector('.livingDashboardScene');
+      const probe = document.createElement('canvas');
+      let probeContext = false;
+      let probeError = null;
+      try {
+        probeContext = Boolean(probe.getContext('webgl', { alpha: true, antialias: true, powerPreference: 'high-performance' }));
+      } catch (error) {
+        probeError = String(error?.message || error);
+      }
+      return {
+        url: location.href,
+        readyState: document.readyState,
+        rendererState: topology?.dataset.rendererState || null,
+        topologyPresent: Boolean(topology),
+        nodeLabels: topology?.querySelectorAll('.webglAttackLabel').length || 0,
+        canvasPresent: Boolean(canvas),
+        canvasClientWidth: canvas?.getBoundingClientRect().width || 0,
+        canvasClientHeight: canvas?.getBoundingClientRect().height || 0,
+        canvasPixelWidth: canvas?.width || 0,
+        canvasPixelHeight: canvas?.height || 0,
+        sceneWidth: scene?.getBoundingClientRect().width || 0,
+        sceneHeight: scene?.getBoundingClientRect().height || 0,
+        probeContext,
+        probeError,
+        nonceScripts: document.querySelectorAll('script[nonce]').length,
+      };
+    `);
+    console.log(`DASHBOARD_WEBGL_DIAGNOSTIC ${JSON.stringify(dashboardDiagnostic)}`);
+    await captureScreenshot(sessionId, "dashboard-webgl-diagnostic.png");
+    const dashboardEarlyLogs = await browserLogs(sessionId);
+    if (dashboardEarlyLogs.length) console.log(`DASHBOARD_BROWSER_LOGS ${JSON.stringify(dashboardEarlyLogs)}`);
+    assertCleanLogs(dashboardEarlyLogs, "/preview/dashboard diagnostic");
     await waitFor(sessionId, "approved dashboard WebGL topology", "return document.querySelector('[data-testid=\"webgl-attack-surface\"]')?.dataset.rendererState === 'webgl';", 15000);
 
     const dashboardMetrics = await execute(sessionId, `
