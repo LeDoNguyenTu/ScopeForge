@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-command-positive-execsync",
+  "scanner": "jsts",
+  "ruleId": "jsts/command-injection",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "Express request-body input propagates through a local variable and string construction into child_process.execSync.",
+  "expectedFiles": ["src/app.ts"],
+  "expectedSeverity": "high",
+  "expectedConfidence": "high"
+}

@@ -1,11 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Phase6cDatabase } from "@/lib/database.phase6c.types";
+import type { Phase6dDatabase } from "@/lib/database.phase6d.types";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
 import type { WorkerExecutionBudget, WorkerExecutionClass } from "@/packages/worker-contracts";
 import {
   WorkerControlError,
   type FoundationProbeEnqueueInput,
   type FoundationProbeEnqueueResult,
+  type RuntimeWorkerEnqueueInput,
+  type RuntimeWorkerEnqueueResult,
+  type RuntimeWorkerPersistenceClaimResult,
   type WorkerAuthenticationInput,
   type WorkerClaimInput,
   type WorkerDisableResult,
@@ -22,16 +25,34 @@ import {
   type WorkerRegistrationResult,
 } from "./types";
 
-const EXECUTION_CLASSES = new Set<WorkerExecutionClass>([
+type WorkerPersistenceExecutionClass =
+  | "foundation_no_egress_v1"
+  | "repository_snapshot_github_public_v1"
+  | "phase3_repository_scan_no_egress_v1";
+
+type RuntimeWorkerExecutionClass =
+  | "passive_runtime_observation_v1"
+  | "active_cors_validation_v1";
+
+const PERSISTENCE_EXECUTION_CLASSES = new Set<WorkerPersistenceExecutionClass>([
   "foundation_no_egress_v1",
   "repository_snapshot_github_public_v1",
   "phase3_repository_scan_no_egress_v1",
+]);
+const RUNTIME_EXECUTION_CLASSES = new Set<RuntimeWorkerExecutionClass>([
+  "passive_runtime_observation_v1",
+  "active_cors_validation_v1",
+]);
+const ALL_EXECUTION_CLASSES = new Set<WorkerExecutionClass>([
+  ...PERSISTENCE_EXECUTION_CLASSES,
+  ...RUNTIME_EXECUTION_CLASSES,
 ]);
 const OBJECT_KEY_PATTERN = /^repository-source\/[a-f0-9]{64}[.]tar[.]gz$/;
 const OWNER_REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
+const GLOBAL_ACTIVE_LEASE_CAP = 4;
 const KNOWN_CODES = [
   "WORKER_AUTHENTICATION_FAILED",
   "WORKER_DISABLED",
@@ -56,6 +77,10 @@ const KNOWN_CODES = [
   "REPOSITORY_ARCHIVE_UNSAFE",
   "REPOSITORY_ARCHIVE_BUDGET_EXCEEDED",
   "REPOSITORY_ARTIFACT_UPLOAD_FAILED",
+  "RUNTIME_WORKER_ACCESS_DENIED",
+  "RUNTIME_WORKER_ACTIVE_LIMIT",
+  "RUNTIME_WORKER_TASK_INVALID",
+  "RUNTIME_WORKER_CLASS_MISMATCH",
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -91,8 +116,27 @@ function boundedCount(value: unknown): number {
   return boundedInteger(value, Number.MAX_SAFE_INTEGER);
 }
 
-function parseExecutionClass(value: unknown): WorkerExecutionClass {
-  if (typeof value !== "string" || !EXECUTION_CLASSES.has(value as WorkerExecutionClass)) {
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(value);
+  return actual.length === keys.length && keys.every((key) => actual.includes(key));
+}
+
+function parsePersistenceExecutionClass(value: unknown): WorkerPersistenceExecutionClass {
+  if (typeof value !== "string" || !PERSISTENCE_EXECUTION_CLASSES.has(value as WorkerPersistenceExecutionClass)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return value as WorkerPersistenceExecutionClass;
+}
+
+function parseRuntimeExecutionClass(value: unknown): RuntimeWorkerExecutionClass {
+  if (typeof value !== "string" || !RUNTIME_EXECUTION_CLASSES.has(value as RuntimeWorkerExecutionClass)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return value as RuntimeWorkerExecutionClass;
+}
+
+function parseWorkerExecutionClass(value: unknown): WorkerExecutionClass {
+  if (typeof value !== "string" || !ALL_EXECUTION_CLASSES.has(value as WorkerExecutionClass)) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
   return value as WorkerExecutionClass;
@@ -117,13 +161,24 @@ function parseNode(value: unknown): WorkerNodeIdentity {
   if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   return Object.freeze({
     workerId: requiredString(value.workerId),
-    executionClass: parseExecutionClass(value.executionClass),
+    executionClass: parseWorkerExecutionClass(value.executionClass),
     softwareVersion: requiredString(value.softwareVersion),
   });
 }
 
 function parseRegistration(value: unknown): WorkerRegistrationResult {
   return parseNode(value);
+}
+
+function parseRuntimeRegistration(
+  value: unknown,
+  expectedClass: RuntimeWorkerExecutionClass,
+): WorkerRegistrationResult {
+  const node = parseNode(value);
+  if (node.executionClass !== expectedClass) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return node;
 }
 
 function parseDisable(value: unknown): WorkerDisableResult {
@@ -144,6 +199,21 @@ function parseFoundationProbe(value: unknown): FoundationProbeEnqueueResult {
     executionClass: "foundation_no_egress_v1" as const,
     absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
   });
+}
+
+function parseRuntimeEnqueue(
+  value: unknown,
+  expectedClass: RuntimeWorkerExecutionClass,
+): RuntimeWorkerEnqueueResult {
+  if (!isRecord(value) || value.executionClass !== expectedClass) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    scanJobId: requiredUuid(value.scanJobId),
+    taskId: requiredUuid(value.taskId),
+    executionClass: expectedClass,
+    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
+  }) as RuntimeWorkerEnqueueResult;
 }
 
 function parseBudget(value: unknown, executionClass: WorkerExecutionClass): WorkerExecutionBudget {
@@ -223,7 +293,7 @@ function parseRepositoryScanInput(input: Record<string, unknown>) {
 function parseClaim(value: unknown): WorkerPersistenceClaimResult {
   if (value === null) return null;
   if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
-  const executionClass = parseExecutionClass(value.executionClass);
+  const executionClass = parsePersistenceExecutionClass(value.executionClass);
   if (!isRecord(value.input)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   const common = {
     taskId: requiredString(value.taskId),
@@ -277,6 +347,50 @@ function parseClaim(value: unknown): WorkerPersistenceClaimResult {
   });
 }
 
+function parseRuntimeClaim(value: unknown): RuntimeWorkerPersistenceClaimResult {
+  if (value === null) return null;
+  if (!isRecord(value) || !isRecord(value.input)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const executionClass = parseRuntimeExecutionClass(value.executionClass);
+  const inputKeys = Object.keys(value.input).sort();
+  if (inputKeys.length !== 2 || inputKeys[0] !== "domainJobId" || inputKeys[1] !== "kind") {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const domainJobId = requiredUuid(value.input.domainJobId);
+  const leaseToken = requiredString(value.leaseToken);
+  if (!/^[a-f0-9]{64}$/.test(leaseToken)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const common = {
+    taskId: requiredUuid(value.taskId),
+    attemptId: requiredUuid(value.attemptId),
+    leaseToken,
+    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
+    budget: parseBudget(value.budget, executionClass),
+  };
+
+  if (executionClass === "passive_runtime_observation_v1") {
+    if (value.input.kind !== "passive_runtime_observation") {
+      throw new WorkerControlError("WORKER_CONTROL_FAILED");
+    }
+    return Object.freeze({
+      ...common,
+      executionClass,
+      input: Object.freeze({ kind: "passive_runtime_observation" as const, domainJobId }),
+    });
+  }
+
+  if (value.input.kind !== "active_cors_validation") {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    ...common,
+    executionClass,
+    input: Object.freeze({ kind: "active_cors_validation" as const, domainJobId }),
+  });
+}
+
 function parseHeartbeat(value: unknown): WorkerHeartbeatResult {
   if (!isRecord(value) || typeof value.cancelRequested !== "boolean") {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
@@ -305,7 +419,7 @@ function parseFleetNode(value: unknown): WorkerFleetNodeSnapshot {
   if (!isRecord(value)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   return Object.freeze({
     workerId: requiredString(value.workerId),
-    executionClass: parseExecutionClass(value.executionClass),
+    executionClass: parseWorkerExecutionClass(value.executionClass),
     softwareVersion: requiredString(value.softwareVersion),
     registeredAt: requiredString(value.registeredAt),
     lastSeenAt: nullableString(value.lastSeenAt),
@@ -325,15 +439,77 @@ function parseFleetTaskCounts(value: unknown): WorkerFleetTaskCounts {
   });
 }
 
+function parseRuntimeFleetClass<TExecutionClass extends RuntimeWorkerExecutionClass>(
+  value: unknown,
+  expectedExecutionClass: TExecutionClass,
+  expectedCapacity: number,
+  activeLeaseCount: number,
+) {
+  const expectedKeys = [
+    "executionClass",
+    "enabledNodeCount",
+    "leasedCount",
+    "capacity",
+    "available",
+    "saturated",
+  ] as const;
+  if (!isRecord(value) || !hasExactKeys(value, expectedKeys)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  if (value.executionClass !== expectedExecutionClass || value.capacity !== expectedCapacity) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const enabledNodeCount = boundedCount(value.enabledNodeCount);
+  const leasedCount = boundedCount(value.leasedCount);
+  const saturated = leasedCount >= expectedCapacity || activeLeaseCount >= GLOBAL_ACTIVE_LEASE_CAP;
+  const available = enabledNodeCount > 0 && !saturated;
+  if (value.available !== available || value.saturated !== saturated) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    executionClass: expectedExecutionClass,
+    enabledNodeCount,
+    leasedCount,
+    capacity: expectedCapacity,
+    available,
+    saturated,
+  });
+}
+
+function parseRuntimeFleetHealth(
+  value: unknown,
+  activeLeaseCount: number,
+): WorkerFleetSnapshot["runtimeClasses"] {
+  if (!isRecord(value) || !hasExactKeys(value, ["passiveRuntime", "activeCors"])) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return Object.freeze({
+    passiveRuntime: parseRuntimeFleetClass(
+      value.passiveRuntime,
+      "passive_runtime_observation_v1",
+      2,
+      activeLeaseCount,
+    ),
+    activeCors: parseRuntimeFleetClass(
+      value.activeCors,
+      "active_cors_validation_v1",
+      1,
+      activeLeaseCount,
+    ),
+  });
+}
+
 function parseFleetSnapshot(value: unknown): WorkerFleetSnapshot {
   if (!isRecord(value) || !Array.isArray(value.nodes) || value.nodes.length > 100) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
+  const activeLeaseCount = boundedCount(value.activeLeaseCount);
   return Object.freeze({
     generatedAt: requiredString(value.generatedAt),
     nodes: Object.freeze(value.nodes.map(parseFleetNode)),
     taskCounts: parseFleetTaskCounts(value.taskCounts),
-    activeLeaseCount: boundedCount(value.activeLeaseCount),
+    activeLeaseCount,
+    runtimeClasses: parseRuntimeFleetHealth(value.runtimeClasses, activeLeaseCount),
   });
 }
 
@@ -353,10 +529,20 @@ export interface WorkerControlRepository {
   fleetSnapshot(): Promise<WorkerFleetSnapshot>;
 }
 
+export interface RuntimeWorkerControlRepository {
+  registerPassiveRuntime(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
+  registerActiveCors(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
+  enqueuePassiveRuntime(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
+  enqueueActiveCors(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
+  claimRuntime(input: WorkerClaimInput): Promise<RuntimeWorkerPersistenceClaimResult>;
+}
+
+export type CompleteWorkerControlRepository = WorkerControlRepository & RuntimeWorkerControlRepository;
+
 export function createWorkerControlRepository(
-  client: SupabaseClient<Phase6cDatabase>,
-): WorkerControlRepository {
-  return Object.freeze<WorkerControlRepository>({
+  client: SupabaseClient<Phase6dDatabase>,
+): CompleteWorkerControlRepository {
+  return Object.freeze<CompleteWorkerControlRepository>({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
         target_credential_hash: input.credentialHash,
@@ -375,6 +561,18 @@ export function createWorkerControlRepository(
         target_software_version: input.softwareVersion,
       })));
     },
+    async registerPassiveRuntime(input) {
+      return parseRuntimeRegistration(await rpcData(client.rpc("register_passive_runtime_worker_node", {
+        target_credential_hash: input.credentialHash,
+        target_software_version: input.softwareVersion,
+      })), "passive_runtime_observation_v1");
+    },
+    async registerActiveCors(input) {
+      return parseRuntimeRegistration(await rpcData(client.rpc("register_active_cors_worker_node", {
+        target_credential_hash: input.credentialHash,
+        target_software_version: input.softwareVersion,
+      })), "active_cors_validation_v1");
+    },
     async disable(workerId) {
       return parseDisable(await rpcData(client.rpc("disable_worker_node", { target_worker_id: workerId })));
     },
@@ -391,6 +589,20 @@ export function createWorkerControlRepository(
         target_actor_id: input.actorId,
       })));
     },
+    async enqueuePassiveRuntime(input) {
+      return parseRuntimeEnqueue(await rpcData(client.rpc("enqueue_passive_runtime_worker_task", {
+        target_workspace_id: input.workspaceId,
+        target_scan_job_id: input.scanJobId,
+        target_actor_id: input.actorId,
+      })), "passive_runtime_observation_v1");
+    },
+    async enqueueActiveCors(input) {
+      return parseRuntimeEnqueue(await rpcData(client.rpc("enqueue_active_cors_worker_task", {
+        target_workspace_id: input.workspaceId,
+        target_scan_job_id: input.scanJobId,
+        target_actor_id: input.actorId,
+      })), "active_cors_validation_v1");
+    },
     async claim(input) {
       return parseClaim(await rpcData(client.rpc("claim_worker_task", { target_worker_id: input.workerId })));
     },
@@ -402,6 +614,11 @@ export function createWorkerControlRepository(
         throw new WorkerControlError("WORKER_CONTROL_FAILED");
       }
       return claim;
+    },
+    async claimRuntime(input) {
+      return parseRuntimeClaim(await rpcData(client.rpc("claim_runtime_worker_task", {
+        target_worker_id: input.workerId,
+      })));
     },
     async heartbeat(input) {
       return parseHeartbeat(await rpcData(client.rpc("heartbeat_worker_attempt", {

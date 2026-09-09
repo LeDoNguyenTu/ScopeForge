@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "caseId": "negative-safe",
+  "ruleId": "node/tls-verification-disabled",
+  "classification": "negative",
+  "expected": [],
+  "rationale": "Proves an ordinary Dockerfile without the override remains clean."
+}

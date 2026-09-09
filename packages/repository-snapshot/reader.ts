@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { chmod, lstat, mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { createGunzip } from "node:zlib";
@@ -33,6 +33,40 @@ export interface RepositorySnapshotReadExpectation {
 export interface MaterializedRepositorySnapshot {
   sourceDirectory: string;
   manifest: RepositorySnapshotManifest;
+}
+
+function missingPath(error: unknown): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && (error as { code?: unknown }).code === "ENOENT";
+}
+
+async function makeMaterializedTreeRemovable(directory: string): Promise<void> {
+  const metadata = await lstat(directory);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw new Error("Materialized repository snapshot cleanup requires a real directory.");
+  }
+
+  await chmod(directory, 0o700);
+  const entries = await readdir(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      await makeMaterializedTreeRemovable(path.join(directory, entry.name));
+    }
+  }
+}
+
+export async function removeMaterializedRepositorySnapshot(
+  sourceDirectory: string,
+): Promise<void> {
+  try {
+    await makeMaterializedTreeRemovable(sourceDirectory);
+  } catch (error) {
+    if (missingPath(error)) return;
+    throw error;
+  }
+  await rm(sourceDirectory, { recursive: true, force: true });
 }
 
 class AsyncByteReader {
@@ -448,7 +482,7 @@ export async function materializeRepositorySnapshotBundle(input: {
     await chmod(sourceDirectory, 0o555);
     return Object.freeze({ sourceDirectory, manifest });
   } catch (error) {
-    await rm(sourceDirectory, { recursive: true, force: true });
+    await removeMaterializedRepositorySnapshot(sourceDirectory);
     throw error;
   } finally {
     archive.destroy();

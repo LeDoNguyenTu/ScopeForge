@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "caseId": "jsts-command-clean-execfile",
+  "scanner": "jsts",
+  "ruleId": "jsts/command-injection",
+  "label": "clean",
+  "repository": "repository",
+  "rationale": "Request input is passed as an argument to execFile rather than interpolated into a shell command string.",
+  "expectedFiles": []
+}

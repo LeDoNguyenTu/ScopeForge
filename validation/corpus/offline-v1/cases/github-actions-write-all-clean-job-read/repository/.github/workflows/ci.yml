@@ -1,0 +1,8 @@
+name: Clean job permissions
+on: push
+jobs:
+  build:
+    permissions: read-all
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo scopeforge

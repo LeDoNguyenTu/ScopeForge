@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/app/actions";
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
+import SideNav from "@/components/SideNav";
 
 export default function ImmersiveDashboardNav({
   displayName,
@@ -19,9 +20,8 @@ export default function ImmersiveDashboardNav({
           <ScopeForgeWordmark />
         </Link>
         <div className="immersiveDashboardLinks">
-          <Link href="/dashboard">Overview</Link>
-          <Link href="/dashboard/assets">Assets</Link>
-          <Link href="/dashboard/findings">Findings</Link>
+          <span className="workspaceNavLabel">WORKSPACE</span>
+          <SideNav />
         </div>
         <div className="immersiveDashboardIdentity">
           <div className="immersiveWorkspaceIdentity">

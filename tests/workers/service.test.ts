@@ -60,6 +60,24 @@ function repository(overrides: Partial<WorkerControlRepository> = {}): WorkerCon
       nodes: [],
       taskCounts: { queued: 0, leased: 0, retryWait: 0, completed: 0, deadLetter: 0, cancelled: 0 },
       activeLeaseCount: 0,
+      runtimeClasses: {
+        passiveRuntime: {
+          executionClass: "passive_runtime_observation_v1" as const,
+          enabledNodeCount: 0,
+          leasedCount: 0,
+          capacity: 2,
+          available: false,
+          saturated: false,
+        },
+        activeCors: {
+          executionClass: "active_cors_validation_v1" as const,
+          enabledNodeCount: 0,
+          leasedCount: 0,
+          capacity: 1,
+          available: false,
+          saturated: false,
+        },
+      },
     })),
     ...overrides,
   };

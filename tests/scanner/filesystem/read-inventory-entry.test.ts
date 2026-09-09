@@ -3,7 +3,10 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { readInventoryEntry } from "@/packages/scanner-core/filesystem/read-inventory-entry";
+import {
+  readInventoryEntry,
+  readInventoryEntryBytes,
+} from "@/packages/scanner-core/filesystem/read-inventory-entry";
 import { buildRepositoryInventory } from "@/packages/scanner-core/inventory/build-inventory";
 
 const tempPaths: string[] = [];
@@ -34,6 +37,16 @@ describe("readInventoryEntry", () => {
     await expect(readInventoryEntry(inventory, "unlisted.txt")).rejects.toMatchObject({
       code: "not_in_inventory"
     });
+  });
+
+  it("returns identity-checked bytes without UTF-8 or line-ending normalization", async () => {
+    const root = await tempDir("scopeforge-read-bytes-");
+    const bytes = Buffer.from([0x61, 0x0d, 0x0a, 0xff, 0x62]);
+    await writeFile(join(root, "bytes.bin"), bytes);
+
+    const inventory = await buildRepositoryInventory(root);
+
+    await expect(readInventoryEntryBytes(inventory, "bytes.bin")).resolves.toEqual(bytes);
   });
 
   it("rejects a file replaced by a symlink after inventory creation", async () => {

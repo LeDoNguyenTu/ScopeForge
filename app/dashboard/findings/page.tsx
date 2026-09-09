@@ -97,7 +97,7 @@ export default async function FindingsPage({
           <div className="assetList">
             {findings.map((finding) => (
               <Link
-                className="assetRow"
+                className="assetRow findingRow"
                 href={`/dashboard/findings/${encodeURIComponent(finding.finding_id)}`}
                 key={finding.finding_id}
               >

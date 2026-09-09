@@ -1,135 +1,40 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  Boxes,
-  Bug,
-  CircleCheck,
-  Gauge,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, Boxes, Bug, CheckCircle2, ChevronDown, CircleCheck, Plus, ShieldCheck } from "lucide-react";
+import { DashboardResources } from "@/components/ResourceLibrary";
+import DashboardWorkbench, { type DashboardFinding } from "@/components/dashboard/DashboardWorkbench";
 import WebGLAttackSurface from "@/components/dashboard/WebGLAttackSurface";
-import type { AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
+import type { AttackSurfaceAssetInput, AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
 
-export interface DashboardNextAction {
-  href: string;
-  label: string;
-  title: string;
-  copy: string;
-}
+export interface DashboardNextAction { href: string; label: string; title: string; copy: string; }
 
-export default function ImmersiveDashboardExperience({
-  model,
-  nextAction,
-}: {
+export default function ImmersiveDashboardExperience({ model, nextAction, assets = [], findings = [] }: {
   model: AttackSurfaceModel;
   nextAction: DashboardNextAction;
+  assets?: readonly AttackSurfaceAssetInput[];
+  findings?: readonly DashboardFinding[];
 }) {
-  const { metrics, priority } = model;
-
+  const { metrics } = model;
+  const steps = [
+    { title: "Register your scope", done: metrics.registeredAssets > 0, href: "/dashboard/assets/new", copy: "Add the assets your team controls." },
+    { title: "Verify ownership", done: metrics.registeredAssets > 0 && metrics.verifiedAssets === metrics.registeredAssets, href: nextAction.href, copy: "Confirm control before remote testing." },
+    { title: "Review security evidence", done: false, href: "/dashboard/findings", copy: metrics.openFindings ? `${metrics.openFindings} findings need review.` : "Evidence appears after a supported scan." },
+  ];
   return (
-    <div className="livingDashboard">
-      <section className="livingDashboardHero" aria-labelledby="living-attack-surface-title">
-        <div className="livingDashboardEditorial">
-          <span className="livingDashboardEyebrow">LIVING ATTACK SURFACE</span>
-          <h1 id="living-attack-surface-title">Understand the risk before it becomes an incident.</h1>
-          <p>
-            ScopeForge maps verified scope and the security evidence already attached to this workspace, so every next action stays tied to assets you actually control.
-          </p>
-          <div className="livingDashboardActions">
-            <Link className="livingPrimaryAction" href={nextAction.href}>
-              {nextAction.label} <ArrowRight size={16} />
-            </Link>
-            <Link className="livingSecondaryAction" href="/dashboard/assets">
-              Explore assets
-            </Link>
-          </div>
-
-          <div className="livingMetricBand" aria-label="Workspace security metrics">
-            <article className="livingMetricCard">
-              <span className="livingMetricIcon"><Boxes size={16} /></span>
-              <div><strong>{metrics.registeredAssets}</strong><span>Registered assets</span></div>
-            </article>
-            <article className="livingMetricCard">
-              <span className="livingMetricIcon livingMetricIconHealthy"><CircleCheck size={16} /></span>
-              <div><strong>{metrics.verifiedAssets}</strong><span>Verified assets</span></div>
-            </article>
-            <article className="livingMetricCard">
-              <span className="livingMetricIcon livingMetricIconRisk"><Bug size={16} /></span>
-              <div><strong>{metrics.openFindings}</strong><span>Open findings</span></div>
-            </article>
-            <article className="livingMetricCard">
-              <span className="livingMetricIcon"><Gauge size={16} /></span>
-              <div><strong>{metrics.verificationPercent}%</strong><span>Verification coverage</span></div>
-            </article>
-          </div>
-        </div>
-
-        <div className="livingDashboardScene">
-          <WebGLAttackSurface model={model} />
-          <div className="livingSceneStatus" aria-label="Attack surface renderer status">
-            <span><i className="livingScenePulse" /> Topology active</span>
-            <span>{model.nodes.length} visual nodes</span>
-            <span>{metrics.affectedAssets} affected assets</span>
-          </div>
-        </div>
-
-        <div className="livingDashboardLower">
-          <article className="livingOverviewPanel">
-            <div className="livingPanelHeading">
-              <div>
-                <span>Attack Surface Overview</span>
-                <h2>Verified workspace scope</h2>
-              </div>
-              <span className="livingRealDataPill"><i /> Real workspace data</span>
-            </div>
-            <div className="livingOverviewContent">
-              <div
-                className="livingCoverageRing"
-                style={{ background: `conic-gradient(var(--forge-teal) ${metrics.verificationPercent}%, rgba(123,145,154,.12) 0)` }}
-                aria-label={`${metrics.verificationPercent}% of registered assets are verified`}
-              >
-                <div><strong>{metrics.verificationPercent}%</strong><span>verified</span></div>
-              </div>
-              <div className="livingOverviewRows">
-                <div><span>Registered scope</span><strong>{metrics.registeredAssets}</strong></div>
-                <div><span>Proof confirmed</span><strong>{metrics.verifiedAssets}</strong></div>
-                <div><span>Assets with sampled active evidence</span><strong>{metrics.affectedAssets}</strong></div>
-              </div>
-            </div>
-          </article>
-
-          <article className="livingPriorityPanel">
-            <span>Highest priority evidence</span>
-            {priority ? (
-              <>
-                <div className={`livingPrioritySeverity livingPrioritySeverity-${priority.severity}`}>
-                  {priority.severity}
-                </div>
-                <h2>{priority.assetName}</h2>
-                <p>{priority.title}</p>
-                <Link href="/dashboard/findings">Investigate evidence <ArrowRight size={14} /></Link>
-              </>
-            ) : (
-              <div className="livingPriorityEmpty">
-                <ShieldCheck size={18} />
-                <p>No active finding evidence in this workspace view.</p>
-              </div>
-            )}
-          </article>
-
-          <article className="livingNextPanel">
-            <span>Next action</span>
-            <h2>{nextAction.title}</h2>
-            <p>{nextAction.copy}</p>
-            <Link href={nextAction.href}>{nextAction.label} <ArrowRight size={14} /></Link>
-          </article>
-        </div>
+    <div className="saasDashboard">
+      <section className="saasPageHeading"><div><span className="saasEyebrow">WORKSPACE OVERVIEW</span><h1>Security overview</h1><p>Your assets, security evidence, and next steps in one place.</p></div><Link className="saasPrimary" href="/dashboard/assets/new"><Plus size={16} /> Register asset</Link></section>
+      <section className="saasMetrics" aria-label="Workspace security metrics">
+        <Link href="/dashboard/findings"><div><span>Open findings</span><Bug size={18} /></div><strong>{metrics.openFindings}</strong><small>Review and prioritize evidence <ArrowRight size={12} /></small></Link>
+        <Link href="/dashboard/assets"><div><span>Registered assets</span><Boxes size={18} /></div><strong>{metrics.registeredAssets}</strong><small>Applications, APIs, and repositories</small></Link>
+        <Link href="/dashboard/assets"><div><span>Verified assets</span><CircleCheck size={18} /></div><strong>{metrics.verifiedAssets}<em> / {metrics.registeredAssets}</em></strong><small>Ownership confirmed</small></Link>
+        <Link href="/dashboard/assets"><div><span>Verification coverage</span><ShieldCheck size={18} /></div><strong>{metrics.verificationPercent}%</strong><div className="saasCoverageTrack" aria-hidden="true"><i style={{ width: `${metrics.verificationPercent}%` }} /></div></Link>
       </section>
-
-      <section className="livingSafetyNote">
-        <ShieldCheck size={16} />
-        <p>Remote testing remains limited to verified targets, reviewed request profiles, fixed budgets, and trusted server-side authorization.</p>
-      </section>
+      <section className="saasNextAction"><span className="saasActionIcon"><ShieldCheck size={22} /></span><div><span className="saasEyebrow">RECOMMENDED NEXT STEP</span><h2>{nextAction.title}</h2><p>{nextAction.copy}</p></div><Link href={nextAction.href}>{nextAction.label} <ArrowRight size={15} /></Link></section>
+      <div className="saasMainGrid">
+        <DashboardWorkbench assets={assets} findings={findings} totalFindings={metrics.openFindings} />
+        <aside className="saasWorkflow" aria-label="Workspace workflow"><span className="saasEyebrow">SCOPE TO PROOF</span><h2>Your security workflow</h2><p>Keep each step connected to evidence.</p><ol>{steps.map((step, index) => <li key={step.title}><span className={step.done ? "isComplete" : ""}>{step.done ? <CheckCircle2 size={17} /> : index + 1}</span><div><Link href={step.href}>{step.title} <ArrowRight size={12} /></Link><p>{step.copy}</p></div></li>)}</ol><Link className="saasGuideLink" href="/dashboard/resources">Open checklists and guides <ArrowRight size={14} /></Link></aside>
+      </div>
+      <details className="saasMapPanel"><summary><span><Boxes size={18} /><strong>Attack surface map</strong><small>{metrics.registeredAssets} registered assets</small></span><ChevronDown size={17} /></summary><div className="saasMapBody"><p>Showing up to 10 assets, prioritized by sampled finding severity. Verified ownership does not mean an asset is vulnerability-free.</p><div className="livingMapCanvas"><WebGLAttackSurface model={model} /></div><ol className="mobileMapLegend">{model.nodes.map((node, index) => <li key={node.id}><Link href={`/dashboard/assets/${node.id}`}><span className={`mapLegendNumber mapLegendNumber-${node.state}`}>{index + 1}</span><div><strong>{node.label}</strong><small>{node.findingCount ? `${node.findingCount} sampled findings` : node.verificationStatus === "verified" ? "Verified ownership" : "Needs verification"}</small></div><ArrowRight size={13} /></Link></li>)}</ol><Link href="/dashboard/assets">Open asset inventory <ArrowRight size={14} /></Link></div></details>
+      <DashboardResources />
     </div>
   );
 }

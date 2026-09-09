@@ -4,13 +4,11 @@ import { revalidatePath } from "next/cache";
 import type { Database, ScanJobStatus } from "@/lib/database.types";
 import { ActiveValidationAuthorizationError } from "@/lib/active-validation/authorization";
 import { createActiveValidationServerDependencies } from "@/lib/active-validation/server-dependencies";
-import {
-  enqueueActiveValidation,
-  executeActiveValidation,
-  requestActiveValidationCancellation,
-} from "@/lib/active-validation/service";
+import { requestActiveValidationCancellation } from "@/lib/active-validation/service";
+import { RuntimeWorkerError } from "@/lib/runtime-workers/errors";
+import { requestActiveCorsRuntimeWorker } from "@/lib/runtime-workers/request";
+import { createRuntimeWorkerRequestServerDependencies } from "@/lib/runtime-workers/request-server-dependencies";
 import { getDashboardContext } from "@/lib/workspaces/current";
-import { ACTIVE_VALIDATION_MAX_BUDGET } from "@/packages/runtime-validator";
 
 type ScanJobRow = Database["public"]["Tables"]["scan_jobs"]["Row"];
 
@@ -44,6 +42,14 @@ function failure(error: unknown): ActiveValidationActionResult<never> {
   if (error instanceof ActiveValidationAuthorizationError) {
     return { ok: false, error: { code: error.code, message: error.reason } };
   }
+  if (error instanceof RuntimeWorkerError) {
+    const message = error.code === "RUNTIME_WORKER_UNAVAILABLE"
+      ? "Hosted active-validation workers are not available yet."
+      : error.code === "RUNTIME_WORKER_BUSY"
+        ? "Another runtime network task is already active for this workspace."
+        : "The bounded active validation could not be queued safely.";
+    return { ok: false, error: { code: error.code, message } };
+  }
   return {
     ok: false,
     error: {
@@ -59,23 +65,19 @@ export async function runCorsOriginPolicyValidation(
 ): Promise<ActiveValidationActionResult<{ job: ActiveValidationJobActionSummary }>> {
   try {
     const { user, workspace, role } = await getDashboardContext();
-    const dependencies = createActiveValidationServerDependencies();
-    const queued = await enqueueActiveValidation(
+    const result = await requestActiveCorsRuntimeWorker(
       {
         actorId: user.id,
         workspaceId: workspace.id,
         role,
         assetId,
         explicitConsent,
-        budget: ACTIVE_VALIDATION_MAX_BUDGET,
       },
-      dependencies,
+      createRuntimeWorkerRequestServerDependencies(),
     );
-    const result = await executeActiveValidation(queued.job.id, dependencies);
-    const job = result.job ?? queued.job;
 
     revalidatePath(`/dashboard/assets/${assetId}`);
-    return { ok: true, data: { job: summarizeJob(job) } };
+    return { ok: true, data: { job: summarizeJob(result.job) } };
   } catch (error) {
     return failure(error);
   }

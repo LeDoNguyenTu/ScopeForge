@@ -3,14 +3,20 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const executorPath = path.resolve(process.cwd(), "packages/worker-supervisor/repository-snapshot.ts");
+const snapshotNetworkPath = path.resolve(process.cwd(), "packages/repository-snapshot-network/upload.ts");
 const supervisorPath = path.resolve(process.cwd(), "packages/worker-supervisor/supervisor.ts");
 
 describe("Phase 6B executor authority boundary", () => {
-  it("forbids repository execution, scanners, Supabase, and generic runtime-network authority", async () => {
+  it("forbids repository execution, scanners, Supabase, and raw or generic runtime-network authority", async () => {
     const source = await readFile(executorPath, "utf8");
     for (const forbidden of [
       "node:child_process",
       "node:worker_threads",
+      "node:https",
+      "node:http",
+      "node:net",
+      "node:tls",
+      "node:dns",
       "child_process",
       "@supabase/",
       "lib/supabase",
@@ -28,10 +34,15 @@ describe("Phase 6B executor authority boundary", () => {
     expect(source).not.toMatch(/\b(exec|execFile|spawn|fork)\s*\(/);
   });
 
-  it("requires the attempt PUT to be create-only at R2", async () => {
-    const source = await readFile(executorPath, "utf8");
-    expect(source).toContain('"if-none-match": "*"');
-    expect(source).toContain('"content-type": "application/gzip"');
+  it("keeps the attempt PUT create-only inside the dedicated Phase 6B network boundary", async () => {
+    const networkSource = await readFile(snapshotNetworkPath, "utf8");
+    const executorSource = await readFile(executorPath, "utf8");
+
+    expect(networkSource).toContain('"if-none-match": "*"');
+    expect(networkSource).toContain('"content-type": "application/gzip"');
+    expect(networkSource).toContain('from "node:https"');
+    expect(executorSource).toContain("@/packages/repository-snapshot-network");
+    expect(executorSource).not.toContain('from "node:https"');
   });
 
   it("keeps the supervisor provider-neutral and free of repository network/storage credentials", async () => {

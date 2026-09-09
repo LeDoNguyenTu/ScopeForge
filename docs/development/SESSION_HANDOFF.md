@@ -1,109 +1,146 @@
 # ScopeForge Session Handoff
 
-## Current phase
+Last refreshed: 2026-09-09 (Asia/Singapore)
 
-Phase 6B public GitHub repository acquisition and private immutable source snapshots is complete and merged through PR #38.
+Use this as the fastest resume point for ScopeForge Phase 9 hardening.
 
-- reviewed Phase 6B feature head: `6a999df6bbb849e5eb698dbc387f7ec2a82df6d6`
-- Phase 6B merge commit: `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`
-- production Supabase project: `tdgpibrepzcvdivztkta`
-- GitHub Actions monthly allowance is exhausted
-- do not trigger, rerun, or depend on GitHub Actions
-- continue using `[skip ci]`
-- never claim the npm/Vitest/type/build gate is green unless it is actually executed
+## Hard execution rules
 
-The next architectural boundary is Phase 6C isolated zero-egress Phase 3 scanning over immutable Phase 6B snapshots.
+- production `main` is always the authoritative integration baseline
+- before freezing or merging a Phase 9 branch, re-read `main` and resolve any UI-stream drift first
+- preserve the newest production UI when resolving overlaps; reapply only the reviewed security change
+- preflight before CI; do not use GitHub Actions as a debugging loop
+- use `[skip ci]` for intermediate and docs-only commits
+- reserve substantive CI for frozen release candidates
+- never rewrite deployed Supabase migrations
+- never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
+- do not add AI co-author attribution
+- do not claim tests, provider state, WAF state, or production enforcement without exact evidence
+- do not enable hosted worker/runtime capability flags as part of Phase 9 hardening
+- PR #49 remains a legacy draft UI branch and is not the hardening baseline
 
-## Completed platform work
+## Current released production baseline
 
-- Phase 1 foundation complete
-- Phase 2 asset control/authorization complete
-- Phase 3 code and supply-chain security complete
-- Phase 4A security-domain contracts complete
-- Phase 4B passive runtime observations complete
-- Phase 4C-1 bounded CORS validation complete
-- Phase 5A hosted finding foundation complete
-- Phase 5B remediation/retest/Security Story complete
-- Phase 5C hosted Phase 3 import complete
-- Phase 6A zero-egress worker foundation complete
-- Phase 6B public GitHub acquisition/private immutable snapshots complete and merged
+Executable release:
 
-## Phase 6B invariants that Phase 6C must preserve
+`f203168e6ae25455743849f08511e371d3964153`
 
-- repository identity comes only from the stored canonical repository asset
-- acquisition network authority is only GitHub API, one reviewed codeload redirect, and one attempt R2 PUT
-- the resolved default branch becomes an immutable 40-hex commit SHA before archive acquisition
-- hostile source is parsed without shell/tar/git/package/project execution
-- R2 object keys are opaque and private
-- the signed PUT is create-only using `If-None-Match: *`
-- server publication requires signed HEAD exact-size equality
-- repository success cannot use the generic finalizer
-- cancellation wins before snapshot publication
-- public snapshot provenance is immutable and member-readable only
-- service_role has zero direct privileges on the public snapshot table
-- private repository task/upload/artifact tables have no direct application/service-role DML grants
-- Phase 5C cannot gain worker/acquisition authority
-- foundation workers cannot gain GitHub/R2 authority
+Tree:
 
-## Production migration history
+`9980aa5a58014998fd26ae7084bd97c992bc1a82`
 
-Live Phase 6B migrations are:
+Exact production evidence:
 
-- `20260826221813 phase_6b_repository_snapshot_enum`
-- `20260826221849 phase_6b_repository_snapshot_schema`
-- `20260826224132 phase_6b_repository_snapshot_control`
-- `20260826224240 phase_6b_repository_snapshot_publication`
-- `20260826224409 phase_6b_repository_snapshot_cleanup`
-- `20260826224847 phase_6b_repository_snapshot_live_hardening`
+- PR #60 squash merge `f203168e6ae25455743849f08511e371d3964153`
+- post-merge main CI #774, run `34236559722`, success
+- production deployment `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`
+- deployment Git SHA exactly `f203168e6ae25455743849f08511e371d3964153`
+- target production
+- READY
+- `scopeforge.dev` alias present
+- `aliasError=null`
 
-Do not edit deployed migration history. Any later correction must be a forward migration.
+This tree contains the current production UI plus released Phase 9A, 9B, and 9C hardening.
 
-## Phase 6B verification evidence
+## Released Phase 9B
 
-Direct live verification confirmed RLS, authenticated member SELECT-only provenance, anon denial, zero direct service-role snapshot-table privileges, service-role-only `SECURITY DEFINER` public operation RPCs with empty `search_path`, non-executable private publication helper, private-table isolation, FK/index coverage, clean security advisor, resolved Phase 6B FK-index advisor findings, and public generated TypeScript types without private schema.
+Dedicated state:
 
-A rollback-only production workflow smoke passed repository enqueue, repository worker claim, exact lease-bound artifact lookup, atomic publication, exact replay, conflicting replay rejection, cancellation-wins, and orphan cleanup. Follow-up counts returned to zero.
+`docs/development/PHASE_9B_RELEASE_STATE.md`
 
-## Verification limitation
+Release identity:
 
-The current container cannot resolve `github.com` and has no dependency-complete checkout. These commands were not run for the merged Phase 6B head:
+- frozen candidate `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`
+- frozen tree `9980aa5a58014998fd26ae7084bd97c992bc1a82`
+- preview `dpl_FcFdrKhr31kgQHWjS723yZ4D49AT`, READY, `aliasError=null`
+- candidate CI #773, run `34236014666`, success
+- squash merge `f203168e6ae25455743849f08511e371d3964153`
+- post-merge CI #774, success
+- production `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`, READY
 
-```text
-npm test
-npm run typecheck
-npm run build:cli
-node .scopeforge-build/packages/cli/index.js version
-npm run benchmark:scanner
-npm run build
-```
+Released code:
 
-Do not claim otherwise.
+- dependency-free Cloudflare Turnstile explicit-render wrapper
+- optional public key boundary `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- absent/blank key preserves existing auth behavior
+- configured challenge gates submit until a token exists
+- CAPTCHA tokens are forwarded directly to Supabase Auth and kept only in React memory
+- failed/non-redirecting configured attempts invalidate/remount the challenge
+- expiry/provider errors clear the token
+- widget cleanup is explicit
+- narrow auth cards use compact sizing
+- Phase 9A bounded error behavior remains intact
 
-## Phase 6C boundary
+No dependency, database, hosted-runtime, dashboard, landing, CSP, or telemetry executable file changed in Phase 9B.
 
-Phase 6C must consume only the broker-selected immutable Phase 6B snapshot under a new closed execution class.
+## UI/merge-conflict result
 
-It must:
+The user required all concurrent UI drift to be reconciled before release.
 
-- have zero target/GitHub/R2 network authority
-- expose no arbitrary URL, object key, scanner selection, command, environment, or budget input to callers
-- verify immutable snapshot provenance before scan use
-- isolate snapshot materialization from the host filesystem
-- enforce concrete CPU, memory, process, input, scratch, output, and wall-time limits
-- terminate underlying sandbox resources on cancellation/deadline
-- execute no repository code, package lifecycle scripts, package managers, build/project commands, IaC/container tooling, or hooks
-- invoke only trusted deterministic Phase 3 scanner libraries
-- preserve existing normalized authoritative ingestion semantics
-- never infer `verified_fixed` merely from absence
-- keep model/advisory output downstream and non-authoritative
+Before freeze and merge, `main` was repeatedly refreshed. PR #60 remained `mergeable=true`, and its executable auth file set was disjoint from the current production landing/dashboard changes. No actual conflict surfaced, so no artificial reconciliation commit was needed.
 
-Dedicated runtime/active network-enabled workers remain a later separately reviewed boundary.
+The final merge was pinned to expected head `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`, and the squash merge preserved the candidate tree exactly.
 
-## Resume order
+For all future Phase 9 work, repeat the same rule: newest `main` UI wins, then reapply only the reviewed security delta if a true overlap appears.
 
-1. Re-check exact `main` and active branch heads and production migration history.
-2. Read `CURRENT_STATE.md`, `TEST_STATUS.md`, `NEXT_STEPS.md`, `docs/ARCHITECTURE.md`, and `docs/PHASES.md`.
-3. Threat-model Phase 6C before implementation.
-4. Present and approve the Phase 6C architecture before writing execution code.
-5. Write the approved design/spec and implementation plan.
-6. Implement with RED then minimal GREEN checkpoints and `[skip ci]` while GitHub Actions remain unavailable.
+## Live provider truth
+
+Fresh Supabase Security Advisor reports exactly:
+
+`auth_leaked_password_protection`
+
+Therefore:
+
+- leaked-password protection is NOT enabled
+- production Turnstile enforcement is NOT claimed until provider/site-key configuration is directly verified
+- Vercel project-specific WAF custom rules are NOT claimed as active without inspected evidence
+- Supabase native Auth rate limiting remains in place
+
+Provider activation/rollback guidance:
+
+`docs/security/PHASE_9B_PROVIDER_CONTROLS.md`
+
+Do not treat code capability as proof of active provider enforcement.
+
+## Released Phase 9C
+
+Dedicated state:
+
+`docs/development/PHASE_9C_RELEASE_STATE.md`
+
+Live migration history includes:
+
+`20260908084554_phase_9c_function_acl_hardening`
+
+Do not rewrite that migration or apply a global `postgres` default-function revoke.
+
+## Next task - Phase 9D
+
+Phase 9D security telemetry/browser hardening is next.
+
+Approved direction:
+
+- reuse `audit_events` and `lib/audit/write-audit-event.ts` for durable security-significant events
+- use privacy-reduced structured server logs for high-frequency operational security signals
+- never log secrets, credentials, cookies, authorization headers, worker lease tokens, source content, or raw executor output
+- add metadata-safety/event-shape tests before implementation
+- define alert/rollback signals using real available platform evidence
+- preserve the existing browser-header baseline
+- treat CSP as a separate compatibility gate against the exact current Next.js/WebGL production UI
+- do not ship broad `unsafe-inline` merely to claim CSP
+- do not touch PR #49
+
+Before touching Phase 9D code, re-read the current audit writer/schema, logging paths, middleware, security-relevant routes, `next.config.ts`, and current production `main`; then complete the detailed Phase 9D design/plan workflow.
+
+## Then Phase 9E
+
+Complete disclosure, incident response, credential rotation, rollback, impact assessment, recovery validation, and final public-launch security procedures.
+
+## Hosted runtime flags
+
+Keep all four false/absent until their independent operational acceptance:
+
+- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
+- `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
+- `HOSTED_ACTIVE_CORS_WORKER_ENABLED`

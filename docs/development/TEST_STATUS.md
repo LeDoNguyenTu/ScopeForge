@@ -1,139 +1,110 @@
 # ScopeForge Test Status
 
-## GitHub Actions constraint
+Last reconciled: 2026-09-07 (Asia/Singapore)
 
-GitHub Actions monthly allowance is exhausted. The user explicitly requested no further GitHub Actions use, reruns, or dependency on workflow status as merge evidence.
+## Phase 8A released baseline
 
-Repository implementation, test, migration, dependency, merge, and documentation commits continue to use `[skip ci]`. Verification is performed independently and tied to the exact candidate SHA.
+PR #55 merged as `8d766f5969427a2e4525f5232b5e28b0f93675bd` after CI #758 passed 312/312 test files, 1,348/1,348 tests, typecheck, CLI build/version, historical benchmark, and production Next.js build.
 
-## Phase 6B historical acceptance
+The committed `scopeforge-offline-v1@1.0.0` corpus remains:
 
-Phase 6B repository acquisition merged through PR #38 before a dependency-complete external verifier was available for that exact merge candidate.
+- 32 reviewed cases: 16 vulnerable / 16 clean
+- TP 16 / FN 0 / FP 0 / TN 16
+- error 0 / unsupported 0 / contract mismatch 0
+- content hash `3586e2b55cb2e20be5f19997eab7758eef0dcfb7391731b86bc1bdf9bcdd399f`
 
-Its original merge evidence therefore consisted of test-first repository contracts, targeted exact-head security/source review, live Supabase migration/ACL/RLS/function/index verification, clean security advisor results, generated-type comparison, and rollback-only production workflow smoke. That historical Phase 6B merge should not be retroactively described as having had a full green npm/Vitest/build run at merge time.
+Covered-corpus precision/recall/F1 are 1.00 and FPR is 0.00. These are not global ScopeForge accuracy metrics.
 
-The later acquisition public-runtime gate was implemented and fully verified after the external verifier became available. See the dedicated section below.
+## Phase 8B release identity
 
-## Phase 6C exact-head acceptance
+- PR: #56
+- final PR head: `e09710560d2451039b493e4c777dcddf1e62a1cd`
+- final executable tree: `50f17f44e770f1179ed2b40b7713e14e864958c0`
+- CI-validated PR merge ref: `5636fdfea10534dea1a4e126113ba659168e208a`
+- squash merge on `main`: `226a20739871c15d0262d1779b3b013520f47fc6`
 
-Phase 6C isolated zero-egress repository scanning merged through PR #39.
+## Preflight acceptance
 
-- exact verified feature head: `d0b7c7a3a1de9d626478cf75cad5ee809f52dc3b`
-- merge commit: `7a329dc2796a142102af2392ee461f205daa1b78`
-- PR merge used expected-head SHA protection
-- unresolved review threads: none
-- PR comments/review submissions at merge time: none
+The accepted executable tree passed:
 
-### Dependency integrity
+- focused Phase 8 suite: 19/19 files, 97/97 tests
+- full repository suite: 318/318 files, 1,379/1,379 tests
+- typecheck
+- CLI build/version
+- historical benchmark
+- complete three-profile matrix
+- `npm audit --audit-level=info`: 0 vulnerabilities
+- production Next.js build with 9/9 static pages
+- base-to-head scope/security review with no dashboard/V5, Supabase migration, runtime-worker/repository-authority, lockfile, dependency, or historical-medium-benchmark drift
 
-The exact committed lockfile was generated from the unchanged manifest plus the previously committed complete lock through npm's resolver and independently checked before branch mutation.
+## Final PR CI #760
 
-- byte length: 118,878
-- package entries: 235
-- SHA-256: `3bbc74fa07cf06b379058c741423974f30b46f5c4469694750e1b973fbccda7d`
-- Git blob: `881bbdeedb0ee7a7cb8c171ca93b14f6e528d33d`
-- Next: 15.5.24
-- PostCSS: 8.5.26
-- Sharp: 0.35.3
+GitHub Actions CI #760 ran on Ubuntu 24.04.4 / Node 22.23.2 against PR merge ref `5636fdfea10534dea1a4e126113ba659168e208a` and passed:
 
-The Phase 6C branch commit that refreshed the lock changed only `package-lock.json` relative to the already security-reviewed head `11b356ec05feaa8cb8f43d81f51516686fb6f3a5`.
+- 318/318 test files
+- 1,379/1,379 tests
+- typecheck
+- CLI build/version (`ScopeForge 0.1.0`)
+- historical benchmark: 700 files, 0 findings/errors, 766 ms wall
+- complete Phase 8B matrix
+- production build with 9/9 static pages
 
-### Fresh exact-head verification on `d0b7c7a3...`
+Matrix medians in #760:
 
-- `npm ci`: passed
-- `npm run typecheck`: passed
-- `npm test -- --run`: 227/227 test files, 952/952 tests passed
-- `npm run build:cli`: passed
-- `node .scopeforge-build/packages/cli/index.js version`: `ScopeForge 0.1.0`
-- `npm run benchmark:scanner`: 700 files, 0 findings, 0 errors, wall time 509 ms against 20,000 ms maximum
-- production `npm run build`: passed with `NODE_ENV=production`, the ScopeForge public Supabase production configuration, and `NEXT_PUBLIC_SITE_URL=https://scopeforge.dev`
-- `npm audit --json`: zero info, low, moderate, high, critical, and total vulnerabilities
+- dependency: 2,806 ms wall
+- IaC: 482 ms wall
+- source/AST: 1,322 ms wall
 
-A combined verifier process hit its sandbox wall-time after completing the first six gates, so the production build and audit were rerun as separate clean exact-SHA materializations. Both passed. The timeout itself is not counted as build/audit evidence.
+Draft synchronize CI #759 was skipped as intended.
 
-## Phase 6C security acceptance
+## Post-merge main CI #761
 
-Static and executable review covered:
+GitHub Actions CI #761 ran on exact main merge SHA `226a20739871c15d0262d1779b3b013520f47fc6` on Ubuntu 24.04.4 / Node 22.23.2 and passed every workflow step:
 
-- browser hosted-scan fail-closed runtime flag
-- worker credential and execution-class binding
-- exact lease/task/attempt/worker binding
-- private R2 artifact access with short-lived authorization
-- fixed HTTPS/R2 host policy and redirect refusal
-- exact artifact byte count and SHA-256 verification
-- path-safe bounded snapshot materialization
-- fixed rootless-Podman command/image/network/resource profile
-- cancellation and hard-deadline process termination paths
-- artifact digest provenance at supervisor and trusted publication layers
-- exact snapshot, repository URL, commit, content digest, and artifact digest publication binding
-- generic-finalizer rejection of repository-scan success
-- cancellation-wins publication semantics
-- service-role-only `SECURITY DEFINER` RPCs with empty `search_path`
-- Phase 6C follow-up migrations covering asset identity and event ambiguity
+- 318/318 test files
+- 1,379/1,379 tests
+- typecheck
+- CLI build/version (`ScopeForge 0.1.0`)
+- historical `scanner-medium-v1`: 700 files, 0 findings, 0 errors, 597 ms scanner duration, 644 ms wall, RSS delta 27,738,112 B, 20,000 ms ceiling
+- Phase 8B matrix
+- production Next.js build with 9/9 static pages
 
-No new merge-blocking security defect was found in the final static review.
+### Main CI matrix evidence
 
-## Production runtime acceptance still missing by design
+`dependency-lockfile-heavy-v1`
 
-The Phase 6C code merge is not permission to enable hosted repository scanning.
+- run 1: scanner 2,426 ms / wall 2,428 ms / RSS delta 1,241,088 B
+- run 2: scanner 2,391 ms / wall 2,392 ms / RSS delta 4,124,672 B
+- run 3: scanner 2,350 ms / wall 2,351 ms / RSS delta 3,100,672 B
+- summary: min 2,351 / median wall 2,392 / max 2,428 ms; median scanner 2,391 ms
+- correctness: 3 files, 0 findings/errors every run; preflight exactly 5,000 components; OSV disabled
 
-Production runtime enablement still requires real Linux rootless-Podman/cgroup-v2 evidence for:
+`iac-heavy-v1`
 
-- zero network access from the scanner container
-- read-only input/root filesystem boundaries
-- enforceable CPU, memory, process, scratch, input, output, and wall-time limits
-- cancellation/hard deadline killing the underlying container
-- fixed reviewed image and command
+- run 1: scanner 549 ms / wall 588 ms / RSS delta 48,025,600 B
+- run 2: scanner 387 ms / wall 426 ms / RSS delta 524,288 B
+- run 3: scanner 368 ms / wall 400 ms / RSS delta 409,600 B
+- summary: min 400 / median wall 426 / max 588 ms; median scanner 387 ms
+- correctness: 601 files, exact four expected findings, 0 errors every run
 
-Until that evidence exists, the public server action remains fail closed and hosted repository scanning must remain disabled.
+`source-ast-heavy-v1`
 
-## Phase 6B acquisition public-runtime gate
+- run 1: scanner 1,234 ms / wall 1,287 ms / RSS delta 786,432 B
+- run 2: scanner 978 ms / wall 1,020 ms / RSS delta 131,072 B
+- run 3: scanner 979 ms / wall 1,034 ms / RSS delta 131,072 B
+- summary: min 1,020 / median wall 1,034 / max 1,287 ms; median scanner 979 ms
+- correctness: 1,201 files, exact dynamic-code x4, 0 errors every run
 
-After Phase 6C merge, ScopeForge added a separate fail-closed capability for public repository acquisition so a Vercel control-plane deployment cannot enqueue work when the dedicated acquisition worker/private R2 runtime is absent.
+RSS delta remains observational only. The 20,000/30,000 ms limits are catastrophic regression guards, not product latency SLOs.
 
-TDD evidence:
+## Production verification
 
-- RED head: `8b878860174369b887aaeda5415fec445f83e7b5`
-- all six pre-existing focused assertions passed
-- exactly the new server gate, page wiring, and unavailable UI behaviors failed
+Exact feature merge deployment:
 
-Final verified head:
+`dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu`
 
-`f1e67a07250f194f315d5be1081b780f62da4f26`
+State: READY. `aliasError=null`. Production aliases include `scopeforge.dev`.
 
-Fresh verification:
+## Production capability statement
 
-- focused tests: 9/9 passed
-- `npm ci`: passed
-- `npm run typecheck`: passed
-- full suite: 227/227 test files, 955/955 tests passed
-- `npm run build:cli`: passed
-- CLI version: `ScopeForge 0.1.0`
-- scanner benchmark: 700 files, 0 errors, wall time 523 ms
-- production Next.js build: passed
-- `npm audit`: zero vulnerabilities at every severity
-- dependency lock SHA-256 remained `3bbc74fa07cf06b379058c741423974f30b46f5c4469694750e1b973fbccda7d`
-
-The gate merged through PR #41 as merge commit `07c6bc8580314b73c633a7b704e5f7557ceccb4d`.
-
-`HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` remains `false`, is enforced before privileged enqueue, and is surfaced as a disabled owner/admin control in the UI. Existing snapshot history remains readable.
-
-## Deployment-readiness docs
-
-Deployment/environment reconciliation merged through PR #40 as `415428ebc510a7a8e890d3a03ebc4ffb8194252a`.
-
-This records the Vercel control-plane deployment boundary, server-only Supabase secret, planned worker/R2 separation, Cloudflare/Vercel DNS/TLS responsibilities, and the requirement to keep hosted repository worker features disabled until their runtime acceptance gates are proven.
-
-## Supabase state
-
-ScopeForge production project is `tdgpibrepzcvdivztkta`.
-
-Phase 6B and Phase 6C deployed migrations are immutable. Further changes use forward migrations only.
-
-Existing security review confirmed the intended RLS/ACL/private-table separation, service-role-only trusted RPC surfaces, empty `search_path` on trusted functions, and no direct browser authority over worker-private state. Do not remove operational/FK indexes solely because a young project reports them as unused.
-
-## Current verification statement
-
-The current repository has executable, exact-SHA evidence for the completed Phase 6C candidate and the subsequent public acquisition runtime gate. GitHub Actions were not used for that evidence.
-
-The next implementation architecture boundary, Phase 6D dedicated network-enabled worker execution, requires a separate approved threat model/design. Do not infer Phase 6D acceptance from Phase 6C's zero-egress proof or Phase 6B's GitHub acquisition networking.
+Phase 8A/8B validation success is not permission to enable repository acquisition, hosted repository scanning, passive runtime workers, or active CORS workers. Those capabilities remain separately gated.

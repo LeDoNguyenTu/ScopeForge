@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "caseId": "kubernetes-privileged-positive-init-container",
+  "scanner": "iac",
+  "ruleId": "iac/kubernetes-privileged-container",
+  "label": "vulnerable",
+  "repository": "repository",
+  "rationale": "A Kubernetes init container explicitly enables privileged mode and is covered by the same rule.",
+  "expectedFiles": ["deployment.yaml"],
+  "expectedSeverity": "high",
+  "expectedConfidence": "high"
+}

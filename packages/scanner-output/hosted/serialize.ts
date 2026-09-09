@@ -166,6 +166,10 @@ export function serializeHostedScanResult(
   result: ScanResult,
   options: SerializeHostedScanResultOptions,
 ): string {
+  if (result.findings.some((finding) => finding.scanner === "security-pack")) {
+    throw new Error("Hosted ScopeForge export does not accept Security Pack findings.");
+  }
+
   if (result.findings.length > MAX_HOSTED_FINDINGS) {
     throw new Error("Hosted ScopeForge imports support at most 500 findings.");
   }
