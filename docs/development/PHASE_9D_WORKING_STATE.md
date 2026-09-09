@@ -74,7 +74,7 @@ Worker telemetry is restricted to bounded allowlisted fields:
 - bounded application code
 - HTTP status
 
-The logger rebuilds normalized data rather than serializing caller input, caps one event at 1024 UTF-8 bytes, has a browser-runtime guard, and silently drops telemetry failures so observability cannot alter protected request behavior.
+The logger rebuilds normalized data rather than serializing caller input, caps one event at 1024 UTF-8 bytes, and silently drops telemetry failures so observability cannot alter protected request behavior. Architecture tests enforce that the telemetry module is imported only by the centralized server-side worker HTTP response module and not by client application components.
 
 ## Worker classification
 
