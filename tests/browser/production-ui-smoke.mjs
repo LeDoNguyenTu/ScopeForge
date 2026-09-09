@@ -61,12 +61,13 @@ function assertNoCspOrHydrationFailures(logs, route) {
 }
 
 function assertLandingMetrics(metrics) {
-  if (!metrics) throw new Error("Production V5 landing metrics were unavailable");
-  if (!metrics.desktopVisible) throw new Error("Production custom domain is not showing the V5 desktop composition");
-  if (metrics.heroFontSize < 60) throw new Error(`Production V5 headline is below approved scale: ${metrics.heroFontSize}px`);
-  if (metrics.metricFontSize < 31) throw new Error(`Production V5 metrics are below approved scale: ${metrics.metricFontSize}px`);
-  if (metrics.sceneHeight < 650) throw new Error(`Production V5 scene is below approved height: ${metrics.sceneHeight}px`);
-  if (!metrics.posterLoaded) throw new Error("Production V5 poster asset did not load");
+  if (!metrics) throw new Error("Production approved command-center metrics were unavailable");
+  if (!metrics.heroVisible) throw new Error("Production custom domain is not showing the approved command-center composition");
+  if (metrics.heroFontSize < 48) throw new Error(`Production headline is below approved scale: ${metrics.heroFontSize}px`);
+  if (metrics.metricFontSize < 18) throw new Error(`Production metrics are below approved scale: ${metrics.metricFontSize}px`);
+  if (metrics.sceneHeight < 500 || metrics.sceneWidth < 720) throw new Error(`Production attack-surface scene is too small: ${metrics.sceneWidth}x${metrics.sceneHeight}px`);
+  if (metrics.rendererState !== "webgl") throw new Error(`Production approved attack surface is not live WebGL: ${metrics.rendererState}`);
+  if (!metrics.overviewVisible || !metrics.runtimeVisible) throw new Error("Production approved lower HUD is missing");
 }
 
 async function main() {
@@ -95,32 +96,36 @@ async function main() {
 
   try {
     await navigate(sessionId, "/");
-    await waitFor(sessionId, "production V5 desktop composition", "return Boolean(document.querySelector('[data-testid=\"command-center-v5-desktop\"]')); ");
+    await waitFor(sessionId, "production approved command-center composition", "return Boolean(document.querySelector('.commandHero') && document.querySelector('[data-testid=\"command-center-surface\"]')); ");
     await waitFor(sessionId, "production landing boot completion", "return document.querySelector('.scopeForgeLandingBootHost')?.dataset.bootState === 'ready';", 15000);
-    await waitFor(sessionId, "production V5 poster", "const img = document.querySelector('.ccV5Desktop .ccV5PosterImage'); return img?.complete && img.naturalWidth > 0;");
+    await waitFor(sessionId, "production approved WebGL renderer", "return document.querySelector('[data-testid=\"command-center-surface\"]')?.dataset.rendererState === 'webgl';", 15000);
 
     const landingMetrics = await execute(sessionId, `
-      const hero = document.querySelector('.ccV5Desktop .ccV5Copy h1');
-      const metric = document.querySelector('.ccV5Desktop .ccV5MetricCard > strong');
-      const scene = document.querySelector('.ccV5DesktopScene');
-      const desktop = document.querySelector('[data-testid="command-center-v5-desktop"]');
-      const poster = document.querySelector('.ccV5Desktop .ccV5PosterImage');
-      const activeScene = [...document.querySelectorAll('[data-testid="attack-surface-v5-scene"]')].find((node) => node.dataset.mediaActive === 'true');
-      if (!hero || !metric || !scene || !desktop || !poster) return null;
+      const heroRegion = document.querySelector('.commandHero');
+      const hero = document.querySelector('.commandHeroCopy h1');
+      const metric = document.querySelector('.commandMetricCard strong');
+      const scene = document.querySelector('.commandHeroScene');
+      const surface = document.querySelector('[data-testid="command-center-surface"]');
+      const overview = document.querySelector('.commandOverviewPanel');
+      const runtime = document.querySelector('.commandRuntimeBar');
+      if (!heroRegion || !hero || !metric || !scene || !surface || !overview || !runtime) return null;
+      const sceneRect = scene.getBoundingClientRect();
       return {
         heroFontSize: parseFloat(getComputedStyle(hero).fontSize),
         metricFontSize: parseFloat(getComputedStyle(metric).fontSize),
-        sceneHeight: scene.getBoundingClientRect().height,
-        desktopVisible: getComputedStyle(desktop).display !== 'none' && desktop.getBoundingClientRect().width > 900,
-        posterLoaded: poster.complete && poster.naturalWidth > 0,
-        rendererState: activeScene?.dataset.rendererState || 'inactive',
+        sceneHeight: sceneRect.height,
+        sceneWidth: sceneRect.width,
+        heroVisible: getComputedStyle(heroRegion).display !== 'none' && heroRegion.getBoundingClientRect().width > 900,
+        rendererState: surface.dataset.rendererState || 'unknown',
         publicHeader: Boolean(document.querySelector('.commandPublicHeader')),
+        overviewVisible: overview.getBoundingClientRect().height > 120,
+        runtimeVisible: runtime.getBoundingClientRect().width > 300,
       };
     `);
     assertLandingMetrics(landingMetrics);
-    console.log(`Production V5 metrics: ${JSON.stringify(landingMetrics)}`);
+    console.log(`Production approved Command Center metrics: ${JSON.stringify(landingMetrics)}`);
     assertNoCspOrHydrationFailures(await browserLogs(sessionId), "/");
-    await captureScreenshot(sessionId, "production-landing-v5.png");
+    await captureScreenshot(sessionId, "production-landing-approved-command-center.png");
 
     await navigate(sessionId, "/auth/sign-in");
     await waitFor(sessionId, "production auth form", "return Boolean(document.querySelector('.authCard') && document.querySelector('button[type=\"submit\"]')); ");
@@ -152,7 +157,7 @@ async function main() {
     assertNoCspOrHydrationFailures(await browserLogs(sessionId), "/auth/sign-in");
     await captureScreenshot(sessionId, "production-sign-in-turnstile.png");
 
-    console.log("Production UI diagnostic passed: scopeforge.dev renders approved-scale V5 markup and the configured Turnstile client integration.");
+    console.log("Production UI diagnostic passed: scopeforge.dev renders the approved Command Center composition and the existing Turnstile client integration.");
   } finally {
     await webdriver("DELETE", `/session/${sessionId}`).catch(() => undefined);
   }
