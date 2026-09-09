@@ -18,6 +18,22 @@ describe("strict CSP compatibility architecture", () => {
     }
   });
 
+  it("forwards the request nonce through auth pages to the Turnstile script", () => {
+    const signIn = read("app/auth/sign-in/page.tsx");
+    const signUp = read("app/auth/sign-up/page.tsx");
+    const authForm = read("components/AuthForm.tsx");
+    const turnstile = read("components/auth/TurnstileChallenge.tsx");
+
+    for (const page of [signIn, signUp]) {
+      expect(page).toContain('from "next/headers"');
+      expect(page).toContain('.get("x-nonce")');
+      expect(page).toMatch(/<AuthForm[^>]+nonce=\{nonce\}/);
+    }
+
+    expect(authForm).toMatch(/<TurnstileChallenge[\s\S]*nonce=\{nonce\}/);
+    expect(turnstile).toContain("nonce={nonce ?? undefined}");
+  });
+
   it("owns the not-found rendering path without inline executable/style markup", () => {
     const path = join(process.cwd(), "app/not-found.tsx");
     expect(existsSync(path)).toBe(true);
