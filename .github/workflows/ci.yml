@@ -38,7 +38,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      - name: Browser CSP acceptance
+      - name: Run CSP browser smoke
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
@@ -79,4 +79,4 @@ jobs:
             sleep 1
           done
 
-          node scripts/ci/csp-browser-smoke.mjs
+          node tests/browser/csp-browser-smoke.mjs
