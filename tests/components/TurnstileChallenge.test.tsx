@@ -67,6 +67,27 @@ describe("TurnstileChallenge", () => {
     });
   });
 
+  it("reports ready, verified, expired, and error states", async () => {
+    const onToken = vi.fn();
+    const onStatus = vi.fn();
+    render(<TurnstileChallenge siteKey="site-key" onToken={onToken} onStatus={onStatus} />);
+
+    await waitFor(() => expect(turnstile.render).toHaveBeenCalledTimes(1));
+    expect(onStatus).toHaveBeenCalledWith("ready");
+
+    act(() => turnstile.options?.callback("token-123"));
+    expect(onToken).toHaveBeenLastCalledWith("token-123");
+    expect(onStatus).toHaveBeenLastCalledWith("verified");
+
+    act(() => turnstile.options?.["expired-callback"]());
+    expect(onToken).toHaveBeenLastCalledWith(null);
+    expect(onStatus).toHaveBeenLastCalledWith("expired");
+
+    act(() => turnstile.options?.["error-callback"]());
+    expect(onToken).toHaveBeenLastCalledWith(null);
+    expect(onStatus).toHaveBeenLastCalledWith("error");
+  });
+
   it("renders one explicit widget and emits the verified token", async () => {
     const onToken = vi.fn();
     render(<TurnstileChallenge siteKey="site-key" onToken={onToken} />);
