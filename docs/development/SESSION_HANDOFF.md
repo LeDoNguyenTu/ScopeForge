@@ -7,134 +7,144 @@ Use this as the fastest resume point for ScopeForge Phase 9 hardening.
 ## Hard execution rules
 
 - production `main` is always the authoritative integration baseline
-- before freezing or merging a Phase 9 branch, re-read `main` and resolve any UI-stream drift first
-- preserve the newest production UI when resolving overlaps; reapply only the reviewed security change
-- preflight before CI; do not use GitHub Actions as a debugging loop
-- use `[skip ci]` for intermediate and docs-only commits
-- reserve substantive CI for frozen release candidates
+- preserve the accepted Command Center UI V5 unless a separate UI change is explicitly authorized
+- before freezing or merging a Phase 9 branch, re-read `main`, exact PR head, changed files, reviews, threads, CI, and Vercel deployment state
+- do not use GitHub Actions as a blind debugging loop; diagnose failures first
+- reserve substantive CI for exact release candidates
 - never rewrite deployed Supabase migrations
 - never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
 - do not add AI co-author attribution
-- do not claim tests, provider state, WAF state, or production enforcement without exact evidence
+- do not claim tests, provider state, WAF state, alerts, CSP, or production enforcement without exact evidence
 - do not enable hosted worker/runtime capability flags as part of Phase 9 hardening
-- PR #49 remains a legacy draft UI branch and is not the hardening baseline
 
-## Current released production baseline
+## Current production baseline
 
-Executable release:
+Current production `main` before Phase 9D release:
 
-`f203168e6ae25455743849f08511e371d3964153`
+`e506c4da3777f9256b8d14e2aa4780a07769b29d`
 
 Tree:
 
-`9980aa5a58014998fd26ae7084bd97c992bc1a82`
+`41c4e7aabf05c19a21a00fdd941659b22dcfd07b`
 
-Exact production evidence:
+This is the accepted Command Center UI V5 release. The pre-merge V5 candidate had the same tree, so PR #49 preserved the accepted candidate exactly at Git-tree level.
 
-- PR #60 squash merge `f203168e6ae25455743849f08511e371d3964153`
-- post-merge main CI #774, run `34236559722`, success
-- production deployment `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`
-- deployment Git SHA exactly `f203168e6ae25455743849f08511e371d3964153`
+Production Vercel deployment:
+
+- `dpl_8p4Ha8eVbF7tstZuDRWZXGwjggQ8`
+- exact Git SHA `e506c4da3777f9256b8d14e2aa4780a07769b29d`
 - target production
 - READY
-- `scopeforge.dev` alias present
 - `aliasError=null`
+- aliases include `scopeforge.dev`
 
-This tree contains the current production UI plus released Phase 9A, 9B, and 9C hardening.
+A fresh production GET returned HTTP 200 and the expected V5 desktop/mobile composition markers, attack-surface scene marker, and V5 poster assets.
 
-## Released Phase 9B
+## Active Phase 9D integration
 
-Dedicated state:
+Branch:
 
-`docs/development/PHASE_9B_RELEASE_STATE.md`
+`reconcile/phase-9d-v5-main`
 
-Release identity:
+PR:
 
-- frozen candidate `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`
-- frozen tree `9980aa5a58014998fd26ae7084bd97c992bc1a82`
-- preview `dpl_FcFdrKhr31kgQHWjS723yZ4D49AT`, READY, `aliasError=null`
-- candidate CI #773, run `34236014666`, success
-- squash merge `f203168e6ae25455743849f08511e371d3964153`
-- post-merge CI #774, success
-- production `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`, READY
+`#62 - Phase 9D security telemetry and browser hardening - V5 reconciled`
 
-Released code:
+Base:
 
-- dependency-free Cloudflare Turnstile explicit-render wrapper
-- optional public key boundary `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-- absent/blank key preserves existing auth behavior
-- configured challenge gates submit until a token exists
-- CAPTCHA tokens are forwarded directly to Supabase Auth and kept only in React memory
-- failed/non-redirecting configured attempts invalidate/remount the challenge
-- expiry/provider errors clear the token
-- widget cleanup is explicit
-- narrow auth cards use compact sizing
-- Phase 9A bounded error behavior remains intact
+`e506c4da3777f9256b8d14e2aa4780a07769b29d`
 
-No dependency, database, hosted-runtime, dashboard, landing, CSP, or telemetry executable file changed in Phase 9B.
+The original pre-V5 PR #61 is stale and superseded. Do not merge #61.
 
-## UI/merge-conflict result
+Key docs:
 
-The user required all concurrent UI drift to be reconciled before release.
+- approved spec: `docs/superpowers/specs/2026-09-09-phase-9d-security-telemetry-browser-hardening-design.md`
+- implementation plan: `docs/superpowers/plans/2026-09-09-phase-9d-security-telemetry-browser-hardening.md`
+- active state: `docs/development/PHASE_9D_WORKING_STATE.md`
+- V5 reconciliation evidence: `docs/development/PHASE_9D_V5_RECONCILIATION.md`
+- telemetry/CSP evidence: `docs/security/PHASE_9D_TELEMETRY_AND_CSP.md`
 
-Before freeze and merge, `main` was repeatedly refreshed. PR #60 remained `mergeable=true`, and its executable auth file set was disjoint from the current production landing/dashboard changes. No actual conflict surfaced, so no artificial reconciliation commit was needed.
+The original spec/plan preserve historical implementation context from the pre-V5 branch. The active state and reconciliation docs are authoritative for the release integration baseline.
 
-The final merge was pinned to expected head `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`, and the squash merge preserved the candidate tree exactly.
+## Working UI preservation
 
-For all future Phase 9 work, repeat the same rule: newest `main` UI wins, then reapply only the reviewed security delta if a true overlap appears.
+The accepted V5 UI is a hard Phase 9D merge gate.
 
-## Live provider truth
+PR #62 must contain no changes to:
 
-Fresh Supabase Security Advisor reports exactly:
+- `app/layout.tsx`
+- `app/command-center-v5.css`
+- `components/landing/CommandCenterLandingHero.tsx`
+- `components/landing/CommandCenterHeroDesktopV5.tsx`
+- `components/landing/CommandCenterHeroMobileV5.tsx`
+- `components/landing/AttackSurfaceSceneV5.tsx`
+- `components/landing/attack-surface-v5/**`
+- `components/PublicNav.tsx`
+- `components/PublicFooter.tsx`
+- V5 poster assets
 
-`auth_leaked_password_protection`
+No fresh pixel-level screenshot claim is available in this chat harness. Preserve UI confidence through exact source/tree comparison, V5 tests, Vercel builds, and live production DOM/assets checks.
 
-Therefore:
+## What Phase 9D implements
 
-- leaked-password protection is NOT enabled
-- production Turnstile enforcement is NOT claimed until provider/site-key configuration is directly verified
-- Vercel project-specific WAF custom rules are NOT claimed as active without inspected evidence
-- Supabase native Auth rate limiting remains in place
+- closed `scopeforge.security.v1` server telemetry schema
+- bounded allowlisted JSON events, maximum 1024 UTF-8 bytes
+- centralized worker HTTP classification for authentication rejection, access rejection, active-limit rate limiting, and unexpected 500 failures
+- fixed compile-time route IDs on all seven internal worker endpoints
+- no security telemetry for ordinary 400/409 protocol/state conflicts by default
+- no request objects, headers, cookies, bodies, IDs, credentials, lease tokens, source content, raw executor output, or raw exception messages in the telemetry contract
+- recursive audit metadata hardening while preserving the existing 8 KiB audit metadata ceiling
+- regression coverage for the existing browser security-header baseline
+- evidence-based CSP inventory and rollback/alert contracts
 
-Provider activation/rollback guidance:
+No database migration, new audit store, RLS/provider/WAF mutation, UI rewrite, root layout change, CSP enforcement, or hosted-runtime activation is part of the Phase 9D security behavior.
 
-`docs/security/PHASE_9B_PROVIDER_CONTROLS.md`
+## V5 reconciliation compatibility changes
 
-Do not treat code capability as proof of active provider enforcement.
+To make Phase 9D executable on the current V5 dependency tree, the branch also contains narrow dependency/test-tool compatibility updates:
 
-## Released Phase 9C
+- Vitest `^4.1.11`
+- existing `sharp` override `0.35.4`
+- compatible Vitest JSX transform configuration
+- regenerated lockfile
+- two type-only test-helper compatibility annotations
 
-Dedicated state:
+These files do not alter accepted presentation source.
 
-`docs/development/PHASE_9C_RELEASE_STATE.md`
+A Vitest 4 typecheck failure was root-caused to a zero-argument default mock narrowing `RepositorySnapshotObjectStore.deleteObject(objectKey)`. The helper is now typed to the exact interface function type.
 
-Live migration history includes:
+## Executable evidence
 
-`20260908084554_phase_9c_function_acl_hardening`
+Dedicated reconciliation run `34293520967` completed successfully:
 
-Do not rewrite that migration or apply a global `postgres` default-function revoke.
+- npm install state validated
+- `npm audit --audit-level=info`: 0 vulnerabilities
+- full Vitest suite: 350 files / 1538 tests passed
+- TypeScript typecheck passed
+- CLI build/version passed
+- scanner benchmark passed
+- Phase 8B benchmark matrix passed
+- production Next.js build passed
 
-## Next task - Phase 9D
+The V5 tests are part of that full suite.
 
-Phase 9D security telemetry/browser hardening is next.
+The temporary reconciliation workflow was removed before the intended merge diff.
 
-Approved direction:
+PR #62 must still pass the permanent standard `CI / validate` gate on the exact final head. If the head changes, only a new run on that head counts.
 
-- reuse `audit_events` and `lib/audit/write-audit-event.ts` for durable security-significant events
-- use privacy-reduced structured server logs for high-frequency operational security signals
-- never log secrets, credentials, cookies, authorization headers, worker lease tokens, source content, or raw executor output
-- add metadata-safety/event-shape tests before implementation
-- define alert/rollback signals using real available platform evidence
-- preserve the existing browser-header baseline
-- treat CSP as a separate compatibility gate against the exact current Next.js/WebGL production UI
-- do not ship broad `unsafe-inline` merely to claim CSP
-- do not touch PR #49
+## CSP and provider truth
 
-Before touching Phase 9D code, re-read the current audit writer/schema, logging paths, middleware, security-relevant routes, `next.config.ts`, and current production `main`; then complete the detailed Phase 9D design/plan workflow.
+CSP: NOT ENFORCED.
 
-## Then Phase 9E
+Do not add broad permanent `unsafe-inline` or `unsafe-eval`. Strict CSP remains deferred until the current V5/Next.js inline-style and bootstrap/hydration path has exact nonce/hash compatibility.
 
-Complete disclosure, incident response, credential rotation, rollback, impact assessment, recovery validation, and final public-launch security procedures.
+Current provider claims remain conservative:
+
+- production Turnstile enforcement: NOT CLAIMED
+- Supabase leaked-password protection: NOT ENABLED
+- Vercel custom WAF rules: NOT CLAIMED
+- Vercel automated security alerts: NOT CLAIMED
+- protected Preview POST plus Runtime Log authentication-rejection observation: NOT VERIFIED in this harness
 
 ## Hosted runtime flags
 
@@ -144,3 +154,17 @@ Keep all four false/absent until their independent operational acceptance:
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
+
+## Immediate next actions
+
+1. require exact final-head PR #62 Vercel Preview READY with `aliasError=null`
+2. require exact final-head permanent `CI / validate` success
+3. refresh changed filenames and prove no accepted V5 presentation path is present
+4. refresh current `main`, PR mergeability, submitted reviews, and inline review threads
+5. merge PR #62 only with the exact verified head SHA pinned
+6. close stale PR #61 as superseded after #62 is safely integrated
+7. require independent post-merge `main` CI success
+8. require a READY production deployment whose Git SHA equals the merged `main` SHA
+9. GET `https://scopeforge.dev/` again and verify the expected V5 DOM/assets markers remain served
+10. write a docs-only Phase 9D release checkpoint without overstating the unresolved Runtime Log acceptance probe
+11. continue to Phase 9E incident/release engineering using the normal design/spec/plan gates

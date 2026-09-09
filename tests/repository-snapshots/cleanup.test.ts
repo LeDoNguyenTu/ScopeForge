@@ -19,7 +19,7 @@ function repository(candidates: Awaited<ReturnType<RepositorySnapshotCleanupRepo
   };
 }
 
-function objectStore(deleteObject = vi.fn(async () => undefined)): RepositorySnapshotObjectStore {
+function objectStore(deleteObject: RepositorySnapshotObjectStore["deleteObject"] = vi.fn(async (_objectKey: string): Promise<void> => undefined)): RepositorySnapshotObjectStore {
   return {
     createAttemptUpload: vi.fn(),
     createAttemptDownload: vi.fn(),
