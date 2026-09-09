@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 const rendererFiles = [
+  "components/landing/CommandCenterSurface.tsx",
+  "components/dashboard/WebGLAttackSurface.tsx",
   "components/landing/AttackSurfaceSceneV5.tsx",
   "components/landing/attack-surface-v5/model.ts",
   "components/landing/attack-surface-v5/quality.ts",
@@ -16,15 +18,18 @@ const rendererFiles = [
   "components/landing/attack-surface-v5/controller.ts",
 ] as const;
 
-describe("Command Center V5 architecture", () => {
-  it("keeps a single active V5 visual path and no V4 runtime imports", () => {
+describe("Command Center renderer architecture", () => {
+  it("keeps the approved command-center path active without reviving V4 or the superseded split V5 hero", () => {
     const layout = read("app/layout.tsx");
     const hero = read("components/landing/CommandCenterLandingHero.tsx");
-    expect(layout).toContain("./command-center-v5.css");
+
+    expect(layout).toContain("./exact-command-center.css");
     expect(layout).not.toContain("command-center-v4.css");
     expect(layout).not.toContain("command-center-v4-polish.css");
-    expect(hero).toContain("CommandCenterHeroDesktopV5");
-    expect(hero).toContain("CommandCenterHeroMobileV5");
+    expect(hero).toContain('CommandCenterSurface from "@/components/landing/CommandCenterSurface"');
+    expect(hero).toContain('className="commandHero"');
+    expect(hero).not.toContain("CommandCenterHeroDesktopV5");
+    expect(hero).not.toContain("CommandCenterHeroMobileV5");
     expect(hero).not.toMatch(/AttackSurfaceScene[\"']/);
   });
 
