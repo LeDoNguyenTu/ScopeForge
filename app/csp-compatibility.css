@@ -52,6 +52,39 @@
   background: #76e0bc;
 }
 
+.livingCoverageRing {
+  position: relative;
+  background: none;
+}
+
+.livingCoverageRingGraphic {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.livingCoverageRingTrack,
+.livingCoverageRingValue {
+  fill: none;
+  stroke-width: 8;
+}
+
+.livingCoverageRingTrack {
+  stroke: rgba(123, 145, 154, 0.12);
+}
+
+.livingCoverageRingValue {
+  stroke: var(--forge-teal);
+  stroke-linecap: round;
+}
+
+.livingCoverageRing > div {
+  position: relative;
+  z-index: 1;
+}
+
 .authTurnstileContainer {
   display: flex;
   justify-content: center;
