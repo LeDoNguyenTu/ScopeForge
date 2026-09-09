@@ -213,11 +213,124 @@
   text-underline-offset: 3px;
 }
 
+.authSecurityPanel {
+  display: grid;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid rgba(124, 174, 170, 0.2);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(15, 28, 32, 0.82), rgba(7, 14, 18, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.authSecurityPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.authSecurityPanelIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(91, 221, 197, 0.2);
+  border-radius: 10px;
+  color: #67dcc6;
+  background: rgba(55, 174, 154, 0.08);
+}
+
+.authSecurityPanelTitle {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.authSecurityPanelTitle strong {
+  color: #edf7f5;
+  font-size: 0.84rem;
+  font-weight: 720;
+  letter-spacing: 0.01em;
+}
+
+.authSecurityPanelTitle span,
+.authSecurityHelper {
+  color: rgba(188, 207, 207, 0.62);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.authSecurityStatus {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid rgba(139, 164, 166, 0.2);
+  border-radius: 999px;
+  color: #a7b9bb;
+  background: rgba(116, 139, 144, 0.08);
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.035em;
+}
+
+.authCaptcha {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  padding: 9px;
+  border: 1px solid rgba(126, 151, 154, 0.12);
+  border-radius: 10px;
+  background: rgba(4, 10, 13, 0.48);
+}
+
 .authTurnstileContainer {
   display: flex;
   justify-content: center;
   min-width: 0;
   width: 100%;
+  overflow: hidden;
+}
+
+.authSecurityHelper {
+  margin: -2px 2px 0;
+}
+
+.authSecurityPanel[data-verification-state="verified"] {
+  border-color: rgba(83, 220, 194, 0.4);
+  background: linear-gradient(145deg, rgba(13, 39, 37, 0.78), rgba(7, 18, 20, 0.74));
+}
+
+.authSecurityPanel[data-verification-state="verified"] .authSecurityStatus {
+  border-color: rgba(83, 220, 194, 0.32);
+  color: #7ce4d0;
+  background: rgba(70, 203, 178, 0.1);
+}
+
+.authSecurityPanel[data-verification-state="expired"] {
+  border-color: rgba(231, 180, 104, 0.34);
+}
+
+.authSecurityPanel[data-verification-state="expired"] .authSecurityStatus {
+  border-color: rgba(231, 180, 104, 0.3);
+  color: #e6bc7c;
+  background: rgba(200, 143, 63, 0.08);
+}
+
+.authSecurityPanel[data-verification-state="error"] {
+  border-color: rgba(239, 126, 102, 0.34);
+}
+
+.authSecurityPanel[data-verification-state="error"] .authSecurityStatus {
+  border-color: rgba(239, 126, 102, 0.3);
+  color: #f09b85;
+  background: rgba(219, 103, 79, 0.08);
 }
 
 .scopeForgeNotFound {
@@ -277,6 +390,28 @@
   to { transform: rotate(360deg); }
 }
 
+@media (max-width: 420px) {
+  .authSecurityPanel {
+    padding: 12px;
+  }
+
+  .authSecurityPanelHeader {
+    flex-wrap: wrap;
+  }
+
+  .authSecurityPanelTitle {
+    min-width: calc(100% - 44px);
+  }
+
+  .authSecurityStatus {
+    margin-left: 42px;
+  }
+
+  .authCaptcha {
+    padding: 8px 4px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scopeForgeBootTrack::-webkit-progress-value,
   .scopeForgeBootTrack::-moz-progress-bar {
@@ -285,5 +420,9 @@
 
   .cspTopologyOrbit {
     animation: none;
+  }
+
+  .authSecurityPanel {
+    transition: none;
   }
 }
