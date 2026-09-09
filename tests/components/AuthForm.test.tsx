@@ -17,8 +17,20 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 
 vi.mock("@/components/auth/TurnstileChallenge", () => ({
-  default: ({ onToken }: { onToken: (token: string | null) => void }) => (
-    <button type="button" onClick={() => onToken("captcha-test-token")}>
+  default: ({
+    onToken,
+    onStatus
+  }: {
+    onToken: (token: string | null) => void;
+    onStatus?: (status: "loading" | "ready" | "verified" | "expired" | "error") => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() => {
+        onToken("captcha-test-token");
+        onStatus?.("verified");
+      }}
+    >
       Complete security check
     </button>
   )
@@ -96,6 +108,22 @@ describe("AuthForm", () => {
       );
     });
     expect(screen.queryByText(/203\.0\.113\.7/)).not.toBeInTheDocument();
+  });
+
+  it("renders a visible security verification panel and verified state", async () => {
+    render(<AuthForm mode="sign-in" captchaSiteKey="site-key" />);
+
+    const verification = screen.getByRole("group", { name: /security verification/i });
+    expect(verification).toHaveTextContent("Security verification");
+    expect(verification).toHaveTextContent("Complete verification to continue");
+    expect(verification).toHaveAttribute("data-verification-state", "loading");
+
+    fireEvent.click(screen.getByRole("button", { name: /complete security check/i }));
+
+    await waitFor(() => {
+      expect(verification).toHaveTextContent("Verified");
+      expect(verification).toHaveAttribute("data-verification-state", "verified");
+    });
   });
 
   it("requires a challenge token before configured sign-in", async () => {
