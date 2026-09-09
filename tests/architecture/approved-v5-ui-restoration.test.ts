@@ -36,16 +36,26 @@ describe("approved V5 UI restoration", () => {
     expect(primitives).toContain('<Bug size={22} />');
   });
 
-  it("loads the approved V5 polish layers after the older refinement layer", () => {
+  it("loads the approved V5 polish and dashboard cascade after superseding refinements", () => {
     const layout = read("app/layout.tsx");
     const refinement = layout.indexOf('import "./ui-refinement.css";');
     const immersive = layout.indexOf('import "./forge-dashboard-v2.css";');
+    const csp = layout.indexOf('import "./csp-compatibility.css";');
+    const approvedDashboard = layout.indexOf('import "./approved-v5-dashboard.css";');
+    const cascadeGuard = read("app/approved-v5-dashboard.css");
 
     expect(layout).toContain('import "./command-center-v5-1.css";');
     expect(layout).toContain('import "./command-center-v5-2.css";');
     expect(layout).not.toContain('import "./saas-dashboard.css";');
     expect(refinement).toBeGreaterThanOrEqual(0);
     expect(immersive).toBeGreaterThan(refinement);
+    expect(csp).toBeGreaterThan(immersive);
+    expect(approvedDashboard).toBeGreaterThan(csp);
+    expect(cascadeGuard).toContain(".immersiveAppShell .livingDashboardHero");
+    expect(cascadeGuard).toContain("display: block;");
+    expect(cascadeGuard).toContain(".immersiveAppShell .livingDashboardScene");
+    expect(cascadeGuard).toContain("position: absolute;");
+    expect(cascadeGuard).toContain(".immersiveAppShell .livingDashboardLower");
   });
 
   it("keeps every restored authenticated dashboard presentation path compatible with strict CSP", () => {
