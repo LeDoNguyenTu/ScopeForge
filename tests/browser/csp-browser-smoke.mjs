@@ -95,8 +95,20 @@ function assertDashboardVisualScale(metrics) {
   if (!metrics.immersiveShell) throw new Error("Restored dashboard is not using the immersive AppShell variant");
   if (metrics.workspaceShell) throw new Error("Restored dashboard unexpectedly rendered the later workspace sidebar shell");
   if (metrics.saasDashboard) throw new Error("Restored dashboard unexpectedly rendered the superseding SaaS dashboard composition");
+  if (metrics.heroDisplay !== "block") throw new Error(`Restored dashboard hero was superseded by ${metrics.heroDisplay} layout`);
+  if (metrics.editorialDisplay !== "block") throw new Error(`Restored dashboard editorial was superseded by ${metrics.editorialDisplay} layout`);
+  if (metrics.scenePosition !== "absolute") throw new Error(`Restored dashboard scene is no longer the approved overlapping scene: ${metrics.scenePosition}`);
+  if (metrics.lowerPosition !== "absolute") throw new Error(`Restored dashboard evidence rail is no longer anchored to the hero: ${metrics.lowerPosition}`);
   if (metrics.heroFontSize < 46) throw new Error(`Restored dashboard headline regressed below approved scale: ${metrics.heroFontSize}px`);
   if (metrics.sceneHeight < 600) throw new Error(`Restored dashboard topology regressed below approved height: ${metrics.sceneHeight}px`);
+  if (metrics.sceneWidth < 760) throw new Error(`Restored dashboard topology regressed below approved width: ${metrics.sceneWidth}px`);
+  if (metrics.sceneTopOffset > 70) throw new Error(`Restored dashboard topology was pushed below the editorial composition: ${metrics.sceneTopOffset}px`);
+  if (metrics.lowerLeftOffset > 36) throw new Error(`Restored dashboard evidence rail drifted away from the left anchor: ${metrics.lowerLeftOffset}px`);
+  if (metrics.lowerWidth < 600) throw new Error(`Restored dashboard evidence rail was compressed: ${metrics.lowerWidth}px`);
+  if (metrics.overviewWidth < 270) throw new Error(`Restored dashboard overview card was compressed: ${metrics.overviewWidth}px`);
+  if (metrics.topologyWidth < 760 || metrics.topologyHeight < 600) {
+    throw new Error(`Restored topology artwork is not occupying the approved scene: ${metrics.topologyWidth}x${metrics.topologyHeight}px`);
+  }
   if (metrics.metricValueFontSize < 19) throw new Error(`Restored dashboard metric values regressed below approved scale: ${metrics.metricValueFontSize}px`);
 }
 
@@ -163,16 +175,38 @@ async function main() {
     await waitFor(sessionId, "restored immersive dashboard", "return Boolean(document.querySelector('.livingDashboard') && document.querySelector('.livingDashboardHero') && document.querySelector('.livingDashboardScene')); ");
     await waitFor(sessionId, "CSP-safe restored topology", "return document.querySelector('[data-testid=\"webgl-attack-surface\"]')?.dataset.rendererState === 'svg';");
     const dashboardMetrics = await execute(sessionId, `
+      const dashboard = document.querySelector('.livingDashboard');
+      const heroRegion = document.querySelector('.livingDashboardHero');
+      const editorial = document.querySelector('.livingDashboardEditorial');
       const hero = document.querySelector('.livingDashboardEditorial h1');
       const scene = document.querySelector('.livingDashboardScene');
+      const lower = document.querySelector('.livingDashboardLower');
+      const overview = document.querySelector('.livingOverviewPanel');
+      const topology = document.querySelector('.workspaceTopologyArt');
       const metric = document.querySelector('.livingMetricCard strong');
-      if (!hero || !scene || !metric) return null;
+      if (!dashboard || !heroRegion || !editorial || !hero || !scene || !lower || !overview || !topology || !metric) return null;
+      const heroRect = heroRegion.getBoundingClientRect();
+      const sceneRect = scene.getBoundingClientRect();
+      const lowerRect = lower.getBoundingClientRect();
+      const overviewRect = overview.getBoundingClientRect();
+      const topologyRect = topology.getBoundingClientRect();
       return {
         immersiveShell: Boolean(document.querySelector('.immersiveAppShell')),
         workspaceShell: Boolean(document.querySelector('.workspaceAppShell')),
         saasDashboard: Boolean(document.querySelector('.saasDashboard')),
+        heroDisplay: getComputedStyle(heroRegion).display,
+        editorialDisplay: getComputedStyle(editorial).display,
+        scenePosition: getComputedStyle(scene).position,
+        lowerPosition: getComputedStyle(lower).position,
         heroFontSize: parseFloat(getComputedStyle(hero).fontSize),
-        sceneHeight: scene.getBoundingClientRect().height,
+        sceneHeight: sceneRect.height,
+        sceneWidth: sceneRect.width,
+        sceneTopOffset: sceneRect.top - heroRect.top,
+        lowerLeftOffset: lowerRect.left - heroRect.left,
+        lowerWidth: lowerRect.width,
+        overviewWidth: overviewRect.width,
+        topologyWidth: topologyRect.width,
+        topologyHeight: topologyRect.height,
         metricValueFontSize: parseFloat(getComputedStyle(metric).fontSize),
       };
     `);
