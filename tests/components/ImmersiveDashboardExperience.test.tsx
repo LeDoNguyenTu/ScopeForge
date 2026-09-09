@@ -1,11 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import ImmersiveDashboardExperience from "@/components/dashboard/ImmersiveDashboardExperience";
 import type { AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
-
-vi.mock("@/components/dashboard/WebGLAttackSurface", () => ({
-  default: () => <div data-testid="webgl-scene">WebGL scene</div>,
-}));
 
 const model: AttackSurfaceModel = {
   nodes: [
@@ -51,7 +47,7 @@ describe("ImmersiveDashboardExperience", () => {
 
     expect(screen.getByText("LIVING ATTACK SURFACE")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Understand the risk before it becomes an incident." })).toBeInTheDocument();
-    expect(screen.getByTestId("webgl-scene")).toBeInTheDocument();
+    expect(screen.getByTestId("webgl-attack-surface")).toHaveAttribute("data-renderer-state", "svg");
     expect(screen.getByText("Registered assets")).toBeInTheDocument();
     expect(screen.getByText("Verified assets")).toBeInTheDocument();
     expect(screen.getByText("Open findings")).toBeInTheDocument();
