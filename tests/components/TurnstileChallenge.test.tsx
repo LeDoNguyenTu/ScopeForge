@@ -11,13 +11,19 @@ const turnstile = vi.hoisted(() => ({
     "error-callback": () => void;
     sitekey: string;
     size: string;
+  },
+  scriptProps: null as null | {
+    nonce?: string;
+    src?: string;
+    strategy?: string;
   }
 }));
 
 vi.mock("next/script", async () => {
   const React = await import("react");
   return {
-    default: ({ onLoad }: { onLoad?: () => void }) => {
+    default: ({ onLoad, ...props }: { onLoad?: () => void; nonce?: string; src?: string; strategy?: string }) => {
+      turnstile.scriptProps = props;
       React.useEffect(() => {
         onLoad?.();
       }, [onLoad]);
@@ -30,6 +36,7 @@ beforeEach(() => {
   turnstile.render.mockReset();
   turnstile.remove.mockReset();
   turnstile.options = null;
+  turnstile.scriptProps = null;
   turnstile.render.mockImplementation((_container, options) => {
     turnstile.options = options;
     return "widget-1";
@@ -49,6 +56,17 @@ beforeEach(() => {
 });
 
 describe("TurnstileChallenge", () => {
+  it("passes the request nonce to the official Turnstile script", async () => {
+    render(<TurnstileChallenge siteKey="site-key" nonce="request-nonce-123" onToken={vi.fn()} />);
+
+    await waitFor(() => expect(turnstile.render).toHaveBeenCalledTimes(1));
+    expect(turnstile.scriptProps).toMatchObject({
+      nonce: "request-nonce-123",
+      src: "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
+      strategy: "afterInteractive"
+    });
+  });
+
   it("renders one explicit widget and emits the verified token", async () => {
     const onToken = vi.fn();
     render(<TurnstileChallenge siteKey="site-key" onToken={onToken} />);
