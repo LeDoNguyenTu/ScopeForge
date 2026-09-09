@@ -48,9 +48,13 @@ describe("approved Command Center UI v3 restoration", () => {
     if (!existsSync(path)) return;
 
     const topology = read(path);
+    const positions = read("app/approved-command-center-v3.css");
     expect(topology).toContain('canvas.getContext("webgl"');
+    expect(topology).toContain("webglAttackLabelSlot-${index}");
     expect(topology).not.toMatch(/style\s*=\s*\{/);
     expect(topology).not.toContain("dangerouslySetInnerHTML");
+    expect(positions).toContain(".webglAttackLabelSlot-0");
+    expect(positions).toContain(".webglAttackLabelSlot-9");
   });
 
   it("does not disturb the current Turnstile integration", () => {
