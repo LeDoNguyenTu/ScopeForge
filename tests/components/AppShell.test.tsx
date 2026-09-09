@@ -7,7 +7,13 @@ vi.mock("@/app/actions", () => ({
 }));
 
 vi.mock("@/components/SideNav", () => ({
-  default: () => <nav aria-label="Workspace navigation">Default nav</nav>,
+  default: () => (
+    <nav aria-label="Workspace navigation">
+      <a href="/dashboard">Overview</a>
+      <a href="/dashboard/assets">Assets</a>
+      <a href="/dashboard/findings">Findings</a>
+    </nav>
+  ),
 }));
 
 describe("AppShell", () => {
