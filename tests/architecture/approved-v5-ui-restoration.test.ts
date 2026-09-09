@@ -27,6 +27,14 @@ describe("approved V5 UI restoration", () => {
     expect(primitives).toContain('<Bug size={22} />');
   });
 
+  it("loads the approved V5 polish layers and drops the superseding SaaS dashboard layer", () => {
+    const layout = read("app/layout.tsx");
+
+    expect(layout).toContain('import "./command-center-v5-1.css";');
+    expect(layout).toContain('import "./command-center-v5-2.css";');
+    expect(layout).not.toContain('import "./saas-dashboard.css";');
+  });
+
   it("keeps the restored dashboard compatible with strict CSP", () => {
     const dashboard = read("components/dashboard/ImmersiveDashboardExperience.tsx");
 
