@@ -1,3 +1,54 @@
+/* Compatibility reset for the approved pre-PR49 Command Center composition.
+   ui-refinement.css was introduced after the approved UI and leaves grid-only
+   layout properties behind even though exact-command-center.css restores the
+   historical absolute composition. Keep the reset scoped to the public
+   Command Center so newer refinement rules remain authoritative elsewhere. */
+.commandLanding .commandHero {
+  display: block;
+  padding: 0;
+  grid-template-columns: none;
+  grid-template-areas: none;
+  gap: 0;
+}
+
+.commandLanding .commandHeroCopy,
+.commandLanding .commandHeroScene,
+.commandLanding .commandMetricArea,
+.commandLanding .commandRuntimeBar {
+  grid-area: auto;
+}
+
+.commandLanding .commandHeroScene {
+  mix-blend-mode: normal;
+}
+
+.commandLanding .commandHeroActions,
+.commandLanding .commandMetricCard,
+.commandLanding .commandOverviewHeading {
+  flex-wrap: nowrap;
+}
+
+.commandLanding .commandMetricCard {
+  min-width: auto;
+}
+
+.commandLanding .commandOverviewHeading {
+  gap: 0;
+}
+
+.commandLanding .commandExposureRing > span {
+  margin-top: 0;
+}
+
+.commandLanding .commandRiskPath {
+  grid-column: auto;
+}
+
+.commandLanding .commandRuntimeBar {
+  width: auto;
+  align-self: auto;
+}
+
 /* CSP-safe label anchors for the approved Command Center dashboard topology.
    These positions mirror lib/dashboard/attack-surface-model.ts visual slots. */
 .webglAttackLabelSlot-0 { left: 20.055%; top: 64.413%; }
