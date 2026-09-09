@@ -33,7 +33,7 @@ jobs:
             [
               'tests/repository-snapshots/cleanup.test.ts',
               'function objectStore(deleteObject = vi.fn(async () => undefined)): RepositorySnapshotObjectStore {',
-              'function objectStore(deleteObject = vi.fn(async (): Promise<void> => undefined)): RepositorySnapshotObjectStore {'
+              'function objectStore(deleteObject: RepositorySnapshotObjectStore["deleteObject"] = vi.fn(async (_objectKey: string): Promise<void> => undefined)): RepositorySnapshotObjectStore {'
             ]
           ];
           for (const [file, before, after] of replacements) {
