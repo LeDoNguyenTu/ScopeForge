@@ -6,32 +6,45 @@ Last reconciled: 2026-09-09 (Asia/Singapore)
 
 - Phase 9 architecture: approved
 - Phase 9A authentication boundary: complete and released
-- Phase 9B provider/auth hardening code: complete and released; external provider activation remains pending verification
+- Phase 9B provider/auth hardening code: complete and released; external provider activation remains pending direct verification where documented
 - Phase 9C database/RPC defense-in-depth: complete and released
-- Phase 9D security telemetry/browser hardening: implementation complete through Preview build; release acceptance in progress
-- Phase 9E incident/release hardening: pending after 9D
+- Phase 9D security telemetry/browser hardening: implementation complete, reconciled onto Command Center UI V5, release acceptance in progress through PR #62
+- Phase 9E incident/release engineering: pending after Phase 9D release
 
 ## Authoritative production baseline
 
-Current production docs baseline:
+Current production `main` for the Phase 9D release attempt:
 
-`2af9a92b68c224d290a9597ff1907e5f1098791e`
+`e506c4da3777f9256b8d14e2aa4780a07769b29d`
 
-Current production executable release beneath that docs checkpoint:
+Tree:
 
-`f203168e6ae25455743849f08511e371d3964153`
+`41c4e7aabf05c19a21a00fdd941659b22dcfd07b`
 
-Current production tree for that executable release:
+This is the merged Command Center UI V5 release. The accepted V5 candidate before PR #49 merged had the same tree, so the V5 merge preserved the accepted candidate exactly at Git-tree level.
 
-`9980aa5a58014998fd26ae7084bd97c992bc1a82`
+Production Vercel deployment:
 
-The current production UI is authoritative. PR #49 remains an open draft legacy UI branch and is out of scope for Phase 9D.
+- `dpl_8p4Ha8eVbF7tstZuDRWZXGwjggQ8`
+- target production
+- exact Git SHA `e506c4da3777f9256b8d14e2aa4780a07769b29d`
+- READY
+- `aliasError=null`
+- aliases include `scopeforge.dev`
 
-## Phase 9D active branch
+A fresh production GET returned HTTP 200 with the expected V5 desktop/mobile composition markers, V5 attack-surface scene marker, and both V5 poster assets.
+
+## Phase 9D active integration
 
 Branch:
 
-`feat/phase-9d-security-telemetry-browser-hardening-v1`
+`reconcile/phase-9d-v5-main`
+
+PR:
+
+`#62 - Phase 9D security telemetry and browser hardening - V5 reconciled`
+
+The stale pre-V5 PR #61 is superseded and must not be merged.
 
 Approved written spec:
 
@@ -41,86 +54,97 @@ Implementation plan:
 
 `docs/superpowers/plans/2026-09-09-phase-9d-security-telemetry-browser-hardening.md`
 
-Detailed resumable implementation state:
+Current resumable implementation state:
 
 `docs/development/PHASE_9D_WORKING_STATE.md`
 
-The implementation/evidence head `dfcd0403d84a01e2833d971e549323a03b67c094` passed an exact-head Vercel Preview build:
+V5 reconciliation evidence:
 
-- deployment `dpl_8xMam5rVMmJnYQFMAgxpad2PB1A2`
-- state READY
-- `aliasError=null`
-- Next.js production compile succeeded
-- TypeScript validity check succeeded
-- 10/10 static pages generated
+`docs/development/PHASE_9D_V5_RECONCILIATION.md`
 
-The later documentation checkpoint accidentally introduced `docs/development/PHASE_9_WORKING_STATE.tmp`; it was removed explicitly in `fc7a32bf2592236527fb5540ad546f9096b690ba`. No executable file changed in that cleanup.
+Operational/CSP evidence:
+
+`docs/security/PHASE_9D_TELEMETRY_AND_CSP.md`
+
+## UI preservation rule
+
+The accepted V5 UI is a release invariant for Phase 9D.
+
+PR #62 contains no changes to the V5 landing scene, V5 CSS, root layout, public navigation/footer, or V5 poster assets. Phase 9D executable changes are confined to server-side security telemetry/audit boundaries and fixed internal worker route identifiers. Dependency/test-tool compatibility changes do not edit presentation source.
+
+No new pixel-level screenshot claim is made because this chat harness has no executable browser screenshot resource. UI preservation is supported by accepted/merged tree equality, unchanged UI source paths, V5 regression tests, exact Vercel builds, and fresh production DOM/assets verification.
 
 ## Phase 9D implemented behavior
 
-Operational telemetry now uses one bounded closed schema:
+Operational security telemetry uses the bounded closed schema:
 
 `scopeforge.security.v1`
 
-Implemented worker event names:
+Implemented event names:
 
 - `worker.authentication_rejected`
 - `worker.access_rejected`
 - `worker.rate_limited`
 - `worker.request_failed`
+- `security.control_misconfigured`
 
-A bounded `security.control_misconfigured` event shape is also defined for future fixed-control call sites.
+Telemetry is emitted from the centralized worker HTTP error boundary with fixed compile-time route identities for all seven internal worker endpoints. The logger reconstructs allowlisted fields, caps serialized output at 1024 UTF-8 bytes, and never accepts raw request objects, headers, cookies, bodies, IDs, credentials, lease tokens, source content, executor output, or raw exception messages.
 
-Telemetry is emitted only from the centralized worker HTTP error boundary. Fixed compile-time route identities are used for claim, heartbeat, finalize, repository-scan artifact/finalize, and runtime prepare/finalize. The logger rebuilds an allowlisted object, caps serialized output at 1024 UTF-8 bytes, silently drops invalid telemetry, and never receives request objects, headers, cookies, bodies, IDs, credentials, lease tokens, source content, executor output, or raw exception messages.
-
-Normal worker protocol/state 400 and 409 errors are not treated as security telemetry by default. Existing status maps, response bodies, cache behavior, authentication, task state, and lease state remain unchanged.
+Normal worker protocol/state 400 and 409 errors are not security telemetry by default. Existing response/status behavior remains unchanged.
 
 ## Durable audit hardening
 
-`lib/audit/write-audit-event.ts` now exposes a pure recursive metadata validator used by the existing writer.
+`lib/audit/write-audit-event.ts` exposes a pure recursive metadata validator used by the existing audit writer.
 
-The application continues to enforce the existing 8 KiB audit metadata ceiling and rejects credential-like keys plus exact normalized content-bearing keys such as request/response bodies, source/source code, stdout/stderr, environment, and headers. Benign descriptors such as `sourceType` remain valid.
+The application preserves the existing 8 KiB audit metadata ceiling and rejects credential-like plus exact normalized content-bearing keys. No database migration or second audit/telemetry table was introduced.
 
-No database migration or second audit/telemetry table was added.
+## Dependency reconciliation truth
 
-## Browser hardening and CSP truth
+The original Phase 9D plan was written before the V5 integration and therefore describes its historical branch/base and original dependency assumptions. The V5 reconciliation required a narrow package/test-tool compatibility update:
 
-Existing browser security headers are pinned by architecture tests:
+- Vitest `^4.1.11`
+- existing `sharp` override `0.35.4`
+- compatible Vitest JSX transform configuration
+- deterministic lockfile regeneration
+- two type-only test-helper compatibility annotations
 
-- `X-Content-Type-Options: nosniff`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `X-Frame-Options: DENY`
-- restrictive `Permissions-Policy`
-- HSTS preload value
-- `poweredByHeader: false`
-
-CSP state: NOT ENFORCED.
-
-Source inventory proves a strict CSP is not yet safe because the current production UI contains legitimate React inline style attributes and Next.js framework bootstrap/hydration requires exact nonce/hash compatibility work. Broad permanent `unsafe-inline` or `unsafe-eval` is not approved merely to claim CSP coverage.
-
-Observed browser provider origins are limited to the configured Supabase HTTPS origin and Cloudflare Turnstile `https://challenges.cloudflare.com` when configured. No application Realtime channel use was found, so no speculative WebSocket origin is approved.
-
-Full evidence and rollback/alert contracts:
-
-`docs/security/PHASE_9D_TELEMETRY_AND_CSP.md`
+These reconciliation changes were required to validate Phase 9D on current V5 `main`. They do not alter the V5 UI source.
 
 ## Test and build truth
 
-Test-first commit ordering was preserved for the new telemetry, audit, worker-classification, route-identity, and architecture contracts.
+Dedicated reconciliation run `34293520967` succeeded and proved:
 
-This harness has no local executable ScopeForge checkout, so focused RED/GREEN execution has not been claimed. Intermediate commits use `[skip ci]`. The frozen GitHub Actions candidate remains the required executable Vitest/full-suite proof.
+- `npm ci`
+- `npm audit --audit-level=info` with 0 vulnerabilities
+- full Vitest suite: 350 test files, 1538 tests passed
+- TypeScript typecheck
+- CLI build/version
+- historical scanner benchmark
+- Phase 8B benchmark matrix
+- production Next.js build
 
-The complete implementation/evidence head `dfcd040...` has already passed Vercel production compilation and TypeScript validation.
+The suite includes the V5 hero, scene, geometry, model, quality, controller, progress, and architecture coverage.
+
+The final PR head must also pass the permanent repository `CI / validate` workflow. Evidence from an older SHA cannot be reused if the candidate head moves.
+
+## Browser hardening and CSP truth
+
+Existing security headers remain pinned by architecture tests.
+
+CSP state: NOT ENFORCED.
+
+Strict CSP remains deferred until the V5/Next.js inline-style/bootstrap path has exact nonce/hash compatibility. Broad permanent `unsafe-inline` or `unsafe-eval` is not approved.
 
 ## Current provider/runtime truth
 
 Still intentionally not claimed:
 
 - production Turnstile enforcement
-- leaked-password protection enabled
-- Vercel project-specific WAF custom rules active
-- Vercel automated alert rules active
+- Supabase leaked-password protection enabled
+- Vercel project custom WAF rules active
+- Vercel automated security alerts active
 - CSP enforcement
+- real protected Preview POST plus Runtime Log observation of the authentication-rejection telemetry event
 
 Keep false/absent:
 
@@ -131,20 +155,15 @@ Keep false/absent:
 
 ## Remaining Phase 9D release gates
 
-1. require an exact-head READY Preview for the final checkpoint head
-2. issue one harmless unauthenticated POST to that Preview `/api/internal/workers/claim`
-3. require the existing bounded 401 response
-4. inspect exact-deployment Vercel Runtime Logs and prove one `scopeforge.security.v1` `worker.authentication_rejected` event containing only allowlisted fields
-5. record runtime acceptance evidence
-6. refresh `main` and preserve any newer production UI if overlap appears
-7. freeze a tree-identical release candidate
-8. require exact-candidate Preview READY
-9. open/review the Phase 9D PR against actual current `main`
-10. run one substantive candidate CI and require the full permanent gate set to pass
-11. squash merge only the exact verified candidate
-12. independently verify post-merge main CI and exact production deployment
-13. write a docs-only Phase 9D release checkpoint and Phase 9E handoff
+1. exact final-head Vercel Preview READY with `aliasError=null`
+2. exact final-head permanent `CI / validate` success
+3. final changed-file/review/mergeability refresh proving the V5 UI preservation boundary remains intact
+4. expected-head protected merge of PR #62
+5. independent post-merge `main` CI success
+6. exact merged-SHA production Vercel deployment
+7. fresh production HTTP check proving the V5 surface is still served
+8. docs-only Phase 9D release record with the Runtime Log acceptance probe still marked unresolved unless directly observed
 
 ## Phase 9E direction
 
-After Phase 9D release, complete vulnerability disclosure, incident response, credential rotation, rollback, impact assessment, recovery validation, and final public-launch security procedures.
+After Phase 9D release, proceed to incident/release engineering: vulnerability disclosure, incident response, credential rotation, rollback, impact assessment, recovery validation, and final public-launch security procedures.

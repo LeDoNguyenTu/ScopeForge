@@ -4,75 +4,48 @@ Last reconciled: 2026-09-09 (Asia/Singapore)
 
 ## Status
 
-Phase 9D implementation is complete through exact-head Preview build and pre-release review. The next commit containing this document is the frozen release-candidate trigger and intentionally omits `[skip ci]` so the permanent CI gate executes once on the reviewed tree.
+Phase 9D implementation is complete and reconciled onto the accepted Command Center UI V5 production baseline. Release acceptance is in progress through PR #62.
 
-Branch:
+Active branch:
 
-`feat/phase-9d-security-telemetry-browser-hardening-v1`
+`reconcile/phase-9d-v5-main`
 
-Production base:
+Active PR:
 
-`2af9a92b68c224d290a9597ff1907e5f1098791e`
+`#62 - Phase 9D security telemetry and browser hardening - V5 reconciled`
 
-Implementation/evidence head before the canonical documentation checkpoint:
+Production base for this release attempt:
 
-`dfcd0403d84a01e2833d971e549323a03b67c094`
+`e506c4da3777f9256b8d14e2aa4780a07769b29d`
 
-Tree:
+Production base tree:
 
-`35d0307799fe964c5e33447ee987ba7809f4254c`
+`41c4e7aabf05c19a21a00fdd941659b22dcfd07b`
 
-Canonical reviewed checkpoint before candidate freeze:
+The accepted V5 candidate before PR #49 merged had the same tree. Therefore the V5 merge itself preserved the accepted UI exactly at Git-tree level.
 
-`d6a1631d2df0bb4afddc358c11890349c7973510`
+The original pre-V5 Phase 9D PR #61 is stale and must not be merged. PR #62 supersedes it.
 
-## Exact Preview evidence
+## UI preservation invariant
 
-Implementation/evidence Preview:
+Phase 9D must not modify the accepted working UI.
 
-- deployment `dpl_8xMam5rVMmJnYQFMAgxpad2PB1A2`
-- URL `https://scopeforge-flzp766z2-itsbrian.vercel.app`
-- Git SHA `dfcd0403d84a01e2833d971e549323a03b67c094`
-- target preview
-- state READY
-- `aliasError=null`
-- Next.js production compile succeeded
-- TypeScript validity check succeeded
-- 10/10 static pages generated
+The reconciled PR diff contains no changes to:
 
-Canonical checkpoint Preview:
+- `app/layout.tsx`
+- `app/command-center-v5.css`
+- `components/landing/CommandCenterLandingHero.tsx`
+- `components/landing/CommandCenterHeroDesktopV5.tsx`
+- `components/landing/CommandCenterHeroMobileV5.tsx`
+- `components/landing/AttackSurfaceSceneV5.tsx`
+- `components/landing/attack-surface-v5/**`
+- `components/PublicNav.tsx`
+- `components/PublicFooter.tsx`
+- V5 poster assets
 
-- deployment `dpl_2AP7FnpTAPSrdJDRhJGC9DsACJnw`
-- URL `https://scopeforge-mkv90kmz6-itsbrian.vercel.app`
-- Git SHA `d6a1631d2df0bb4afddc358c11890349c7973510`
-- target preview
-- state READY
-- `aliasError=null`
+Production deployment `dpl_8p4Ha8eVbF7tstZuDRWZXGwjggQ8` is READY on exact SHA `e506c4da3777f9256b8d14e2aa4780a07769b29d` with `aliasError=null`. A fresh GET to `https://scopeforge.dev/` returned HTTP 200 and the expected V5 desktop/mobile composition markers, attack-surface scene marker, and V5 poster assets.
 
-These previews prove compile/type/build compatibility only. They do not prove the new Vitest contracts because this harness has no local executable repository checkout and intermediate GitHub Actions were deliberately suppressed.
-
-## Scope from production base
-
-The reviewed checkpoint is 27 commits ahead and 0 behind the production base.
-
-Changed files are limited to:
-
-- seven internal worker route files, each with one fixed telemetry route-id argument
-- `lib/security/telemetry.ts`
-- `lib/audit/write-audit-event.ts`
-- `lib/worker-control/http-response.ts`
-- focused security/worker/architecture tests
-- Phase 9D spec and implementation plan
-- Phase 9D security/working-state documentation
-- canonical Phase 9 and session handoff documentation
-
-No package file, database migration, RLS policy, Supabase provider setting, Vercel WAF setting, `app/layout.tsx`, landing/dashboard visual file, or hosted-runtime flag changed.
-
-Current `main` was refreshed during preflight and remained exactly:
-
-`2af9a92b68c224d290a9597ff1907e5f1098791e`
-
-PR #61 is mergeable and has no submitted reviews or inline review threads at the freeze boundary. PR #49 remains untouched.
+No browser screenshot executor is available in this chat harness, so do not claim a new pixel-by-pixel screenshot comparison. UI preservation is grounded in exact tree equality for the accepted V5 merge, source-path isolation, V5 tests, Vercel builds, and live production DOM/assets verification.
 
 ## Implemented operational telemetry
 
@@ -92,7 +65,7 @@ Closed events:
 - `worker.request_failed`
 - `security.control_misconfigured`
 
-Worker fields are restricted to:
+Worker telemetry is restricted to bounded allowlisted fields:
 
 - schema
 - event
@@ -101,31 +74,21 @@ Worker fields are restricted to:
 - bounded application code
 - HTTP status
 
-Control-misconfiguration fields are restricted to:
-
-- schema
-- event
-- severity
-- fixed `security.config` route
-- bounded control identifier
-
-The logger rebuilds a normalized allowlisted object instead of serializing caller input, rejects invalid values, caps one serialized event at 1024 UTF-8 bytes, and silently drops telemetry failures so observability cannot change protected request behavior.
-
-The logger is imported by the centralized server-side worker HTTP response module only. It has a browser-runtime guard and is not imported by client application components.
+The logger rebuilds normalized data rather than serializing caller input, caps one event at 1024 UTF-8 bytes, has a browser-runtime guard, and silently drops telemetry failures so observability cannot alter protected request behavior.
 
 ## Worker classification
 
-`workerRouteError` now requires one compile-time `WorkerSecurityRoute` identifier.
+`workerRouteError` requires one compile-time `WorkerSecurityRoute` identifier.
 
 Classification:
 
-- broker auth rejection -> `worker.authentication_rejected`, warning, 401
+- broker authentication rejection -> `worker.authentication_rejected`, warning, 401
 - `WORKER_DISABLED`, `WORKER_NOT_AVAILABLE`, `RUNTIME_WORKER_ACCESS_DENIED` -> `worker.access_rejected`, warning, 403
 - `RUNTIME_WORKER_ACTIVE_LIMIT` -> `worker.rate_limited`, warning, 429
 - unknown exception -> `worker.request_failed`, error, 500
-- ordinary 400/409 protocol/state failures -> no operational security event
+- ordinary 400/409 protocol or state failures -> no operational security event
 
-All existing status maps and response body shapes remain unchanged by design.
+Existing status maps and response body shapes are preserved.
 
 Fixed route IDs:
 
@@ -139,95 +102,76 @@ Fixed route IDs:
 
 ## Durable audit hardening
 
-`lib/audit/write-audit-event.ts` now exports the pure recursive validator `assertSafeAuditMetadata`.
+`lib/audit/write-audit-event.ts` exports the recursive validator `assertSafeAuditMetadata`.
 
-The runtime boundary continues rejecting credential-like metadata keys and now also rejects exact normalized content-bearing keys for request/response bodies, source/source code, stdout/stderr, environment, and headers.
+The existing 8 KiB serialized metadata ceiling remains. Credential-like and exact normalized content-bearing keys are rejected, including request/response bodies, source/source code, stdout/stderr, environment, and headers. Benign descriptors such as `sourceType` remain allowed.
 
-Benign descriptors such as `sourceType` remain allowed. The existing 8 KiB serialized metadata ceiling remains unchanged.
+No database migration and no second durable telemetry/audit store were added.
 
-A pre-freeze compatibility review checked existing audit metadata keys used by runtime and active-validation flows, including `failureCode`, `requestCount`, `redirectCount`, `reasonCode`, `profileId`, `profileVersion`, `authorizationGrantedAt`, `assetKind`, `jobKind`, `findingCount`, and `status`. None are rejected by the hardened key policy.
+## Dependency and test-tool reconciliation
 
-A syntax error was caught during implementation in an intermediate commit: an invalid JavaScript regex `x` flag. Systematic debugging isolated it to the regex literal syntax and corrected it in `5aba9084b6de7bf7cfc468ebeef48b8ea4914cbe`. The complete `dfcd040...` Preview compiled successfully afterward.
+Reconciling the pre-V5 Phase 9D work onto current V5 `main` required dependency/test-tool compatibility updates:
 
-## Test-first evidence
+- Vitest updated from the earlier 3.x range to `^4.1.11`
+- the existing `sharp` override moved to `0.35.4`
+- Vitest JSX transform configuration was migrated to the compatible Oxc path
+- `package-lock.json` was regenerated deterministically
+- two test helpers received type-only compatibility annotations for Vitest 4
 
-Test-first ordering is preserved:
+These changes do not alter landing/V5 presentation source.
 
-- `288bf7a0286d02b7cf2ea60f36ba5a4b2efbbf5c` - telemetry contract before telemetry module
-- `79dd235899bc63401298eb85f7dd559af211268d` - telemetry implementation
-- `50f8c5756da7fb463afceeed1b7a57725eda1b9a` - audit metadata contract before exported/hardened validator
-- `31fabd687badc2cf89f588f7d45d4515fc7525ff` - initial audit implementation
-- `5aba9084b6de7bf7cfc468ebeef48b8ea4914cbe` - valid-regex correction after root-cause analysis
-- `2a2dfe58e41cac7bcd49aad7b4a47f4e657c4558` - worker classification contract before shared-boundary integration
-- `3a3656e7be363076d3fae0b1f1c5c40456795f8e` - centralized classification
-- `ad332db138c05424f5a4a87ba247f2f367ffb70d` - fixed route-id contract before route call-site updates
-- route identity implementation completed through `c4c4cb4170f60dafcf2b10d9e55ec9ac23defa1a`
-- `7667509b441ea37f24918e39edf226cda0127a43` - Phase 9D architecture/browser contract before operations document
-- `dfcd0403d84a01e2833d971e549323a03b67c094` - telemetry/CSP operational evidence document
+A Vitest 4 type-inference failure in `tests/repository-snapshots/cleanup.test.ts` was traced to a zero-argument default mock narrowing the real `deleteObject(objectKey: string): Promise<void>` interface. The helper is now typed to `RepositorySnapshotObjectStore["deleteObject"]`.
 
-Because this harness has no local executable repository checkout, focused RED/GREEN is structural rather than executed. The frozen GitHub Actions candidate is the first claimed executable proof for these new Vitest contracts.
+## Executable reconciliation evidence
 
-## Browser-hardening evidence
+Dedicated reconciliation workflow run:
 
-Current security headers are pinned by architecture tests:
+- run `34293520967`
+- conclusion: success
 
-- nosniff
-- strict-origin referrer policy
-- frame denial
-- restrictive Permissions Policy
+It proved:
+
+- `npm ci --ignore-scripts --no-audit --no-fund`
+- `npm audit --audit-level=info` with 0 vulnerabilities
+- full Vitest suite: 350 test files, 1538 tests passed
+- `npm run typecheck`
+- `npm run build:cli`
+- CLI version execution
+- `npm run benchmark:scanner`
+- `npm run benchmark:matrix`
+- production `npm run build`
+
+The full suite includes the V5 hero, scene, model, geometry, quality, controller, progress, and architecture tests.
+
+The temporary reconciliation workflow used to generate/validate compatibility artifacts was removed before the PR candidate and is not part of the intended merge diff.
+
+PR #62 also requires the normal permanent `CI / validate` workflow on the exact final head before merge. If the head changes for any reason, rerun the permanent gate and do not reuse evidence from an older SHA.
+
+## Browser hardening and CSP truth
+
+Existing browser security headers are pinned by architecture tests:
+
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Frame-Options: DENY`
+- restrictive `Permissions-Policy`
 - HSTS preload value
 - `poweredByHeader: false`
 
 CSP state: NOT ENFORCED.
 
-The source inventory proves strict CSP enforcement is not ready in this release because the current UI contains legitimate React inline style attributes and Next.js framework bootstrap/hydration requires exact nonce/hash compatibility work. Broad `unsafe-inline` and `unsafe-eval` are not approved shortcuts.
+The current V5/Next.js surface still needs exact nonce/hash compatibility work before strict CSP enforcement. Broad permanent `unsafe-inline` or `unsafe-eval` is not an approved shortcut.
 
-Observed external runtime resource/control origins are limited to:
+## Provider and runtime truth
 
-- browser Supabase endpoint from `NEXT_PUBLIC_SUPABASE_URL`
-- Cloudflare Turnstile `https://challenges.cloudflare.com` when configured
+Still intentionally not claimed:
 
-No application Realtime channel use was found, so no speculative WebSocket origin is approved.
-
-Full details:
-
-`docs/security/PHASE_9D_TELEMETRY_AND_CSP.md`
-
-## Alert truth
-
-Vercel automated alert state: NOT CLAIMED.
-
-Documented responder thresholds:
-
-- `worker.authentication_rejected`: >=10 in 5 minutes
-- `worker.request_failed`: >=3 in 5 minutes or sustained after deployment
-- `worker.rate_limited`: >=20 in 10 minutes per route/deployment context
-- `security.control_misconfigured`: any production occurrence actionable
-
-These remain operational contracts until an alert mutation surface is used and directly verified.
-
-## Runtime acceptance tooling limitation
-
-The planned release gate includes one harmless unauthenticated POST to the exact Preview `/api/internal/workers/claim`, followed by inspection of that exact deployment's Runtime Logs for a bounded `worker.authentication_rejected` event.
-
-This chat environment cannot currently execute that POST:
-
-- the local container cannot resolve external DNS
-- the connected Vercel fetch action is read-only/GET-oriented
-- the browser-automation skill is documented but its executable browser resource is not loaded in this chat
-- no installed HTTP/REST request plugin is available
-
-Therefore the real Preview request/log observation remains explicitly NOT VERIFIED. The candidate CI must not be described as proving this separate runtime-observability gate.
-
-## Provider/runtime truth
-
-Still true:
-
-- production Turnstile enforcement: NOT CLAIMED
-- Supabase leaked-password protection: NOT ENABLED
-- Vercel project WAF custom rules: NOT CLAIMED
-- CSP: NOT ENFORCED
-- automated Vercel alerts: NOT CLAIMED
+- production Turnstile enforcement
+- Supabase leaked-password protection enabled
+- Vercel custom WAF rules active
+- Vercel automated security alerts active
+- CSP enforcement
+- protected Preview POST plus Runtime Log proof of `worker.authentication_rejected`
 
 Keep false/absent:
 
@@ -236,23 +180,18 @@ Keep false/absent:
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-## Frozen candidate gate
+## Current release gates
 
-This documentation-only freeze commit intentionally changes no executable source. Its exact Git SHA and tree are captured from GitHub immediately after creation and become the only candidate identities accepted for this release attempt.
+Before PR #62 can merge:
 
-Required candidate evidence:
+1. exact final-head Vercel Preview must be READY with `aliasError=null`
+2. normal repository `CI / validate` must succeed on the exact final head
+3. changed-file review must continue to show no accepted UI presentation files
+4. refresh `main`, PR mergeability, submitted reviews, and inline review threads
+5. merge only with expected-head protection on the exact verified SHA
+6. require independent post-merge `main` CI success
+7. require exact production Vercel deployment for the merged SHA
+8. issue a fresh production GET and verify the V5 surface markers/assets remain served
+9. record Phase 9D release state without overstating the unresolved Runtime Log acceptance probe
 
-1. exact candidate Vercel Preview READY with `aliasError=null`
-2. one substantive GitHub Actions `CI / validate` run on the exact PR integration candidate
-3. `npm audit --audit-level=info` success
-4. full Vitest suite success, including all new Phase 9D contracts
-5. TypeScript typecheck success
-6. CLI build/version success
-7. historical scanner benchmark success
-8. Phase 8B benchmark matrix success
-9. production Next.js build success
-10. refresh `main`, mergeability, review submissions, and review threads before integration
-11. squash merge only with expected-head protection on the exact verified candidate
-12. independently verify post-merge `main` CI and exact production deployment
-13. keep the Preview POST/Runtime Log acceptance gate explicitly unresolved until directly observed
-14. write a docs-only Phase 9D release/checkpoint record that does not overclaim unresolved evidence
+After Phase 9D is released, proceed to Phase 9E incident/release engineering.
