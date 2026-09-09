@@ -82,6 +82,42 @@ jobs:
           done
 
           node tests/browser/csp-browser-smoke.mjs
+      - name: Run production V5 and Turnstile diagnostic
+        continue-on-error: true
+        env:
+          SCOPEFORGE_PRODUCTION_BASE_URL: https://scopeforge.dev
+          SCOPEFORGE_BROWSER_SCREENSHOT_DIR: .artifacts/ui-acceptance
+        run: |
+          set -euo pipefail
+          command -v google-chrome
+          command -v chromedriver
+
+          cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "--- Production diagnostic ChromeDriver log ---"
+              cat /tmp/scopeforge-production-chromedriver.log || true
+            fi
+            [ -f /tmp/scopeforge-production-chromedriver.pid ] && kill "$(cat /tmp/scopeforge-production-chromedriver.pid)" 2>/dev/null || true
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          chromedriver --port=9515 --allowed-ips= > /tmp/scopeforge-production-chromedriver.log 2>&1 &
+          echo $! > /tmp/scopeforge-production-chromedriver.pid
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:9515/status > /dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Production diagnostic ChromeDriver did not become ready" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          node tests/browser/production-ui-smoke.mjs
       - name: Upload V5 visual acceptance screenshots
         if: always()
         uses: actions/upload-artifact@v4

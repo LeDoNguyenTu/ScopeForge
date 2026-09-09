@@ -3,11 +3,81 @@ import { updateAttackSurfaceV5Animation } from "./animation";
 import { createV5Composer, type AttackSurfaceV5Composer } from "./effects";
 import { createAttackSurfaceV5Group } from "./geometry";
 import { createV5Lighting } from "./lighting";
-import type { AttackSurfaceV5Model } from "./model";
+import type { AttackSurfaceV5Model, AttackSurfaceV5State } from "./model";
 import type { AttackSurfaceV5Quality } from "./quality";
 import { getAttackSurfaceV5QualitySettings } from "./quality";
 
 export type AttackSurfaceV5Variant = "desktop" | "mobile";
+
+export type AttackSurfaceV5CameraPreset = Readonly<{
+  fov: number;
+  position: readonly [number, number, number];
+  target: readonly [number, number, number];
+  surfaceScale: number;
+  surfaceY: number;
+}>;
+
+export type AttackSurfaceV5ProjectedAnchor = Readonly<{
+  id: string;
+  state: AttackSurfaceV5State;
+  x: number;
+  y: number;
+  depth: number;
+  visible: boolean;
+  sourceName: string;
+}>;
+
+const CAMERA_PRESETS: Readonly<Record<AttackSurfaceV5Variant, AttackSurfaceV5CameraPreset>> = Object.freeze({
+  desktop: Object.freeze({
+    fov: 34,
+    position: Object.freeze([0.8, 15.5, 23.5] as const),
+    target: Object.freeze([0.18, -0.08, 0] as const),
+    surfaceScale: 0.73,
+    surfaceY: -0.3,
+  }),
+  mobile: Object.freeze({
+    fov: 46,
+    position: Object.freeze([0, 17.2, 25.8] as const),
+    target: Object.freeze([0, 0.05, 0] as const),
+    surfaceScale: 0.62,
+    surfaceY: -0.42,
+  }),
+});
+
+export function getAttackSurfaceV5CameraPreset(variant: AttackSurfaceV5Variant): AttackSurfaceV5CameraPreset {
+  return CAMERA_PRESETS[variant];
+}
+
+export function projectAttackSurfaceV5Anchors(
+  surface: THREE.Object3D,
+  camera: THREE.PerspectiveCamera,
+  width: number,
+  height: number,
+): AttackSurfaceV5ProjectedAnchor[] {
+  const safeWidth = Math.max(1, width);
+  const safeHeight = Math.max(1, height);
+  surface.updateMatrixWorld(true);
+  camera.updateMatrixWorld(true);
+  const projected: AttackSurfaceV5ProjectedAnchor[] = [];
+
+  surface.traverse((object) => {
+    if (!object.name.startsWith("v5-label-anchor-")) return;
+    const world = new THREE.Vector3();
+    object.getWorldPosition(world);
+    const point = world.clone().project(camera);
+    projected.push(Object.freeze({
+      id: String(object.userData.v5EntityId ?? object.name.replace("v5-label-anchor-", "")),
+      state: (object.userData.v5State ?? "healthy") as AttackSurfaceV5State,
+      x: (point.x * 0.5 + 0.5) * safeWidth,
+      y: (-point.y * 0.5 + 0.5) * safeHeight,
+      depth: point.z,
+      visible: point.z >= -1 && point.z <= 1 && point.x >= -1.18 && point.x <= 1.18 && point.y >= -1.18 && point.y <= 1.18,
+      sourceName: object.name,
+    }));
+  });
+
+  return projected;
+}
 
 export type AttackSurfaceV5Controller = Readonly<{
   resize(width: number, height: number, dpr: number): void;
@@ -24,6 +94,7 @@ export type CreateAttackSurfaceV5ControllerOptions = Readonly<{
   model: AttackSurfaceV5Model;
   quality: AttackSurfaceV5Quality;
   variant?: AttackSurfaceV5Variant;
+  onAnchorFrame?: (anchors: readonly AttackSurfaceV5ProjectedAnchor[]) => void;
 }>;
 
 export function disposeAttackSurfaceV5Object(root: THREE.Object3D): void {
@@ -31,9 +102,9 @@ export function disposeAttackSurfaceV5Object(root: THREE.Object3D): void {
   const materials = new Set<THREE.Material>();
 
   root.traverse((object) => {
-    const mesh = object as THREE.Mesh;
-    if (mesh.geometry) geometries.add(mesh.geometry);
-    const material = mesh.material;
+    const renderable = object as THREE.Mesh;
+    if (renderable.geometry) geometries.add(renderable.geometry);
+    const material = renderable.material;
     if (Array.isArray(material)) material.forEach((entry) => materials.add(entry));
     else if (material) materials.add(material);
   });
@@ -43,19 +114,16 @@ export function disposeAttackSurfaceV5Object(root: THREE.Object3D): void {
 }
 
 function configureCamera(camera: THREE.PerspectiveCamera, variant: AttackSurfaceV5Variant): void {
-  if (variant === "mobile") {
-    camera.fov = 44;
-    camera.position.set(0, 9.2, 14.4);
-  } else {
-    camera.fov = 39;
-    camera.position.set(0.25, 7.8, 12.6);
-  }
-  camera.lookAt(0, 0.3, 0);
+  const preset = getAttackSurfaceV5CameraPreset(variant);
+  camera.fov = preset.fov;
+  camera.position.set(preset.position[0], preset.position[1], preset.position[2]);
+  camera.lookAt(preset.target[0], preset.target[1], preset.target[2]);
   camera.updateProjectionMatrix();
 }
 
 export function createAttackSurfaceV5Controller(options: CreateAttackSurfaceV5ControllerOptions): AttackSurfaceV5Controller {
   const variant = options.variant ?? "desktop";
+  const preset = getAttackSurfaceV5CameraPreset(variant);
   const settings = getAttackSurfaceV5QualitySettings(options.quality);
   const renderer = new THREE.WebGLRenderer({
     canvas: options.canvas,
@@ -64,31 +132,31 @@ export function createAttackSurfaceV5Controller(options: CreateAttackSurfaceV5Co
     powerPreference: "high-performance",
     premultipliedAlpha: true,
   });
-  renderer.setClearColor(0x020708, 0);
+  renderer.setClearColor(0x05070a, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = options.quality === "cinematic" ? 1.15 : 1.05;
+  renderer.toneMappingExposure = options.quality === "cinematic" ? 1.18 : options.quality === "balanced" ? 1.1 : 1.0;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(39, 1, 0.1, 80);
+  const camera = new THREE.PerspectiveCamera(preset.fov, 1, 0.1, 120);
   configureCamera(camera, variant);
   createV5Lighting(scene);
 
   const surface = createAttackSurfaceV5Group(options.model, options.quality);
-  surface.scale.setScalar(variant === "mobile" ? 0.86 : 0.94);
-  surface.position.y = variant === "mobile" ? -0.25 : 0;
+  surface.scale.setScalar(preset.surfaceScale);
+  surface.position.y = preset.surfaceY;
   scene.add(surface);
 
   let composer: AttackSurfaceV5Composer | null = createV5Composer(renderer, scene, camera, options.quality);
   let visible = true;
   let paused = false;
   let disposed = false;
+  let viewportWidth = 1;
+  let viewportHeight = 1;
   let stableFrameCount = 0;
   let stableResolved = false;
   let resolveStable!: () => void;
-  const firstStableFrame = new Promise<void>((resolve) => {
-    resolveStable = resolve;
-  });
+  const firstStableFrame = new Promise<void>((resolve) => { resolveStable = resolve; });
   const pointer = { x: 0, y: 0 };
   const startTime = typeof performance === "undefined" ? 0 : performance.now();
 
@@ -101,30 +169,27 @@ export function createAttackSurfaceV5Controller(options: CreateAttackSurfaceV5Co
   return Object.freeze({
     resize(width: number, height: number, dpr: number) {
       if (disposed) return;
-      const safeWidth = Math.max(1, Math.round(width));
-      const safeHeight = Math.max(1, Math.round(height));
+      viewportWidth = Math.max(1, Math.round(width));
+      viewportHeight = Math.max(1, Math.round(height));
       const pixelRatio = Math.max(1, Math.min(dpr, settings.dprCap));
       renderer.setPixelRatio(pixelRatio);
-      renderer.setSize(safeWidth, safeHeight, false);
+      renderer.setSize(viewportWidth, viewportHeight, false);
       composer?.setPixelRatio(pixelRatio);
-      composer?.setSize(safeWidth, safeHeight);
-      camera.aspect = safeWidth / safeHeight;
+      composer?.setSize(viewportWidth, viewportHeight);
+      camera.aspect = viewportWidth / viewportHeight;
       configureCamera(camera, variant);
     },
     setPointer(x: number, y: number) {
       pointer.x = THREE.MathUtils.clamp(x, -1, 1);
       pointer.y = THREE.MathUtils.clamp(y, -1, 1);
     },
-    setVisible(nextVisible: boolean) {
-      visible = nextVisible;
-    },
-    setPaused(nextPaused: boolean) {
-      paused = nextPaused;
-    },
+    setVisible(nextVisible: boolean) { visible = nextVisible; },
+    setPaused(nextPaused: boolean) { paused = nextPaused; },
     render(timeMs: number) {
       if (disposed || !visible || paused) return;
       const elapsed = Math.max(0, timeMs - startTime) / 1000;
       updateAttackSurfaceV5Animation(surface, elapsed, pointer);
+      options.onAnchorFrame?.(projectAttackSurfaceV5Anchors(surface, camera, viewportWidth, viewportHeight));
       if (composer) composer.render();
       else renderer.render(scene, camera);
       stableFrameCount += 1;
