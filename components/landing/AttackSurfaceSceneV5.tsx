@@ -204,11 +204,11 @@ export default function AttackSurfaceSceneV5({ variant = "desktop" }: { variant?
         <div className="ccV5PosterCore"><i /><i /><i /><i /></div>
         {model.entities.map((entity) => <span key={entity.id} data-state={entity.state} data-arm={entity.armIndex} />)}
         <img
+          className="ccV5PosterImage"
           src={POSTER_SOURCE[variant]}
           alt=""
           draggable={false}
           decoding="async"
-          style={{ position: "absolute", inset: 0, zIndex: 2, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
         />
       </div>
       <canvas ref={canvasRef} className="ccV5Canvas" aria-hidden="true" />
