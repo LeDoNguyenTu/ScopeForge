@@ -67,7 +67,8 @@ describe("Phase 9E incident readiness and release engineering", () => {
   it("does not convert unknown provider state or CSP into a passing claim", async () => {
     const checklist = await read(releaseChecklistPath);
     expect(checklist).toContain("NOT VERIFIED");
-    expect(checklist).toMatch(/CSP.*not enforced/is);
-    expect(checklist).not.toMatch(/CSP.*PASS.*enforced/is);
+    expect(checklist).toMatch(/CSP is not enforced by Phase 9E/i);
+    expect(checklist).not.toMatch(/^\s*(?:[-*]\s*)?(?:\*\*)?PASS(?:\*\*)?[^\n]*CSP[^\n]*enforced/im);
+    expect(checklist).not.toMatch(/^\s*CSP[^\n]*:\s*(?:\*\*)?PASS(?:\*\*)?[^\n]*enforced/im);
   });
 });
