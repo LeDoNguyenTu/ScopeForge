@@ -38,3 +38,45 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      - name: Browser CSP acceptance
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          SCOPEFORGE_BROWSER_BASE_URL: http://127.0.0.1:3000
+        run: |
+          set -euo pipefail
+          command -v google-chrome
+          command -v chromedriver
+
+          cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "--- ScopeForge server log ---"
+              cat /tmp/scopeforge-next.log || true
+              echo "--- ChromeDriver log ---"
+              cat /tmp/scopeforge-chromedriver.log || true
+            fi
+            [ -f /tmp/scopeforge-next.pid ] && kill "$(cat /tmp/scopeforge-next.pid)" 2>/dev/null || true
+            [ -f /tmp/scopeforge-chromedriver.pid ] && kill "$(cat /tmp/scopeforge-chromedriver.pid)" 2>/dev/null || true
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          npm start > /tmp/scopeforge-next.log 2>&1 &
+          echo $! > /tmp/scopeforge-next.pid
+          chromedriver --port=9515 --allowed-ips= > /tmp/scopeforge-chromedriver.log 2>&1 &
+          echo $! > /tmp/scopeforge-chromedriver.pid
+
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null && curl --fail --silent http://127.0.0.1:9515/status > /dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "Browser acceptance services did not become ready" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          node scripts/ci/csp-browser-smoke.mjs
