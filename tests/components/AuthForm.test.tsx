@@ -115,6 +115,7 @@ describe("AuthForm", () => {
 
     const verification = screen.getByRole("group", { name: /security verification/i });
     expect(verification).toHaveTextContent("Security verification");
+    expect(verification).toHaveTextContent("Protected by Cloudflare Turnstile");
     expect(verification).toHaveTextContent("Complete verification to continue");
     expect(verification).toHaveAttribute("data-verification-state", "loading");
 
