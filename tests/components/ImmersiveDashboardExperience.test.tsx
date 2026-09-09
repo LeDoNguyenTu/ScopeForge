@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ImmersiveDashboardExperience from "@/components/dashboard/ImmersiveDashboardExperience";
 import type { AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
 
@@ -33,9 +33,14 @@ const model: AttackSurfaceModel = {
   },
 };
 
+beforeEach(() => {
+  vi.restoreAllMocks();
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+});
+
 describe("ImmersiveDashboardExperience", () => {
-  it("matches the approved command-center composition with real metrics", () => {
-    render(<ImmersiveDashboardExperience
+  it("matches the approved command-center composition with real metrics and a WebGL topology path", () => {
+    const { container } = render(<ImmersiveDashboardExperience
       model={model}
       nextAction={{
         href: "/dashboard/findings",
@@ -47,7 +52,9 @@ describe("ImmersiveDashboardExperience", () => {
 
     expect(screen.getByText("LIVING ATTACK SURFACE")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Understand the risk before it becomes an incident." })).toBeInTheDocument();
-    expect(screen.getByTestId("webgl-attack-surface")).toHaveAttribute("data-renderer-state", "svg");
+    expect(screen.getByTestId("webgl-attack-surface")).toHaveAttribute("data-renderer-state", "fallback");
+    expect(container.querySelector("canvas.webglAttackCanvas")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector(".workspaceTopologyArt")).not.toBeInTheDocument();
     expect(screen.getByText("Registered assets")).toBeInTheDocument();
     expect(screen.getByText("Verified assets")).toBeInTheDocument();
     expect(screen.getByText("Open findings")).toBeInTheDocument();
