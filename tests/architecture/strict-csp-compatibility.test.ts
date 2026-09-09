@@ -51,6 +51,13 @@ describe("strict CSP compatibility architecture", () => {
     expect(source).toMatch(/href=["']\/["']/);
   });
 
+  it("runs a real browser CSP acceptance check in CI", () => {
+    const workflow = read(".github/workflows/ci.yml");
+    expect(existsSync(join(process.cwd(), "tests/browser/csp-browser-smoke.mjs"))).toBe(true);
+    expect(workflow).toContain("Run CSP browser smoke");
+    expect(workflow).toContain("node tests/browser/csp-browser-smoke.mjs");
+  });
+
   it("keeps the released browser security-header baseline intact", () => {
     const config = read("next.config.ts");
     expect(config).toContain('{ key: "X-Content-Type-Options", value: "nosniff" }');
