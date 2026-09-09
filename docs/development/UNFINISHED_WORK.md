@@ -1,93 +1,102 @@
 # ScopeForge Unfinished Work Queue
 
-Last reconciled: 2026-09-07 (Asia/Singapore)
+Last reconciled: 2026-09-10 (Asia/Singapore)
 
-This is the persistent non-UI resume queue.
+This is the persistent non-UI resume queue. It records only work that is actually unfinished. Historical implementation branches and old phase checklists are not a source of new work by themselves.
 
 ## Global rules
 
+- start from current `main`; never use stale feature, reconciliation, preview, diagnostic, or temporary restoration branches as integration bases
+- preserve the accepted Command Center V5 public and authenticated presentation
+- preserve strict nonce CSP and the existing browser security-header baseline
 - preflight before CI; do not use Actions as the first debugging loop
 - do not claim green gates without exact-SHA evidence
 - keep deployed Supabase migrations immutable; corrections are forward-only
-- keep all hosted worker/runtime capability flags false/absent until their own production acceptance gates authorize enablement
-- Turnstile is not active unless actually wired into application behavior
+- do not enable hosted worker/runtime capability flags merely because their code exists
 - do not add generic URL/proxy/browser/arbitrary network authority
-- do not modify, merge, replace, retarget, or deploy active dashboard V5/UI work from this stream
+- do not confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
 - no AI co-author attribution
+- do not infer provider or environment state from repository source
 
-## Completed - Phase 7
+## Completed - do not recreate
 
-Community Security Packs v1 merged through PR #54 as `1e9a72e0c4a526b064d6d3729981b405fac6b2b1`. Do not recreate Phase 7 Tasks 1-9.
+The following previously queued boundaries are released:
 
-## Completed - Phase 8A
+- Phase 7 Community Security Packs v1
+- Phase 8A offline accuracy foundation
+- Phase 8B deterministic scanner performance matrix
+- Phase 8C reproducible technical publication
+- Phase 9A authentication-boundary hardening
+- Phase 9B provider/auth hardening code
+- Phase 9C database/RPC defense-in-depth
+- Phase 9D security telemetry/browser hardening
+- Phase 9E incident readiness and release engineering
+- post-Phase-9 strict CSP compatibility and enforcement
+- restoration of the accepted Command Center V5 presentation on top of strict CSP
 
-Offline accuracy foundation merged through PR #55 as `8d766f5969427a2e4525f5232b5e28b0f93675bd`.
+The latest substantively validated executable release is `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`. Post-merge CI #803 / run `34396470298` passed the full validation gate, including real Chrome CSP/V5 visual acceptance. Later docs-only `main` commits may advance the Git ref without changing the executable application tree.
 
-The current committed accuracy baseline is `scopeforge-offline-v1@1.0.0`: 32 reviewed cases, 8 rules, TP 16 / FN 0 / FP 0 / TN 16, errors 0, unsupported 0, contract mismatch 0. These metrics describe only the covered corpus.
+Detailed release evidence is in `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
 
-Do not recreate Phase 8A.
+## 1. Provider operational verification - separate gate
 
-## Completed - Phase 8B
+Current conservative truth:
 
-Scanner performance matrix merged through PR #56 as `226a20739871c15d0262d1779b3b013520f47fc6` after final PR CI #760 and post-merge main CI #761 passed. Exact merge production deployment `dpl_EQUz8d1CUjszH4e2Bh8qu1VDrHCu` is READY on `scopeforge.dev`.
+- production Turnstile provider enforcement: `NOT VERIFIED`
+- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
+- Supabase leaked-password protection: `VERIFIED DISABLED`
+- strict CSP: `ENFORCED`
 
-The matrix covers deterministic dependency/lockfile-heavy, IaC-heavy, and source/AST-heavy generated workloads with exact correctness contracts and three repeated runs each. Historical `scanner-medium-v1` remains unchanged.
+Provider inspection is legitimate unfinished operational work when a supported account surface is available. Provider activation or configuration changes are not implied by this queue and require their own reviewed operational plan, rollback path, and verification evidence.
 
-Do not recreate Phase 8B.
+Do not describe configuration-gated Turnstile application support as production provider enforcement until the external Cloudflare/Supabase/Vercel state is directly proven.
 
-## 1. Phase 8C - reproducible technical publication
-
-Next non-UI implementation boundary:
-
-- define a versioned normalized publication contract over Phase 8A/8B evidence
-- publish exact commit/tool/environment provenance
-- include raw TP/FN/FP/TN/error/unsupported/contract-mismatch counts and valid derived metrics
-- include all benchmark runs and deterministic summaries
-- include corpus/fixture identities and hashes where available
-- include limitations, unsupported behavior, and known blind spots
-- produce deterministic machine-readable and human-readable reports
-- preserve privacy reductions and ground-truth immutability
-- prevent global-accuracy claims from the 32-case corpus
-- prevent catastrophic benchmark ceilings from being described as product SLOs
-- keep ordinary publication local/offline and do not add runtime/network/hosted authority just to report evidence
-
-Start by auditing existing validation/report modules and `docs/validation/METHODOLOGY.md` to avoid duplicate surfaces, then write a Phase 8C design/spec and TDD plan before implementation.
-
-## 2. Production worker enablement - separate from code phases
+## 2. Production worker enablement - separate from completed code phases
 
 ### Phase 6B
 
-Hosted GitHub acquisition remains disabled pending acquisition-worker/private-artifact operational acceptance, monitoring, rollback, and canary evidence.
+Hosted GitHub repository acquisition remains disabled pending a dedicated acquisition-worker/private-artifact operational acceptance, monitoring, rollback, and staged canary gate.
 
 ### Phase 6C
 
-Hosted zero-egress repository scanning remains disabled pending its own execution-boundary acceptance for zero egress, read-only boundaries, resource enforcement, and cancellation/container termination.
+Hosted zero-egress repository scanning remains disabled pending its own execution-boundary operational acceptance for zero egress, read-only boundaries, resource enforcement, cancellation/container termination, monitoring, rollback, and canary evidence.
 
 ### Phase 6D
 
-Passive and active runtime worker enablement remain separate post-merge gates. Each requires monitoring/rollback and staged canary evidence.
+Passive and active runtime worker code and release acceptance are complete. Production enablement remains a separate operational gate for each capability and requires monitoring, rollback, staged canary evidence, and exact environment-state verification.
 
-Do not use Phase 6D containment evidence or Phase 8 validation success as automatic authorization for 6B/6C/6D production enablement.
+The operational requirement remains that these four flags stay false/absent until their independent gates authorize them:
 
-## 3. Phase 9 hardening/public release
+- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
+- `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
+- `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Remaining non-UI items include:
+The current Vercel connector does not expose environment-variable values, so a fresh direct environment read is not available through the present tool surface. No environment mutation was performed by the CSP or V5 restoration releases.
 
-- Supabase leaked-password protection warning
-- threat review and abuse prevention
-- Turnstile/equivalent integration if still desired and actually implemented
-- observability and alerting
-- private-schema defense-in-depth review without breaking RPC-only worker authority
-- incident response and rollback procedures
-- release engineering
-- final public-launch security review
+Do not use Phase 6D containment evidence, Phase 8 validation success, or the public release as automatic authorization for 6B/6C/6D production enablement.
 
-Do not drop indexes solely because sparse-production statistics report them unused.
+## 3. Branch cleanup
 
-## UI isolation
+A fresh branch audit still shows historical completed `diag/*`, `preview/*`, reconciliation, documentation, feature, CSP, and temporary V5 restoration branches.
 
-Dashboard V5/UI preview remains a separate active workstream. Accessibility/responsive QA belongs after that visual work is stable. Non-UI merges must not overwrite or silently integrate it.
+The connected GitHub write surface does not expose a genuine branch delete-ref operation. Do not force-move or repoint those refs to make them look deleted.
 
-## Branch cleanup
+When a true delete-ref surface becomes available:
 
-The merged Phase 8B branch remains only because the connected GitHub write surface does not expose a genuine branch delete-ref action. Do not force-move it. Preserve PR #49 and all active V5/UI branches.
+1. re-audit each candidate against current `main`
+2. delete only branches already proven historical/completed
+3. preserve `main`
+4. re-list branches after deletion and record the cleanup result
+
+## 4. Future product work
+
+There is currently no open implementation PR, no open issue, and no approved new product phase in the repository queue.
+
+Do not invent a Phase 10 from historical branches or dormant capability. A new implementation boundary must be explicitly scoped against current `main`, pass the normal design/spec review gate, and preserve V5, CSP, authorization, and runtime safety invariants.
+
+## UI baseline
+
+The earlier separate V5 UI stream is complete. PR #67 restored and released the accepted V5 presentation on top of the strict CSP baseline.
+
+Accessibility/responsive work may be proposed as a future scoped change if new evidence identifies a concrete issue, but the old UI branches are not active workstreams.
