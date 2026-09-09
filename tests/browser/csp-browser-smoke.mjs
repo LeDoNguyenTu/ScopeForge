@@ -47,10 +47,17 @@ async function browserLogs(sessionId) {
   }
 }
 
+function isExpectedNotFoundDocumentLog(entry, route) {
+  return route === "404"
+    && entry.level === "SEVERE"
+    && /\/__scopeforge_csp_browser_404__\s+-\s+Failed to load resource: the server responded with a status of 404 \(Not Found\)/i.test(entry.message);
+}
+
 function assertCleanLogs(logs, route) {
-  const severe = logs.filter((entry) => entry.level === "SEVERE");
-  const csp = logs.filter((entry) => /content security policy|refused to (?:load|execute|apply|connect|frame)|violates the following content security policy directive/i.test(entry.message));
-  const hydration = logs.filter((entry) => /hydration failed|hydration error|minified react error|uncaught/i.test(entry.message));
+  const relevantLogs = logs.filter((entry) => !isExpectedNotFoundDocumentLog(entry, route));
+  const severe = relevantLogs.filter((entry) => entry.level === "SEVERE");
+  const csp = relevantLogs.filter((entry) => /content security policy|refused to (?:load|execute|apply|connect|frame)|violates the following content security policy directive/i.test(entry.message));
+  const hydration = relevantLogs.filter((entry) => /hydration failed|hydration error|minified react error|uncaught/i.test(entry.message));
   const failures = [...new Map([...severe, ...csp, ...hydration].map((entry) => [entry.message, entry])).values()];
   if (failures.length) {
     throw new Error(`Browser console failures on ${route}:\n${failures.map((entry) => `[${entry.level}] ${entry.message}`).join("\n")}`);
