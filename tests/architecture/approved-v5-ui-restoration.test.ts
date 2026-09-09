@@ -50,8 +50,10 @@ describe("approved V5 UI restoration", () => {
 
   it("keeps every restored authenticated dashboard presentation path compatible with strict CSP", () => {
     const dashboard = read("components/dashboard/ImmersiveDashboardExperience.tsx");
-    const topology = read("components/dashboard/WebGLAttackSurface.tsx");
+    const topology = read("components/dashboard/CspSafeAttackSurface.tsx");
 
+    expect(dashboard).toContain('from "@/components/dashboard/CspSafeAttackSurface"');
+    expect(dashboard).not.toContain('from "@/components/dashboard/WebGLAttackSurface"');
     expect(dashboard).not.toContain("style={{");
     expect(topology).not.toContain("style={");
     expect(topology).not.toContain("style={{");
