@@ -12,6 +12,13 @@ const activeStyleFiles = [
 ] as const;
 
 describe("strict CSP compatibility architecture", () => {
+  it("forces request-time rendering so Next.js can nonce framework scripts", () => {
+    const layout = read("app/layout.tsx");
+    expect(layout).toContain('from "next/server"');
+    expect(layout).toMatch(/\bconnection\b/);
+    expect(layout).toMatch(/await\s+connection\(\)/);
+  });
+
   it("removes React inline style attributes from the active CSP migration surface", () => {
     for (const file of activeStyleFiles) {
       expect(read(file), file).not.toContain("style={{");
