@@ -27,6 +27,7 @@ void main() {
   vec2 shifted = aPosition + uParallax * (0.035 + abs(aPosition.y) * 0.025);
   gl_Position = vec4(shifted, 0.0, 1.0);
   gl_PointSize = uPointSize;
+  vColor = aColor;
 }
 `;
 
