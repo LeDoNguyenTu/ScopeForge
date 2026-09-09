@@ -38,12 +38,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      - name: Run CSP browser smoke
+      - name: Run CSP browser smoke - V5 restoration
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
           SCOPEFORGE_BROWSER_BASE_URL: http://127.0.0.1:3000
+          SCOPEFORGE_BROWSER_SCREENSHOT_DIR: .artifacts/ui-acceptance
+          VERCEL_ENV: preview
         run: |
           set -euo pipefail
           command -v google-chrome
@@ -80,3 +82,11 @@ jobs:
           done
 
           node tests/browser/csp-browser-smoke.mjs
+      - name: Upload V5 visual acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-ui-acceptance-${{ github.sha }}
+          path: .artifacts/ui-acceptance/*.png
+          if-no-files-found: warn
+          retention-days: 7

@@ -26,8 +26,8 @@ export function CommandCenterV5Copy({ titleId, mobile = false }: { titleId: stri
         ScopeForge discovers, verifies, and maps the attack surface into one evidence-first view so teams can see the path from exposure to impact before attackers do.
       </p>
       <div className="ccV5Actions">
-        <Link className="ccV5Primary" href="/auth/sign-up">Explore the platform <ArrowRight size={15} /></Link>
-        <a className="ccV5Secondary" href="#platform"><CirclePlay size={15} /> See it in action</a>
+        <Link className="ccV5Primary" href="/auth/sign-up">Explore the platform <ArrowRight size={18} /></Link>
+        <a className="ccV5Secondary" href="#platform"><CirclePlay size={18} /> See it in action</a>
       </div>
     </div>
   );
@@ -40,7 +40,7 @@ export function CommandCenterV5Metrics({ mobile = false }: { mobile?: boolean })
       <div className="ccV5MetricGrid">
         {metricCards.map(({ icon: Icon, value, label, trend, tone }) => (
           <article className="ccV5MetricCard" data-tone={tone} key={label}>
-            <span className="ccV5MetricIcon"><Icon size={15} /></span>
+            <span className="ccV5MetricIcon"><Icon size={28} /></span>
             <strong>{value}</strong>
             <span>{label}</span>
             <small>{trend}</small>
@@ -72,7 +72,7 @@ export function CommandCenterV5Overview({ mobile = false }: { mobile?: boolean }
         <div className="ccV5RiskPath">
           <span>Top illustrative risk path</span>
           <strong>Internet <b>→</b> Web App <b>→</b> IAM <b>→</b> Data Store <em>Critical</em></strong>
-          <Link href="/auth/sign-up">Investigate path <ArrowRight size={12} /></Link>
+          <Link href="/auth/sign-up">Investigate path <ArrowRight size={16} /></Link>
         </div>
       </div>
     </article>
@@ -83,8 +83,8 @@ export function CommandCenterV5Runtime({ mobile = false }: { mobile?: boolean })
   return (
     <div className={`ccV5Runtime${mobile ? " ccV5Runtime-mobile" : ""}`} data-testid="command-runtime" aria-label="Illustrative scene runtime status">
       <span className="ccV5RuntimeState"><i /><small>Scene</small><strong>Running</strong></span>
-      <span><Radar size={14} /><small>Example sensors</small><strong>182</strong></span>
-      <span><Bug size={14} /><small>Example coverage</small><strong>98%</strong></span>
+      <span><Radar size={22} /><small>Example sensors</small><strong>182</strong></span>
+      <span><Bug size={22} /><small>Example coverage</small><strong>98%</strong></span>
       <SceneMonitoringToggle />
     </div>
   );

@@ -6,8 +6,14 @@ vi.mock("@/app/actions", () => ({
   signOut: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  usePathname: () => "/dashboard/assets/example",
+vi.mock("@/components/SideNav", () => ({
+  default: () => (
+    <nav aria-label="Workspace navigation">
+      <a href="/dashboard">Overview</a>
+      <a href="/dashboard/assets">Assets</a>
+      <a href="/dashboard/findings">Findings</a>
+    </nav>
+  ),
 }));
 
 describe("AppShell", () => {
@@ -17,19 +23,16 @@ describe("AppShell", () => {
     role: "owner",
   };
 
-  it("uses the same accessible command navigation on detail pages", () => {
+  it("preserves the existing sidebar shell by default", () => {
     render(<AppShell {...props}><p>Dashboard content</p></AppShell>);
 
-    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Dashboard command navigation" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Assets" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#workspace-content");
-    expect(screen.getByRole("main")).toHaveAttribute("id", "workspace-content");
+    expect(screen.queryByRole("navigation", { name: "Dashboard command navigation" })).not.toBeInTheDocument();
     expect(screen.getByText("Dashboard content")).toBeInTheDocument();
   });
 
-  it("preserves all workspace destinations in the shared navigation shell", () => {
+  it("renders the immersive floating command navigation without the left sidebar", () => {
     render(<AppShell {...props} variant="immersive"><p>Immersive content</p></AppShell>);
 
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();

@@ -28,7 +28,7 @@ export default async function DashboardPreview({ searchParams }: { searchParams:
     ["Informational response header observed", "info", "sample-1", "open"],
   ].map(([title, severity, asset_id, lifecycle_state], index) => ({ finding_id: `example-finding-${index}`, title, severity: severity as DashboardFinding["severity"], asset_id, lifecycle_state, last_seen_at: `2026-09-0${index + 1}T10:00:00Z` }));
   const model = buildAttackSurfaceModel({ assets, findings: findings.map(finding => ({ ...finding, lifecycle_state: "open" as const })), openFindingCount: findings.length });
-  return <AppShell displayName="Preview user" workspaceName="Example workspace" role="preview">
+  return <AppShell displayName="Preview user" workspaceName="Example workspace" role="preview" variant="immersive">
     <div className="saasPreviewNotice"><span><strong>Design preview</strong> · Sample data. Workspace actions require sign-in.</span><Link href={empty ? "/preview/dashboard" : "/preview/dashboard?empty=1"}>{empty ? "View populated state" : "View empty state"}</Link><Link href="/auth/sign-in">Sign in to your workspace</Link></div>
     <ImmersiveDashboardExperience assets={assets} findings={findings} model={model} nextAction={{ href: empty ? "/dashboard/assets/new" : "/dashboard/assets", label: empty ? "Register asset" : "Review assets", title: empty ? "Register your first asset" : "Finish verifying your assets", copy: empty ? "Add an application, API, or repository that you control to start building your workspace." : "Documentation is still awaiting proof of control. Complete verification to prepare it for supported security workflows." }} />
   </AppShell>;
