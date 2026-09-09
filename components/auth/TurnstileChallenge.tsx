@@ -22,9 +22,11 @@ type TurnstileWindow = Window & {
 
 export default function TurnstileChallenge({
   siteKey,
+  nonce,
   onToken
 }: {
   siteKey: string;
+  nonce?: string | null;
   onToken: (token: string | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -63,12 +65,13 @@ export default function TurnstileChallenge({
       <Script
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
         strategy="afterInteractive"
+        nonce={nonce ?? undefined}
         onLoad={renderWidget}
       />
       <div
         ref={containerRef}
         data-turnstile-container
-        style={{ display: "flex", justifyContent: "center", minWidth: 0, width: "100%" }}
+        className="authTurnstileContainer"
       />
     </>
   );
