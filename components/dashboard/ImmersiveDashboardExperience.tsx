@@ -7,7 +7,7 @@ import {
   Gauge,
   ShieldCheck,
 } from "lucide-react";
-import CspSafeAttackSurface from "@/components/dashboard/CspSafeAttackSurface";
+import WebGLAttackSurface from "@/components/dashboard/WebGLAttackSurface";
 import type { AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
 
 export interface DashboardNextAction {
@@ -67,7 +67,7 @@ export default function ImmersiveDashboardExperience({
         </div>
 
         <div className="livingDashboardScene">
-          <CspSafeAttackSurface model={model} />
+          <WebGLAttackSurface model={model} />
           <div className="livingSceneStatus" aria-label="Attack surface renderer status">
             <span><i className="livingScenePulse" /> Topology active</span>
             <span>{model.nodes.length} visual nodes</span>
