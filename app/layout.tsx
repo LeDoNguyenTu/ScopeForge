@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { scopeForgeIconMetadata } from "@/lib/brand/browser-icons";
 import "./globals.css";
 import "./forge.css";
@@ -27,7 +28,9 @@ export const metadata: Metadata = {
   icons: scopeForgeIconMetadata
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  await connection();
+
   return (
     <html lang="en">
       <body>{children}</body>
