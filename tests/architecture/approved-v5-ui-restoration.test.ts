@@ -16,6 +16,15 @@ describe("approved V5 UI restoration", () => {
     expect(dashboard).not.toContain('className="saasDashboard"');
   });
 
+  it("restores the approved immersive shell while keeping the default workspace shell", () => {
+    const shell = read("components/AppShell.tsx");
+
+    expect(shell).toContain('if (variant === "immersive")');
+    expect(shell).toContain('className="immersiveAppShell"');
+    expect(shell).toContain('className="immersiveContent"');
+    expect(shell).toContain("<SideNav />");
+  });
+
   it("restores the approved public V5 visual scale", () => {
     const primitives = read("components/landing/CommandCenterV5Primitives.tsx");
 
@@ -27,17 +36,24 @@ describe("approved V5 UI restoration", () => {
     expect(primitives).toContain('<Bug size={22} />');
   });
 
-  it("loads the approved V5 polish layers and drops the superseding SaaS dashboard layer", () => {
+  it("loads the approved V5 polish layers after the older refinement layer", () => {
     const layout = read("app/layout.tsx");
+    const refinement = layout.indexOf('import "./ui-refinement.css";');
+    const immersive = layout.indexOf('import "./forge-dashboard-v2.css";');
 
     expect(layout).toContain('import "./command-center-v5-1.css";');
     expect(layout).toContain('import "./command-center-v5-2.css";');
     expect(layout).not.toContain('import "./saas-dashboard.css";');
+    expect(refinement).toBeGreaterThanOrEqual(0);
+    expect(immersive).toBeGreaterThan(refinement);
   });
 
-  it("keeps the restored dashboard compatible with strict CSP", () => {
+  it("keeps every restored authenticated dashboard presentation path compatible with strict CSP", () => {
     const dashboard = read("components/dashboard/ImmersiveDashboardExperience.tsx");
+    const topology = read("components/dashboard/WebGLAttackSurface.tsx");
 
     expect(dashboard).not.toContain("style={{");
+    expect(topology).not.toContain("style={");
+    expect(topology).not.toContain("style={{");
   });
 });
