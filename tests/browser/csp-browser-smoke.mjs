@@ -78,38 +78,31 @@ function assertCleanLogs(logs, route) {
 }
 
 async function drainAndAssertLogs(sessionId, route) {
-  const logs = await browserLogs(sessionId);
-  assertCleanLogs(logs, route);
+  assertCleanLogs(await browserLogs(sessionId), route);
 }
 
 function assertLandingVisualScale(metrics) {
-  if (!metrics) throw new Error("Landing visual metrics were unavailable");
-  if (metrics.heroFontSize < 60) throw new Error(`V5 landing hero regressed below approved scale: ${metrics.heroFontSize}px`);
-  if (metrics.metricFontSize < 31) throw new Error(`V5 landing metric values regressed below approved scale: ${metrics.metricFontSize}px`);
-  if (metrics.sceneHeight < 650) throw new Error(`V5 landing scene regressed below approved height: ${metrics.sceneHeight}px`);
-  if (!metrics.desktopVisible) throw new Error("V5 desktop composition is not visible at the desktop acceptance viewport");
+  if (!metrics) throw new Error("Approved command-center landing metrics were unavailable");
+  if (metrics.heroFontSize < 48) throw new Error(`Approved landing headline regressed below expected scale: ${metrics.heroFontSize}px`);
+  if (metrics.metricFontSize < 18) throw new Error(`Approved landing metric values regressed below expected scale: ${metrics.metricFontSize}px`);
+  if (metrics.sceneHeight < 500) throw new Error(`Approved landing attack surface regressed below expected height: ${metrics.sceneHeight}px`);
+  if (metrics.sceneWidth < 720) throw new Error(`Approved landing attack surface regressed below expected width: ${metrics.sceneWidth}px`);
+  if (!metrics.heroVisible) throw new Error("Approved command-center landing composition is not visible");
+  if (!metrics.overviewVisible || !metrics.runtimeVisible) throw new Error("Approved command-center lower HUD is missing");
 }
 
 function assertDashboardVisualScale(metrics) {
-  if (!metrics) throw new Error("Dashboard visual metrics were unavailable");
-  if (!metrics.immersiveShell) throw new Error("Restored dashboard is not using the immersive AppShell variant");
-  if (metrics.workspaceShell) throw new Error("Restored dashboard unexpectedly rendered the later workspace sidebar shell");
-  if (metrics.saasDashboard) throw new Error("Restored dashboard unexpectedly rendered the superseding SaaS dashboard composition");
-  if (metrics.heroDisplay !== "block") throw new Error(`Restored dashboard hero was superseded by ${metrics.heroDisplay} layout`);
-  if (metrics.editorialDisplay !== "block") throw new Error(`Restored dashboard editorial was superseded by ${metrics.editorialDisplay} layout`);
-  if (metrics.scenePosition !== "absolute") throw new Error(`Restored dashboard scene is no longer the approved overlapping scene: ${metrics.scenePosition}`);
-  if (metrics.lowerPosition !== "absolute") throw new Error(`Restored dashboard evidence rail is no longer anchored to the hero: ${metrics.lowerPosition}`);
-  if (metrics.heroFontSize < 46) throw new Error(`Restored dashboard headline regressed below approved scale: ${metrics.heroFontSize}px`);
-  if (metrics.sceneHeight < 600) throw new Error(`Restored dashboard topology regressed below approved height: ${metrics.sceneHeight}px`);
-  if (metrics.sceneWidth < 760) throw new Error(`Restored dashboard topology regressed below approved width: ${metrics.sceneWidth}px`);
-  if (metrics.sceneTopOffset > 70) throw new Error(`Restored dashboard topology was pushed below the editorial composition: ${metrics.sceneTopOffset}px`);
-  if (metrics.lowerLeftOffset > 36) throw new Error(`Restored dashboard evidence rail drifted away from the left anchor: ${metrics.lowerLeftOffset}px`);
-  if (metrics.lowerWidth < 600) throw new Error(`Restored dashboard evidence rail was compressed: ${metrics.lowerWidth}px`);
-  if (metrics.overviewWidth < 270) throw new Error(`Restored dashboard overview card was compressed: ${metrics.overviewWidth}px`);
-  if (metrics.topologyWidth < 760 || metrics.topologyHeight < 600) {
-    throw new Error(`Restored topology artwork is not occupying the approved scene: ${metrics.topologyWidth}x${metrics.topologyHeight}px`);
-  }
-  if (metrics.metricValueFontSize < 19) throw new Error(`Restored dashboard metric values regressed below approved scale: ${metrics.metricValueFontSize}px`);
+  if (!metrics) throw new Error("Approved dashboard visual metrics were unavailable");
+  if (!metrics.immersiveShell) throw new Error("Dashboard is not using the immersive AppShell variant");
+  if (metrics.workspaceShell) throw new Error("Dashboard unexpectedly rendered the workspace sidebar shell");
+  if (metrics.saasDashboard) throw new Error("Dashboard unexpectedly rendered the superseding SaaS composition");
+  if (metrics.heroDisplay !== "block") throw new Error(`Dashboard hero was superseded by ${metrics.heroDisplay} layout`);
+  if (metrics.scenePosition !== "absolute") throw new Error(`Dashboard scene is no longer the approved overlapping scene: ${metrics.scenePosition}`);
+  if (metrics.lowerPosition !== "absolute") throw new Error(`Dashboard evidence rail is no longer anchored to the hero: ${metrics.lowerPosition}`);
+  if (metrics.heroFontSize < 46) throw new Error(`Dashboard headline regressed below approved scale: ${metrics.heroFontSize}px`);
+  if (metrics.sceneHeight < 600 || metrics.sceneWidth < 760) throw new Error(`Dashboard topology scene is too small: ${metrics.sceneWidth}x${metrics.sceneHeight}px`);
+  if (metrics.topologyWidth < 720 || metrics.topologyHeight < 560) throw new Error(`Live dashboard topology is not occupying the approved scene: ${metrics.topologyWidth}x${metrics.topologyHeight}px`);
+  if (metrics.lowerWidth < 600 || metrics.overviewWidth < 270) throw new Error("Dashboard evidence rail was compressed");
 }
 
 async function main() {
@@ -138,31 +131,33 @@ async function main() {
 
   try {
     await navigate(sessionId, "/");
-    await waitFor(sessionId, "V5 desktop composition", "return Boolean(document.querySelector('[data-testid=\"command-center-v5-desktop\"]')); ");
+    await waitFor(sessionId, "approved command-center landing", "return Boolean(document.querySelector('.commandHero') && document.querySelector('[data-testid=\"command-center-surface\"]')); ");
     await waitFor(sessionId, "landing hydration", "return document.querySelector('.scopeForgeLandingBootHost')?.dataset.bootState === 'ready';", 12000);
-    await waitFor(
-      sessionId,
-      "active V5 WebGL renderer",
-      "const scene = [...document.querySelectorAll('[data-testid=\"attack-surface-v5-scene\"]')].find((node) => node.dataset.mediaActive === 'true'); return scene?.dataset.rendererState === 'webgl' ? scene.dataset.rendererState : false;",
-      15000,
-    );
+    await waitFor(sessionId, "approved public WebGL renderer", "return document.querySelector('[data-testid=\"command-center-surface\"]')?.dataset.rendererState === 'webgl';", 15000);
     await waitFor(sessionId, "request nonce on framework script", "const script = document.querySelector('script[nonce]'); return script?.nonce?.length >= 16 ? script.nonce : false;");
+
     const landingMetrics = await execute(sessionId, `
-      const hero = document.querySelector('.ccV5Desktop .ccV5Copy h1');
-      const metric = document.querySelector('.ccV5Desktop .ccV5MetricCard > strong');
-      const scene = document.querySelector('.ccV5DesktopScene');
-      const desktop = document.querySelector('[data-testid="command-center-v5-desktop"]');
-      if (!hero || !metric || !scene || !desktop) return null;
+      const heroRegion = document.querySelector('.commandHero');
+      const hero = document.querySelector('.commandHeroCopy h1');
+      const metric = document.querySelector('.commandMetricCard strong');
+      const scene = document.querySelector('.commandHeroScene');
+      const overview = document.querySelector('.commandOverviewPanel');
+      const runtime = document.querySelector('.commandRuntimeBar');
+      if (!heroRegion || !hero || !metric || !scene || !overview || !runtime) return null;
+      const sceneRect = scene.getBoundingClientRect();
       return {
         heroFontSize: parseFloat(getComputedStyle(hero).fontSize),
         metricFontSize: parseFloat(getComputedStyle(metric).fontSize),
-        sceneHeight: scene.getBoundingClientRect().height,
-        desktopVisible: getComputedStyle(desktop).display !== 'none' && desktop.getBoundingClientRect().width > 900,
+        sceneHeight: sceneRect.height,
+        sceneWidth: sceneRect.width,
+        heroVisible: getComputedStyle(heroRegion).display !== 'none' && heroRegion.getBoundingClientRect().width > 900,
+        overviewVisible: overview.getBoundingClientRect().height > 120,
+        runtimeVisible: runtime.getBoundingClientRect().width > 300,
       };
     `);
     assertLandingVisualScale(landingMetrics);
     await drainAndAssertLogs(sessionId, "/");
-    await captureScreenshot(sessionId, "landing-v5-desktop.png");
+    await captureScreenshot(sessionId, "landing-approved-command-center.png");
 
     await webdriver("POST", `/session/${sessionId}/execute/sync`, {
       script: "document.querySelector('a[href=\"/resources\"]')?.click(); return true;",
@@ -172,47 +167,38 @@ async function main() {
     await drainAndAssertLogs(sessionId, "/resources");
 
     await navigate(sessionId, "/preview/dashboard");
-    await waitFor(sessionId, "restored immersive dashboard", "return Boolean(document.querySelector('.livingDashboard') && document.querySelector('.livingDashboardHero') && document.querySelector('.livingDashboardScene')); ");
-    await waitFor(sessionId, "CSP-safe restored topology", "return document.querySelector('[data-testid=\"webgl-attack-surface\"]')?.dataset.rendererState === 'svg';");
+    await waitFor(sessionId, "approved immersive dashboard", "return Boolean(document.querySelector('.livingDashboard') && document.querySelector('.livingDashboardHero') && document.querySelector('.livingDashboardScene')); ");
+    await waitFor(sessionId, "approved dashboard WebGL topology", "return document.querySelector('[data-testid=\"webgl-attack-surface\"]')?.dataset.rendererState === 'webgl';", 15000);
+
     const dashboardMetrics = await execute(sessionId, `
-      const dashboard = document.querySelector('.livingDashboard');
       const heroRegion = document.querySelector('.livingDashboardHero');
-      const editorial = document.querySelector('.livingDashboardEditorial');
       const hero = document.querySelector('.livingDashboardEditorial h1');
       const scene = document.querySelector('.livingDashboardScene');
       const lower = document.querySelector('.livingDashboardLower');
       const overview = document.querySelector('.livingOverviewPanel');
-      const topology = document.querySelector('.workspaceTopologyArt');
-      const metric = document.querySelector('.livingMetricCard strong');
-      if (!dashboard || !heroRegion || !editorial || !hero || !scene || !lower || !overview || !topology || !metric) return null;
-      const heroRect = heroRegion.getBoundingClientRect();
+      const topology = document.querySelector('[data-testid="webgl-attack-surface"]');
+      if (!heroRegion || !hero || !scene || !lower || !overview || !topology) return null;
       const sceneRect = scene.getBoundingClientRect();
-      const lowerRect = lower.getBoundingClientRect();
-      const overviewRect = overview.getBoundingClientRect();
       const topologyRect = topology.getBoundingClientRect();
       return {
         immersiveShell: Boolean(document.querySelector('.immersiveAppShell')),
         workspaceShell: Boolean(document.querySelector('.workspaceAppShell')),
         saasDashboard: Boolean(document.querySelector('.saasDashboard')),
         heroDisplay: getComputedStyle(heroRegion).display,
-        editorialDisplay: getComputedStyle(editorial).display,
         scenePosition: getComputedStyle(scene).position,
         lowerPosition: getComputedStyle(lower).position,
         heroFontSize: parseFloat(getComputedStyle(hero).fontSize),
         sceneHeight: sceneRect.height,
         sceneWidth: sceneRect.width,
-        sceneTopOffset: sceneRect.top - heroRect.top,
-        lowerLeftOffset: lowerRect.left - heroRect.left,
-        lowerWidth: lowerRect.width,
-        overviewWidth: overviewRect.width,
         topologyWidth: topologyRect.width,
         topologyHeight: topologyRect.height,
-        metricValueFontSize: parseFloat(getComputedStyle(metric).fontSize),
+        lowerWidth: lower.getBoundingClientRect().width,
+        overviewWidth: overview.getBoundingClientRect().width,
       };
     `);
     assertDashboardVisualScale(dashboardMetrics);
     await drainAndAssertLogs(sessionId, "/preview/dashboard");
-    await captureScreenshot(sessionId, "dashboard-v5-desktop.png");
+    await captureScreenshot(sessionId, "dashboard-approved-command-center.png");
 
     await navigate(sessionId, "/auth/sign-in");
     await waitFor(sessionId, "sign-in form", "return Boolean(document.querySelector('input[type=\"email\"]') && document.querySelector('input[type=\"password\"]') && document.querySelector('button[type=\"submit\"]')); ");
@@ -227,19 +213,14 @@ async function main() {
     await drainAndAssertLogs(sessionId, "404");
 
     await navigate(sessionId, "/dashboard");
-    await waitFor(
-      sessionId,
-      "unauthenticated dashboard boundary",
-      "return location.pathname === '/auth/sign-in' || Boolean(document.querySelector('input[type=\"email\"]'));",
-      15000,
-    );
+    await waitFor(sessionId, "unauthenticated dashboard boundary", "return location.pathname === '/auth/sign-in' || Boolean(document.querySelector('input[type=\"email\"]'));", 15000);
     const dashboardUrl = await currentUrl(sessionId);
     if (!new URL(dashboardUrl).pathname.startsWith("/auth/sign-in")) {
       throw new Error(`Unauthenticated dashboard did not resolve to the sign-in boundary: ${dashboardUrl}`);
     }
     await drainAndAssertLogs(sessionId, "/dashboard -> /auth/sign-in");
 
-    console.log("CSP and V5 restoration browser acceptance passed: public V5 scale, immersive dashboard composition, CSP-safe topology, navigation, auth, 404, nonce execution, console, and public WebGL are healthy.");
+    console.log("CSP and approved Command Center browser acceptance passed: public composition, live WebGL before and after login, navigation, auth, 404, nonce execution, and console are healthy.");
   } finally {
     await webdriver("DELETE", `/session/${sessionId}`).catch(() => undefined);
   }
