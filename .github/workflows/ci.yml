@@ -38,7 +38,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      - name: Run CSP and V5 restoration browser smoke
+      - name: Run CSP browser smoke - V5 restoration
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
