@@ -13,80 +13,62 @@ Do not recreate these released phases:
 - Phase 9A authentication-boundary hardening
 - Phase 9B Turnstile-capable provider/auth hardening code
 - Phase 9C database/RPC defense-in-depth
+- Phase 9D security telemetry/browser hardening
 
 Current production `main` baseline:
 
-`f203168e6ae25455743849f08511e371d3964153`
+`27adf376b77c08fe95bbf64f7fc7a4df7ce5efe0`
 
 Current production tree:
 
-`9980aa5a58014998fd26ae7084bd97c992bc1a82`
+`007474c194f687f126c000d98b1d1ed3a5d032d9`
 
-This tree includes the current production UI plus released Phase 9A/9B/9C security work. All remaining implementation must start from the actual current `main` rather than any historical security baseline or PR #49.
+Exact production deployment:
 
-## Immediate priority - Phase 9D security telemetry and browser hardening
+`dpl_ExY8TxoHpFT7wsiMwg3w4BTUNE8V`
 
-Phase 9D is the next implementation boundary.
+Production is READY on the exact released SHA with `aliasError=null`, and a fresh GET to `scopeforge.dev` returned HTTP 200 with the accepted V5 desktop/mobile composition and poster assets.
 
-Approved direction:
+## Immediate priority - Phase 9E incident readiness and launch gate
 
-- reuse `audit_events` and `lib/audit/write-audit-event.ts` for durable workspace security-significant events
-- use structured privacy-reduced server logs for high-frequency operational security signals
-- never log passwords, tokens, API keys, credentials, cookies, authorization headers, worker lease tokens, source content, or raw executor output
-- preserve the current security-header baseline
-- stage CSP carefully and require compatibility proof with the actual production Next.js/WebGL UI before enforcement
-- do not ship a broad `unsafe-inline` CSP merely to claim CSP coverage
-- do not couple security telemetry to visual components
+Phase 9E is the next implementation boundary.
 
-Required Phase 9D sequence:
+Use the approved Phase 9 umbrella architecture as the starting point, then complete the repository design/plan workflow for the Phase 9E subphase before implementation.
 
-1. Re-read the current production audit writer, audit-event schema, security-relevant routes/RPC boundaries, middleware, `next.config.ts`, and current logging patterns.
-2. Define a narrow security-event taxonomy and decide which events are durable audit events versus high-frequency operational logs.
-3. Define privacy-reduced log/event fields, explicit secret-key deny rules, size bounds, and failure behavior.
-4. Add failing tests for metadata safety, event-shape allowlists, and any new security-significant audit coverage before implementation.
-5. Add structured operational logging only where it improves detection/rollback without flooding durable audit storage.
-6. Define observable alert/rollback signals using available Vercel runtime evidence rather than inventing an unverified external alerting system.
-7. Preserve current browser headers unless a concrete weakness is being corrected.
-8. Treat CSP as a separate compatibility gate: first produce and test a candidate policy against the exact current production UI/WebGL behavior, then enforce only if the compatibility evidence is clean.
-9. Do not edit or resurrect PR #49.
-10. Freeze an exact candidate only after current `main` drift is reconciled and the production UI is preserved.
-11. Require exact-head preview, one substantive candidate CI, post-merge main CI, exact production deployment verification, and a docs-only release checkpoint.
+Required Phase 9E scope:
 
-Before Phase 9D implementation, follow the repository design/plan workflow and keep the approved Phase 9 architecture boundaries explicit.
+1. Expand the minimal security disclosure policy into an operational private-reporting policy without publishing sensitive contact data.
+2. Define severity and triage criteria with bounded acknowledgement and escalation expectations.
+3. Define initial containment actions, including explicit use of the four hosted runtime flags where relevant.
+4. Define credential/key rotation order without storing secrets in the runbook.
+5. Define Supabase containment, recovery, and validation actions.
+6. Define Vercel rollback and traffic-control actions using only provider controls that are actually available and verified.
+7. Define data-impact assessment and evidence-preservation rules that avoid collecting passwords, tokens, credentials, raw source, or unnecessary personal data.
+8. Define recovery validation and post-incident review.
+9. Create the final Phase 9 release-security checklist and tie each claim to exact release evidence.
+10. Preserve the accepted V5 UI and all worker/runtime authority boundaries.
 
-## Phase 9B operational provider follow-up
+Prefer a repository-native runbook and checklist over introducing a new incident-management subsystem unless a concrete need proves otherwise.
 
-Phase 9B code is released, but provider enforcement remains a separate launch prerequisite.
+## Provider follow-up remains separate
 
 Current truth:
 
-- leaked-password protection remains disabled according to Supabase Security Advisor
+- leaked-password protection is not claimed enabled
 - production Turnstile enforcement is not claimed until external provider configuration is directly verified
-- Vercel project-specific WAF custom-rule state is not claimed without direct inspected evidence
+- Vercel project-specific custom WAF rule state is not claimed without direct inspected evidence
 - Supabase native Auth rate limiting remains the auth-endpoint limiter
+- CSP is not enforced
 
-Do not silently add billing, provider secrets, or external firewall rules. Any provider activation must use a supported inspected surface, record rollback, and be verified after change.
-
-## Phase 9E after Phase 9D
-
-Complete incident and release readiness:
-
-- private vulnerability disclosure workflow
-- severity/triage procedure
-- containment and worker-disable procedure
-- credential rotation runbook
-- Supabase/Vercel rollback procedures
-- impact assessment and recovery checks
-- post-incident validation
-- final security release checklist and exact deployment evidence
+Do not silently add billing, provider secrets, external firewall rules, or availability-sensitive provider changes. Any provider activation must use a supported inspected surface, record rollback, and be verified after change.
 
 ## Outstanding database review item
 
-Legacy broad SQL grants on `profiles`, `workspaces`, and `workspace_members` remain a separate review point. RLS is enabled and Phase 9C did not change these grants. Do not silently mix cleanup into Phase 9D unless the reviewed design explicitly expands scope.
+Legacy broad SQL grants on `profiles`, `workspaces`, and `workspace_members` remain a separate review point. RLS is enabled and Phase 9C did not change these grants. Do not silently mix cleanup into Phase 9E.
 
 ## Runtime authority
 
-Keep false/absent until their own operational acceptance:
+Keep false or absent until their own operational acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
@@ -95,6 +77,8 @@ Keep false/absent until their own operational acceptance:
 
 ## UI baseline rule
 
-The production `main` tree is authoritative. Before freezing or merging remaining security work, re-read `main` and resolve any concurrent UI drift first. Preserve the newest production UI and reapply only the reviewed security delta when overlaps occur.
+The production `main` tree is authoritative. Preserve the released Command Center UI V5. Do not edit or resurrect historical PR #49 or use stale preview/diagnostic branches as an implementation base.
 
-PR #49 remains an open draft legacy UI branch and must remain untouched unless separately requested.
+## After Phase 9E
+
+Strict CSP enforcement remains a separate compatibility gate. First produce and test a candidate policy against the exact current production Next.js/V5 behavior, then enforce only if compatibility evidence is clean. Do not ship broad permanent `unsafe-inline` or `unsafe-eval` as a shortcut.
