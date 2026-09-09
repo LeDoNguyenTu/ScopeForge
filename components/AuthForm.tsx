@@ -10,10 +10,12 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function AuthForm({
   mode,
-  captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null
+  captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null,
+  nonce = null
 }: {
   mode: "sign-in" | "sign-up";
   captchaSiteKey?: string | null;
+  nonce?: string | null;
 }) {
   const supabase = createClient();
   const [email, setEmail] = useState("");
@@ -91,6 +93,7 @@ export default function AuthForm({
             <TurnstileChallenge
               key={captchaEpoch}
               siteKey={normalizedCaptchaSiteKey}
+              nonce={nonce}
               onToken={setCaptchaToken}
             />
           </div>

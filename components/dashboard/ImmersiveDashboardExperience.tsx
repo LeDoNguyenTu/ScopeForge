@@ -26,7 +26,7 @@ export default function ImmersiveDashboardExperience({ model, nextAction, assets
         <Link href="/dashboard/findings"><div><span>Open findings</span><Bug size={18} /></div><strong>{metrics.openFindings}</strong><small>Review and prioritize evidence <ArrowRight size={12} /></small></Link>
         <Link href="/dashboard/assets"><div><span>Registered assets</span><Boxes size={18} /></div><strong>{metrics.registeredAssets}</strong><small>Applications, APIs, and repositories</small></Link>
         <Link href="/dashboard/assets"><div><span>Verified assets</span><CircleCheck size={18} /></div><strong>{metrics.verifiedAssets}<em> / {metrics.registeredAssets}</em></strong><small>Ownership confirmed</small></Link>
-        <Link href="/dashboard/assets"><div><span>Verification coverage</span><ShieldCheck size={18} /></div><strong>{metrics.verificationPercent}%</strong><div className="saasCoverageTrack" aria-hidden="true"><i style={{ width: `${metrics.verificationPercent}%` }} /></div></Link>
+        <Link href="/dashboard/assets"><div><span>Verification coverage</span><ShieldCheck size={18} /></div><strong>{metrics.verificationPercent}%</strong><progress className="saasCoverageTrack" value={metrics.verificationPercent} max={100} aria-hidden="true" /></Link>
       </section>
       <section className="saasNextAction"><span className="saasActionIcon"><ShieldCheck size={22} /></span><div><span className="saasEyebrow">RECOMMENDED NEXT STEP</span><h2>{nextAction.title}</h2><p>{nextAction.copy}</p></div><Link href={nextAction.href}>{nextAction.label} <ArrowRight size={15} /></Link></section>
       <div className="saasMainGrid">
