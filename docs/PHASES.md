@@ -40,9 +40,13 @@ ScopeForge follows the approved community-platform roadmap. Phase boundaries are
    - **9B Provider/auth hardening code - complete.** Configuration-gated Turnstile support was released without claiming external provider enforcement.
    - **9C Database/RPC defense-in-depth - complete.** Private function/table authority was tightened and regression-tested while required authenticated RLS helper behavior remains available.
    - **9D Security telemetry and browser hardening - complete.** Privacy-reduced structured security telemetry, durable security-significant audit coverage, alert/rollback signals, and preservation of the browser-header baseline were released without forcing CSP before compatibility evidence existed.
-   - **9E Incident readiness and release engineering - complete.** PR #64 released private vulnerability-reporting guidance, incident-response procedures, exact-SHA release-security gates, and final launch evidence at `6c6c07b070d2751a96729d3e58a86414ae148edc`. Exact candidate CI #781 and post-merge CI #782 passed, production deployment `dpl_5sQid6VJ4xC2BS7iYrHBYUrzzQFP` is READY, and the accepted Command Center UI V5 remains live on `scopeforge.dev`.
+   - **9E Incident readiness and release engineering - complete.** PR #64 released private vulnerability-reporting guidance, incident-response procedures, exact-SHA release-security gates, and final launch evidence at `6c6c07b070d2751a96729d3e58a86414ae148edc`. Exact candidate CI #781 and post-merge CI #782 passed, production deployment `dpl_5sQid6VJ4xC2BS7iYrHBYUrzzQFP` reached READY, and Command Center UI V5 remained the accepted presentation baseline.
 
-Strict CSP enforcement is intentionally a separate compatibility gate after the approved Phase 9 release. External provider controls that are disabled or not directly verified remain explicit operational follow-ups rather than hidden release claims.
+10. **Post-Phase-9 compatibility gates - complete for strict CSP and V5 restoration**
+   - **Strict CSP compatibility - complete.** PR #66 merged the nonce-based CSP gate as `191a7ee1c93f179adad51f108d4ad1fade2e78f2` after exact-head CI #794 and a READY Vercel Preview. Production CSP is enforced without permanent production `unsafe-inline` or `unsafe-eval`, and CI includes real-browser CSP acceptance.
+   - **Approved Command Center V5 restoration - complete.** PR #67 restored the accepted public and authenticated V5 presentation on top of strict CSP. Final candidate `e66b6fc4b8693deb052fa89ae9d82647d51c3a94` passed CI #802 plus browser geometry/screenshot acceptance, merged as `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`, and post-merge CI #803 passed on the exact production release.
+
+External provider controls that are disabled or not directly verified remain explicit operational follow-ups rather than hidden release claims. Hosted worker/scanner capability flags remain separately gated and must not be enabled merely because their implementation exists.
 
 ## Safety rule
 
