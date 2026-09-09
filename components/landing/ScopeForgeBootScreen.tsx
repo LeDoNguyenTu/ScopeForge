@@ -31,16 +31,15 @@ export default function ScopeForgeBootScreen({ progress, stage }: { progress: nu
           <output>{boundedProgress}%</output>
           <span>{stage}</span>
         </div>
-        <div
+        <progress
           className="scopeForgeBootTrack"
-          role="progressbar"
+          value={boundedProgress}
+          max={100}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={boundedProgress}
           aria-label="Attack surface initialization progress"
-        >
-          <span style={{ width: `${boundedProgress}%` }} />
-        </div>
+        />
         <p className="scopeForgeBootNote">Preparing authorized security workspace visuals</p>
       </div>
     </div>
