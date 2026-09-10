@@ -12,7 +12,14 @@ const validEnv = {
 
 describe("GitHub App server configuration", () => {
   it("loads only the six server-only settings", () => {
-    expect(getGitHubAppConfig(validEnv)).toEqual(validEnv);
+    expect(getGitHubAppConfig(validEnv)).toEqual({
+      appId: validEnv.GITHUB_APP_ID,
+      clientId: validEnv.GITHUB_APP_CLIENT_ID,
+      clientSecret: validEnv.GITHUB_APP_CLIENT_SECRET,
+      privateKey: validEnv.GITHUB_APP_PRIVATE_KEY,
+      slug: validEnv.GITHUB_APP_SLUG,
+      stateSecret: validEnv.GITHUB_APP_STATE_SECRET,
+    });
   });
 
   it.each(Object.keys(validEnv))("rejects missing %s", (key) => {
