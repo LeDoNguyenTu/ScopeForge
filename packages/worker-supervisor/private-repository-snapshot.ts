@@ -177,7 +177,10 @@ export function createPrivateRepositorySnapshotExecutor(
   const cpuUsage = dependencies.cpuUsage ?? (() => process.cpuUsage());
 
   return Object.freeze({
-    async execute(contract, signal) {
+    async execute(
+      contract: PrivateRepositorySnapshotExecutorContract,
+      signal: AbortSignal,
+    ) {
       let inputBytes = 0;
       const startedAt = now();
       const startedCpu = cpuUsage();
