@@ -125,13 +125,13 @@ export default function CspSafeAttackSurface({ model, canvas, rendererState = "s
           const labelY = y + 54;
           return (
             <g key={`label-${node.id}`} transform={`translate(${x} ${labelY})`} className={`cspTopologyLabel cspTopologyLabel-${node.state}`}>
-              <circle className="cspTopologyNumberDisc" cx="-92" cy="16" r="12" />
-              <text className="cspTopologyNumber" x="-92" y="20" textAnchor="middle">{index + 1}</text>
-              <rect className="cspTopologyLabelPanel" x="-76" y="-5" width="152" height="58" rx="6" />
-              <line className="cspTopologyLabelAccent" x1="-76" y1="-5" x2="-76" y2="53" />
-              <text className="cspTopologyKind" x="-64" y="10">{node.kind.replaceAll("_", " ")}</text>
-              <text className="cspTopologyName" x="-64" y="29">{shorten(node.label)}</text>
-              <text className="cspTopologyStatus" x="-64" y="45">{shorten(nodeStatus(node), 28)}</text>
+              <circle className="cspTopologyNumberDisc" cx="-106" cy="16" r="12" />
+              <text className="cspTopologyNumber" x="-106" y="20" textAnchor="middle">{index + 1}</text>
+              <rect className="cspTopologyLabelPanel" x="-90" y="-5" width="180" height="58" rx="6" />
+              <line className="cspTopologyLabelAccent" x1="-90" y1="-5" x2="-90" y2="53" />
+              <text className="cspTopologyKind" x="-78" y="10">{node.kind.replaceAll("_", " ")}</text>
+              <text className="cspTopologyName" x="-78" y="29">{shorten(node.label)}</text>
+              <text className="cspTopologyStatus" x="-78" y="45">{shorten(nodeStatus(node), 28)}</text>
             </g>
           );
         })}
