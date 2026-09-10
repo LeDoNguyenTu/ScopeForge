@@ -3,13 +3,17 @@ import type { GitHubAppConfig } from "./types";
 const APP_ID_PATTERN = /^[1-9][0-9]{0,19}$/;
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/;
 
-function required(env: NodeJS.ProcessEnv, key: string): string {
+export type GitHubAppEnvironment = Readonly<Record<string, string | undefined>>;
+
+function required(env: GitHubAppEnvironment, key: string): string {
   const value = env[key]?.trim();
   if (!value) throw new Error(`Missing server-only GitHub App setting: ${key}.`);
   return value;
 }
 
-export function getGitHubAppConfig(env: NodeJS.ProcessEnv = process.env): GitHubAppConfig {
+export function getGitHubAppConfig(
+  env: GitHubAppEnvironment = process.env as GitHubAppEnvironment,
+): GitHubAppConfig {
   const appId = required(env, "GITHUB_APP_ID");
   const clientId = required(env, "GITHUB_APP_CLIENT_ID");
   const clientSecret = required(env, "GITHUB_APP_CLIENT_SECRET");
