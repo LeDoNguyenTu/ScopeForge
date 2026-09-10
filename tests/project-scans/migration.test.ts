@@ -11,6 +11,9 @@ const retryMigrationPath = path.resolve(
 const waitingMigrationPath = path.resolve(
   "supabase/migrations/20260910160020_phase_10a1_project_scan_waiting_idempotency.sql",
 );
+const recoveryMigrationPath = path.resolve(
+  "supabase/migrations/20260910160030_phase_10a1_project_scan_recovery.sql",
+);
 
 function tableDefinition(sql: string, qualifiedName: string): string {
   const escaped = qualifiedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -82,6 +85,17 @@ describe("Phase 10A1 connected project scan persistence", () => {
     expect(sql).toMatch(/project_scan_state\s*<>\s*'scan_queued'/i);
     expect(sql).toMatch(/revoke all on function public\.mark_connected_project_scan_waiting[\s\S]*from public, anon, authenticated, service_role/i);
     expect(sql).toMatch(/grant execute on function public\.mark_connected_project_scan_waiting[\s\S]*to service_role/i);
+  });
+
+  it("exposes a bounded owner/admin recovery lookup for published waiting and retry intents", async () => {
+    const sql = await readFile(recoveryMigrationPath, "utf8");
+    expect(sql).toContain("create or replace function public.get_connected_project_scan_recovery");
+    expect(sql).toMatch(/workspace_members[\s\S]*role::text\s+in\s*\('owner',\s*'admin'\)/i);
+    expect(sql).toMatch(/github_project_scan_intents[\s\S]*state\s+in\s*\([\s\S]*'waiting_scan_runtime'[\s\S]*'retry_pending'[\s\S]*'scan_queued'/i);
+    expect(sql).toMatch(/snapshot_task_id\s+is\s+not\s+null/i);
+    expect(sql).toMatch(/snapshot_id\s+is\s+not\s+null/i);
+    expect(sql).toMatch(/revoke all on function public\.get_connected_project_scan_recovery[\s\S]*from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.get_connected_project_scan_recovery[\s\S]*to service_role/i);
   });
 
   it("exposes only safe project-level state through the browser-readable link", async () => {

@@ -6,6 +6,7 @@ import ConnectedProjectScanPanel from "@/components/assets/ConnectedProjectScanP
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   requestScan: vi.fn(),
+  resumeScan: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -14,6 +15,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/app/dashboard/assets/[assetId]/project-scan-actions", () => ({
   requestConnectedProjectSecurityScan: mocks.requestScan,
+  resumeConnectedProjectSecurityScan: mocks.resumeScan,
 }));
 
 const publicProject = {
@@ -40,6 +42,7 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof ConnectedPro
 afterEach(() => {
   mocks.refresh.mockReset();
   mocks.requestScan.mockReset();
+  mocks.resumeScan.mockReset();
 });
 
 describe("ConnectedProjectScanPanel", () => {
@@ -59,15 +62,53 @@ describe("ConnectedProjectScanPanel", () => {
     expect(screen.getByRole("button", { name: /private acquisition required/i })).toBeDisabled();
   });
 
-  it("prevents duplicate user starts while orchestration is already active", () => {
+  it("prevents duplicate user starts while snapshot orchestration is already active", () => {
     renderPanel({ project: { ...publicProject, projectScanState: "snapshot_queued" } });
     expect(screen.getByText(/immutable source snapshot is queued/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /snapshot queued/i })).toBeDisabled();
   });
 
+  it("allows a waiting published snapshot to resume once scan runtime becomes available", async () => {
+    mocks.resumeScan.mockResolvedValue({
+      ok: true,
+      status: "scan_queued",
+      taskId: "77777777-7777-4777-8777-777777777777",
+      scanJobId: "88888888-8888-4888-8888-888888888888",
+      replayed: false,
+      message: "ScopeForge resumed the published snapshot and queued its repository scan.",
+    });
+    renderPanel({
+      project: { ...publicProject, projectScanState: "waiting_scan_runtime" },
+      snapshotRuntimeAvailable: false,
+      scanRuntimeAvailable: true,
+    });
+
+    const button = screen.getByRole("button", { name: /resume project scan/i });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+
+    await waitFor(() => expect(mocks.resumeScan).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222"));
+    expect(mocks.requestScan).not.toHaveBeenCalled();
+    expect(await screen.findByText(/resumed the published snapshot/i)).toBeInTheDocument();
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps waiting recovery disabled until the repository scan runtime is available", () => {
+    renderPanel({ project: { ...publicProject, projectScanState: "waiting_scan_runtime" } });
+    expect(screen.getByRole("button", { name: /waiting for scan runtime/i })).toBeDisabled();
+  });
+
+  it("allows retry-pending continuation to use the same bounded recovery action", () => {
+    renderPanel({
+      project: { ...publicProject, projectScanState: "retry_pending" },
+      scanRuntimeAvailable: true,
+    });
+    expect(screen.getByRole("button", { name: /resume project scan/i })).toBeEnabled();
+  });
+
   it("keeps ordinary workspace members read-only", () => {
     renderPanel({ role: "member" });
-    expect(screen.getByText(/owner or admin/i)).toBeInTheDocument();
+    expect(screen.getByText(/elevated workspace access/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /owner or admin required/i })).toBeDisabled();
   });
 
