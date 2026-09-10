@@ -1,0 +1,45 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+const root = process.cwd();
+const integrationPagePath = path.join(root, "app/dashboard/integrations/github/page.tsx");
+const pickerPath = path.join(root, "components/integrations/GitHubRepositoryPicker.tsx");
+const newAssetPagePath = path.join(root, "app/dashboard/assets/new/page.tsx");
+const actionPath = path.join(root, "app/dashboard/integrations/github/actions.ts");
+
+describe("GitHub connected project UI", () => {
+  it("keeps a prominent GitHub import path beside manual asset registration", async () => {
+    const source = await readFile(newAssetPagePath, "utf8");
+    expect(source).toContain("Import from GitHub");
+    expect(source).toContain('/dashboard/integrations/github');
+    expect(source).toContain("<AssetForm");
+  });
+
+  it("renders connected and disconnected integration states truthfully", async () => {
+    const source = await readFile(integrationPagePath, "utf8");
+    expect(source).toContain("Connect GitHub");
+    expect(source).toContain("GitHubRepositoryPicker");
+    expect(source).toContain("GITHUB_CONNECTION_MISSING");
+    expect(source).toContain("/api/integrations/github/connect");
+  });
+
+  it("shows repository visibility, default branch and the private scanning limitation", async () => {
+    const source = await readFile(pickerPath, "utf8");
+    expect(source).toContain("Private");
+    expect(source).toContain("Public");
+    expect(source).toContain("defaultBranch");
+    expect(source).toMatch(/private repository acquisition/i);
+    expect(source).not.toMatch(/private repositories? (are )?ready for hosted scanning/i);
+  });
+
+  it("accepts only repositoryId from the browser action payload", async () => {
+    const source = await readFile(actionPath, "utf8");
+    expect(source).toContain('formData.get("repositoryId")');
+    expect(source).not.toContain('formData.get("ownerLogin")');
+    expect(source).not.toContain('formData.get("repositoryName")');
+    expect(source).not.toContain('formData.get("defaultBranch")');
+    expect(source).not.toContain('formData.get("htmlUrl")');
+    expect(source).not.toContain('formData.get("isPrivate")');
+  });
+});
