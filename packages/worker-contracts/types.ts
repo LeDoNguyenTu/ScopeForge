@@ -4,10 +4,10 @@ import type { CorsPolicyObservation } from "@/packages/runtime-validator";
 export type WorkerExecutionClass =
   | "foundation_no_egress_v1"
   | "repository_snapshot_github_public_v1"
-  | "repository_snapshot_github_private_v1"
   | "phase3_repository_scan_no_egress_v1"
   | "passive_runtime_observation_v1"
   | "active_cors_validation_v1";
+export type PrivateRepositorySnapshotExecutionClass = "repository_snapshot_github_private_v1";
 export type WorkerNetworkPolicy =
   | "none"
   | "github_public_archive_and_attempt_artifact_put_v1"
@@ -62,6 +62,12 @@ export interface WorkerExecutionBudget {
 export interface WorkerExecutionProfile {
   executionClass: WorkerExecutionClass;
   networkPolicy: WorkerNetworkPolicy;
+  budget: WorkerExecutionBudget;
+}
+
+export interface PrivateRepositorySnapshotExecutionProfile {
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+  networkPolicy: "github_private_archive_lease_and_attempt_artifact_put_v1";
   budget: WorkerExecutionBudget;
 }
 
@@ -129,7 +135,6 @@ export interface ActiveCorsValidationInput {
 export type WorkerTaskInput =
   | FoundationProbeInput
   | RepositorySnapshotInput
-  | PrivateRepositorySnapshotInput
   | RepositoryScanInput
   | PassiveRuntimeObservationInput
   | ActiveCorsValidationInput;
@@ -224,7 +229,6 @@ export interface ActiveCorsValidationResult {
 export type WorkerTerminalResult =
   | FoundationProbeResult
   | RepositorySnapshotResult
-  | PrivateRepositorySnapshotResult
   | RepositoryScanResult
   | PassiveRuntimeObservationResult
   | ActiveCorsValidationResult;
