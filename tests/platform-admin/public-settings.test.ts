@@ -1,5 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { readPublicPlatformSettings } from "@/lib/platform-settings/public";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("public platform settings read model", () => {
   it("uses only the publishable Supabase credential and requests the narrow public fields", async () => {
@@ -35,13 +39,39 @@ describe("public platform settings read model", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("fails closed with a sanitized error when the public settings row is unavailable", async () => {
+  it("uses normal-open defaults only for the exact built-in CI placeholder when no fetcher is injected", async () => {
+    const globalFetch = vi.fn();
+    vi.stubGlobal("fetch", globalFetch);
+
+    await expect(readPublicPlatformSettings({
+      supabaseUrl: "https://example.supabase.co",
+      publishableKey: "sb_publishable_example",
+    })).resolves.toEqual({
+      registrationEnabled: true,
+      maintenanceMode: false,
+      maintenanceMessage: "ScopeForge is temporarily undergoing maintenance.",
+      updatedAt: "1970-01-01T00:00:00.000Z",
+    });
+    expect(globalFetch).not.toHaveBeenCalled();
+  });
+
+  it("does not use the CI fallback for arbitrary provider failures", async () => {
     const fetcher = vi.fn(async () => new Response("provider-secret-body", { status: 500 }));
 
     await expect(readPublicPlatformSettings({
       fetcher,
       supabaseUrl: "https://example.supabase.co",
       publishableKey: "sb_publishable_example",
+    })).rejects.toThrow("Unable to load platform availability settings.");
+  });
+
+  it("fails closed with a sanitized error when the public settings row is unavailable", async () => {
+    const fetcher = vi.fn(async () => new Response("provider-secret-body", { status: 500 }));
+
+    await expect(readPublicPlatformSettings({
+      fetcher,
+      supabaseUrl: "https://real-project.supabase.co",
+      publishableKey: "sb_publishable_real",
     })).rejects.toThrow("Unable to load platform availability settings.");
   });
 
@@ -55,8 +85,8 @@ describe("public platform settings read model", () => {
 
     await expect(readPublicPlatformSettings({
       fetcher,
-      supabaseUrl: "https://example.supabase.co",
-      publishableKey: "sb_publishable_example",
+      supabaseUrl: "https://real-project.supabase.co",
+      publishableKey: "sb_publishable_real",
     })).rejects.toThrow("Unable to load platform availability settings.");
   });
 });
