@@ -1,22 +1,20 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-10 (Asia/Singapore)
+Last reconciled: 2026-09-11 (Asia/Singapore)
 
 ## Released baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- current released `main`: `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`
-- current released tree: `f2a39880347444967f2f2b0e2eb78d63342afbef`
-- latest implementation PRs: #66 strict CSP compatibility, then #67 approved V5 UI restoration
-- final V5 restoration candidate: `e66b6fc4b8693deb052fa89ae9d82647d51c3a94`
-- candidate CI: #802 / run `34395508634`, success
-- post-merge main CI: #803 / run `34396470298`, success
-- production deployment: `dpl_3F4rnzhWQ93RoPKqdTe4U96TPSKb`, READY, `aliasError=null`
+- current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
+- released `main` includes Phase 10C platform administration
+- production deployment: `dpl_AueSXj9wWBDMkRTRLAb6x8nsH57z`
+- production deployment state: READY
 - production domain: `scopeforge.dev`
+- deployment alias error: none
 
-The released `main` tree is the integration baseline for future work.
+The released `main` tree remains authoritative until a later PR is merged and production-verified.
 
-## Completed phases and compatibility gates
+## Released capability and security baseline
 
 Released work includes:
 
@@ -28,61 +26,89 @@ Released work includes:
 - Phase 9A authentication-boundary hardening
 - Phase 9B provider/auth hardening code
 - Phase 9C database/RPC defense-in-depth
-- Phase 9D security telemetry and browser hardening
+- Phase 9D security telemetry/browser hardening
 - Phase 9E incident readiness and release engineering
-- post-Phase-9 strict CSP compatibility gate
-- approved Command Center V5 restoration on top of the strict CSP baseline
+- strict nonce-based CSP compatibility/enforcement
+- accepted Command Center V5 restoration
+- Phase 10C platform admin console and production owner bootstrap
 
-The combined CSP/restoration evidence is recorded in `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
+Phase 10C production database evidence remains documented in `PHASE_10C_WORKING_STATE.md`.
 
-## Production UI
+## Production UI and browser security
 
-The accepted Command Center UI V5 is restored and remains authoritative.
+The accepted Command Center V5 public/authenticated presentation remains authoritative.
 
-Fresh production and browser-gate evidence confirms:
+Current production baseline keeps:
 
-- `scopeforge.dev` returns HTTP 200
-- desktop V5 marker is present
-- mobile V5 marker is present
-- desktop and mobile V5 poster assets are present
-- the desktop public V5 scale is browser-checked
-- the authenticated dashboard uses the immersive V5 shell rather than the later SaaS/workspace-shell composition
-- authenticated topology and lower evidence panels are browser-checked for the approved geometry and scale
-- corrected landing and dashboard screenshots were captured and inspected before merge
+- strict nonce CSP with `strict-dynamic`,
+- no permanent production `unsafe-inline` or `unsafe-eval`,
+- HSTS,
+- nosniff,
+- frame denial,
+- referrer policy,
+- permissions policy,
+- authenticated dashboard boundaries,
+- public WebGL/V5 composition.
 
-Historical V4, preview, diagnostic, reconciliation, and temporary restoration branches are not implementation baselines.
-
-## Browser security baseline
-
-Strict CSP is now enforced in production.
-
-The current policy is nonce-based, includes `strict-dynamic`, keeps exact ScopeForge Supabase HTTPS connectivity, and does not use permanent production `unsafe-inline` or `unsafe-eval` allowances.
-
-Fresh production checks also confirm the existing HSTS, nosniff, frame-denial, referrer-policy, and permissions-policy headers remain present. `/auth/sign-in` renders normally under the nonce CSP.
-
-The repository CI now performs a real Chrome browser acceptance gate covering CSP execution, hydration, navigation, auth, 404 behavior, dashboard auth boundaries, the public WebGL scene, and V5 restoration visual geometry.
+PR #74 CI #852 also re-ran the production V5/Turnstile diagnostic and strict-CSP browser smoke successfully while validating the Phase 10A1 merge candidate against current `main`.
 
 ## Supabase baseline
 
-- ScopeForge project: `tdgpibrepzcvdivztkta`
-- migration head remains `20260908084554_phase_9c_function_acl_hardening`
-- fresh Security Advisor inspection reports only the known leaked-password-protection warning
-- leaked-password protection: `VERIFIED DISABLED`
+ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
 
-The CSP/restoration work introduced no database migration and no Auth-provider mutation.
+Last verified Phase 10C migrations:
+
+- `20260910153743_phase_10c_platform_admin`
+- `20260910154017_phase_10c_explicit_browser_deny_policies`
+
+The Phase 10C owner bootstrap and browser/RPC boundaries were verified before PR #75 merged. The only known Security Advisor warning at that verification point was the project-level leaked-password-protection setting being disabled.
+
+A fresh production migration read was attempted during Phase 10A1 release work on 2026-09-11, but the connected Supabase database action became unavailable. No Phase 10A1 schema mutation was attempted after that failure. Treat the migration list above as the last verified state, not a fresh read.
+
+## Active release candidate - Phase 10A1
+
+PR #74 (`feat/phase-10a-github-connected-projects`) implements the GitHub connected-project public repository core.
+
+Exact executable candidate before documentation reconciliation:
+
+`005504387cf29d65d6b297acb041b608f0416c1a`
+
+CI #852 / run `34520609482`: SUCCESS.
+
+That validation passed dependency audit, 1,719 tests, typecheck, CLI, both scanner benchmarks, Next.js build, CSP browser smoke, production diagnostic, and artifact upload against the PR merge result with current `main`.
+
+The implementation includes:
+
+- GitHub App connection with signed ScopeForge user/workspace state,
+- authenticated GitHub-user proof of installation access,
+- ephemeral read-only installation credentials,
+- repository picker/import with authoritative server re-fetch,
+- verified repository asset/link creation,
+- one-click connected-project scanning for public repositories,
+- immutable snapshot-to-scan continuation,
+- exact-snapshot recovery for `waiting_scan_runtime` and `retry_pending`,
+- no implicit second snapshot during recovery,
+- fresh GitHub revalidation before recovery,
+- preserved private-repository Phase 10A2 boundary.
+
+Detailed evidence: `PHASE_10A1_RELEASE_STATE.md`.
+
+Phase 10A1 is **not released yet**. Its production database migrations and live GitHub App provider configuration are not freshly verified/applied in the current session.
 
 ## Provider and runtime truth
 
 Current conservative state:
 
-- production Turnstile provider enforcement: `NOT VERIFIED`
-- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
-- Supabase leaked-password protection: `VERIFIED DISABLED`
-- strict CSP: `ENFORCED`
+- strict CSP: ENFORCED
+- Phase 10C admin database/owner bootstrap: LAST VERIFIED COMPLETE
+- Supabase leaked-password protection: last verified disabled; current mutation surface unavailable
+- Phase 10A1 GitHub App live provider configuration: NOT VERIFIED
+- Phase 10A1 production schema: NOT APPLIED/VERIFIED IN CURRENT SESSION
+- final Phase 10A1 Vercel preview: blocked by Hobby-plan build-rate limit, not by application build failure
 
-The current Vercel connector does not expose project environment-variable values. A fresh direct read of the four hosted capability flags is therefore `NOT VERIFIED BY CURRENT CONNECTOR`. No Vercel environment mutation or hosted-runtime activation occurred in the strict-CSP or V5-restoration releases.
+Vercel produced READY previews for multiple earlier Phase 10A1 commits. GitHub CI independently passed the exact implementation candidate's production build/browser gates.
 
-The operational requirement remains to keep these false/absent until separate acceptance authorizes them:
+Keep these false/absent until independent canary and rollback acceptance explicitly authorizes them:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
@@ -91,24 +117,18 @@ The operational requirement remains to keep these false/absent until separate ac
 
 ## Branch hygiene
 
-A fresh branch audit confirms many historical completed diagnostic, preview, reconciliation, documentation, feature, and temporary restoration branches remain.
+Historical completed diagnostic/preview/reconciliation branches still exist. The connected GitHub write surface currently provides ref movement but no safe genuine delete-ref action exposed for this workflow; do not simulate deletion by force-moving stale branches.
 
-The connected GitHub write surface still does not expose a genuine branch delete-ref operation. Stale refs must not be disguised as deleted by force-moving them to `main`.
+## Immediate engineering boundary
 
-## Next engineering boundary
-
-No new product capability is implicitly authorized by the CSP/restoration release.
-
-Remaining operational follow-ups are deliberately separate:
-
-1. provider verification or activation, including Turnstile/WAF/leaked-password controls
-2. independent hosted-runtime canary and rollback acceptance before any capability flag is enabled
-3. physical stale-branch deletion when a genuine delete-ref surface becomes available
-
-Any new implementation phase must start from the current released `main` and preserve V5, CSP, authorization, and runtime safety boundaries.
+1. Finish Phase 10A1 production migration/provider verification without weakening runtime gates.
+2. Merge PR #74 only after final schema/provider safety and exact-head validation are satisfied.
+3. Verify the merged production deployment and existing admin/V5/auth paths.
+4. Then begin Phase 10A2 private repository acquisition using a separate private-source execution class.
+5. Continue the independent hosted-runtime canary/rollback queue separately from product implementation.
 
 ## Production services
 
 - ScopeForge Supabase: `tdgpibrepzcvdivztkta`
-- Vercel project: `scopeforge`
+- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8` (`scopeforge`)
 - production: `scopeforge.dev`
