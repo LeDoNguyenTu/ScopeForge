@@ -1,4 +1,6 @@
 import type {
+  PrivateRepositorySnapshotExecutionClass,
+  PrivateRepositorySnapshotExecutionProfile,
   WorkerExecutionClass,
   WorkerExecutionProfile,
 } from "./types";
@@ -33,7 +35,7 @@ const REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1: WorkerExecutionProfile = Object.free
   }),
 });
 
-const REPOSITORY_SNAPSHOT_GITHUB_PRIVATE_V1: WorkerExecutionProfile = Object.freeze({
+const REPOSITORY_SNAPSHOT_GITHUB_PRIVATE_V1: PrivateRepositorySnapshotExecutionProfile = Object.freeze({
   executionClass: "repository_snapshot_github_private_v1",
   networkPolicy: "github_private_archive_lease_and_attempt_artifact_put_v1",
   budget: Object.freeze({
@@ -94,8 +96,14 @@ const ACTIVE_CORS_VALIDATION_V1: WorkerExecutionProfile = Object.freeze({
 });
 
 export function workerExecutionProfile(
+  executionClass: PrivateRepositorySnapshotExecutionClass,
+): PrivateRepositorySnapshotExecutionProfile;
+export function workerExecutionProfile(
   executionClass: WorkerExecutionClass,
-): WorkerExecutionProfile {
+): WorkerExecutionProfile;
+export function workerExecutionProfile(
+  executionClass: WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass,
+): WorkerExecutionProfile | PrivateRepositorySnapshotExecutionProfile {
   switch (executionClass) {
     case "foundation_no_egress_v1":
       return FOUNDATION_NO_EGRESS_V1;
