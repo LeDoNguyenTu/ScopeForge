@@ -27,14 +27,15 @@ Status: implementation complete enough for exact-head validation, production dat
 - Dedicated maintenance page.
 - Secretless public availability reader used by landing, sign-up, and maintenance routes.
 - Narrow browser read access limited to `id`, registration state, maintenance state/message, and the update timestamp, protected by a dedicated SELECT policy.
+- Exact built-in CI Supabase placeholder compatibility without a generic production fail-open.
 
 ## CI history cleanup
 
 Earlier red runs on PR #75 were deliberate TDD checkpoints plus real follow-up contract failures. Intermediate implementation commits use `[skip ci]` so every small TDD transition does not produce a full CI run.
 
-The previous consolidated backend checkpoint passed all 1,603 tests, typecheck, CLI build, scanner benchmark, benchmark matrix, and the Next.js production build. Its browser smoke failed because the public landing route instantiated the trusted Supabase client while CI deliberately omits the service secret. That root cause is now removed by the narrow publishable-key availability reader.
+Candidate `8590e8a5a8af0b72bfed68e812c53cb9c8437413` passed 1,611 tests, typecheck, CLI build, scanner benchmark, benchmark matrix, and the Next.js production build. Its CSP browser readiness gate then exposed a second environment-only issue: CI deliberately supplies `https://example.supabase.co` and `sb_publishable_example`, so the public availability reader correctly could not reach a real platform settings row. The reader now recognizes only that exact built-in fixture pair when using its normal non-injected fetch path and returns normal-open defaults. Arbitrary provider failures and real project configurations continue to fail closed.
 
-This commit intentionally starts a new exact-head validation run for the full implementation.
+This commit intentionally starts the next exact-head validation run.
 
 ## Production state
 
