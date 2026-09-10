@@ -3,7 +3,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const migrationPath = path.join(root, "supabase/migrations/20260910020000_phase_10c_platform_admin.sql");
+const migrationPath = path.join(root, "supabase/migrations/20260910153743_phase_10c_platform_admin.sql");
+const denyPolicyMigrationPath = path.join(
+  root,
+  "supabase/migrations/20260910154017_phase_10c_explicit_browser_deny_policies.sql",
+);
 
 describe("Phase 10C platform administration migration", () => {
   it("creates an isolated platform administrator boundary", async () => {
@@ -23,6 +27,12 @@ describe("Phase 10C platform administration migration", () => {
     expect(sql).toMatch(/revoke all on table public\.platform_settings from public, anon, authenticated/i);
     expect(sql).not.toMatch(/grant\s+(insert|update|delete).*platform_admins.*authenticated/i);
     expect(sql).not.toMatch(/grant\s+(insert|update|delete).*platform_settings.*authenticated/i);
+  });
+
+  it("adds explicit deny policies as defense in depth for locked admin tables", async () => {
+    const sql = await readFile(denyPolicyMigrationPath, "utf8");
+    expect(sql).toMatch(/create policy platform_admins_explicit_browser_deny[\s\S]*to anon, authenticated[\s\S]*using \(false\)[\s\S]*with check \(false\)/i);
+    expect(sql).toMatch(/create policy platform_admin_audit_events_explicit_browser_deny[\s\S]*to anon, authenticated[\s\S]*using \(false\)[\s\S]*with check \(false\)/i);
   });
 
   it("exposes only non-sensitive availability fields through the browser read path", async () => {
