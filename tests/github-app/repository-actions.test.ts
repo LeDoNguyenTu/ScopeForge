@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import type { GitHubConnectionRecord } from "@/lib/github-app/authorization";
 import {
   GitHubRepositoryServiceError,
   importGitHubRepository,
+  type GitHubRepositoryActor,
+  type GitHubRepositoryAssetRecord,
   type GitHubRepositoryServiceDependencies,
 } from "@/lib/github-app/repositories";
 import type { GitHubAppConfig, GitHubRepositorySummary } from "@/lib/github-app/types";
@@ -30,30 +33,47 @@ const repository: GitHubRepositorySummary = {
   htmlUrl: "https://github.com/scopeforge-labs/secure-app",
 };
 
+const actor: GitHubRepositoryActor = {
+  userId: USER_ID,
+  workspaceId: WORKSPACE_ID,
+  role: "admin",
+};
+
+const connection: GitHubConnectionRecord = {
+  id: "33333333-3333-4333-8333-333333333333",
+  workspaceId: WORKSPACE_ID,
+  installationId: 7001,
+  accountId: 8001,
+  accountLogin: "scopeforge-labs",
+  accountType: "Organization",
+  repositorySelection: "selected",
+  status: "active",
+  installedBy: USER_ID,
+  createdAt: "2026-09-10T00:00:00.000Z",
+  updatedAt: "2026-09-10T00:00:00.000Z",
+};
+
+function asset(input: { workspaceId?: string; canonicalTarget?: string } = {}): GitHubRepositoryAssetRecord {
+  return {
+    id: ASSET_ID,
+    workspaceId: input.workspaceId ?? WORKSPACE_ID,
+    canonicalTarget: input.canonicalTarget ?? repository.htmlUrl,
+    kind: "repository",
+  };
+}
+
 function dependencies(overrides: Partial<GitHubRepositoryServiceDependencies> = {}): GitHubRepositoryServiceDependencies {
   return {
-    authorizeWorkspace: vi.fn(async () => ({ userId: USER_ID, workspaceId: WORKSPACE_ID, role: "admin" })),
-    loadConnection: vi.fn(async () => ({
-      id: "33333333-3333-4333-8333-333333333333",
-      workspaceId: WORKSPACE_ID,
-      installationId: 7001,
-      accountId: 8001,
-      accountLogin: "scopeforge-labs",
-      accountType: "Organization",
-      repositorySelection: "selected",
-      status: "active",
-      installedBy: USER_ID,
-      createdAt: "2026-09-10T00:00:00.000Z",
-      updatedAt: "2026-09-10T00:00:00.000Z",
-    })),
+    authorizeWorkspace: vi.fn(async () => actor),
+    loadConnection: vi.fn(async () => connection),
     getConfig: () => config,
     createInstallationToken: vi.fn(async () => ({ token: "repo-installation-secret", expiresAt: "2026-09-10T01:00:00.000Z" })),
     listInstallationRepositories: vi.fn(async () => ({ repositories: [repository], page: 1, hasNextPage: false })),
     getInstallationRepository: vi.fn(async () => repository),
     findAsset: vi.fn(async () => null),
     countAssets: vi.fn(async () => 0),
-    createVerifiedAsset: vi.fn(async (input) => ({ id: ASSET_ID, workspaceId: input.workspaceId, canonicalTarget: input.canonicalTarget, kind: "repository" })),
-    markAssetVerified: vi.fn(async (asset) => asset),
+    createVerifiedAsset: vi.fn(async (input) => asset({ workspaceId: input.workspaceId, canonicalTarget: input.canonicalTarget })),
+    markAssetVerified: vi.fn(async (currentAsset) => currentAsset),
     findRepositoryLinkByRepository: vi.fn(async () => null),
     findRepositoryLinkByAsset: vi.fn(async () => null),
     upsertRepositoryLink: vi.fn(async (input) => ({ id: LINK_ID, ...input, autoScanEnabled: true, accessStatus: "active", createdAt: "2026-09-10T00:00:00.000Z", updatedAt: "2026-09-10T00:00:00.000Z" })),
@@ -93,7 +113,7 @@ describe("trusted GitHub repository import", () => {
           name: repository.name,
           verifiedBy: USER_ID,
         }));
-        return { id: ASSET_ID, workspaceId: WORKSPACE_ID, canonicalTarget: repository.htmlUrl, kind: "repository" };
+        return asset({ workspaceId: input.workspaceId, canonicalTarget: input.canonicalTarget });
       }),
     });
 
@@ -103,7 +123,7 @@ describe("trusted GitHub repository import", () => {
   });
 
   it("reuses and verifies an exact existing repository asset in the same workspace", async () => {
-    const existing = { id: ASSET_ID, workspaceId: WORKSPACE_ID, canonicalTarget: repository.htmlUrl, kind: "repository" as const };
+    const existing = asset();
     const deps = dependencies({ findAsset: vi.fn(async () => existing) });
 
     const result = await importGitHubRepository({ workspaceId: WORKSPACE_ID, repositoryId: repository.id }, deps);
@@ -114,12 +134,7 @@ describe("trusted GitHub repository import", () => {
 
   it("fails closed if a lookup returns an asset from another workspace", async () => {
     const deps = dependencies({
-      findAsset: vi.fn(async () => ({
-        id: ASSET_ID,
-        workspaceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        canonicalTarget: repository.htmlUrl,
-        kind: "repository",
-      })),
+      findAsset: vi.fn(async () => asset({ workspaceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" })),
     });
 
     await expect(importGitHubRepository({ workspaceId: WORKSPACE_ID, repositoryId: repository.id }, deps))
@@ -137,7 +152,7 @@ describe("trusted GitHub repository import", () => {
   });
 
   it("links private repositories truthfully without claiming public hosted acquisition support", async () => {
-    const privateRepository = { ...repository, isPrivate: true };
+    const privateRepository: GitHubRepositorySummary = { ...repository, isPrivate: true };
     const deps = dependencies({ getInstallationRepository: vi.fn(async () => privateRepository) });
     const result = await importGitHubRepository({ workspaceId: WORKSPACE_ID, repositoryId: repository.id }, deps);
 
@@ -146,11 +161,11 @@ describe("trusted GitHub repository import", () => {
   });
 
   it("is idempotent for an already-linked repository", async () => {
-    const existingAsset = { id: ASSET_ID, workspaceId: WORKSPACE_ID, canonicalTarget: repository.htmlUrl, kind: "repository" as const };
+    const existingAsset = asset();
     const existingLink = {
       id: LINK_ID,
       workspaceId: WORKSPACE_ID,
-      githubConnectionId: "33333333-3333-4333-8333-333333333333",
+      githubConnectionId: connection.id,
       assetId: ASSET_ID,
       repositoryId: repository.id,
       ownerLogin: repository.ownerLogin,
