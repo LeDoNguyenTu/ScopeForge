@@ -221,7 +221,12 @@ function mapConnectionRow(data: Phase10a1Database["public"]["Tables"]["github_co
   };
 }
 
-function mapAssetRow(data: Phase10a1Database["public"]["Tables"]["assets"]["Row"]): GitHubRepositoryAssetRecord {
+type GitHubRepositoryAssetRow = Pick<
+  Phase10a1Database["public"]["Tables"]["assets"]["Row"],
+  "id" | "workspace_id" | "canonical_target" | "kind"
+>;
+
+function mapAssetRow(data: GitHubRepositoryAssetRow): GitHubRepositoryAssetRecord {
   return {
     id: data.id,
     workspaceId: data.workspace_id,
