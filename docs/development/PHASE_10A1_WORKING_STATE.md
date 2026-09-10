@@ -17,9 +17,13 @@ Status: Task 1 and GitHub App security primitives implemented, production unchan
 - REST requests pin GitHub API version `2026-03-10`.
 - Tests added for configuration, signed state, JWT signing, provider request boundaries, token scope, pagination, repository normalization, and error sanitization.
 
-## Validation strategy
+## Validation history
 
-The current environment cannot clone GitHub directly, so intermediate commits use `[skip ci]` and no local-test claim is made. This commit intentionally starts one consolidated GitHub Actions validation checkpoint for the Task 2 implementation.
+The current environment cannot clone GitHub directly, so intermediate commits use `[skip ci]` and no local-test claim is made.
+
+Checkpoint `c290bb69f6ad572a6419eab6754ec29d3a2d94b5` ran the full unit suite. The GitHub provider client, configuration, signed-state tests, and 1,595 other tests passed. The only failure was in the JWT verification test itself: Node 22 rejected `createPublicKey(publicKey)` because `generateKeyPairSync()` had already returned a public `KeyObject`. Production JWT signing was not the failing operation. The test now verifies the signature directly with that public key object.
+
+This commit intentionally starts one fresh exact-head validation run after that isolated test-helper fix.
 
 ## Production state
 
@@ -27,7 +31,7 @@ No Phase 10A1 database migration has been applied to the ScopeForge production S
 
 ## Next tasks
 
-1. Resolve any exact-head Task 2 CI failures.
+1. Confirm exact-head Task 2 CI is green.
 2. Add the forward-only GitHub connection and repository-link schema with tenant-scoped RLS.
 3. Implement owner/admin-only connection and callback routes with same-user/same-workspace state validation.
 4. Implement repository picker/import and safe asset linkage.
