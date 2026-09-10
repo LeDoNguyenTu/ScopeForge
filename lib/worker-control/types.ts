@@ -2,6 +2,7 @@ import type {
   ActiveCorsValidationInput,
   FoundationProbeInput,
   PassiveRuntimeObservationInput,
+  PrivateRepositorySnapshotExecutionClass,
   RepositoryScanInput,
   RepositorySnapshotInput,
   WorkerAttemptMetrics,
@@ -12,9 +13,11 @@ import type {
   WorkerTerminalOutcome,
 } from "@/packages/worker-contracts";
 
+export type WorkerControlExecutionClass = WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass;
+
 export interface WorkerNodeIdentity {
   workerId: string;
-  executionClass: WorkerExecutionClass;
+  executionClass: WorkerControlExecutionClass;
   softwareVersion: string;
 }
 
@@ -93,6 +96,23 @@ export interface RepositorySnapshotWorkerPersistenceClaim {
   input: Omit<RepositorySnapshotInput, "artifactUpload">;
 }
 
+export interface PrivateRepositorySnapshotWorkerPersistenceClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "repository_snapshot_github_private_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  artifactObjectKey: string;
+  input: {
+    kind: "repository_snapshot_github_private";
+    owner: string;
+    repository: string;
+    canonicalRepositoryUrl: string;
+    githubRepositoryLinkId: string;
+  };
+}
+
 export interface RepositoryScanWorkerPersistenceClaim {
   taskId: string;
   attemptId: string;
@@ -106,6 +126,7 @@ export interface RepositoryScanWorkerPersistenceClaim {
 export type WorkerPersistenceClaimResult =
   | FoundationWorkerPersistenceClaim
   | RepositorySnapshotWorkerPersistenceClaim
+  | PrivateRepositorySnapshotWorkerPersistenceClaim
   | RepositoryScanWorkerPersistenceClaim
   | null;
 
@@ -163,7 +184,7 @@ export interface WorkerFinalizationResult {
 
 export interface WorkerFleetNodeSnapshot {
   workerId: string;
-  executionClass: WorkerExecutionClass;
+  executionClass: WorkerControlExecutionClass;
   softwareVersion: string;
   registeredAt: string;
   lastSeenAt: string | null;
