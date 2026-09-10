@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import ScopeForgeMark from "@/components/brand/ScopeForgeMark";
+import CspSafeAttackSurface, { polarPosition } from "./CspSafeAttackSurface";
 import type {
   AttackSurfaceModel,
   AttackSurfaceNode,
@@ -46,13 +46,6 @@ interface Geometry {
   nodeColors: readonly RGB[];
 }
 
-function polarPosition(node: AttackSurfaceNode): [number, number] {
-  const radians = (node.angle * Math.PI) / 180;
-  return [
-    Math.cos(radians) * node.radius * 0.88,
-    Math.sin(radians) * node.radius * 0.72,
-  ];
-}
 
 function pushLine(
   positions: number[],
@@ -168,13 +161,6 @@ function createProgram(gl: WebGLRenderingContext) {
   return program;
 }
 
-function nodeStatus(node: AttackSurfaceNode) {
-  if (node.state === "risk") {
-    return `${node.findingCount} active finding${node.findingCount === 1 ? "" : "s"}`;
-  }
-  if (node.state === "pending") return "Verification pending";
-  return "Verified scope";
-}
 
 export default function WebGLAttackSurface({ model }: { model: AttackSurfaceModel }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -266,6 +252,7 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
         canvas.height = height;
       }
       gl!.viewport(0, 0, width, height);
+      if (reducedMotion) draw(performance.now());
     };
 
     const bindAttribute = (buffer: WebGLBuffer, location: number, size: number) => {
@@ -360,46 +347,12 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
   };
 
   return (
-    <div
-      className="webglAttackSurface"
-      data-testid="webgl-attack-surface"
-      data-renderer-state={rendererState}
-      aria-label="Workspace attack surface topology"
+    <CspSafeAttackSurface
+      model={model}
+      rendererState={rendererState}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
-    >
-      <canvas ref={canvasRef} className="webglAttackCanvas" aria-hidden="true" />
-      <div className="webglAttackFallback" aria-hidden="true">
-        <span className="webglFallbackRing webglFallbackRingOne" />
-        <span className="webglFallbackRing webglFallbackRingTwo" />
-        <span className="webglFallbackRing webglFallbackRingThree" />
-      </div>
-      {model.nodes.length > 0 ? (
-        <div className="webglAttackCore" aria-hidden="true">
-          <span className="webglCoreHalo" />
-          <span className="webglCoreOrbit" />
-          <ScopeForgeMark size={74} />
-        </div>
-      ) : null}
-
-      {model.nodes.map((node, index) => (
-        <div
-          className={`webglAttackLabel webglAttackLabel-${node.state} webglAttackLabelSlot-${index}`}
-          key={node.id}
-        >
-          <span className="webglAttackLabelKind">{node.kind.replaceAll("_", " ")}</span>
-          <strong>{node.label}</strong>
-          <small>{nodeStatus(node)}</small>
-        </div>
-      ))}
-
-      {model.nodes.length === 0 ? (
-        <div className="webglAttackEmpty">
-          <ScopeForgeMark size={58} />
-          <strong>No verified attack surface yet</strong>
-          <span>Add and verify your first asset to build this workspace map.</span>
-        </div>
-      ) : null}
-    </div>
+      canvas={<canvas ref={canvasRef} className="webglAttackCanvas" aria-hidden="true" />}
+    />
   );
 }
