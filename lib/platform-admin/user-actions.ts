@@ -11,6 +11,8 @@ const USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f
 const SUSPEND_BAN_DURATION = "876000h";
 const RESTORE_BAN_DURATION = "none";
 
+type ModerationOperation = "suspend" | "restore" | "delete";
+
 export type PlatformAdminUserActionErrorCode =
   | "INVALID_ADMIN_USER_ID"
   | "INVALID_ADMIN_REASON"
@@ -134,6 +136,7 @@ function createDefaultDependencies(): PlatformAdminUserActionDependencies {
 async function resolveModerationTarget(
   userId: string,
   reason: string,
+  operation: ModerationOperation,
   dependencies?: PlatformAdminUserActionDependencies,
 ) {
   const deps = dependencies ?? createDefaultDependencies();
@@ -149,9 +152,9 @@ async function resolveModerationTarget(
       actorRole: actor.actorRole,
       targetUserId,
       targetPlatformRole,
-      operation: "suspend",
+      operation,
     });
-    return { deps, actor, target, targetUserId, normalizedReason, targetPlatformRole };
+    return { deps, actor, target, targetUserId, normalizedReason };
   } catch (error) {
     if (error instanceof PlatformAdminAuthorizationError || error instanceof PlatformAdminUserActionError) throw error;
     throw new PlatformAdminUserActionError(
@@ -165,14 +168,7 @@ export async function suspendPlatformUser(
   input: { userId: string; reason: string },
   dependencies?: PlatformAdminUserActionDependencies,
 ): Promise<void> {
-  const context = await resolveModerationTarget(input.userId, input.reason, dependencies);
-  assertCanModeratePlatformUser({
-    actorUserId: context.actor.actorUserId,
-    actorRole: context.actor.actorRole,
-    targetUserId: context.targetUserId,
-    targetPlatformRole: context.targetPlatformRole,
-    operation: "suspend",
-  });
+  const context = await resolveModerationTarget(input.userId, input.reason, "suspend", dependencies);
 
   try {
     await context.deps.updateAuthUser(context.targetUserId, { ban_duration: SUSPEND_BAN_DURATION });
@@ -196,14 +192,7 @@ export async function restorePlatformUser(
   input: { userId: string; reason: string },
   dependencies?: PlatformAdminUserActionDependencies,
 ): Promise<void> {
-  const context = await resolveModerationTarget(input.userId, input.reason, dependencies);
-  assertCanModeratePlatformUser({
-    actorUserId: context.actor.actorUserId,
-    actorRole: context.actor.actorRole,
-    targetUserId: context.targetUserId,
-    targetPlatformRole: context.targetPlatformRole,
-    operation: "restore",
-  });
+  const context = await resolveModerationTarget(input.userId, input.reason, "restore", dependencies);
 
   try {
     await context.deps.updateAuthUser(context.targetUserId, { ban_duration: RESTORE_BAN_DURATION });
@@ -227,14 +216,7 @@ export async function hardDeletePlatformUser(
   input: { userId: string; emailConfirmation: string; reason: string },
   dependencies?: PlatformAdminUserActionDependencies,
 ): Promise<void> {
-  const context = await resolveModerationTarget(input.userId, input.reason, dependencies);
-  assertCanModeratePlatformUser({
-    actorUserId: context.actor.actorUserId,
-    actorRole: context.actor.actorRole,
-    targetUserId: context.targetUserId,
-    targetPlatformRole: context.targetPlatformRole,
-    operation: "delete",
-  });
+  const context = await resolveModerationTarget(input.userId, input.reason, "delete", dependencies);
 
   try {
     const freshEmail = context.target.email?.trim() ?? "";
