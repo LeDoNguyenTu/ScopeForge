@@ -4,12 +4,14 @@ import type { CorsPolicyObservation } from "@/packages/runtime-validator";
 export type WorkerExecutionClass =
   | "foundation_no_egress_v1"
   | "repository_snapshot_github_public_v1"
+  | "repository_snapshot_github_private_v1"
   | "phase3_repository_scan_no_egress_v1"
   | "passive_runtime_observation_v1"
   | "active_cors_validation_v1";
 export type WorkerNetworkPolicy =
   | "none"
   | "github_public_archive_and_attempt_artifact_put_v1"
+  | "github_private_archive_lease_and_attempt_artifact_put_v1"
   | "passive_runtime_target_bound_v1"
   | "active_cors_target_bound_v1";
 export type WorkerTerminalOutcome = "succeeded" | "failed" | "cancelled";
@@ -82,6 +84,24 @@ export interface RepositorySnapshotInput {
   artifactUpload: RepositorySnapshotUploadDescriptor;
 }
 
+export interface GitHubPrivateArchiveLease {
+  kind: "github_private_archive_lease_v1";
+  canonicalRepositoryUrl: string;
+  defaultBranch: string;
+  resolvedCommitSha: string;
+  archiveUrl: string;
+  expiresAt: string;
+}
+
+export interface PrivateRepositorySnapshotInput {
+  kind: "repository_snapshot_github_private";
+  owner: string;
+  repository: string;
+  canonicalRepositoryUrl: string;
+  privateArchiveLease: GitHubPrivateArchiveLease;
+  artifactUpload: RepositorySnapshotUploadDescriptor;
+}
+
 export interface RepositoryScanInput {
   kind: "phase3_repository_scan";
   snapshotId: string;
@@ -109,6 +129,7 @@ export interface ActiveCorsValidationInput {
 export type WorkerTaskInput =
   | FoundationProbeInput
   | RepositorySnapshotInput
+  | PrivateRepositorySnapshotInput
   | RepositoryScanInput
   | PassiveRuntimeObservationInput
   | ActiveCorsValidationInput;
@@ -159,6 +180,21 @@ export interface RepositorySnapshotResult {
   skipCounts: RepositorySnapshotSkipCounts;
 }
 
+export interface PrivateRepositorySnapshotResult {
+  kind: "repository_snapshot_github_private";
+  canonicalRepositoryUrl: string;
+  defaultBranch: string;
+  resolvedCommitSha: string;
+  contentDigest: string;
+  artifactDigest: string;
+  compressedBytes: number;
+  expandedBytes: number;
+  retainedFileCount: number;
+  retainedBytes: number;
+  storedArtifactBytes: number;
+  skipCounts: RepositorySnapshotSkipCounts;
+}
+
 export interface RepositoryScanResult {
   kind: "phase3_repository_scan";
   snapshotId: string;
@@ -188,6 +224,7 @@ export interface ActiveCorsValidationResult {
 export type WorkerTerminalResult =
   | FoundationProbeResult
   | RepositorySnapshotResult
+  | PrivateRepositorySnapshotResult
   | RepositoryScanResult
   | PassiveRuntimeObservationResult
   | ActiveCorsValidationResult;
