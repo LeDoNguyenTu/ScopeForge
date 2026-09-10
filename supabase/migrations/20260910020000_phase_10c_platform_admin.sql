@@ -88,6 +88,17 @@ revoke all on table public.platform_admins from public, anon, authenticated;
 revoke all on table public.platform_admin_audit_events from public, anon, authenticated;
 revoke all on table public.platform_settings from public, anon, authenticated;
 
+-- Availability state is intentionally public because the landing page and sign-up page
+-- must be able to render maintenance/registration state without a service-role secret.
+-- Keep the administrative identity columns and every mutation server-only.
+grant select (id, registration_enabled, maintenance_mode, maintenance_message, updated_at)
+  on table public.platform_settings to anon, authenticated;
+create policy platform_settings_public_availability_read
+  on public.platform_settings
+  for select
+  to anon, authenticated
+  using (id = true);
+
 grant select, insert, update, delete on table public.platform_admins to service_role;
 grant select, insert on table public.platform_admin_audit_events to service_role;
 grant select, update on table public.platform_settings to service_role;
