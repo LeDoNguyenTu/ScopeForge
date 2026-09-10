@@ -145,8 +145,20 @@ export async function updatePlatformSettings(
   const message = normalizeMessage(input.maintenanceMessage);
   const reason = normalizeReason(input.reason);
   const actor = await deps.authorize();
+  const requestedMetadata = {
+    registrationEnabled: input.registrationEnabled,
+    maintenanceMode: input.maintenanceMode,
+    maintenanceMessageLength: message.length,
+  };
 
   try {
+    await deps.writeAuditEvent({
+      actorUserId: actor.actorUserId,
+      action: "settings.update_started",
+      reason,
+      metadata: requestedMetadata,
+    });
+
     const settings = await deps.persistSettings(
       {
         registrationEnabled: input.registrationEnabled,
@@ -155,6 +167,7 @@ export async function updatePlatformSettings(
       },
       actor.actorUserId,
     );
+
     await deps.writeAuditEvent({
       actorUserId: actor.actorUserId,
       action: "settings.updated",
