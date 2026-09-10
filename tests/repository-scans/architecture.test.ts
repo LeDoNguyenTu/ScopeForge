@@ -47,14 +47,19 @@ describe("Phase 6C authority architecture", () => {
     expect(source).not.toMatch(/scanner-|github|r2-|worker-sandbox|podman|repository-snapshot/);
   });
 
-  it("keeps Phase 6C product enablement explicitly closed in both UI and server action", async () => {
-    const [panel, action] = await Promise.all([
+  it("keeps Phase 6C product enablement behind a shared default-off server capability", async () => {
+    const [panel, action, runtime, capabilities] = await Promise.all([
       readFile(path.resolve(root, "components/assets/RepositoryScanPanel.tsx"), "utf8"),
       readFile(path.resolve(root, "app/dashboard/assets/[assetId]/scan-actions.ts"), "utf8"),
+      readFile(path.resolve(root, "lib/repository-scans/runtime.ts"), "utf8"),
+      readFile(path.resolve(root, "lib/runtime-capabilities/server.ts"), "utf8"),
     ]);
     expect(panel).toContain("Runtime unavailable");
     expect(panel).toContain("disabled");
-    expect(action).toContain("HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED = false");
+    expect(action).toContain('from "@/lib/repository-scans/runtime"');
     expect(action).toContain("REPOSITORY_SCAN_RUNTIME_UNAVAILABLE");
+    expect(runtime).toContain('serverCapabilityEnabled(\n  "HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED"');
+    expect(capabilities).toContain('return env[name] === "true";');
+    expect(action).not.toContain("HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED = false");
   });
 });
