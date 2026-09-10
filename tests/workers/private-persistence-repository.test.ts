@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createWorkerControlRepository } from "@/lib/worker-control/repository";
-import { privateRepositorySnapshotExecutionProfile } from "@/packages/worker-contracts";
+import { workerExecutionProfile } from "@/packages/worker-contracts";
 
 const workerId = "11111111-1111-4111-8111-111111111111";
 const taskId = "22222222-2222-4222-8222-222222222222";
@@ -44,7 +44,7 @@ describe("Phase 10A2 private worker persistence repository", () => {
         leaseToken: "c".repeat(64),
         leaseExpiresAt: "2026-09-11T00:01:30.000Z",
         absoluteDeadlineAt: "2026-09-11T00:20:00.000Z",
-        budget: privateRepositorySnapshotExecutionProfile().budget,
+        budget: workerExecutionProfile("repository_snapshot_github_private_v1").budget,
         artifactObjectKey: objectKey,
         input: {
           kind: "repository_snapshot_github_private",
