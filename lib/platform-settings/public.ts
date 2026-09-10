@@ -37,7 +37,8 @@ function isBuiltInCiPlaceholder(
   publishableKey: string,
   hasInjectedFetcher: boolean,
 ): boolean {
-  return !hasInjectedFetcher
+  return process.env.CI === "true"
+    && !hasInjectedFetcher
     && supabaseUrl === "https://example.supabase.co"
     && publishableKey === "sb_publishable_example";
 }
