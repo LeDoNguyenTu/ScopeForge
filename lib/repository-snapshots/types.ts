@@ -1,5 +1,9 @@
 import type { Json } from "@/lib/database.types";
-import type { WorkerAttemptMetrics, WorkerTerminalEnvelope } from "@/packages/worker-contracts";
+import type {
+  PrivateRepositorySnapshotResult,
+  WorkerAttemptMetrics,
+  WorkerTerminalEnvelope,
+} from "@/packages/worker-contracts";
 
 export interface RequestRepositorySnapshotInput {
   workspaceId: string;
@@ -7,10 +11,21 @@ export interface RequestRepositorySnapshotInput {
   actorId: string;
 }
 
+export interface RequestPrivateRepositorySnapshotInput extends RequestRepositorySnapshotInput {
+  githubRepositoryLinkId: string;
+}
+
 export interface RequestRepositorySnapshotResult {
   scanJobId: string;
   taskId: string;
   executionClass: "repository_snapshot_github_public_v1";
+  absoluteDeadlineAt: string;
+}
+
+export interface RequestPrivateRepositorySnapshotResult {
+  scanJobId: string;
+  taskId: string;
+  executionClass: "repository_snapshot_github_private_v1";
   absoluteDeadlineAt: string;
 }
 
@@ -64,6 +79,17 @@ export type ValidatedRepositorySnapshotTerminal = WorkerTerminalEnvelope & {
   };
 };
 
+export interface ValidatedPrivateRepositorySnapshotTerminal {
+  schemaVersion: 1;
+  taskId: string;
+  attemptId: string;
+  executionClass: "repository_snapshot_github_private_v1";
+  outcome: "succeeded";
+  failureCode: null;
+  metrics: WorkerAttemptMetrics;
+  result: PrivateRepositorySnapshotResult;
+}
+
 export type RepositorySnapshotErrorCode =
   | "REPOSITORY_SNAPSHOT_REQUEST_INVALID"
   | "REPOSITORY_SNAPSHOT_ACCESS_DENIED"
@@ -80,6 +106,8 @@ export type RepositorySnapshotErrorCode =
   | "WORKER_LEASE_INVALID"
   | "WORKER_DISABLED"
   | "WORKER_JOB_STATE_CONFLICT"
+  | "GITHUB_REPOSITORY_LINK_INVALID"
+  | "GITHUB_REPOSITORY_LINK_UNAVAILABLE"
   | "REPOSITORY_SNAPSHOT_FAILED";
 
 export class RepositorySnapshotError extends Error {
