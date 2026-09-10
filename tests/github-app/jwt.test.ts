@@ -1,4 +1,4 @@
-import { createPublicKey, generateKeyPairSync, verify } from "node:crypto";
+import { generateKeyPairSync, verify } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGitHubAppJwt } from "@/lib/github-app/jwt";
 
@@ -29,10 +29,11 @@ describe("GitHub App JWT", () => {
     expect(payload.iat).toBeLessThanOrEqual(Math.floor(now.getTime() / 1000));
     expect(payload.exp - Math.floor(now.getTime() / 1000)).toBeLessThanOrEqual(600);
     expect(payload.exp).toBeGreaterThan(payload.iat);
+    expect(publicKey.type).toBe("public");
     expect(verify(
       "RSA-SHA256",
       Buffer.from(`${headerPart}.${payloadPart}`),
-      createPublicKey(publicKey),
+      publicKey,
       Buffer.from(signaturePart, "base64url"),
     )).toBe(true);
   });
