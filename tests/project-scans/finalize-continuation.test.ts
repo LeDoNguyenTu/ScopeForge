@@ -72,6 +72,31 @@ describe("connected project snapshot continuation", () => {
       .resolves.toEqual({ status: "scan_queued", taskId: SCAN_TASK_ID, scanJobId: SCAN_JOB_ID, replayed: true });
   });
 
+  it("does not downgrade an already-queued scan when the runtime gate is later disabled", async () => {
+    const deps = dependencies({
+      scanRuntimeEnabled: () => false,
+      loadContinuation: vi.fn(async () => ({
+        workspaceId: WORKSPACE_ID,
+        assetId: ASSET_ID,
+        actorId: USER_ID,
+        linkId: LINK_ID,
+        repositoryId: 9001,
+        canonicalTarget: "https://github.com/scopeforge-labs/app",
+        isPrivate: false,
+        accessStatus: "active" as const,
+        snapshotTaskId: SNAPSHOT_TASK_ID,
+        snapshotId: SNAPSHOT_ID,
+        state: "scan_queued" as const,
+      })),
+      enqueueScanContinuation: vi.fn(async () => ({ taskId: SCAN_TASK_ID, scanJobId: SCAN_JOB_ID, replayed: true })),
+    });
+
+    await expect(continueConnectedProjectScanAfterSnapshot({ snapshotTaskId: SNAPSHOT_TASK_ID, snapshotId: SNAPSHOT_ID }, deps))
+      .resolves.toEqual({ status: "scan_queued", taskId: SCAN_TASK_ID, scanJobId: SCAN_JOB_ID, replayed: true });
+    expect(deps.enqueueScanContinuation).toHaveBeenCalledTimes(1);
+    expect(deps.markWaitingForScanRuntime).not.toHaveBeenCalled();
+  });
+
   it("ignores successful snapshots that have no connected-project scan intent", async () => {
     const deps = dependencies({ loadContinuation: vi.fn(async () => null) });
     await expect(continueConnectedProjectScanAfterSnapshot({ snapshotTaskId: SNAPSHOT_TASK_ID, snapshotId: SNAPSHOT_ID }, deps))
