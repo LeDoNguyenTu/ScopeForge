@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
-import { getPlatformSettings } from "@/lib/platform-settings/server";
+import { readPublicPlatformSettings } from "@/lib/platform-settings/public";
 
 export const metadata: Metadata = { title: "Maintenance" };
 export const dynamic = "force-dynamic";
 
 export default async function MaintenancePage() {
-  const settings = await getPlatformSettings();
+  const settings = await readPublicPlatformSettings();
   if (!settings.maintenanceMode) redirect("/");
 
   return (
