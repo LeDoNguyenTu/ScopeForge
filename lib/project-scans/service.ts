@@ -338,6 +338,21 @@ export async function continueConnectedProjectScanAfterSnapshot(
   }
   if (context.isPrivate || context.accessStatus !== "active") return { status: "ignored" };
 
+  if (context.state === "scan_queued") {
+    try {
+      const queued = await deps.enqueueScanContinuation(context);
+      return {
+        status: "scan_queued",
+        taskId: queued.taskId,
+        scanJobId: queued.scanJobId,
+        replayed: queued.replayed,
+      };
+    } catch {
+      await deps.recordRetryPending(context);
+      return { status: "retry_pending" };
+    }
+  }
+
   if (!deps.scanRuntimeEnabled()) {
     await deps.markWaitingForScanRuntime(context);
     return { status: "waiting_scan_runtime" };
