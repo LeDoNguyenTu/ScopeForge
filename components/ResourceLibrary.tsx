@@ -28,7 +28,7 @@ export default function ResourceLibrary({ workspace = false }: { workspace?: boo
         <span className="forgeEyebrow"><BookOpen size={14} /> Resource library</span>
         <h1>From scope to proof.</h1>
         <p>Practical templates and project documentation to help you register assets, review findings, and verify the fix.</p>
-        <Link className="resourcePrimary" href={workspace ? "/dashboard/assets/new" : "/auth/sign-up"}>{workspace ? "Register an asset" : "Create your workspace"} <ArrowRight size={16} /></Link>
+        <Link className="resourcePrimary" href={workspace ? "/dashboard/assets/new" : "/dashboard"}>{workspace ? "Register an asset" : "Explore the demo"} <ArrowRight size={16} /></Link>
       </section>
       <section aria-labelledby="resource-templates">
         <div className="resourceSectionHeading"><h2 id="resource-templates">Ready-to-use templates</h2><span>Markdown · Free to download</span></div>

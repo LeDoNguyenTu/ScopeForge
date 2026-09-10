@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { LogOut } from "lucide-react";
-import { signOut } from "@/app/actions";
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
 import SideNav from "@/components/SideNav";
 
@@ -28,14 +27,10 @@ export default function ImmersiveDashboardNav({
             <span>{workspaceName}</span>
             <small>{role}</small>
           </div>
-          <div className="immersiveUserIdentity" aria-label={`Signed in as ${displayName}`}>
+          <div className="immersiveUserIdentity" aria-label={`Demo persona: ${displayName}`}>
             {displayName.slice(0, 2).toUpperCase()}
           </div>
-          <form action={signOut}>
-            <button type="submit" className="immersiveSignOut" aria-label="Sign out">
-              <LogOut size={15} />
-            </button>
-          </form>
+          <Link href="/" className="immersiveSignOut" aria-label="Leave demo"><LogOut size={15} /></Link>
         </div>
       </nav>
     </header>

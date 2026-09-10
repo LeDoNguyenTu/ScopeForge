@@ -2,62 +2,18 @@ import AppShell from "@/components/AppShell";
 import ImmersiveDashboardExperience from "@/components/dashboard/ImmersiveDashboardExperience";
 import {
   buildAttackSurfaceModel,
-  type AttackSurfaceFindingInput,
 } from "@/lib/dashboard/attack-surface-model";
-import { getDashboardContext } from "@/lib/workspaces/current";
+import { demoAssets, demoFindings, demoIdentity } from "@/lib/demo/fixtures";
 
 export const dynamic = "force-dynamic";
 
-const ACTIVE_FINDING_STATES = [
-  "open",
-  "acknowledged",
-  "in_progress",
-  "resolved",
-  "retest_pending",
-] as const;
-
-export default async function DashboardPage() {
-  const { supabase, workspace, role, displayName } = await getDashboardContext();
-  const [
-    { data: assets, error: assetsError },
-    { count: openFindingCount, error: findingCountError },
-    { data: findingSample, error: findingSampleError },
-  ] = await Promise.all([
-    supabase
-      .from("assets")
-      .select("id,kind,name,canonical_target,verification_status,created_at")
-      .eq("workspace_id", workspace.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("security_findings")
-      .select("finding_id", { count: "exact", head: true })
-      .eq("workspace_id", workspace.id)
-      .in("lifecycle_state", [...ACTIVE_FINDING_STATES]),
-    supabase
-      .from("security_findings")
-      .select("finding_id,asset_id,severity,title,lifecycle_state,last_seen_at")
-      .eq("workspace_id", workspace.id)
-      .in("lifecycle_state", [...ACTIVE_FINDING_STATES])
-      .order("last_seen_at", { ascending: false })
-      .limit(250),
-  ]);
-
-  if (assetsError) throw new Error(assetsError.message);
-  if (findingCountError) throw new Error(findingCountError.message);
-  if (findingSampleError) throw new Error(findingSampleError.message);
-
-  const workspaceAssets = assets ?? [];
-  const activeFindings: AttackSurfaceFindingInput[] = (findingSample ?? []).map((finding) => ({
-    asset_id: finding.asset_id,
-    severity: finding.severity,
-    title: finding.title,
-    lifecycle_state: finding.lifecycle_state as AttackSurfaceFindingInput["lifecycle_state"],
-  }));
-  const surfaceModel = buildAttackSurfaceModel({
-    assets: workspaceAssets,
-    findings: activeFindings,
-    openFindingCount: openFindingCount ?? 0,
-  });
+export default function DashboardPage() {
+  const { workspaceName, ...identity } = demoIdentity;
+  const workspace = { name: workspaceName };
+  const { role, displayName } = identity;
+  const workspaceAssets = demoAssets;
+  const findingSample = demoFindings;
+  const surfaceModel = buildAttackSurfaceModel({ assets: workspaceAssets, findings: demoFindings });
 
   const firstNeedsProof = workspaceAssets.find((asset) => asset.verification_status !== "verified");
   const openWorkCount = surfaceModel.metrics.openFindings;

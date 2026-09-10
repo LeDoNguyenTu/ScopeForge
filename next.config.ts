@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+if (process.env.VERCEL_ENV === "production" || process.env.VERCEL_TARGET_ENV === "production") {
+  throw new Error("Portfolio demo cannot be built for production. Deploy this branch as a preview only.");
+}
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

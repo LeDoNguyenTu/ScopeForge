@@ -1,8 +1,10 @@
+import { disableDemoBackend } from "@/lib/demo/disable-backend";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 
 export async function updateSession(request: NextRequest, requestHeaders: Headers) {
+  disableDemoBackend();
   let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient<Database>(

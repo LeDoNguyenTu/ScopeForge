@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Boxes, CircleCheck, CircleDashed, Plus, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
-import { getDashboardContext } from "@/lib/workspaces/current";
+import { demoAssets, demoIdentity } from "@/lib/demo/fixtures";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +13,9 @@ function statusLabel(status: string) {
 }
 
 export default async function AssetsPage() {
-  const { supabase, workspace, role, displayName } = await getDashboardContext();
-  const { data: assets, error } = await supabase
-    .from("assets")
-    .select("id,name,kind,canonical_target,verification_status,verified_at,created_at")
-    .eq("workspace_id", workspace.id)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  const { workspaceName, role, displayName } = demoIdentity;
+  const workspace = { name: workspaceName };
+  const assets = demoAssets;
 
   const verifiedCount = (assets ?? []).filter((asset) => asset.verification_status === "verified").length;
 
@@ -31,8 +27,8 @@ export default async function AssetsPage() {
       </section>
 
       <section className="grid4 assetSummaryGrid">
-        <article className="statCard"><div><span>Registered</span><Boxes size={18} /></div><strong>{assets?.length ?? 0}</strong><small>Trial limit: 10 per workspace</small></article>
-        <article className="statCard"><div><span>Verified</span><CircleCheck size={18} /></div><strong>{verifiedCount}</strong><small>Proof of control confirmed</small></article>
+        <article className="statCard"><div><span>Registered</span><Boxes size={18} /></div><strong>{assets?.length ?? 0}</strong><small>Read-only demonstration inventory</small></article>
+        <article className="statCard"><div><span>Verified</span><CircleCheck size={18} /></div><strong>{verifiedCount}</strong><small>Simulated proof of control</small></article>
         <article className="statCard"><div><span>Awaiting proof</span><CircleDashed size={18} /></div><strong>{(assets?.length ?? 0) - verifiedCount}</strong><small>No scan starts automatically</small></article>
         <article className="statCard"><div><span>Safety boundary</span><ShieldCheck size={18} /></div><strong>ON</strong><small>Active scanning disabled</small></article>
       </section>

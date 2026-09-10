@@ -1,0 +1,7 @@
+.demoBanner { display:flex; align-items:center; justify-content:center; gap:18px; padding:10px 20px; background:#142823; color:#c9ded6; font:12px/1.5 system-ui,sans-serif; border-bottom:1px solid #335245; }
+.demoBanner strong { color:#a8e6c8; text-transform:uppercase; letter-spacing:.08em; }
+.demoBanner a { color:#fff; text-decoration:underline; text-underline-offset:3px; }
+.demoNote { padding:20px; border:1px solid var(--border,#d8e2dd); border-radius:12px; line-height:1.7; }
+@media(max-width:680px) { .demoBanner { gap:5px 12px; flex-wrap:wrap; text-align:center; } .demoBanner span { flex-basis:100%; order:3; } }
+.demoBanner { position:sticky; top:0; z-index:80; min-height:40px; box-sizing:border-box; }
+@media(min-width:961px) { .demoBanner ~ .workspaceAppShell .immersiveDashboardHeader { top:40px; } }

@@ -17,7 +17,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:demo": "vitest run tests/demo-isolation.test.ts"
   },
   "dependencies": {
     "@cdktf/hcl2json": "0.21.0",

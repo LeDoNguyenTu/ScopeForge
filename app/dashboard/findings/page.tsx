@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Bug, CircleCheck, Clock3, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
-import { createSecurityFindingRepository } from "@/lib/security-findings/repository";
-import { getDashboardContext } from "@/lib/workspaces/current";
+import { demoAssets, demoFindings, demoIdentity } from "@/lib/demo/fixtures";
 
 export const dynamic = "force-dynamic";
 const FINDINGS_PAGE_SIZE = 100;
@@ -36,31 +35,17 @@ export default async function FindingsPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   const { page: pageParam } = await searchParams;
-  const { supabase, workspace, role, displayName } = await getDashboardContext();
-  const repository = createSecurityFindingRepository(supabase);
-  const findingPage = await repository.listWorkspaceFindings(
-    workspace.id,
-    requestedPage(pageParam),
-    FINDINGS_PAGE_SIZE,
-  );
-  const { findings, page, hasNextPage } = findingPage;
-
-  const assetIds = [...new Set(findings.map((finding) => finding.asset_id))];
-  const assetNames = new Map<string, string>();
-  if (assetIds.length > 0) {
-    const { data: assets, error } = await supabase
-      .from("assets")
-      .select("id,name")
-      .eq("workspace_id", workspace.id)
-      .in("id", assetIds);
-    if (error) throw new Error("Unable to load finding assets.");
-    for (const asset of assets ?? []) assetNames.set(asset.id, asset.name);
-  }
+  const { workspaceName, role, displayName } = demoIdentity;
+  const workspace = { name: workspaceName };
+  const page = requestedPage(pageParam);
+  const findings = page === 1 ? demoFindings : [];
+  const hasNextPage = false;
+  const assetNames = new Map(demoAssets.map(asset => [asset.id, asset.name]));
 
   const activeCount = findings.filter((finding) =>
     !["verified_fixed", "accepted_risk", "false_positive"].includes(finding.lifecycle_state)).length;
   const validatedCount = findings.filter((finding) => finding.validation_state === "runtime_validated").length;
-  const resolvedCount = findings.filter((finding) => finding.lifecycle_state === "resolved").length;
+  const resolvedCount = findings.filter((finding) => ["resolved"].includes(finding.lifecycle_state)).length;
 
   return (
     <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
@@ -68,9 +53,9 @@ export default async function FindingsPage({
         <div>
           <span className="sectionEyebrow">Security ledger</span>
           <h1>Findings</h1>
-          <p>Review canonical findings produced by authorized deterministic scanners and runtime validation. Evidence and lifecycle history stay workspace-scoped and auditable.</p>
+          <p>Explore representative findings, sample evidence and remediation work. These illustrative records are not results of real scans.</p>
         </div>
-        <div className="healthBadge"><ShieldCheck size={16} /> RLS protected</div>
+        <div className="healthBadge"><ShieldCheck size={16} /> Demo data</div>
       </section>
 
       <section className="grid4 assetSummaryGrid">

@@ -22,8 +22,8 @@ export default function PublicNav() {
         </div>
 
         <div className="commandPublicAuth">
-          <Link href="/auth/sign-in">Sign in</Link>
-          <Link className="commandRequestAccess" href="/auth/sign-up">Create workspace <ArrowRight size={14} /></Link>
+          <Link href="/dashboard">Open demo</Link>
+          <Link className="commandRequestAccess" href="/dashboard">Explore demo <ArrowRight size={14} /></Link>
         </div>
 
         <details
@@ -44,8 +44,8 @@ export default function PublicNav() {
             <Link href="/#security-model">Security</Link>
             <Link href="/resources" aria-current={pathname === "/resources" ? "page" : undefined}>Resources</Link>
             <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer">GitHub</a>
-            <Link href="/auth/sign-in">Sign in</Link>
-            <Link className="commandRequestAccess" href="/auth/sign-up">Create workspace <ArrowRight size={14} /></Link>
+            <Link href="/dashboard">Open demo</Link>
+            <Link className="commandRequestAccess" href="/dashboard">Explore demo <ArrowRight size={14} /></Link>
           </div>
         </details>
       </nav>

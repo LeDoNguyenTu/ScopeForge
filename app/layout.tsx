@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { scopeForgeIconMetadata } from "@/lib/brand/browser-icons";
 import "./globals.css";
+import "./demo.css";
 import "./forge.css";
 import "./forge-landing.css";
 import "./forge-shell.css";
@@ -17,7 +18,7 @@ import "./csp-compatibility.css";
 import "./pre-pr49-ui-compatibility.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  robots: { index: false, follow: false },
   title: {
     default: "ScopeForge - Understand Security Risk Before It Becomes an Incident",
     template: "%s | ScopeForge"
@@ -32,7 +33,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><div className="demoBanner"><strong>Portfolio demo</strong><span>Read-only sample data · Verification statuses are simulated</span><a href="/dashboard">Open dashboard →</a></div>{children}</body>
     </html>
   );
 }
