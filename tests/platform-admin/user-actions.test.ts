@@ -18,7 +18,7 @@ function dependencies(overrides: Partial<PlatformAdminUserActionDependencies> = 
     updateAuthUser: async () => undefined,
     deleteAuthUser: async () => undefined,
     listOwnedWorkspaces: async () => [],
-    countWorkspaceMembers: async () => 1,
+    listWorkspaceMemberUserIds: async () => [TARGET_ID],
     deleteWorkspace: async () => undefined,
     writeAuditEvent: async () => undefined,
     ...overrides,
@@ -68,7 +68,7 @@ describe("platform admin guarded user actions", () => {
         { userId: TARGET_ID, emailConfirmation: "target@example.com", reason: "Requested deletion" },
         dependencies({
           listOwnedWorkspaces: async () => [{ id: "workspace-shared", name: "Shared" }],
-          countWorkspaceMembers: async () => 2,
+          listWorkspaceMemberUserIds: async () => [TARGET_ID, "33333333-3333-4333-8333-333333333333"],
           deleteAuthUser: async () => { authDeleted = true; },
         }),
       ),
@@ -78,7 +78,41 @@ describe("platform admin guarded user actions", () => {
     expect(authDeleted).toBe(false);
   });
 
-  it("deletes personal workspaces before deleting the Auth user", async () => {
+  it("refuses hard deletion when an owned workspace has a different sole member", async () => {
+    let workspaceDeleted = false;
+    let authDeleted = false;
+    await expect(
+      hardDeletePlatformUser(
+        { userId: TARGET_ID, emailConfirmation: "target@example.com", reason: "Requested deletion" },
+        dependencies({
+          listOwnedWorkspaces: async () => [{ id: "workspace-corrupt", name: "Unexpected membership" }],
+          listWorkspaceMemberUserIds: async () => ["33333333-3333-4333-8333-333333333333"],
+          deleteWorkspace: async () => { workspaceDeleted = true; },
+          deleteAuthUser: async () => { authDeleted = true; },
+        }),
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<PlatformAdminUserActionError>>({ code: "USER_OWNS_SHARED_WORKSPACE" }),
+    );
+    expect(workspaceDeleted).toBe(false);
+    expect(authDeleted).toBe(false);
+  });
+
+  it("refuses hard deletion when an owned workspace has no membership row", async () => {
+    await expect(
+      hardDeletePlatformUser(
+        { userId: TARGET_ID, emailConfirmation: "target@example.com", reason: "Requested deletion" },
+        dependencies({
+          listOwnedWorkspaces: async () => [{ id: "workspace-orphaned", name: "Orphaned" }],
+          listWorkspaceMemberUserIds: async () => [],
+        }),
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<PlatformAdminUserActionError>>({ code: "USER_OWNS_SHARED_WORKSPACE" }),
+    );
+  });
+
+  it("deletes only target-exclusive personal workspaces before deleting the Auth user", async () => {
     const order: string[] = [];
     await hardDeletePlatformUser(
       { userId: TARGET_ID, emailConfirmation: "target@example.com", reason: "Requested deletion" },
@@ -87,6 +121,7 @@ describe("platform admin guarded user actions", () => {
           { id: "workspace-1", name: "Personal one" },
           { id: "workspace-2", name: "Personal two" },
         ],
+        listWorkspaceMemberUserIds: async () => [TARGET_ID],
         deleteWorkspace: async (workspaceId) => { order.push(`workspace:${workspaceId}`); },
         deleteAuthUser: async (userId) => { order.push(`auth:${userId}`); },
       }),
