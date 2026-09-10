@@ -28,7 +28,7 @@ describe("Phase 10C platform administration migration", () => {
   it("keeps a singleton settings record and bounded audit fields", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toMatch(/id\s+boolean\s+primary key\s+default true\s+check\s*\(id = true\)/i);
-    expect(sql).toMatch(/char_length\(reason\).*between 1 and 500/i);
+    expect(sql).toMatch(/char_length\((?:trim\()?reason\)?\)\s+between 1 and 500/i);
     expect(sql).toMatch(/pg_column_size\(metadata\) <= 8192/i);
     expect(sql).toContain("registration_enabled boolean not null default true");
     expect(sql).toContain("maintenance_mode boolean not null default false");
@@ -38,5 +38,6 @@ describe("Phase 10C platform administration migration", () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toContain("create or replace function private.handle_new_user()");
     expect(sql).toMatch(/registration_enabled[\s\S]*REGISTRATION_DISABLED/i);
+    expect(sql).toMatch(/revoke\s+all\s+on\s+function\s+private\.handle_new_user\s*\(\)/i);
   });
 });
