@@ -20,6 +20,11 @@ function tableDefinition(sql: string, qualifiedName: string): string {
   return sql.match(new RegExp(`create table ${escaped} \\([\\s\\S]*?\\n\\);`, "i"))?.[0] ?? "";
 }
 
+function functionDefinition(sql: string, qualifiedName: string): string {
+  const escaped = qualifiedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return sql.match(new RegExp(`create or replace function ${escaped}[\\s\\S]*?\\n\\$\\$;`, "i"))?.[0] ?? "";
+}
+
 describe("Phase 10A1 connected project scan persistence", () => {
   it("keeps worker identifiers in a private durable intent table", async () => {
     const sql = await readFile(migrationPath, "utf8");
@@ -96,6 +101,18 @@ describe("Phase 10A1 connected project scan persistence", () => {
     expect(sql).toMatch(/snapshot_id\s+is\s+not\s+null/i);
     expect(sql).toMatch(/revoke all on function public\.get_connected_project_scan_recovery[\s\S]*from public, anon, authenticated, service_role/i);
     expect(sql).toMatch(/grant execute on function public\.get_connected_project_scan_recovery[\s\S]*to service_role/i);
+  });
+
+  it("binds delayed recovery to the exact published snapshot even when newer snapshots exist", async () => {
+    const sql = await readFile(recoveryMigrationPath, "utf8");
+    const continuation = functionDefinition(sql, "public.enqueue_connected_project_scan_continuation");
+    expect(sql).toContain("create or replace function public.enqueue_repository_scan_worker_task_for_snapshot");
+    expect(sql).toMatch(/target_snapshot_id\s+uuid/i);
+    expect(sql).toMatch(/repository_source_snapshots[\s\S]*s\.id\s*=\s*target_snapshot_id/i);
+    expect(continuation).toContain("enqueue_repository_scan_worker_task_for_snapshot");
+    expect(continuation).not.toMatch(/public\.enqueue_repository_scan_worker_task\s*\(/i);
+    expect(sql).toMatch(/revoke all on function public\.enqueue_repository_scan_worker_task_for_snapshot[\s\S]*from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.enqueue_repository_scan_worker_task_for_snapshot[\s\S]*to service_role/i);
   });
 
   it("exposes only safe project-level state through the browser-readable link", async () => {
