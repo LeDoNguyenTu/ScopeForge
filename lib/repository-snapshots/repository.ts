@@ -1,11 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Phase10a2Database } from "@/lib/database.phase10a2.types";
 import {
   RepositorySnapshotError,
   type RepositorySnapshotAttemptArtifact,
   type RepositorySnapshotLeaseIdentity,
   type RepositorySnapshotPublicationInput,
   type RepositorySnapshotPublicationResult,
+  type RequestPrivateRepositorySnapshotInput,
+  type RequestPrivateRepositorySnapshotResult,
   type RequestRepositorySnapshotInput,
   type RequestRepositorySnapshotResult,
 } from "./types";
@@ -25,6 +27,8 @@ const KNOWN_CODES = [
   "REPOSITORY_SNAPSHOT_TERMINAL_INVALID",
   "REPOSITORY_SNAPSHOT_TERMINAL_CONFLICT",
   "REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED",
+  "GITHUB_REPOSITORY_LINK_INVALID",
+  "GITHUB_REPOSITORY_LINK_UNAVAILABLE",
   "WORKER_LEASE_INVALID",
   "WORKER_DISABLED",
   "WORKER_JOB_STATE_CONFLICT",
@@ -74,6 +78,18 @@ function parseEnqueue(value: unknown): RequestRepositorySnapshotResult {
   });
 }
 
+function parsePrivateEnqueue(value: unknown): RequestPrivateRepositorySnapshotResult {
+  if (!isRecord(value) || value.executionClass !== "repository_snapshot_github_private_v1") {
+    throw new RepositorySnapshotError("REPOSITORY_SNAPSHOT_FAILED");
+  }
+  return Object.freeze({
+    scanJobId: requiredUuid(value.scanJobId),
+    taskId: requiredUuid(value.taskId),
+    executionClass: "repository_snapshot_github_private_v1" as const,
+    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
+  });
+}
+
 function parseAttemptArtifact(value: unknown): RepositorySnapshotAttemptArtifact {
   if (!isRecord(value)) throw new RepositorySnapshotError("REPOSITORY_SNAPSHOT_FAILED");
   const objectKey = requiredString(value.objectKey);
@@ -109,12 +125,13 @@ function parsePublication(value: unknown): RepositorySnapshotPublicationResult {
 
 export interface RepositorySnapshotRepository {
   enqueue(input: RequestRepositorySnapshotInput): Promise<RequestRepositorySnapshotResult>;
+  enqueuePrivate(input: RequestPrivateRepositorySnapshotInput): Promise<RequestPrivateRepositorySnapshotResult>;
   getAttemptArtifact(input: RepositorySnapshotLeaseIdentity): Promise<RepositorySnapshotAttemptArtifact>;
   publish(input: RepositorySnapshotPublicationInput): Promise<RepositorySnapshotPublicationResult>;
 }
 
 export function createRepositorySnapshotRepository(
-  client: SupabaseClient<Database>,
+  client: SupabaseClient<Phase10a2Database>,
 ): RepositorySnapshotRepository {
   const repository: RepositorySnapshotRepository = {
     async enqueue(input) {
@@ -122,6 +139,15 @@ export function createRepositorySnapshotRepository(
         target_workspace_id: input.workspaceId,
         target_asset_id: input.assetId,
         target_actor_id: input.actorId,
+      })));
+    },
+
+    async enqueuePrivate(input) {
+      return parsePrivateEnqueue(await rpcData(client.rpc("enqueue_private_repository_snapshot_worker_task", {
+        target_workspace_id: input.workspaceId,
+        target_asset_id: input.assetId,
+        target_actor_id: input.actorId,
+        target_github_repository_link_id: input.githubRepositoryLinkId,
       })));
     },
 
