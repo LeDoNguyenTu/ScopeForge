@@ -1,9 +1,14 @@
 import type {
+  PrivateRepositorySnapshotExecutionClass,
+  PrivateRepositorySnapshotInput,
+  WorkerExecutionClass,
+  WorkerTaskInput,
   WorkerTerminalEnvelope,
   WorkerTerminalExpectation,
 } from "./types";
+import { validatePrivateRepositorySnapshotInput } from "./private-repository-validation";
 import {
-  validateWorkerTaskInput,
+  validateWorkerTaskInput as validateBaseWorkerTaskInput,
   validateWorkerTerminalEnvelope as validateBaseTerminalEnvelope,
 } from "./validation";
 
@@ -11,7 +16,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export { validateWorkerTaskInput };
+export function validateWorkerTaskInput(
+  value: unknown,
+  executionClass: PrivateRepositorySnapshotExecutionClass,
+): PrivateRepositorySnapshotInput;
+export function validateWorkerTaskInput(
+  value: unknown,
+  executionClass: WorkerExecutionClass,
+): WorkerTaskInput;
+export function validateWorkerTaskInput(
+  value: unknown,
+  executionClass: WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass,
+): WorkerTaskInput | PrivateRepositorySnapshotInput {
+  if (executionClass === "repository_snapshot_github_private_v1") {
+    return validatePrivateRepositorySnapshotInput(value);
+  }
+  return validateBaseWorkerTaskInput(value, executionClass);
+}
 
 export function validateWorkerTerminalEnvelope(
   value: unknown,
