@@ -7,6 +7,11 @@ export type ProjectScanState =
   | "scan_queued"
   | "retry_pending";
 
+export type RecoverableProjectScanState =
+  | "waiting_scan_runtime"
+  | "retry_pending"
+  | "scan_queued";
+
 export interface ConnectedProjectScanContext {
   workspaceId: string;
   assetId: string;
@@ -34,6 +39,12 @@ export interface ConnectedProjectContinuationContext {
   state: ProjectScanState;
 }
 
+export interface ConnectedProjectScanRecovery {
+  snapshotTaskId: string;
+  snapshotId: string;
+  state: RecoverableProjectScanState;
+}
+
 export type ProjectScanRequestResult =
   | { status: "snapshot_queued"; taskId: string }
   | { status: "private_acquisition_required" }
@@ -44,6 +55,12 @@ export type ProjectScanContinuationResult =
   | { status: "waiting_scan_runtime" }
   | { status: "retry_pending" }
   | { status: "ignored" };
+
+export type ProjectScanResumeResult =
+  | { status: "scan_queued"; taskId: string; scanJobId: string; replayed: boolean }
+  | { status: "retry_pending" }
+  | { status: "scan_runtime_unavailable" }
+  | { status: "no_pending_scan" };
 
 export type ProjectScanErrorCode =
   | "PROJECT_SCAN_INPUT_INVALID"
