@@ -41,8 +41,8 @@ export default function CinematicSurface({ model = buildSampleSurface() }: { mod
             </g>
           ))}
         </svg>
-        {sceneBranches.map((branch) => (
-          <span key={branch.name} className={`cinematicSceneLabel${branch.risk ? " cinematicSceneLabelRisk" : ""}${branch.name === "Cloud infrastructure" ? " cinematicSceneLabelCloud" : ""}`} style={{ left: `${(branch.x - frame.x) / frame.width * 100}%`, top: `${branch.y / frame.height * 100}%`, ...(branch.x === 2400 ? { transform: "translateX(-100%)", textAlign: "right" as const } : {}) }}>
+        {sceneBranches.map((branch, index) => (
+          <span key={branch.name} className={`cinematicSceneLabel cinematicSceneLabelSlot-${index}${branch.risk ? " cinematicSceneLabelRisk" : ""}${branch.name === "Cloud infrastructure" ? " cinematicSceneLabelCloud" : ""}`}>
             <strong>{branch.name}</strong><small>{branch.status}</small>
           </span>
         ))}

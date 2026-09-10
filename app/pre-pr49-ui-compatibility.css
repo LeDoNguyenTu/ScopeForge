@@ -32,3 +32,11 @@
   position: relative;
   z-index: 1;
 }
+
+.cinematicSceneLabelSlot-0 { left: 2.023%; top: 91.333%; }
+.cinematicSceneLabelSlot-1 { left: 2.023%; top: 41.333%; }
+.cinematicSceneLabelSlot-2 { left: 2.023%; top: 7.333%; }
+.cinematicSceneLabelSlot-3 { left: 43.931%; top: 1.333%; }
+.cinematicSceneLabelSlot-4 { left: 95.376%; top: 10.667%; transform: translateX(-100%); text-align: right; }
+.cinematicSceneLabelSlot-5 { left: 95.376%; top: 55%; transform: translateX(-100%); text-align: right; }
+.cinematicSceneLabelSlot-6 { left: 59.538%; top: 79.667%; }
