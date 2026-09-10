@@ -172,6 +172,13 @@ export async function suspendPlatformUser(
   const context = await resolveModerationTarget(input.userId, input.reason, "suspend", dependencies);
 
   try {
+    await context.deps.writeAuditEvent({
+      actorUserId: context.actor.actorUserId,
+      action: "user.suspend_started",
+      targetUserId: context.targetUserId,
+      reason: context.normalizedReason,
+      metadata: { banDuration: SUSPEND_BAN_DURATION },
+    });
     await context.deps.updateAuthUser(context.targetUserId, { ban_duration: SUSPEND_BAN_DURATION });
     await context.deps.writeAuditEvent({
       actorUserId: context.actor.actorUserId,
@@ -196,6 +203,13 @@ export async function restorePlatformUser(
   const context = await resolveModerationTarget(input.userId, input.reason, "restore", dependencies);
 
   try {
+    await context.deps.writeAuditEvent({
+      actorUserId: context.actor.actorUserId,
+      action: "user.restore_started",
+      targetUserId: context.targetUserId,
+      reason: context.normalizedReason,
+      metadata: {},
+    });
     await context.deps.updateAuthUser(context.targetUserId, { ban_duration: RESTORE_BAN_DURATION });
     await context.deps.writeAuditEvent({
       actorUserId: context.actor.actorUserId,
