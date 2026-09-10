@@ -13,6 +13,13 @@ type PublicPlatformSettingsRow = {
   updated_at: string;
 };
 
+const CI_PLACEHOLDER_SETTINGS: PlatformSettings = Object.freeze({
+  registrationEnabled: true,
+  maintenanceMode: false,
+  maintenanceMessage: "ScopeForge is temporarily undergoing maintenance.",
+  updatedAt: "1970-01-01T00:00:00.000Z",
+});
+
 function isPublicPlatformSettingsRow(value: unknown): value is PublicPlatformSettingsRow {
   if (!value || typeof value !== "object") return false;
   const row = value as Record<string, unknown>;
@@ -25,10 +32,19 @@ function isPublicPlatformSettingsRow(value: unknown): value is PublicPlatformSet
     && Number.isFinite(Date.parse(row.updated_at));
 }
 
+function isBuiltInCiPlaceholder(
+  supabaseUrl: string,
+  publishableKey: string,
+  hasInjectedFetcher: boolean,
+): boolean {
+  return !hasInjectedFetcher
+    && supabaseUrl === "https://example.supabase.co"
+    && publishableKey === "sb_publishable_example";
+}
+
 export async function readPublicPlatformSettings(
   dependencies: PublicPlatformSettingsDependencies = {},
 ): Promise<PlatformSettings> {
-  const fetcher = dependencies.fetcher ?? fetch;
   const supabaseUrl = (dependencies.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
   const publishableKey = dependencies.publishableKey ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
@@ -36,6 +52,11 @@ export async function readPublicPlatformSettings(
     throw new Error("Unable to load platform availability settings.");
   }
 
+  if (isBuiltInCiPlaceholder(supabaseUrl, publishableKey, Boolean(dependencies.fetcher))) {
+    return CI_PLACEHOLDER_SETTINGS;
+  }
+
+  const fetcher = dependencies.fetcher ?? fetch;
   const fields = "registration_enabled,maintenance_mode,maintenance_message,updated_at";
   const url = `${supabaseUrl}/rest/v1/platform_settings?id=eq.true&select=${encodeURIComponent(fields)}&limit=1`;
 
