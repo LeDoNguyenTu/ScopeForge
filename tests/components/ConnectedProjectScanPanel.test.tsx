@@ -1,0 +1,90 @@
+import React from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import ConnectedProjectScanPanel from "@/components/assets/ConnectedProjectScanPanel";
+
+const mocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  requestScan: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mocks.refresh }),
+}));
+
+vi.mock("@/app/dashboard/assets/[assetId]/project-scan-actions", () => ({
+  requestConnectedProjectSecurityScan: mocks.requestScan,
+}));
+
+const publicProject = {
+  fullName: "scopeforge-labs/app",
+  defaultBranch: "main",
+  isPrivate: false,
+  accessStatus: "active" as const,
+  projectScanState: "idle" as const,
+};
+
+function renderPanel(overrides: Partial<React.ComponentProps<typeof ConnectedProjectScanPanel>> = {}) {
+  return render(
+    <ConnectedProjectScanPanel
+      assetId="22222222-2222-4222-8222-222222222222"
+      role="owner"
+      project={publicProject}
+      snapshotRuntimeAvailable
+      scanRuntimeAvailable={false}
+      {...overrides}
+    />,
+  );
+}
+
+afterEach(() => {
+  mocks.refresh.mockReset();
+  mocks.requestScan.mockReset();
+});
+
+describe("ConnectedProjectScanPanel", () => {
+  it("makes the connected public repository a one-click project scan", () => {
+    renderPanel();
+    expect(screen.getByText("scopeforge-labs/app")).toBeInTheDocument();
+    expect(screen.getByText(/default branch: main/i)).toBeInTheDocument();
+    expect(screen.getByText("Public")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^scan project$/i })).toBeEnabled();
+    expect(screen.getByText(/scan will wait safely until the repository scan runtime is enabled/i)).toBeInTheDocument();
+  });
+
+  it("keeps private repositories connected but outside Phase 10A1 acquisition", () => {
+    renderPanel({ project: { ...publicProject, isPrivate: true } });
+    expect(screen.getByText("Private")).toBeInTheDocument();
+    expect(screen.getByText(/phase 10a2/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /private acquisition required/i })).toBeDisabled();
+  });
+
+  it("prevents duplicate user starts while orchestration is already active", () => {
+    renderPanel({ project: { ...publicProject, projectScanState: "snapshot_queued" } });
+    expect(screen.getByText(/immutable source snapshot is queued/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /snapshot queued/i })).toBeDisabled();
+  });
+
+  it("keeps ordinary workspace members read-only", () => {
+    renderPanel({ role: "member" });
+    expect(screen.getByText(/owner or admin/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /owner or admin required/i })).toBeDisabled();
+  });
+
+  it("shows the bounded server result and refreshes after a queued scan", async () => {
+    mocks.requestScan.mockResolvedValue({
+      ok: true,
+      status: "snapshot_queued",
+      taskId: "66666666-6666-4666-8666-666666666666",
+      message: "ScopeForge queued an immutable source snapshot.",
+    });
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /^scan project$/i }));
+
+    await waitFor(() => expect(mocks.requestScan).toHaveBeenCalledTimes(1));
+    expect(mocks.requestScan).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222");
+    expect(await screen.findByText("ScopeForge queued an immutable source snapshot.")).toBeInTheDocument();
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+});
