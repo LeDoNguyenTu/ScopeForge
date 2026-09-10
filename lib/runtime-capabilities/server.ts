@@ -8,7 +8,7 @@ export type CapabilityEnvironment = Readonly<Partial<Record<HostedCapabilityName
 
 export function serverCapabilityEnabled(
   name: HostedCapabilityName,
-  env: CapabilityEnvironment = process.env,
+  env: CapabilityEnvironment = process.env as CapabilityEnvironment,
 ): boolean {
   return env[name] === "true";
 }
