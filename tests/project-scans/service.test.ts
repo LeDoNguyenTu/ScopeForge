@@ -34,7 +34,7 @@ function dependencies(overrides: Partial<ProjectScanServiceDependencies> = {}): 
       repositoryId: repository.id,
       canonicalTarget: repository.htmlUrl,
       isPrivate: false,
-      accessStatus: "active",
+      accessStatus: "active" as const,
     })),
     revalidateRepository: vi.fn(async () => repository),
     snapshotRuntimeEnabled: () => true,
@@ -95,7 +95,7 @@ describe("connected project scan request", () => {
         repositoryId: repository.id,
         canonicalTarget: repository.htmlUrl,
         isPrivate: true,
-        accessStatus: "active",
+        accessStatus: "active" as const,
       })),
       revalidateRepository: vi.fn(async () => ({ ...repository, isPrivate: true })),
     });
