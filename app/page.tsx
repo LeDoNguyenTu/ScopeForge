@@ -13,7 +13,8 @@ import {
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
 import PublicNav from "@/components/landing/PublicNav";
 import PublicFooter from "@/components/landing/PublicFooter";
-import { getPlatformSettings, shouldEnterMaintenance } from "@/lib/platform-settings/server";
+import { readPublicPlatformSettings } from "@/lib/platform-settings/public";
+import { shouldEnterMaintenance } from "@/lib/platform-settings/server";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ const workflow = [
 ] as const;
 
 export default async function Home() {
-  const settings = await getPlatformSettings();
+  const settings = await readPublicPlatformSettings();
   if (shouldEnterMaintenance({ pathname: "/", maintenanceMode: settings.maintenanceMode, isPlatformAdmin: false })) {
     redirect("/maintenance");
   }
