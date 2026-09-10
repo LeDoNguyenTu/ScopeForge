@@ -40,6 +40,7 @@ function dependencies(overrides: Partial<ProjectScanServiceDependencies> = {}): 
     snapshotRuntimeEnabled: () => true,
     scanRuntimeEnabled: () => true,
     enqueueSnapshotIntent: vi.fn(async () => ({ taskId: "66666666-6666-4666-8666-666666666666" })),
+    loadRecovery: vi.fn(async () => null),
     loadContinuation: vi.fn(async () => null),
     markWaitingForScanRuntime: vi.fn(async () => undefined),
     enqueueScanContinuation: vi.fn(async () => ({ taskId: "77777777-7777-4777-8777-777777777777", scanJobId: "88888888-8888-4888-8888-888888888888", replayed: false })),
