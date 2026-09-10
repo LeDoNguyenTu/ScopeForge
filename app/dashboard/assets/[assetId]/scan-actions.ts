@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { Phase6cDatabase } from "@/lib/database.phase6c.types";
+import { HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED } from "@/lib/repository-scans/runtime";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,7 +11,6 @@ export type HostedRepositoryScanActionResult =
   | { ok: false; error: { code: string; message: string } };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED = false;
 
 function enqueueResult(value: unknown): { taskId: string } | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
