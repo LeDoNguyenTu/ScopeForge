@@ -17,3 +17,9 @@ No production account credentials belong in this branch. `vercel.json` does not 
 ## Validation
 
 Run `npm run test:demo`, `npm run typecheck`, and `npm run build`. Verify that `VERCEL_ENV=production npm run build` fails at configuration load. In the preview, verify overview metrics (18 findings, 8 assets, 6 verified, 75%), work queue filters and pagination, sample details, and HTTP 405 for writes / 404 for auth and worker endpoints. Screenshots must retain the demo disclosure.
+
+## Graph presentation
+
+The demo overview opens the attack surface map below its metrics. The WebGL renderer retains its animation, while a CSP-safe SVG scene and labels keep all assets visible when a browser has no GPU context. Both layers share node coordinates. Reduced-motion rendering redraws after canvas resize. No CSP restrictions are relaxed.
+
+Graph verification: `node node_modules/vitest/vitest.mjs run tests/dashboard/graph-fallback.test.tsx tests/demo-isolation.test.ts tests/dashboard/attack-surface-model.test.ts` (19 tests), TypeScript checking, and a production-mode Next.js build for the isolated preview.
