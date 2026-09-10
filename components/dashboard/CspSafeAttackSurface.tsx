@@ -1,10 +1,10 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useId, type ReactNode, type PointerEventHandler } from "react";
 import ScopeForgeMark from "@/components/brand/ScopeForgeMark";
 import type { AttackSurfaceModel, AttackSurfaceNode } from "@/lib/dashboard/attack-surface-model";
 
-function polarPosition(node: AttackSurfaceNode): [number, number] {
+export function polarPosition(node: AttackSurfaceNode): [number, number] {
   const radians = (node.angle * Math.PI) / 180;
   return [Math.cos(radians) * node.radius * 0.88, Math.sin(radians) * node.radius * 0.72];
 }
@@ -27,20 +27,26 @@ function shorten(value: string, max = 24) {
   return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
 }
 
-export default function CspSafeAttackSurface({ model }: { model: AttackSurfaceModel }) {
+export default function CspSafeAttackSurface({ model, canvas, rendererState = "svg", onPointerMove, onPointerLeave }: {
+  model: AttackSurfaceModel;
+  canvas?: ReactNode;
+  rendererState?: "svg" | "fallback" | "webgl";
+  onPointerMove?: PointerEventHandler<HTMLDivElement>;
+  onPointerLeave?: PointerEventHandler<HTMLDivElement>;
+}) {
   const sceneId = useId().replaceAll(":", "");
-  const visualNodes = useMemo(() => model.nodes.map((node, index) => ({
-    ...node,
-    angle: -150 + index * (360 / Math.max(1, model.nodes.length)),
-  })), [model.nodes]);
+  const visualNodes = model.nodes;
 
   return (
     <div
       className="webglAttackSurface"
       data-testid="webgl-attack-surface"
-      data-renderer-state="svg"
+      data-renderer-state={rendererState}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
       aria-label="Workspace attack surface topology"
     >
+      {canvas}
       <svg className="workspaceTopologyArt" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id={`${sceneId}-metal`} x1="0" y1="0" x2="0.8" y2="1">
@@ -61,8 +67,8 @@ export default function CspSafeAttackSurface({ model }: { model: AttackSurfaceMo
 
         {visualNodes.map((node) => {
           const [px, py] = polarPosition(node);
-          const x = 500 + px * 470;
-          const y = 300 - py * 312;
+          const x = 500 + px * 500;
+          const y = 300 - py * 300;
           const tone = toneFor(node);
           return (
             <g key={node.id}>
@@ -114,8 +120,8 @@ export default function CspSafeAttackSurface({ model }: { model: AttackSurfaceMo
       <svg className="workspaceTopologyLabels" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
         {visualNodes.map((node, index) => {
           const [px, py] = polarPosition(node);
-          const x = 500 + px * 470;
-          const y = 300 - py * 312;
+          const x = 500 + px * 500;
+          const y = 300 - py * 300;
           const labelY = y + 54;
           return (
             <g key={`label-${node.id}`} transform={`translate(${x} ${labelY})`} className={`cspTopologyLabel cspTopologyLabel-${node.state}`}>
