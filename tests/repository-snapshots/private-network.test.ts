@@ -22,7 +22,7 @@ function response(status = 200, headers: Record<string, string | undefined> = {}
 
 describe("Phase 10A2 private repository archive reader", () => {
   it("performs exactly one pinned request to the brokered codeload capability", async () => {
-    const request = vi.fn(async () => response(200, {
+    const request = vi.fn(async (_url: URL, _signal: AbortSignal) => response(200, {
       "content-type": "application/x-gzip",
       "content-length": "7",
     }));
