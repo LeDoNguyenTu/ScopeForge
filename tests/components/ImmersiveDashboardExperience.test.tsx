@@ -1,7 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import ImmersiveDashboardExperience from "@/components/dashboard/ImmersiveDashboardExperience";
 import type { AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
+
+vi.mock("@/components/dashboard/WebGLAttackSurface", () => ({
+  default: () => <div data-testid="webgl-scene">WebGL scene</div>,
+}));
 
 const model: AttackSurfaceModel = {
   nodes: [
@@ -33,14 +37,9 @@ const model: AttackSurfaceModel = {
   },
 };
 
-beforeEach(() => {
-  vi.restoreAllMocks();
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
-});
-
 describe("ImmersiveDashboardExperience", () => {
-  it("matches the approved command-center composition with real metrics and a WebGL topology path", () => {
-    const { container } = render(<ImmersiveDashboardExperience
+  it("puts workspace metrics and the work queue ahead of the optional map", () => {
+    render(<ImmersiveDashboardExperience
       model={model}
       nextAction={{
         href: "/dashboard/findings",
@@ -50,20 +49,17 @@ describe("ImmersiveDashboardExperience", () => {
       }}
     />);
 
-    expect(screen.getByText("LIVING ATTACK SURFACE")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Understand the risk before it becomes an incident." })).toBeInTheDocument();
-    expect(screen.getByTestId("webgl-attack-surface")).toHaveAttribute("data-renderer-state", "fallback");
-    expect(container.querySelector("canvas.webglAttackCanvas")).toHaveAttribute("aria-hidden", "true");
-    expect(container.querySelector(".workspaceTopologyArt")).not.toBeInTheDocument();
+    expect(screen.getByText("WORKSPACE OVERVIEW")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Security overview" })).toBeInTheDocument();
+    expect(screen.getByTestId("webgl-scene")).toBeInTheDocument();
     expect(screen.getByText("Registered assets")).toBeInTheDocument();
     expect(screen.getByText("Verified assets")).toBeInTheDocument();
     expect(screen.getByText("Open findings")).toBeInTheDocument();
     expect(screen.getByText("Verification coverage")).toBeInTheDocument();
-    expect(screen.getAllByText("75%")).toHaveLength(2);
-    expect(screen.getByText("Highest priority evidence")).toBeInTheDocument();
-    expect(screen.getByText("Missing security header")).toBeInTheDocument();
+    expect(screen.getByText("75%")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Workspace work queue" })).toBeInTheDocument();
     const reviewLinks = screen.getAllByRole("link", { name: /Review findings/i });
-    expect(reviewLinks).toHaveLength(2);
+    expect(reviewLinks).toHaveLength(1);
     expect(reviewLinks.every((link) => link.getAttribute("href") === "/dashboard/findings")).toBe(true);
   });
 
@@ -105,6 +101,8 @@ describe("ImmersiveDashboardExperience", () => {
       }}
     />);
 
-    expect(screen.getByText("No active finding evidence in this workspace view.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "No findings to review yet" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Register your first asset" })).toBeInTheDocument();
+    expect(screen.queryByText("Topology active")).not.toBeInTheDocument();
   });
 });

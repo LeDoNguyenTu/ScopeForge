@@ -1,66 +1,55 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-function read(path: string) {
-  return readFileSync(path, "utf8");
-}
+const read = (path: string) => readFileSync(path, "utf8");
 
-describe("approved Command Center UI v3 restoration", () => {
-  it("uses the approved public command-center composition instead of the later V5 split hero", () => {
+describe("pre-PR49 UI rollback with current security", () => {
+  it("uses the exact pre-PR49 public landing composition", () => {
+    const page = read("app/page.tsx");
     const hero = read("components/landing/CommandCenterLandingHero.tsx");
 
-    expect(hero).toContain('CommandCenterSurface from "@/components/landing/CommandCenterSurface"');
-    expect(hero).toContain('className="commandHero"');
-    expect(hero).toContain("Attack Surface Overview");
-    expect(hero).toContain("Top risk path");
-    expect(hero).toContain("Pause monitoring");
+    expect(page).toContain("<CommandCenterLandingHero />");
+    expect(page).not.toContain("LandingBootGate");
+    expect(hero).toContain('LandingDataIllustration from "./LandingDataIllustration"');
+    expect(hero).toContain("<LandingDataIllustration />");
+    expect(hero).not.toContain("CommandCenterSurface");
     expect(hero).not.toContain("CommandCenterHeroDesktopV5");
-    expect(hero).not.toContain("CommandCenterHeroMobileV5");
   });
 
-  it("restores the original dimensional WebGL public attack surface", () => {
-    const path = "components/landing/CommandCenterSurface.tsx";
-    expect(existsSync(path)).toBe(true);
-    if (!existsSync(path)) return;
-
-    const surface = read(path);
-    expect(surface).toContain('canvas.getContext("webgl"');
-    expect(surface).toContain("const ARMS: readonly Arm[]");
-    expect(surface.match(/angle:/g)?.length ?? 0).toBeGreaterThanOrEqual(6);
-    expect(surface).toContain("commandSurfaceLabelWeb");
-    expect(surface).toContain("commandSurfaceLabelData");
-    expect(surface).not.toMatch(/style\s*=\s*\{/);
-  });
-
-  it("uses the approved live WebGL topology after login rather than the replacement SVG approximation", () => {
+  it("restores the pre-PR49 SaaS dashboard and shared workspace shell", () => {
     const dashboard = read("components/dashboard/ImmersiveDashboardExperience.tsx");
-    const path = "components/dashboard/WebGLAttackSurface.tsx";
+    const shell = read("components/AppShell.tsx");
 
-    expect(dashboard).toContain('WebGLAttackSurface from "@/components/dashboard/WebGLAttackSurface"');
-    expect(dashboard).toContain("<WebGLAttackSurface model={model} />");
-    expect(dashboard).not.toContain("CspSafeAttackSurface");
-    expect(existsSync(path)).toBe(true);
+    expect(dashboard).toContain('className="saasDashboard"');
+    expect(dashboard).toContain("Security overview");
+    expect(dashboard).toContain("DashboardWorkbench");
+    expect(dashboard).not.toContain('className="livingDashboard"');
+    expect(shell).toContain('className="workspaceAppShell"');
+    expect(shell).not.toContain('className="immersiveAppShell"');
   });
 
-  it("keeps the restored authenticated topology compatible with strict CSP", () => {
-    const path = "components/dashboard/WebGLAttackSurface.tsx";
-    expect(existsSync(path)).toBe(true);
-    if (!existsSync(path)) return;
+  it("keeps the old visual language compatible with strict CSP", () => {
+    const sample = read("components/landing/LandingDataIllustration.tsx");
+    const cinematic = read("components/landing/CinematicSurface.tsx");
+    const dashboard = read("components/dashboard/ImmersiveDashboardExperience.tsx");
 
-    const topology = read(path);
-    const positions = read("app/approved-command-center-v3.css");
-    expect(topology).toContain('canvas.getContext("webgl"');
-    expect(topology).toContain("webglAttackLabelSlot-${index}");
-    expect(topology).not.toMatch(/style\s*=\s*\{/);
-    expect(topology).not.toContain("dangerouslySetInnerHTML");
-    expect(positions).toContain(".webglAttackLabelSlot-0");
-    expect(positions).toContain(".webglAttackLabelSlot-9");
+    expect(sample).not.toContain("style={{");
+    expect(cinematic).not.toContain("style={{");
+    expect(dashboard).not.toContain("style={{");
+    expect(sample).toContain("commandExposureRingGraphic");
+    expect(cinematic).toContain("cinematicSceneLabelSlot-${index}");
   });
 
-  it("does not disturb the current Turnstile integration", () => {
+  it("keeps current CSP and Turnstile integration active", () => {
+    const layout = read("app/layout.tsx");
     const auth = read("components/AuthForm.tsx");
     const turnstile = read("components/auth/TurnstileChallenge.tsx");
 
+    expect(layout).toContain('import { connection } from "next/server"');
+    expect(layout).toContain('import "./csp-compatibility.css";');
+    expect(layout).toContain('import "./saas-dashboard.css";');
+    expect(layout).not.toContain('import "./command-center-v5.css";');
+    expect(layout).not.toContain('import "./approved-v5-dashboard.css";');
     expect(auth).toContain("Security verification");
     expect(auth).toContain("TurnstileChallenge");
     expect(turnstile).toContain("challenges.cloudflare.com/turnstile/v0/api.js?render=explicit");
