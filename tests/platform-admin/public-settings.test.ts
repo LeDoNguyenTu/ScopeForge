@@ -3,6 +3,7 @@ import { readPublicPlatformSettings } from "@/lib/platform-settings/public";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("public platform settings read model", () => {
@@ -39,7 +40,8 @@ describe("public platform settings read model", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("uses normal-open defaults only for the exact built-in CI placeholder when no fetcher is injected", async () => {
+  it("uses normal-open defaults only for the exact built-in placeholder inside CI when no fetcher is injected", async () => {
+    vi.stubEnv("CI", "true");
     const globalFetch = vi.fn();
     vi.stubGlobal("fetch", globalFetch);
 
@@ -55,7 +57,20 @@ describe("public platform settings read model", () => {
     expect(globalFetch).not.toHaveBeenCalled();
   });
 
-  it("does not use the CI fallback for arbitrary provider failures", async () => {
+  it("does not fail open on the placeholder tuple outside CI", async () => {
+    vi.stubEnv("CI", "false");
+    const globalFetch = vi.fn(async () => new Response("provider-secret-body", { status: 500 }));
+    vi.stubGlobal("fetch", globalFetch);
+
+    await expect(readPublicPlatformSettings({
+      supabaseUrl: "https://example.supabase.co",
+      publishableKey: "sb_publishable_example",
+    })).rejects.toThrow("Unable to load platform availability settings.");
+    expect(globalFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not use the CI fallback when an explicit fetcher is injected", async () => {
+    vi.stubEnv("CI", "true");
     const fetcher = vi.fn(async () => new Response("provider-secret-body", { status: 500 }));
 
     await expect(readPublicPlatformSettings({
