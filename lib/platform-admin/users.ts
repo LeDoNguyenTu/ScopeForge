@@ -33,6 +33,7 @@ export interface PlatformUserSummary {
   confirmedAt: string | null;
   status: PlatformUserStatus;
   platformRole: PlatformAdminRole | null;
+  workspaceCount: number;
 }
 
 export interface PlatformUserWorkspaceMembership {
@@ -68,6 +69,7 @@ export interface PlatformAdminUsersDependencies {
   listAuthUsers(page: number, perPage: number): Promise<PlatformAuthUser[]>;
   getAuthUser(userId: string): Promise<PlatformAuthUser>;
   getPlatformRoles(userIds: string[]): Promise<Record<string, PlatformAdminRole>>;
+  getWorkspaceCounts(userIds: string[]): Promise<Record<string, number>>;
   getProfile(userId: string): Promise<{ displayName: string | null } | null>;
   getMemberships(userId: string): Promise<Array<{ workspaceId: string; role: WorkspaceRole; joinedAt: string }>>;
   getWorkspaces(workspaceIds: string[]): Promise<Array<{ id: string; name: string; slug: string }>>;
@@ -116,6 +118,7 @@ export function normalizePlatformUser(
   user: PlatformAuthUser,
   platformRole: PlatformAdminRole | null,
   now = new Date(),
+  workspaceCount = 0,
 ): PlatformUserSummary {
   const confirmedAt = user.email_confirmed_at ?? user.confirmed_at ?? null;
   const status: PlatformUserStatus = isFutureTimestamp(user.banned_until, now)
@@ -133,6 +136,7 @@ export function normalizePlatformUser(
     confirmedAt,
     status,
     platformRole,
+    workspaceCount: Math.max(0, Math.floor(workspaceCount)),
   };
 }
 
@@ -173,6 +177,17 @@ function createDefaultDependencies(): PlatformAdminUsersDependencies {
         (data ?? []).map((row) => [row.user_id, row.role as PlatformAdminRole]),
       );
     },
+    getWorkspaceCounts: async (userIds) => {
+      if (userIds.length === 0) return {};
+      const { data, error } = await admin
+        .from("workspace_members")
+        .select("user_id")
+        .in("user_id", userIds);
+      if (error) throw new Error("PLATFORM_WORKSPACE_COUNT_FAILED");
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) counts[row.user_id] = (counts[row.user_id] ?? 0) + 1;
+      return counts;
+    },
     getProfile: async (userId) => {
       const { data, error } = await admin
         .from("profiles")
@@ -207,6 +222,23 @@ function createDefaultDependencies(): PlatformAdminUsersDependencies {
   };
 }
 
+async function enrichPlatformUsers(
+  authUsers: PlatformAuthUser[],
+  deps: PlatformAdminUsersDependencies,
+): Promise<PlatformUserSummary[]> {
+  const ids = authUsers.map((user) => user.id);
+  const [roles, workspaceCounts] = await Promise.all([
+    deps.getPlatformRoles(ids),
+    deps.getWorkspaceCounts(ids),
+  ]);
+  return authUsers.map((user) => normalizePlatformUser(
+    user,
+    roles[user.id] ?? null,
+    new Date(),
+    workspaceCounts[user.id] ?? 0,
+  ));
+}
+
 export async function listPlatformUsers(
   input: PlatformUserListInput = {},
   dependencies?: PlatformAdminUsersDependencies,
@@ -221,9 +253,8 @@ export async function listPlatformUsers(
   try {
     if (!query) {
       const authUsers = await deps.listAuthUsers(page, perPage);
-      const roles = await deps.getPlatformRoles(authUsers.map((user) => user.id));
       return {
-        users: authUsers.map((user) => normalizePlatformUser(user, roles[user.id] ?? null)),
+        users: await enrichPlatformUsers(authUsers, deps),
         page,
         perPage,
         hasNextPage: authUsers.length === perPage,
@@ -246,10 +277,8 @@ export async function listPlatformUsers(
       sourcePage += 1;
     }
 
-    const roles = await deps.getPlatformRoles(scanned.map((user) => user.id));
-    const matches = scanned
-      .map((user) => normalizePlatformUser(user, roles[user.id] ?? null))
-      .filter((user) => matchesQuery(user, query));
+    const enriched = await enrichPlatformUsers(scanned, deps);
+    const matches = enriched.filter((user) => matchesQuery(user, query));
     const start = (page - 1) * perPage;
     const end = start + perPage;
     const searchTruncated = !reachedProviderEnd && scanned.length >= MAX_SEARCH_USERS;
@@ -287,7 +316,7 @@ export async function getPlatformUser(
     ]);
     const workspaces = await deps.getWorkspaces(memberships.map((membership) => membership.workspaceId));
     const workspaceById = new Map(workspaces.map((workspace) => [workspace.id, workspace]));
-    const normalized = normalizePlatformUser(user, roles[user.id] ?? null);
+    const normalized = normalizePlatformUser(user, roles[user.id] ?? null, new Date(), memberships.length);
 
     if (profile?.displayName?.trim()) {
       normalized.displayName = profile.displayName.trim().slice(0, 80);
