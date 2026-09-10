@@ -33,6 +33,21 @@ const REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1: WorkerExecutionProfile = Object.free
   }),
 });
 
+const REPOSITORY_SNAPSHOT_GITHUB_PRIVATE_V1: WorkerExecutionProfile = Object.freeze({
+  executionClass: "repository_snapshot_github_private_v1",
+  networkPolicy: "github_private_archive_lease_and_attempt_artifact_put_v1",
+  budget: Object.freeze({
+    maxWallTimeMs: 300_000,
+    maxCpuTimeMs: 120_000,
+    maxMemoryBytes: 536_870_912,
+    maxProcesses: 1,
+    maxInputFiles: 20_000,
+    maxInputBytes: 268_435_456,
+    maxScratchBytes: 536_870_912,
+    maxOutputBytes: 65_536,
+  }),
+});
+
 const PHASE3_REPOSITORY_SCAN_NO_EGRESS_V1: WorkerExecutionProfile = Object.freeze({
   executionClass: "phase3_repository_scan_no_egress_v1",
   networkPolicy: "none",
@@ -86,6 +101,8 @@ export function workerExecutionProfile(
       return FOUNDATION_NO_EGRESS_V1;
     case "repository_snapshot_github_public_v1":
       return REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1;
+    case "repository_snapshot_github_private_v1":
+      return REPOSITORY_SNAPSHOT_GITHUB_PRIVATE_V1;
     case "phase3_repository_scan_no_egress_v1":
       return PHASE3_REPOSITORY_SCAN_NO_EGRESS_V1;
     case "passive_runtime_observation_v1":
