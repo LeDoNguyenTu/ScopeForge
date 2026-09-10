@@ -14,6 +14,7 @@ import "./community.css";
 import "./ui-refinement.css";
 import "./saas-dashboard.css";
 import "./csp-compatibility.css";
+import "./pre-pr49-ui-compatibility.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
