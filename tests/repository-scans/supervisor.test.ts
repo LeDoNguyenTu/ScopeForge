@@ -88,7 +88,7 @@ function control(overrides: Partial<WorkerSupervisorControlClient> = {}): Worker
   };
 }
 
-function preparer(cleanup = vi.fn(async (): Promise<void> => undefined)): RepositoryScanPreparer {
+function preparer(cleanup = vi.fn(async () => undefined)): RepositoryScanPreparer {
   return {
     prepare: vi.fn(async ({ task: claimedTask, artifact }) => ({
       contract: {

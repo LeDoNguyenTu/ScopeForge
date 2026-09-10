@@ -10,7 +10,6 @@ import {
   Wrench,
 } from "lucide-react";
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
-import LandingBootGate from "@/components/landing/LandingBootGate";
 import PublicNav from "@/components/landing/PublicNav";
 import PublicFooter from "@/components/landing/PublicFooter";
 
@@ -27,42 +26,40 @@ const workflow = [
 export default function Home() {
   return (
     <div className="forgeLanding commandLanding">
-      <LandingBootGate>
-        <PublicNav />
-        <CommandCenterLandingHero />
-      </LandingBootGate>
-
+      <PublicNav />
       <main>
-        <section id="platform" className="forgePlatform commandBelowFold">
-          <div className="forgeSectionHeading">
-            <span className="forgeEyebrow"><Network size={24} /> One evidence-first workflow</span>
-            <h2>Security work should end with proof, not another alert.</h2>
-            <p>ScopeForge keeps scope, evidence, explanation, remediation and verification connected while preserving the authority boundaries between them.</p>
-          </div>
-          <div className="forgeWorkflowGrid">
-            {workflow.map(([Icon, title, copy], index) => (
-              <article className="forgeWorkflowCard" key={title}>
-                <div className="forgeWorkflowTop"><span>{String(index + 1).padStart(2, "0")}</span><Icon size={28} /></div>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+      <CommandCenterLandingHero />
 
-        <section id="security-model" className="forgeSecurityModel commandBelowFold">
-          <div className="forgeSecurityIntro">
-            <span className="forgeEyebrow"><ShieldCheck size={24} /> Security model</span>
-            <h2>Authority stays narrower than capability.</h2>
-            <p>ScopeForge is designed so a powerful scanner does not automatically become permission to scan anything. Remote behavior stays attached to verified targets, closed request shapes and explicit authorization.</p>
-            <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer">Read the open-source project</a>
-          </div>
-          <div className="forgeSecurityCards">
-            <article><ShieldCheck size={28} /><div><strong>Scope first</strong><p>Workspace assets and proof of control establish the boundary before remote security workflows can run.</p></div></article>
-            <article><Bug size={28} /><div><strong>Evidence first</strong><p>Findings remain attributable to deterministic scanner or runtime evidence rather than unexplained model inference.</p></div></article>
-            <article><CircleCheck size={28} /><div><strong>Verify the fix</strong><p>Remediation closes only through fresh trusted evidence and a reviewable lifecycle, not a status toggle alone.</p></div></article>
-          </div>
-        </section>
+      <section id="platform" className="forgePlatform commandBelowFold">
+        <div className="forgeSectionHeading">
+          <span className="forgeEyebrow"><Network size={24} /> One evidence-first workflow</span>
+          <h2>Security work should end with proof, not another alert.</h2>
+          <p>ScopeForge keeps scope, evidence, explanation, remediation and verification connected while preserving the authority boundaries between them.</p>
+        </div>
+        <div className="forgeWorkflowGrid">
+          {workflow.map(([Icon, title, copy], index) => (
+            <article className="forgeWorkflowCard" key={title}>
+              <div className="forgeWorkflowTop"><span>{String(index + 1).padStart(2, "0")}</span><Icon size={28} /></div>
+              <h3>{title}</h3>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="security-model" className="forgeSecurityModel commandBelowFold">
+        <div className="forgeSecurityIntro">
+          <span className="forgeEyebrow"><ShieldCheck size={24} /> Security model</span>
+          <h2>Authority stays narrower than capability.</h2>
+          <p>ScopeForge is designed so a powerful scanner does not automatically become permission to scan anything. Remote behavior stays attached to verified targets, closed request shapes and explicit authorization.</p>
+          <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer">Read the open-source project</a>
+        </div>
+        <div className="forgeSecurityCards">
+          <article><ShieldCheck size={28} /><div><strong>Scope first</strong><p>Workspace assets and proof of control establish the boundary before remote security workflows can run.</p></div></article>
+          <article><Bug size={28} /><div><strong>Evidence first</strong><p>Findings remain attributable to deterministic scanner or runtime evidence rather than unexplained model inference.</p></div></article>
+          <article><CircleCheck size={28} /><div><strong>Verify the fix</strong><p>Remediation closes only through fresh trusted evidence and a reviewable lifecycle, not a status toggle alone.</p></div></article>
+        </div>
+      </section>
       </main>
       <PublicFooter />
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import ScopeForgeMark from "@/components/brand/ScopeForgeMark";
 import type {
   AttackSurfaceModel,
@@ -9,6 +9,7 @@ import type {
 } from "@/lib/dashboard/attack-surface-model";
 
 type RendererState = "fallback" | "webgl";
+
 type RGB = readonly [number, number, number];
 
 const STATE_COLOR: Readonly<Record<AttackSurfaceNodeState, RGB>> = Object.freeze({
@@ -27,7 +28,6 @@ void main() {
   vec2 shifted = aPosition + uParallax * (0.035 + abs(aPosition.y) * 0.025);
   gl_Position = vec4(shifted, 0.0, 1.0);
   gl_PointSize = uPointSize;
-  vColor = aColor;
 }
 `;
 
@@ -168,6 +168,14 @@ function createProgram(gl: WebGLRenderingContext) {
   return program;
 }
 
+function labelPosition(node: AttackSurfaceNode) {
+  const [x, y] = polarPosition(node);
+  return {
+    left: `${50 + x * 47}%`,
+    top: `${50 - y * 52}%`,
+  };
+}
+
 function nodeStatus(node: AttackSurfaceNode) {
   if (node.state === "risk") {
     return `${node.findingCount} active finding${node.findingCount === 1 ? "" : "s"}`;
@@ -180,7 +188,12 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pointerRef = useRef({ x: 0, y: 0 });
   const [rendererState, setRendererState] = useState<RendererState>("fallback");
-  const geometry = useMemo(() => buildGeometry(model.nodes), [model.nodes]);
+  const sceneId = useId().replaceAll(":", "");
+  const visualNodes = useMemo(() => model.nodes.map((node, index) => ({
+    ...node,
+    angle: -150 + index * (360 / Math.max(1, model.nodes.length)),
+  })), [model.nodes]);
+  const geometry = useMemo(() => buildGeometry(visualNodes), [visualNodes]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -369,23 +382,57 @@ export default function WebGLAttackSurface({ model }: { model: AttackSurfaceMode
       onPointerLeave={onPointerLeave}
     >
       <canvas ref={canvasRef} className="webglAttackCanvas" aria-hidden="true" />
+      <svg className="workspaceTopologyArt" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id={`${sceneId}-metal`} x1="0" y1="0" x2="0.8" y2="1">
+            <stop stopColor="#304c54" /><stop offset=".5" stopColor="#101e28" /><stop offset="1" stopColor="#1f3941" />
+          </linearGradient>
+          <radialGradient id={`${sceneId}-glow`}><stop stopColor="#51e8cd" stopOpacity=".2" /><stop offset="1" stopColor="#51e8cd" stopOpacity="0" /></radialGradient>
+        </defs>
+        <ellipse cx="500" cy="325" rx="300" ry="200" fill={`url(#${sceneId}-glow)`} />
+        {visualNodes.map((node) => {
+          const [px, py] = polarPosition(node);
+          const x = 500 + px * 470;
+          const y = 300 - py * 312;
+          const tone = node.state === "risk" ? "#ff9967" : node.state === "pending" ? "#e5ba71" : "#56dcc5";
+          return <g key={node.id}>
+            <path d={`M500 318 L${x} ${y + 18}`} stroke="#04090d" strokeWidth="42" />
+            <path d={`M500 307 L${x} ${y + 7}`} stroke="#294650" strokeWidth="34" />
+            <path d={`M500 305 L${x} ${y + 5}`} stroke="#15252e" strokeWidth="28" />
+            <path d={`M500 305 L${x} ${y + 5}`} stroke={tone} strokeWidth="2" opacity=".7" />
+            <path d={`M500 305 L${x} ${y + 5}`} stroke="#89a4ae" strokeWidth="26" strokeDasharray="1 18" opacity=".35" />
+            <ellipse cx={x} cy={y + 14} rx="53" ry="28" fill="#050b10" stroke="#35515a" />
+            <ellipse cx={x} cy={y + 6} rx="53" ry="28" fill={`url(#${sceneId}-metal)`} stroke={tone} strokeOpacity=".55" />
+            <ellipse cx={x} cy={y + 4} rx="39" ry="20" fill="#0b1b24" stroke={tone} strokeOpacity=".4" />
+            <path d={`M${x-18} ${y-37} l18 -12 l18 12 v34 l-18 12 l-18 -12 Z M${x-18} ${y-37} l18 12 l18 -12 M${x} ${y-25} v34 M${x} ${y-49} v34 l-18 12 M${x} ${y-15} l18 12`} fill={tone} fillOpacity=".08" stroke={tone} strokeWidth="1.4" />
+            <circle cx={x} cy={y - 25} r="3" fill={tone} />
+          </g>;
+        })}
+        {visualNodes.length > 0 && <g>
+          <ellipse cx="500" cy="328" rx="136" ry="82" fill="#061017" stroke="#294c56" strokeWidth="3" />
+          <ellipse cx="500" cy="312" rx="136" ry="82" fill={`url(#${sceneId}-metal)`} stroke="#4ebfaa" strokeOpacity=".65" strokeWidth="2" />
+          <ellipse cx="500" cy="312" rx="122" ry="70" fill="none" stroke="#579a99" strokeWidth="6" strokeDasharray="2 17" opacity=".5" />
+          <ellipse cx="500" cy="307" rx="105" ry="60" fill="#0a252a" stroke="#5be6c9" strokeOpacity=".7" strokeWidth="2" />
+          <ellipse cx="500" cy="304" rx="84" ry="49" fill="#122b33" stroke="#5be6c9" strokeOpacity=".45" />
+        </g>}
+      </svg>
       <div className="webglAttackFallback" aria-hidden="true">
         <span className="webglFallbackRing webglFallbackRingOne" />
         <span className="webglFallbackRing webglFallbackRingTwo" />
         <span className="webglFallbackRing webglFallbackRingThree" />
       </div>
-      {model.nodes.length > 0 ? (
-        <div className="webglAttackCore" aria-hidden="true">
-          <span className="webglCoreHalo" />
-          <span className="webglCoreOrbit" />
-          <ScopeForgeMark size={74} />
-        </div>
-      ) : null}
+      {model.nodes.length > 0 && <div className="webglAttackCore" aria-hidden="true">
+        <span className="webglCoreHalo" />
+        <span className="webglCoreOrbit" />
+        <ScopeForgeMark size={74} />
+      </div>}
 
-      {model.nodes.map((node, index) => (
+      {visualNodes.map((node, index) => <span key={`number-${node.id}`} className={`webglNodeNumber webglNodeNumber-${node.state}`} style={labelPosition(node)} aria-hidden="true">{index + 1}</span>)}
+      {visualNodes.map((node) => (
         <div
-          className={`webglAttackLabel webglAttackLabel-${node.state} webglAttackLabelSlot-${index}`}
+          className={`webglAttackLabel webglAttackLabel-${node.state}`}
           key={node.id}
+          style={labelPosition(node)}
         >
           <span className="webglAttackLabelKind">{node.kind.replaceAll("_", " ")}</span>
           <strong>{node.label}</strong>

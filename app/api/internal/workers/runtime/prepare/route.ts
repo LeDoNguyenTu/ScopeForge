@@ -48,6 +48,6 @@ export async function POST(request: Request): Promise<Response> {
     if (error instanceof RuntimeWorkerError) {
       return workerJson({ error: { code: error.code } }, 409);
     }
-    return workerRouteError(error, "worker.runtime_prepare");
+    return workerRouteError(error);
   }
 }

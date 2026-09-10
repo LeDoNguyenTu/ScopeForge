@@ -1,37 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/database.types";
 
-const SENSITIVE_CREDENTIAL_KEY = /(token|secret|password|credential|authorization|cookie|api[_-]?key|private[_-]?key|service[_-]?role[_-]?key)/i;
+const SENSITIVE_KEY = /(token|secret|password|credential|authorization|cookie|api[_-]?key)/i;
 
-const FORBIDDEN_CONTENT_KEYS = new Set([
-  "requestbody",
-  "responsebody",
-  "source",
-  "sourcecode",
-  "stdout",
-  "stderr",
-  "environment",
-  "headers",
-]);
-
-function normalizeMetadataKey(key: string): string {
-  return key.toLowerCase().replace(/[_-]/g, "");
-}
-
-export function assertSafeAuditMetadata(value: Json, path = "metadata"): void {
+function assertSafeMetadata(value: Json, path = "metadata"): void {
   if (Array.isArray(value)) {
-    value.forEach((item, index) => assertSafeAuditMetadata(item, `${path}[${index}]`));
+    value.forEach((item, index) => assertSafeMetadata(item, `${path}[${index}]`));
     return;
   }
   if (value && typeof value === "object") {
     for (const [key, nested] of Object.entries(value)) {
-      if (
-        SENSITIVE_CREDENTIAL_KEY.test(key)
-        || FORBIDDEN_CONTENT_KEYS.has(normalizeMetadataKey(key))
-      ) {
-        throw new Error(`Sensitive audit metadata key is not allowed: ${path}.${key}`);
-      }
-      if (nested !== undefined) assertSafeAuditMetadata(nested, `${path}.${key}`);
+      if (SENSITIVE_KEY.test(key)) throw new Error(`Sensitive audit metadata key is not allowed: ${path}.${key}`);
+      if (nested !== undefined) assertSafeMetadata(nested, `${path}.${key}`);
     }
   }
 }
@@ -46,7 +26,7 @@ export async function writeAuditEvent(input: {
   metadata?: Json;
 }): Promise<void> {
   const metadata = input.metadata ?? {};
-  assertSafeAuditMetadata(metadata);
+  assertSafeMetadata(metadata);
 
   const serialized = JSON.stringify(metadata);
   if (Buffer.byteLength(serialized, "utf8") > 8 * 1024) throw new Error("Audit metadata exceeds 8 KiB.");

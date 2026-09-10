@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
 import { scopeForgeIconMetadata } from "@/lib/brand/browser-icons";
 import "./globals.css";
 import "./forge.css";
@@ -7,18 +6,12 @@ import "./forge-landing.css";
 import "./forge-shell.css";
 import "./forge-immersive.css";
 import "./forge-dashboard.css";
-import "./ui-refinement.css";
 import "./forge-dashboard-v2.css";
 import "./exact-command-center.css";
-import "./command-center-boot.css";
-import "./command-center-v5.css";
-import "./command-center-v5-1.css";
-import "./command-center-v5-2.css";
 import "./assets.css";
 import "./community.css";
-import "./csp-compatibility.css";
-import "./approved-v5-dashboard.css";
-import "./approved-command-center-v3.css";
+import "./ui-refinement.css";
+import "./saas-dashboard.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
@@ -31,9 +24,7 @@ export const metadata: Metadata = {
   icons: scopeForgeIconMetadata
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  await connection();
-
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body>{children}</body>

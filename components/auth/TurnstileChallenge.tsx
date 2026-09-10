@@ -20,18 +20,12 @@ type TurnstileWindow = Window & {
   turnstile?: TurnstileApi;
 };
 
-export type TurnstileChallengeStatus = "loading" | "ready" | "verified" | "expired" | "error";
-
 export default function TurnstileChallenge({
   siteKey,
-  nonce,
-  onToken,
-  onStatus
+  onToken
 }: {
   siteKey: string;
-  nonce?: string | null;
   onToken: (token: string | null) => void;
-  onStatus?: (status: TurnstileChallengeStatus) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
@@ -47,21 +41,11 @@ export default function TurnstileChallenge({
     widgetIdRef.current = api.render(containerRef.current, {
       sitekey: siteKey,
       size,
-      callback: (token) => {
-        onToken(token);
-        onStatus?.("verified");
-      },
-      "expired-callback": () => {
-        onToken(null);
-        onStatus?.("expired");
-      },
-      "error-callback": () => {
-        onToken(null);
-        onStatus?.("error");
-      }
+      callback: (token) => onToken(token),
+      "expired-callback": () => onToken(null),
+      "error-callback": () => onToken(null)
     });
-    onStatus?.("ready");
-  }, [onStatus, onToken, siteKey]);
+  }, [onToken, siteKey]);
 
   useEffect(() => {
     renderWidget();
@@ -79,13 +63,12 @@ export default function TurnstileChallenge({
       <Script
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
         strategy="afterInteractive"
-        nonce={nonce ?? undefined}
         onLoad={renderWidget}
       />
       <div
         ref={containerRef}
         data-turnstile-container
-        className="authTurnstileContainer"
+        style={{ display: "flex", justifyContent: "center", minWidth: 0, width: "100%" }}
       />
     </>
   );

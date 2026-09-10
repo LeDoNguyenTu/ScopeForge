@@ -1,133 +1,146 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-10 (Asia/Singapore)
+Last refreshed: 2026-09-09 (Asia/Singapore)
 
-Use this as the fastest resume point for current ScopeForge work. Do not resume from historical Phase 9, V4, preview, diagnostic, reconciliation, or temporary restoration branches.
+Use this as the fastest resume point for ScopeForge Phase 9 hardening.
 
 ## Hard execution rules
 
-- current `main` is the authoritative integration baseline
-- preserve the accepted Command Center UI V5 unless a separate UI change is explicitly authorized
-- preserve the enforced strict nonce CSP and existing browser security headers
-- preflight before CI and reserve substantive Actions for meaningful exact candidates/integration gates
+- production `main` is always the authoritative integration baseline
+- before freezing or merging a Phase 9 branch, re-read `main` and resolve any UI-stream drift first
+- preserve the newest production UI when resolving overlaps; reapply only the reviewed security change
+- preflight before CI; do not use GitHub Actions as a debugging loop
+- use `[skip ci]` for intermediate and docs-only commits
+- reserve substantive CI for frozen release candidates
 - never rewrite deployed Supabase migrations
 - never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
 - do not add AI co-author attribution
-- do not claim tests, provider state, WAF state, alerts, environment flags, or production enforcement without direct evidence
-- do not enable hosted worker/runtime capability flags merely because implementation and containment evidence exist
-- do not use stale branch state to override newer released code or documentation
+- do not claim tests, provider state, WAF state, or production enforcement without exact evidence
+- do not enable hosted worker/runtime capability flags as part of Phase 9 hardening
+- PR #49 remains a legacy draft UI branch and is not the hardening baseline
 
-## Latest validated executable release
+## Current released production baseline
 
-Latest substantively validated executable release:
+Executable release:
 
-`a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`
+`f203168e6ae25455743849f08511e371d3964153`
 
-Executable release tree:
+Tree:
 
-`f2a39880347444967f2f2b0e2eb78d63342afbef`
+`9980aa5a58014998fd26ae7084bd97c992bc1a82`
 
-This release is PR #67, `Restore approved V5 UI`, layered directly on the strict CSP merge from PR #66.
+Exact production evidence:
 
-Subsequent docs-only `main` commits may advance the repository Git ref without changing executable application behavior. Always branch from the actual current `main`, but use `a84478d...` as the exact executable release evidence point until a newer executable release passes its own gates.
+- PR #60 squash merge `f203168e6ae25455743849f08511e371d3964153`
+- post-merge main CI #774, run `34236559722`, success
+- production deployment `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`
+- deployment Git SHA exactly `f203168e6ae25455743849f08511e371d3964153`
+- target production
+- READY
+- `scopeforge.dev` alias present
+- `aliasError=null`
 
-## Strict CSP release
+This tree contains the current production UI plus released Phase 9A, 9B, and 9C hardening.
 
-PR #66: `Strict CSP compatibility gate`
+## Released Phase 9B
 
-- final head: `98ca45e46c83cafcacef4d87971907196724f40f`
-- candidate CI: #794 / run `34382364401`, success
-- candidate Preview: `dpl_697F2soQBLYSQkMsdkMXKtiF3jtd`, READY
-- merge: `191a7ee1c93f179adad51f108d4ad1fade2e78f2`
-- CSP merge production deployment: `dpl_2nNgDZDkMMem67h1drBaVJtMsYpN`, READY
+Dedicated state:
 
-Production CSP is nonce-based and enforced. It does not rely on permanent production `unsafe-inline` or `unsafe-eval`. The repository CI includes real Chrome browser acceptance for CSP, hydration, navigation, auth, 404, dashboard authorization boundaries, and public V5 WebGL.
+`docs/development/PHASE_9B_RELEASE_STATE.md`
 
-## V5 restoration release
+Release identity:
 
-PR #67: `Restore approved V5 UI`
+- frozen candidate `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`
+- frozen tree `9980aa5a58014998fd26ae7084bd97c992bc1a82`
+- preview `dpl_FcFdrKhr31kgQHWjS723yZ4D49AT`, READY, `aliasError=null`
+- candidate CI #773, run `34236014666`, success
+- squash merge `f203168e6ae25455743849f08511e371d3964153`
+- post-merge CI #774, success
+- production `dpl_AM7VULiVFxKW1imXGiWpfs4Sx62z`, READY
 
-- frozen candidate: `e66b6fc4b8693deb052fa89ae9d82647d51c3a94`
-- candidate CI: #802 / run `34395508634`, success
-- candidate Preview: `dpl_AoyDGZEcsMZ1BYkqhn33MyugUtTH`, READY, `aliasError=null`
-- corrected screenshot artifact: GitHub Actions artifact `10121486960`
-- merge: `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`
-- post-merge main CI: #803 / run `34396470298`, success
-- production deployment: `dpl_3F4rnzhWQ93RoPKqdTe4U96TPSKb`, READY, `aliasError=null`
+Released code:
 
-The browser acceptance gate now checks visual geometry rather than DOM presence alone. It verifies the large public V5 desktop composition and the authenticated immersive dashboard, including headline/metric scale, topology geometry, lower evidence-panel layout, and absence of the later SaaS/workspace-shell composition.
+- dependency-free Cloudflare Turnstile explicit-render wrapper
+- optional public key boundary `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- absent/blank key preserves existing auth behavior
+- configured challenge gates submit until a token exists
+- CAPTCHA tokens are forwarded directly to Supabase Auth and kept only in React memory
+- failed/non-redirecting configured attempts invalidate/remount the challenge
+- expiry/provider errors clear the token
+- widget cleanup is explicit
+- narrow auth cards use compact sizing
+- Phase 9A bounded error behavior remains intact
 
-Both `landing-v5-desktop.png` and `dashboard-v5-desktop.png` from the corrected candidate were inspected before merge.
+No dependency, database, hosted-runtime, dashboard, landing, CSP, or telemetry executable file changed in Phase 9B.
 
-Fresh production checks after the executable release confirmed:
+## UI/merge-conflict result
 
-- `scopeforge.dev` HTTP 200
-- V5 desktop/mobile markers and both poster assets present
-- enforced nonce CSP present
-- expected HSTS, nosniff, frame-denial, referrer and permissions headers retained
-- `/auth/sign-in` HTTP 200 with the email/password form rendering under CSP
-- no post-release error/fatal Vercel runtime logs in the inspected window
+The user required all concurrent UI drift to be reconciled before release.
 
-Detailed record: `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
+Before freeze and merge, `main` was repeatedly refreshed. PR #60 remained `mergeable=true`, and its executable auth file set was disjoint from the current production landing/dashboard changes. No actual conflict surfaced, so no artificial reconciliation commit was needed.
 
-## Supabase and provider truth
+The final merge was pinned to expected head `3d9d3c3aef3faef8f6706c53673fb0fcaad802bb`, and the squash merge preserved the candidate tree exactly.
 
-ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
+For all future Phase 9 work, repeat the same rule: newest `main` UI wins, then reapply only the reviewed security delta if a true overlap appears.
 
-Fresh post-release Security Advisor output contains only the known leaked-password-protection warning.
+## Live provider truth
 
-Current conservative truth:
+Fresh Supabase Security Advisor reports exactly:
 
-- Supabase leaked-password protection: `VERIFIED DISABLED`
-- production Turnstile provider enforcement: `NOT VERIFIED`
-- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
-- strict CSP: `ENFORCED`
+`auth_leaked_password_protection`
 
-Turnstile-compatible application code exists, but the current production sign-in response does not prove external provider enforcement. Do not upgrade that claim without direct provider evidence.
+Therefore:
+
+- leaked-password protection is NOT enabled
+- production Turnstile enforcement is NOT claimed until provider/site-key configuration is directly verified
+- Vercel project-specific WAF custom rules are NOT claimed as active without inspected evidence
+- Supabase native Auth rate limiting remains in place
+
+Provider activation/rollback guidance:
+
+`docs/security/PHASE_9B_PROVIDER_CONTROLS.md`
+
+Do not treat code capability as proof of active provider enforcement.
+
+## Released Phase 9C
+
+Dedicated state:
+
+`docs/development/PHASE_9C_RELEASE_STATE.md`
+
+Live migration history includes:
+
+`20260908084554_phase_9c_function_acl_hardening`
+
+Do not rewrite that migration or apply a global `postgres` default-function revoke.
+
+## Next task - Phase 9D
+
+Phase 9D security telemetry/browser hardening is next.
+
+Approved direction:
+
+- reuse `audit_events` and `lib/audit/write-audit-event.ts` for durable security-significant events
+- use privacy-reduced structured server logs for high-frequency operational security signals
+- never log secrets, credentials, cookies, authorization headers, worker lease tokens, source content, or raw executor output
+- add metadata-safety/event-shape tests before implementation
+- define alert/rollback signals using real available platform evidence
+- preserve the existing browser-header baseline
+- treat CSP as a separate compatibility gate against the exact current Next.js/WebGL production UI
+- do not ship broad `unsafe-inline` merely to claim CSP
+- do not touch PR #49
+
+Before touching Phase 9D code, re-read the current audit writer/schema, logging paths, middleware, security-relevant routes, `next.config.ts`, and current production `main`; then complete the detailed Phase 9D design/plan workflow.
+
+## Then Phase 9E
+
+Complete disclosure, incident response, credential rotation, rollback, impact assessment, recovery validation, and final public-launch security procedures.
 
 ## Hosted runtime flags
 
-The current Vercel connector does not expose environment-variable values, so a fresh direct read of the four hosted capability flags is `NOT VERIFIED BY CURRENT CONNECTOR`.
-
-No Vercel environment mutation or hosted-runtime activation occurred during PR #66 or PR #67. Operational policy remains to keep all four false/absent until independent canary/rollback acceptance authorizes them:
+Keep all four false/absent until their independent operational acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
-
-Phase 6D Tasks 14, 15, and 16 are complete. Their acceptance does not authorize production enablement.
-
-## Current repository queue
-
-At the latest audit:
-
-- open implementation PRs: none
-- open GitHub issues: none
-- Phase 7 through Phase 9E: complete
-- strict CSP gate: complete
-- V5 restoration: complete
-
-Actual unfinished work is operationally gated only:
-
-1. provider verification/activation, with explicit rollback and evidence
-2. Phase 6B/6C/6D hosted runtime operational canaries before any capability enablement
-3. stale branch deletion when a genuine delete-ref operation becomes available
-
-See `docs/development/UNFINISHED_WORK.md` for the persistent queue.
-
-## Branch hygiene
-
-Historical completed branches still exist, including `diag/*`, `preview/*`, reconciliation, older phase branches, CSP branches, and temporary V5 restoration branches.
-
-The connected GitHub surface currently lacks a genuine branch delete-ref mutation. Never fake deletion by repointing those refs to `main`.
-
-## Resume procedure
-
-On the next engineering session:
-
-1. fetch current `main` and read `CURRENT_STATE.md`, `NEXT_STEPS.md`, this file, and `UNFINISHED_WORK.md`
-2. confirm whether a provider/runtime operational gate has been explicitly authorized before changing external state or capability flags
-3. if starting a new product implementation boundary, write/review its design and plan against current `main` before code
-4. preserve exact-SHA candidate, Preview, CI, browser, production, and rollback evidence for any release
-5. keep V5 and strict CSP as coupled non-regression requirements

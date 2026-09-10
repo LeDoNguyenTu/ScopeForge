@@ -20,6 +20,6 @@ export async function POST(request: Request): Promise<Response> {
     const task = await claimWorkerTaskForNode(worker, dependencies);
     return workerJson({ ok: true, data: task });
   } catch (error) {
-    return workerRouteError(error, "worker.claim");
+    return workerRouteError(error);
   }
 }

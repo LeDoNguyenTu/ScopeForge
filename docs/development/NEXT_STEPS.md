@@ -1,93 +1,100 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-10 (Asia/Singapore)
+Last reconciled: 2026-09-09 (Asia/Singapore)
 
 ## Completed boundaries
 
-Do not recreate these released phases or compatibility gates:
+Do not recreate these released phases:
 
 - Phase 7 Community Security Packs v1
 - Phase 8A offline accuracy foundation
 - Phase 8B scanner performance matrix
 - Phase 8C reproducible technical publication
 - Phase 9A authentication-boundary hardening
-- Phase 9B provider/auth hardening code
+- Phase 9B Turnstile-capable provider/auth hardening code
 - Phase 9C database/RPC defense-in-depth
-- Phase 9D security telemetry/browser hardening
-- Phase 9E incident readiness and release engineering
-- strict nonce-based CSP compatibility and enforcement
-- restoration of the accepted Command Center V5 public and authenticated presentation on top of strict CSP
 
-Current executable production `main`:
+Current production `main` baseline:
 
-`a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`
+`f203168e6ae25455743849f08511e371d3964153`
 
 Current production tree:
 
-`f2a39880347444967f2f2b0e2eb78d63342afbef`
+`9980aa5a58014998fd26ae7084bd97c992bc1a82`
 
-Exact production deployment:
+This tree includes the current production UI plus released Phase 9A/9B/9C security work. All remaining implementation must start from the actual current `main` rather than any historical security baseline or PR #49.
 
-`dpl_3F4rnzhWQ93RoPKqdTe4U96TPSKb`
+## Immediate priority - Phase 9D security telemetry and browser hardening
 
-Post-merge CI #803 / run `34396470298` passed the full repository validation gate, including the real Chrome CSP/V5 restoration acceptance and screenshot publication. Production is READY on the exact released SHA and fresh requests to `scopeforge.dev` and `/auth/sign-in` return HTTP 200 under the enforced nonce CSP.
+Phase 9D is the next implementation boundary.
 
-Detailed evidence: `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
+Approved direction:
 
-## Immediate priority - operational truth, not automatic activation
+- reuse `audit_events` and `lib/audit/write-audit-event.ts` for durable workspace security-significant events
+- use structured privacy-reduced server logs for high-frequency operational security signals
+- never log passwords, tokens, API keys, credentials, cookies, authorization headers, worker lease tokens, source content, or raw executor output
+- preserve the current security-header baseline
+- stage CSP carefully and require compatibility proof with the actual production Next.js/WebGL UI before enforcement
+- do not ship a broad `unsafe-inline` CSP merely to claim CSP coverage
+- do not couple security telemetry to visual components
 
-There is no unfinished implementation PR and no approved new product phase currently queued.
+Required Phase 9D sequence:
 
-The remaining work is operationally gated. Do not turn these follow-ups into implicit capability activation.
+1. Re-read the current production audit writer, audit-event schema, security-relevant routes/RPC boundaries, middleware, `next.config.ts`, and current logging patterns.
+2. Define a narrow security-event taxonomy and decide which events are durable audit events versus high-frequency operational logs.
+3. Define privacy-reduced log/event fields, explicit secret-key deny rules, size bounds, and failure behavior.
+4. Add failing tests for metadata safety, event-shape allowlists, and any new security-significant audit coverage before implementation.
+5. Add structured operational logging only where it improves detection/rollback without flooding durable audit storage.
+6. Define observable alert/rollback signals using available Vercel runtime evidence rather than inventing an unverified external alerting system.
+7. Preserve current browser headers unless a concrete weakness is being corrected.
+8. Treat CSP as a separate compatibility gate: first produce and test a candidate policy against the exact current production UI/WebGL behavior, then enforce only if the compatibility evidence is clean.
+9. Do not edit or resurrect PR #49.
+10. Freeze an exact candidate only after current `main` drift is reconciled and the production UI is preserved.
+11. Require exact-head preview, one substantive candidate CI, post-merge main CI, exact production deployment verification, and a docs-only release checkpoint.
 
-### 1. Provider verification remains separate
+Before Phase 9D implementation, follow the repository design/plan workflow and keep the approved Phase 9 architecture boundaries explicit.
+
+## Phase 9B operational provider follow-up
+
+Phase 9B code is released, but provider enforcement remains a separate launch prerequisite.
 
 Current truth:
 
-- production Turnstile provider enforcement: `NOT VERIFIED`
-- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
-- Supabase leaked-password protection: `VERIFIED DISABLED`
-- strict CSP: `ENFORCED`
+- leaked-password protection remains disabled according to Supabase Security Advisor
+- production Turnstile enforcement is not claimed until external provider configuration is directly verified
+- Vercel project-specific WAF custom-rule state is not claimed without direct inspected evidence
+- Supabase native Auth rate limiting remains the auth-endpoint limiter
 
-Provider inspection may continue when a supported surface is available. Enabling or changing provider controls is a separate operational decision and must preserve a tested rollback path.
+Do not silently add billing, provider secrets, or external firewall rules. Any provider activation must use a supported inspected surface, record rollback, and be verified after change.
 
-### 2. Hosted runtime enablement remains separately gated
+## Phase 9E after Phase 9D
 
-Phase 6 code and release acceptance do not automatically authorize production runtime activation.
+Complete incident and release readiness:
 
-Keep these false/absent until their independent operational canary and rollback gates explicitly authorize them:
+- private vulnerability disclosure workflow
+- severity/triage procedure
+- containment and worker-disable procedure
+- credential rotation runbook
+- Supabase/Vercel rollback procedures
+- impact assessment and recovery checks
+- post-incident validation
+- final security release checklist and exact deployment evidence
+
+## Outstanding database review item
+
+Legacy broad SQL grants on `profiles`, `workspaces`, and `workspace_members` remain a separate review point. RLS is enabled and Phase 9C did not change these grants. Do not silently mix cleanup into Phase 9D unless the reviewed design explicitly expands scope.
+
+## Runtime authority
+
+Keep false/absent until their own operational acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-The current Vercel connector does not expose environment-variable values, so direct fresh inspection of those values is not available through the present tool surface. No environment mutation was performed by the CSP or V5 restoration work.
+## UI baseline rule
 
-### 3. Branch cleanup remains pending a real delete-ref operation
+The production `main` tree is authoritative. Before freezing or merging remaining security work, re-read `main` and resolve any concurrent UI drift first. Preserve the newest production UI and reapply only the reviewed security delta when overlaps occur.
 
-A fresh branch audit still shows historical completed `diag/*`, `preview/*`, reconciliation, documentation, feature, CSP, and temporary V5 restoration branches.
-
-The connected GitHub write surface has search/create/update-ref operations but no genuine branch delete-ref mutation. Do not simulate deletion by moving old branch pointers to `main`.
-
-When a true delete-ref surface becomes available, delete only branches already proven historical/completed and re-audit `main` afterwards.
-
-## UI and security baseline rule
-
-The released production `main` tree is authoritative.
-
-Preserve all of the following together:
-
-- accepted Command Center V5 desktop/mobile public presentation
-- accepted immersive authenticated dashboard presentation
-- strict nonce CSP
-- existing browser security headers
-- Supabase/RLS/RPC authorization boundaries
-- worker/runtime authority separation
-- disabled/unaccepted hosted capability defaults
-
-Do not use stale V4, preview, diagnostic, reconciliation, or temporary restoration branches as implementation bases.
-
-## Future implementation work
-
-A future product phase should begin only when its scope is explicitly defined against current `main`. It must not be inferred from historical branches or from the existence of dormant worker/provider capability.
+PR #49 remains an open draft legacy UI branch and must remain untouched unless separately requested.
