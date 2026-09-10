@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 const migrationPath = path.resolve(
   "supabase/migrations/20260910160000_phase_10a1_github_connected_projects.sql",
 );
+const retryMigrationPath = path.resolve(
+  "supabase/migrations/20260910160010_phase_10a1_project_scan_retry_idempotency.sql",
+);
 
 function tableDefinition(sql: string, qualifiedName: string): string {
   const escaped = qualifiedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -57,11 +60,14 @@ describe("Phase 10A1 connected project scan persistence", () => {
   });
 
   it("does not downgrade an already-queued scan when a committed RPC response is lost", async () => {
-    const sql = await readFile(migrationPath, "utf8");
-    const retryFunction = sql.match(/create or replace function public\.record_connected_project_scan_retry[\s\S]*?\$\$;/i)?.[0] ?? "";
-    expect(retryFunction).toMatch(/where[\s\S]*snapshot_task_id\s*=\s*target_snapshot_task_id/i);
-    expect(retryFunction).toMatch(/state\s*<>\s*'scan_queued'/i);
-    expect(retryFunction).toMatch(/scan_task_id\s+is\s+null/i);
+    const sql = await readFile(retryMigrationPath, "utf8");
+    expect(sql).toContain("create or replace function public.record_connected_project_scan_retry");
+    expect(sql).toMatch(/where[\s\S]*snapshot_task_id\s*=\s*target_snapshot_task_id/i);
+    expect(sql).toMatch(/state\s*<>\s*'scan_queued'/i);
+    expect(sql).toMatch(/scan_task_id\s+is\s+null/i);
+    expect(sql).toMatch(/if not found then[\s\S]*'scan_queued'/i);
+    expect(sql).toMatch(/revoke all on function public\.record_connected_project_scan_retry[\s\S]*from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.record_connected_project_scan_retry[\s\S]*to service_role/i);
   });
 
   it("exposes only safe project-level state through the browser-readable link", async () => {
