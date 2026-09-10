@@ -4,7 +4,7 @@ import * as snapshotRuntime from "@/lib/repository-snapshots/runtime";
 
 const privateCapability = serverCapabilityEnabled as unknown as (
   name: string,
-  env?: NodeJS.ProcessEnv,
+  env?: Readonly<Record<string, string | undefined>>,
 ) => boolean;
 
 describe("Phase 10A2 private repository runtime capability", () => {
