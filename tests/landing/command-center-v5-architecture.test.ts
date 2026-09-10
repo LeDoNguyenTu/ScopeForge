@@ -19,21 +19,20 @@ const rendererFiles = [
 ] as const;
 
 describe("Command Center renderer architecture", () => {
-  it("keeps the approved command-center path active without reviving V4 or the superseded split V5 hero", () => {
+  it("keeps the pre-PR49 cinematic landing active while later V5 modules remain inactive", () => {
     const layout = read("app/layout.tsx");
     const hero = read("components/landing/CommandCenterLandingHero.tsx");
 
     expect(layout).toContain("./exact-command-center.css");
-    expect(layout).not.toContain("command-center-v4.css");
-    expect(layout).not.toContain("command-center-v4-polish.css");
-    expect(hero).toContain('CommandCenterSurface from "@/components/landing/CommandCenterSurface"');
+    expect(layout).not.toContain("./command-center-v5.css");
+    expect(hero).toContain('LandingDataIllustration from "./LandingDataIllustration"');
     expect(hero).toContain('className="commandHero"');
+    expect(hero).not.toContain("CommandCenterSurface");
     expect(hero).not.toContain("CommandCenterHeroDesktopV5");
     expect(hero).not.toContain("CommandCenterHeroMobileV5");
-    expect(hero).not.toMatch(/AttackSurfaceScene[\"']/);
   });
 
-  it("keeps renderer modules presentation-only", () => {
+  it("keeps retained renderer modules presentation-only", () => {
     const forbidden = /@\/lib\/supabase|@supabase\/supabase-js|runtime-network|runtime-worker|scanner\/|canonical-evidence/i;
     for (const file of rendererFiles) {
       expect(read(file), file).not.toMatch(forbidden);
