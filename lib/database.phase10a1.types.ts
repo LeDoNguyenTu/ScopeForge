@@ -137,6 +137,24 @@ export type Phase10a1Functions = BaseDatabase["public"]["Functions"] & {
     Args: { target_snapshot_task_id: string; target_snapshot_id: string };
     Returns: Json;
   };
+  get_connected_project_scan_recovery: {
+    Args: {
+      target_workspace_id: string;
+      target_asset_id: string;
+      target_actor_id: string;
+      target_link_id: string;
+    };
+    Returns: Json;
+  };
+  enqueue_repository_scan_worker_task_for_snapshot: {
+    Args: {
+      target_workspace_id: string;
+      target_asset_id: string;
+      target_actor_id: string;
+      target_snapshot_id: string;
+    };
+    Returns: Json;
+  };
 };
 
 export type Phase10a1Database = Omit<BaseDatabase, "public"> & {
