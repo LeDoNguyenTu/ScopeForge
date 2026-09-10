@@ -151,7 +151,7 @@
 
 .cspTopologyKind {
   fill: #82949d;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 760;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -159,13 +159,14 @@
 
 .cspTopologyName {
   fill: #dce9eb;
-  font-size: 12px;
+  font-family: Arial, sans-serif;
+  font-size: 15px;
   font-weight: 680;
 }
 
 .cspTopologyStatus {
   fill: #65bca9;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .cspTopologyLabel-risk .cspTopologyLabelAccent,
