@@ -1,5 +1,4 @@
 export interface GitHubAppConfig {
-  GITHUB_APP_ID?: never;
   appId: string;
   clientId: string;
   clientSecret: string;
@@ -53,7 +52,6 @@ export interface GitHubRepositoryPage {
 
 export type GitHubProviderErrorCode =
   | "GITHUB_PROVIDER_REQUEST_FAILED"
-  | "GITHUB_PROVIDER_RESPONSE_INVALID"
   | "GITHUB_PROVIDER_INPUT_INVALID";
 
 export class GitHubProviderError extends Error {
