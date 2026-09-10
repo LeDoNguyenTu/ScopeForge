@@ -26,6 +26,7 @@ function dependencies(overrides: Partial<PlatformAdminUsersDependencies> = {}): 
     listAuthUsers: async () => [authUser()],
     getAuthUser: async () => authUser(),
     getPlatformRoles: async () => ({ "user-1": "owner" }),
+    getWorkspaceCounts: async () => ({ "user-1": 1 }),
     getProfile: async () => ({ displayName: "Alice Profile" }),
     getMemberships: async () => [{ workspaceId: "workspace-1", role: "owner", joinedAt: "2026-09-01T00:00:00.000Z" }],
     getWorkspaces: async () => [{ id: "workspace-1", name: "Alice Workspace", slug: "alice-workspace" }],
@@ -39,6 +40,7 @@ describe("platform admin user read model", () => {
       authUser({ user_metadata: { full_name: "Alice Example", secret_note: "never expose" } }),
       "admin",
       new Date("2026-09-10T00:00:00.000Z"),
+      2,
     );
 
     expect(normalized).toEqual({
@@ -50,6 +52,7 @@ describe("platform admin user read model", () => {
       confirmedAt: "2026-09-01T00:01:00.000Z",
       status: "active",
       platformRole: "admin",
+      workspaceCount: 2,
     });
     expect(normalized).not.toHaveProperty("user_metadata");
   });
@@ -75,6 +78,7 @@ describe("platform admin user read model", () => {
         ];
       },
       getPlatformRoles: async () => ({ "user-1": "owner" }),
+      getWorkspaceCounts: async () => ({ "user-1": 1, "user-2": 3, "user-3": 0 }),
     });
 
     const result = await listPlatformUsers({ page: 1, perPage: 500, query: "  BOB  " }, deps);
@@ -82,6 +86,7 @@ describe("platform admin user read model", () => {
     expect(seen).toEqual([[1, 100]]);
     expect(result.perPage).toBe(100);
     expect(result.users.map((user) => user.id)).toEqual(["user-2"]);
+    expect(result.users[0]?.workspaceCount).toBe(3);
     expect(result.searchTruncated).toBe(false);
   });
 
@@ -90,6 +95,7 @@ describe("platform admin user read model", () => {
 
     expect(result.user.displayName).toBe("Alice Profile");
     expect(result.user.platformRole).toBe("owner");
+    expect(result.user.workspaceCount).toBe(1);
     expect(result.workspaces).toEqual([
       {
         id: "workspace-1",
