@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import AuthForm from "@/components/AuthForm";
-import { getPlatformSettings } from "@/lib/platform-settings/server";
+import { readPublicPlatformSettings } from "@/lib/platform-settings/public";
 
 export const metadata: Metadata = { title: "Create account" };
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function SignUpPage() {
   const [nonce, settings] = await Promise.all([
     headers().then((value) => value.get("x-nonce")),
-    getPlatformSettings(),
+    readPublicPlatformSettings(),
   ]);
 
   if (!settings.registrationEnabled) {
