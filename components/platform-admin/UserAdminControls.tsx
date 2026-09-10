@@ -72,11 +72,11 @@ export default function UserAdminControls({
 
       <section className="adminActionCard">
         <h3>Hard-delete user</h3>
-        <p>Permanent. ScopeForge refuses deletion if this user owns a workspace that contains another member. Eligible personal workspaces are deleted before the Auth account.</p>
+        <p>Permanent. ScopeForge refuses deletion unless every workspace created by this user is exclusively held by this same account. Eligible personal workspaces are deleted before the Auth account.</p>
         <form className="adminForm" action={deleteAction}>
           <input type="hidden" name="userId" value={userId} />
           <label>Reason<textarea required maxLength={500} name="reason" placeholder="Why is permanent deletion required?" /></label>
-          <label>Type current email exactly<input required name="emailConfirmation" autoComplete="off" placeholder={email ?? "User has no deletable email identity"} disabled={!email} /></label>
+          <label>Type current email exactly<input required maxLength={320} name="emailConfirmation" autoComplete="off" placeholder={email ?? "User has no deletable email identity"} disabled={!email} /></label>
           <button className="adminButton adminButtonDanger" disabled={deletePending || !email} type="submit">{deletePending ? "Deleting..." : "Delete user permanently"}</button>
         </form>
         <ActionMessage state={deleteState} />
