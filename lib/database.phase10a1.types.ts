@@ -1,9 +1,15 @@
-import type { Database as BaseDatabase } from "./database.types";
+import type { Database as BaseDatabase, Json } from "./database.types";
 
 export type GitHubConnectionStatus = "active" | "suspended" | "removed";
 export type GitHubRepositorySelection = "all" | "selected";
 export type GitHubAccountType = "User" | "Organization";
 export type GitHubRepositoryAccessStatus = "active" | "inaccessible" | "removed";
+export type GitHubProjectScanState =
+  | "idle"
+  | "snapshot_queued"
+  | "waiting_scan_runtime"
+  | "scan_queued"
+  | "retry_pending";
 
 export type GitHubConnectionTable = {
   Row: {
@@ -62,6 +68,7 @@ export type GitHubRepositoryLinkTable = {
     html_url: string;
     auto_scan_enabled: boolean;
     access_status: GitHubRepositoryAccessStatus;
+    project_scan_state: GitHubProjectScanState;
     created_at: string;
     updated_at: string;
   };
@@ -79,6 +86,7 @@ export type GitHubRepositoryLinkTable = {
     html_url: string;
     auto_scan_enabled?: boolean;
     access_status?: GitHubRepositoryAccessStatus;
+    project_scan_state?: GitHubProjectScanState;
     created_at?: string;
     updated_at?: string;
   };
@@ -93,6 +101,7 @@ export type GitHubRepositoryLinkTable = {
     html_url?: string;
     auto_scan_enabled?: boolean;
     access_status?: GitHubRepositoryAccessStatus;
+    project_scan_state?: GitHubProjectScanState;
     updated_at?: string;
   };
   Relationships: [
@@ -102,11 +111,40 @@ export type GitHubRepositoryLinkTable = {
   ];
 };
 
+export type Phase10a1Functions = BaseDatabase["public"]["Functions"] & {
+  enqueue_connected_project_snapshot: {
+    Args: {
+      target_workspace_id: string;
+      target_asset_id: string;
+      target_actor_id: string;
+      target_link_id: string;
+    };
+    Returns: Json;
+  };
+  get_connected_project_snapshot_continuation: {
+    Args: { target_snapshot_task_id: string; target_snapshot_id: string };
+    Returns: Json;
+  };
+  mark_connected_project_scan_waiting: {
+    Args: { target_snapshot_task_id: string; target_snapshot_id: string };
+    Returns: Json;
+  };
+  record_connected_project_scan_retry: {
+    Args: { target_snapshot_task_id: string; target_snapshot_id: string };
+    Returns: Json;
+  };
+  enqueue_connected_project_scan_continuation: {
+    Args: { target_snapshot_task_id: string; target_snapshot_id: string };
+    Returns: Json;
+  };
+};
+
 export type Phase10a1Database = Omit<BaseDatabase, "public"> & {
-  public: Omit<BaseDatabase["public"], "Tables"> & {
+  public: Omit<BaseDatabase["public"], "Tables" | "Functions"> & {
     Tables: BaseDatabase["public"]["Tables"] & {
       github_connections: GitHubConnectionTable;
       github_repository_links: GitHubRepositoryLinkTable;
     };
+    Functions: Phase10a1Functions;
   };
 };

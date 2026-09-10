@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migrationPath = path.resolve(
-  "supabase/migrations/20260910153000_phase_10a1_github_connected_projects.sql",
+  "supabase/migrations/20260910160000_phase_10a1_github_connected_projects.sql",
 );
 
 describe("Phase 10A1 GitHub connected projects migration", () => {
