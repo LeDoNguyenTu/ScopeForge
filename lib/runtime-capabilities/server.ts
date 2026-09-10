@@ -4,9 +4,11 @@ export type HostedCapabilityName =
   | "HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED"
   | "HOSTED_ACTIVE_CORS_WORKER_ENABLED";
 
+export type CapabilityEnvironment = Readonly<Partial<Record<HostedCapabilityName, string>>>;
+
 export function serverCapabilityEnabled(
   name: HostedCapabilityName,
-  env: NodeJS.ProcessEnv = process.env,
+  env: CapabilityEnvironment = process.env,
 ): boolean {
   return env[name] === "true";
 }
