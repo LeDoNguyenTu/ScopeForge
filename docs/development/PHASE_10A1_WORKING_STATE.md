@@ -1,69 +1,96 @@
 # Phase 10A1 GitHub Connected Projects Working State
 
-Date: 2026-09-10
+Last reconciled: 2026-09-11 (Asia/Singapore)
 Branch: `feat/phase-10a-github-connected-projects`
 PR: #74
-Status: Tasks 1-5 implemented through repository import, production GitHub integration not enabled
+Status: implementation complete and exact-head code validation green; production database/provider activation still gated
 
-## Completed in branch
+## Implemented
 
 - Shared strict boolean runtime-capability parser for hosted repository snapshot and repository scan gates.
-- GitHub App server-only configuration loader with no `NEXT_PUBLIC_` secret fallback.
-- Ten-minute HMAC-signed user/workspace connection state with constant-time signature verification.
+- Server-only GitHub App configuration with no public-secret fallback.
+- Ten-minute signed user/workspace connection state and constant-time signature verification.
 - RS256 GitHub App JWT signing using Node crypto.
-- Fixed-endpoint GitHub provider client for OAuth code exchange, authenticated-user installation discovery, installation token minting, installation repository listing, and immutable repository-ID lookup.
-- Installation tokens can be restricted to a single repository ID and request only `contents: read` plus `metadata: read`.
-- GitHub provider responses are normalized and bounded; provider error bodies are not surfaced.
-- REST requests pin GitHub API version `2026-03-10`.
-- Forward-only `github_connections` and `github_repository_links` schema with one installation per workspace in v1.
-- Same-workspace composite foreign keys bind repository links to their exact connection and repository asset.
-- Authenticated workspace members receive read-only RLS visibility; browser roles receive no integration-table mutation authority.
-- GitHub connection/link rows contain safe provider metadata only and no secret/token fields.
-- Narrow Phase 10A1 database type overlay for both integration tables.
-- Owner/admin-only GitHub connection authorization service.
-- Two-stage installation setup and GitHub user OAuth callback that does not trust `installation_id` by itself.
-- The signed state is revalidated against the exact current ScopeForge user and workspace before OAuth and again before persistence.
-- A pending installation is persisted only after it appears in the authenticated GitHub user's installation list.
-- Temporary GitHub user OAuth tokens exist only inside the completion call and are never returned or stored.
-- Secure HttpOnly, Secure, SameSite=Lax setup cookies are callback-scoped, bounded to ten minutes, and cleared on terminal success/failure.
-- GitHub callback redirects expose only bounded status/error codes and never provider tokens or authorization codes.
-- Provider configuration requirements are documented in `docs/development/PHASE_10A1_GITHUB_APP_SETUP.md`.
-- Owner/admin-only connected repository discovery with bounded pagination and server-minted installation tokens.
-- Repository import accepts only a numeric repository ID from the browser and re-fetches all authoritative repository metadata through a repository-scoped installation token.
-- Exact same-workspace repository assets are reused; cross-workspace or mismatched linkage fails closed.
-- Repository assets become verified only after fresh GitHub installation access succeeds.
-- Duplicate repository imports are idempotent and refresh safe link metadata.
-- Private repositories can be linked as projects but are explicitly reported as ineligible for the existing public Phase 6B acquisition path.
-- Connected-project UI includes connected/disconnected states, repository visibility/default branch context, pagination, and a prominent GitHub import path while preserving manual web/API registration.
+- Bounded GitHub provider client for OAuth exchange, user installation proof, installation tokens, repository listing and repository-ID lookup.
+- Installation tokens request only `contents: read` and `metadata: read`; single-repository operations are repository-scoped.
+- Provider response/error normalization prevents raw provider bodies or tokens from reaching browser responses.
+- `github_connections` and `github_repository_links` schema with same-workspace composite foreign keys and read-only browser RLS.
+- Owner/admin-only connection flow that does not trust GitHub setup `installation_id` by itself.
+- Temporary GitHub user OAuth tokens are discarded after installation verification.
+- Owner/admin-only repository discovery and import.
+- Browser sends only numeric repository ID; authoritative metadata is re-fetched with a repository-scoped installation token.
+- GitHub-confirmed repositories are registered/reused as verified ScopeForge repository assets with idempotent links.
+- Private repositories may be linked but remain outside the Phase 10A1 public acquisition execution class.
+- Connected-project dashboard UX presents one project-level scan action while retaining existing manual repository tools.
+- Public connected-project scan orchestration persists private worker intent, queues immutable source acquisition, and automatically continues after successful snapshot publication.
+- Project-level read model exposes only safe state (`idle`, `snapshot_queued`, `waiting_scan_runtime`, `scan_queued`, `retry_pending`).
+- Hosted snapshot/scan capability gates remain independently fail-closed.
 
-## Validation history
+## Recovery hardening completed
 
-The current environment cannot clone GitHub directly, so intermediate commits use `[skip ci]` and no local-test claim is made.
+Release review found a liveness/correctness defect after snapshot publication: `waiting_scan_runtime` and `retry_pending` had no safe resume action. The generic repository-scan enqueue function also chooses the newest eligible snapshot, so delayed continuation could create work for a newer snapshot before detecting mismatch.
 
-Checkpoint `c290bb69f6ad572a6419eab6754ec29d3a2d94b5` failed only in the JWT verification test helper. The helper was corrected to verify with the already-public Node key object.
+The branch now includes:
 
-Checkpoint `b1d3c587ede2f9f1a7955661592609a4574a3ffa` passed all 1,596 tests and exposed only two overly broad environment parameter types during typecheck. Those were narrowed safely.
+- `get_connected_project_scan_recovery` service-role RPC with owner/admin authorization,
+- `enqueue_repository_scan_worker_task_for_snapshot` exact-snapshot RPC,
+- replacement connected-project continuation that binds scan creation to `target_snapshot_id` before any job/task side effect,
+- `resumeConnectedProjectScan()` with fresh GitHub revalidation,
+- bounded server action and `Resume project scan` UI for waiting/retry states,
+- fail-closed behavior while scan runtime is disabled,
+- no implicit second snapshot during recovery,
+- idempotent replay for an already queued scan.
 
-Checkpoint `f4020265f4d884588147f8f278370f1c4e2d35ab` passed the complete CI pipeline for Tasks 1-3, including unit tests, typecheck, build, benchmarks, CSP browser smoke, production diagnostic, and visual artifact upload.
+## TDD / validation history
 
-Checkpoint `8cd1983b5b9d54fc2300bd1f27c288ef2f268793` passed the complete CI pipeline for Task 4, including the GitHub authorization/callback tests, full unit suite, typecheck, build, benchmarks, CSP browser smoke, production diagnostic, and visual artifact upload.
+The environment cannot clone GitHub directly, so implementation used GitHub branches and CI for executable proof.
 
-Phase 10C was subsequently merged to `main` at `1151af2dddb76737ee2f0a0d1a802f06a975d318`. GitHub currently reports PR #74 as mergeable; its cached PR base SHA has not yet refreshed to that merge in every API surface. Before release, the branch will be reconciled against the actual `main` head and revalidated.
+Relevant checkpoints:
 
-Task 5 tests were committed before the repository discovery/import service and UI. This commit intentionally starts one consolidated exact-head validation for the completed repository-import checkpoint.
+- Tasks 1-3 candidate `f4020265f4d884588147f8f278370f1c4e2d35ab`: complete CI success.
+- Task 4 candidate `8cd1983b5b9d54fc2300bd1f27c288ef2f268793`: complete CI success.
+- Connected-project UI candidate before recovery review: complete CI success with 1,710 tests.
+- Recovery RED checkpoint `b776ab78b61b490be04a8121bb07958d36ed19f2`: 1,711 existing tests passed and exactly eight new recovery assertions failed as intended.
+- Recovery GREEN candidate `005504387cf29d65d6b297acb041b608f0416c1a`: CI #852 / run `34520609482` SUCCESS.
 
-## Production state
+CI #852 passed:
 
-No Phase 10A1 database migration has been applied to the ScopeForge production Supabase project. The production migration head now includes the merged Phase 10C migration set. No GitHub App secrets or ephemeral tokens are stored in the repository or Phase 10A1 schema.
+- dependency audit: 0 reported vulnerabilities,
+- 386 test files / 1,719 tests,
+- TypeScript,
+- CLI build/version,
+- scanner benchmark,
+- benchmark matrix,
+- Next.js production build,
+- CSP browser smoke,
+- production V5/Turnstile diagnostic,
+- visual artifact upload.
 
-The live GitHub App provider settings and six required server-only Vercel environment values are not yet claimed as configured. The Connect GitHub feature must not be considered production-enabled until provider configuration and live callback verification are completed.
+GitHub CI validates the PR merge result against current `main`, which is `1151af2dddb76737ee2f0a0d1a802f06a975d318` and already includes Phase 10C.
 
-Hosted repository snapshot and repository scan runtime gates remain independently default-off and are not bypassed by Phase 10A1.
+## Production truth
 
-## Next tasks
+Current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
+Current production Vercel deployment: `dpl_AueSXj9wWBDMkRTRLAb6x8nsH57z`, READY, aliased to `scopeforge.dev`.
 
-1. Resolve any exact-head Task 5 validation failure.
-2. Reconcile the branch against the actual current `main` head before release validation.
-3. Wire one-click project scan orchestration and automatic snapshot-to-scan continuation while retaining runtime gates.
-4. Add project-level read model/UI and complete release documentation.
-5. Apply the Phase 10A1 schema only when application/provider configuration is sufficiently ready for safe rollout.
+Phase 10C production database state was previously verified and is documented in `PHASE_10C_WORKING_STATE.md`.
+
+Phase 10A1 production database migration was **not performed in the current validation session**. A fresh Supabase migration-head read was attempted after code validation, but the connected Supabase database action became unavailable. No schema write was attempted after that failure.
+
+Live GitHub App/Vercel server-only environment configuration is also not freshly verifiable through the present Vercel tool surface. Therefore Connect GitHub is not claimed as production-active yet.
+
+Vercel produced READY previews for multiple Phase 10A1 intermediate commits. The final candidate's GitHub Vercel status currently reports the Hobby-plan build-rate limit; GitHub CI independently passed the exact candidate's production build and browser gates.
+
+Hosted runtime flags remain default-off/unaccepted and must not be enabled by this phase alone.
+
+## Remaining release work
+
+1. Restore a supported Supabase production management surface and inspect the fresh migration head.
+2. Apply/reconcile the four reviewed Phase 10A1 migrations in order; verify targeted schema/RPC behavior and Security Advisor.
+3. Verify live GitHub App provider configuration and callback/repository import without exposing secrets.
+4. Keep snapshot/scan/passive/CORS hosted runtime flags off until their independent canary/rollback acceptance succeeds.
+5. Re-run exact-head CI after any executable or migration change.
+6. Merge PR #74 only once schema/provider state is safe.
+7. After safe Phase 10A1 release, begin Phase 10A2 private repository acquisition as a separate execution class.
+
+Detailed release evidence: `docs/development/PHASE_10A1_RELEASE_STATE.md`.
