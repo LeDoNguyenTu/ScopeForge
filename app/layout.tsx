@@ -7,18 +7,13 @@ import "./forge-landing.css";
 import "./forge-shell.css";
 import "./forge-immersive.css";
 import "./forge-dashboard.css";
-import "./ui-refinement.css";
 import "./forge-dashboard-v2.css";
 import "./exact-command-center.css";
-import "./command-center-boot.css";
-import "./command-center-v5.css";
-import "./command-center-v5-1.css";
-import "./command-center-v5-2.css";
 import "./assets.css";
 import "./community.css";
+import "./ui-refinement.css";
+import "./saas-dashboard.css";
 import "./csp-compatibility.css";
-import "./approved-v5-dashboard.css";
-import "./approved-command-center-v3.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
