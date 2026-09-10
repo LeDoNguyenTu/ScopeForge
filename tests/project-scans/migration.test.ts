@@ -8,6 +8,9 @@ const migrationPath = path.resolve(
 const retryMigrationPath = path.resolve(
   "supabase/migrations/20260910160010_phase_10a1_project_scan_retry_idempotency.sql",
 );
+const waitingMigrationPath = path.resolve(
+  "supabase/migrations/20260910160020_phase_10a1_project_scan_waiting_idempotency.sql",
+);
 
 function tableDefinition(sql: string, qualifiedName: string): string {
   const escaped = qualifiedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -68,6 +71,17 @@ describe("Phase 10A1 connected project scan persistence", () => {
     expect(sql).toMatch(/if not found then[\s\S]*'scan_queued'/i);
     expect(sql).toMatch(/revoke all on function public\.record_connected_project_scan_retry[\s\S]*from public, anon, authenticated, service_role/i);
     expect(sql).toMatch(/grant execute on function public\.record_connected_project_scan_retry[\s\S]*to service_role/i);
+  });
+
+  it("does not downgrade an already-queued scan to waiting after runtime-gate changes", async () => {
+    const sql = await readFile(waitingMigrationPath, "utf8");
+    expect(sql).toContain("create or replace function public.mark_connected_project_scan_waiting");
+    expect(sql).toMatch(/state\s*<>\s*'scan_queued'/i);
+    expect(sql).toMatch(/scan_task_id\s+is\s+null/i);
+    expect(sql).toMatch(/if not found then[\s\S]*'scan_queued'/i);
+    expect(sql).toMatch(/project_scan_state\s*<>\s*'scan_queued'/i);
+    expect(sql).toMatch(/revoke all on function public\.mark_connected_project_scan_waiting[\s\S]*from public, anon, authenticated, service_role/i);
+    expect(sql).toMatch(/grant execute on function public\.mark_connected_project_scan_waiting[\s\S]*to service_role/i);
   });
 
   it("exposes only safe project-level state through the browser-readable link", async () => {
