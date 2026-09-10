@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import {
   BookOpenCheck,
   Boxes,
@@ -12,6 +13,9 @@ import {
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
 import PublicNav from "@/components/landing/PublicNav";
 import PublicFooter from "@/components/landing/PublicFooter";
+import { getPlatformSettings, shouldEnterMaintenance } from "@/lib/platform-settings/server";
+
+export const dynamic = "force-dynamic";
 
 const workflow = [
   [Boxes, "Discover", "Inventory the applications, APIs, repositories and services that belong to your workspace."],
@@ -23,7 +27,12 @@ const workflow = [
   [CircleCheck, "Verify", "Retest with fresh evidence and close the loop only when the risk is actually gone."],
 ] as const;
 
-export default function Home() {
+export default async function Home() {
+  const settings = await getPlatformSettings();
+  if (shouldEnterMaintenance({ pathname: "/", maintenanceMode: settings.maintenanceMode, isPlatformAdmin: false })) {
+    redirect("/maintenance");
+  }
+
   return (
     <div className="forgeLanding commandLanding">
       <PublicNav />
