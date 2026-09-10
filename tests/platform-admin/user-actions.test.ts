@@ -26,28 +26,45 @@ function dependencies(overrides: Partial<PlatformAdminUserActionDependencies> = 
 }
 
 describe("platform admin guarded user actions", () => {
-  it("suspends an ordinary user with the reviewed finite ban duration", async () => {
-    const updates: Array<{ userId: string; banDuration: string }> = [];
+  it("records suspend intent before changing Auth and completion afterward", async () => {
+    const order: string[] = [];
     await suspendPlatformUser(
       { userId: TARGET_ID, reason: "Abusive automated scanning" },
       dependencies({
+        writeAuditEvent: async (input) => { order.push(`audit:${input.action}`); },
         updateAuthUser: async (userId, attributes) => {
-          updates.push({ userId, banDuration: attributes.ban_duration });
+          expect(userId).toBe(TARGET_ID);
+          expect(attributes.ban_duration).toBe("876000h");
+          order.push("auth:suspended");
         },
       }),
     );
 
-    expect(updates).toEqual([{ userId: TARGET_ID, banDuration: "876000h" }]);
+    expect(order).toEqual([
+      "audit:user.suspend_started",
+      "auth:suspended",
+      "audit:user.suspended",
+    ]);
   });
 
-  it("restores a suspended user with the supported none ban duration", async () => {
-    const updates: string[] = [];
+  it("records restore intent before changing Auth and completion afterward", async () => {
+    const order: string[] = [];
     await restorePlatformUser(
       { userId: TARGET_ID, reason: "Appeal approved" },
-      dependencies({ updateAuthUser: async (_userId, attributes) => { updates.push(attributes.ban_duration); } }),
+      dependencies({
+        writeAuditEvent: async (input) => { order.push(`audit:${input.action}`); },
+        updateAuthUser: async (_userId, attributes) => {
+          expect(attributes.ban_duration).toBe("none");
+          order.push("auth:restored");
+        },
+      }),
     );
 
-    expect(updates).toEqual(["none"]);
+    expect(order).toEqual([
+      "audit:user.restore_started",
+      "auth:restored",
+      "audit:user.restored",
+    ]);
   });
 
   it("refuses hard deletion when exact fresh email confirmation does not match", async () => {
@@ -122,15 +139,18 @@ describe("platform admin guarded user actions", () => {
           { id: "workspace-2", name: "Personal two" },
         ],
         listWorkspaceMemberUserIds: async () => [TARGET_ID],
+        writeAuditEvent: async (input) => { order.push(`audit:${input.action}`); },
         deleteWorkspace: async (workspaceId) => { order.push(`workspace:${workspaceId}`); },
         deleteAuthUser: async (userId) => { order.push(`auth:${userId}`); },
       }),
     );
 
     expect(order).toEqual([
+      "audit:user.delete_started",
       "workspace:workspace-1",
       "workspace:workspace-2",
       `auth:${TARGET_ID}`,
+      "audit:user.deleted",
     ]);
   });
 
@@ -150,15 +170,15 @@ describe("platform admin guarded user actions", () => {
     ).rejects.toEqual(expect.objectContaining({ code: "PLATFORM_ADMIN_TARGET_PROTECTED" }));
   });
 
-  it("bounds reasons and sanitizes provider failures", async () => {
-    await expect(
-      suspendPlatformUser({ userId: TARGET_ID, reason: "x".repeat(501) }, dependencies()),
-    ).rejects.toEqual(expect.objectContaining({ code: "INVALID_ADMIN_REASON" }));
-
+  it("records a suspend attempt before a sanitized provider failure", async () => {
+    const auditActions: string[] = [];
     await expect(
       suspendPlatformUser(
         { userId: TARGET_ID, reason: "policy violation" },
-        dependencies({ updateAuthUser: async () => { throw new Error("provider-secret-body"); } }),
+        dependencies({
+          writeAuditEvent: async (input) => { auditActions.push(input.action); },
+          updateAuthUser: async () => { throw new Error("provider-secret-body"); },
+        }),
       ),
     ).rejects.toEqual(
       expect.objectContaining<Partial<PlatformAdminUserActionError>>({
@@ -166,5 +186,12 @@ describe("platform admin guarded user actions", () => {
         message: "The platform user action could not be completed safely.",
       }),
     );
+    expect(auditActions).toEqual(["user.suspend_started"]);
+  });
+
+  it("bounds reasons", async () => {
+    await expect(
+      suspendPlatformUser({ userId: TARGET_ID, reason: "x".repeat(501) }, dependencies()),
+    ).rejects.toEqual(expect.objectContaining({ code: "INVALID_ADMIN_REASON" }));
   });
 });
