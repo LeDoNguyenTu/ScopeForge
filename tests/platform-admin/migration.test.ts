@@ -25,6 +25,13 @@ describe("Phase 10C platform administration migration", () => {
     expect(sql).not.toMatch(/grant\s+(insert|update|delete).*platform_settings.*authenticated/i);
   });
 
+  it("exposes only non-sensitive availability fields through the browser read path", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    expect(sql).toMatch(/grant\s+select\s*\(registration_enabled, maintenance_mode, maintenance_message, updated_at\)\s+on\s+table\s+public\.platform_settings\s+to\s+anon, authenticated/i);
+    expect(sql).toMatch(/create policy platform_settings_public_read[\s\S]*for select[\s\S]*to anon, authenticated[\s\S]*using \(id = true\)/i);
+    expect(sql).not.toMatch(/grant\s+select\s*\([^)]*updated_by[^)]*\).*platform_settings.*anon/i);
+  });
+
   it("keeps a singleton settings record and bounded audit fields", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toMatch(/id\s+boolean\s+primary key\s+default true\s+check\s*\(id = true\)/i);
