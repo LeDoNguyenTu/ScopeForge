@@ -3,13 +3,14 @@
 Date: 2026-09-10
 Branch: `feat/phase-10c-platform-admin-console`
 PR: #75
-Status: final release-candidate validation, production database unchanged
+Status: production database migrated and owner bootstrapped; final exact-head code validation pending
 
 ## Completed in branch
 
 - Dedicated platform administration boundary separate from workspace roles.
-- `platform_admins`, `platform_admin_audit_events`, and singleton `platform_settings` forward migration.
+- `platform_admins`, `platform_admin_audit_events`, and singleton `platform_settings` forward migrations.
 - RLS enabled on platform tables with no browser mutation authority.
+- Explicit deny-all browser policies on locked admin identity/audit tables as defense in depth.
 - Last-platform-owner database guard.
 - Authoritative registration gate in `private.handle_new_user()` with explicit function execution revocation.
 - Server-side platform admin authorization using the trusted Supabase client.
@@ -32,23 +33,47 @@ Status: final release-candidate validation, production database unchanged
 
 ## CI history cleanup
 
-Earlier red runs on PR #75 were deliberate TDD checkpoints plus real follow-up contract failures. Intermediate implementation commits use `[skip ci]` so every small TDD transition does not produce a full CI run.
+Earlier red runs on PR #75 were deliberate TDD checkpoints plus resolved follow-up contract failures. Intermediate implementation commits use `[skip ci]` so every small TDD transition does not produce a full CI run.
 
-Release candidate `fa5c9cb058c0e66b5da41f469d85d4bd9d2d3132` passed the entire pipeline: unit tests, typecheck, CLI build/version, scanner benchmark, benchmark matrix, Next.js production build, CSP browser smoke, production V5/Turnstile diagnostic, and screenshot upload.
+Release candidate `b4a8fbc8985c27d04ad32a2feaa983d2b8ec7f98` passed the complete pipeline: unit tests, typecheck, CLI build/version, scanner benchmark, benchmark matrix, Next.js production build, CSP browser smoke, production V5/Turnstile diagnostic, and screenshot upload.
 
-A subsequent security review found and fixed two final integrity issues before production deployment. Hard deletion now requires every target-created workspace to have exactly one member and that member must be the target account. Zero-member, sole-other-member, and multi-member workspaces all block deletion. Administrative mutations now write an attempted-action audit event before changing Supabase Auth or platform settings so a provider failure cannot erase all evidence that the privileged action was attempted. The public CI placeholder fallback also requires `CI=true`, preventing an accidentally fixture-configured production deployment from silently failing open.
+After that green candidate, production rollout review added only migration-history alignment and explicit deny-policy defense in depth. The repository migration filenames now exactly match the versions recorded by the Supabase management API so future migration pushes cannot replay the Phase 10C table creation.
 
-This commit intentionally starts one final exact-head validation run for the completed release candidate.
+## Production database evidence
 
-## Production state
+Confirmed production project: ScopeForge (`tdgpibrepzcvdivztkta`), not the Job Command Center project.
 
-No Phase 10C migration has been applied to the production ScopeForge Supabase project yet. No production platform owner has been seeded yet. Production mutation remains gated on clean exact-head CI/browser validation, reviewed SQL, Security Advisor review, and final security review.
+Applied production migrations:
+
+- `20260910153743_phase_10c_platform_admin`
+- `20260910154017_phase_10c_explicit_browser_deny_policies`
+
+The intended real ScopeForge account was unambiguous from production Auth/profile data and was bootstrapped as the single platform owner. The portfolio demo account has no platform-admin row. No production user identifier or email is committed to repository source.
+
+Verified after bootstrap:
+
+- exactly one platform-admin row exists
+- exactly one platform owner exists
+- demo account platform-admin count is zero
+- registration remains enabled
+- maintenance mode remains disabled
+- `anon` and `authenticated` cannot read `platform_admins`
+- `anon` may read the narrow registration availability field
+- `anon` cannot read `platform_settings.updated_by`
+- `anon` and `authenticated` cannot execute `private.handle_new_user()` directly
+- public availability SELECT policy exists
+- a safe last-owner deletion probe was blocked and the owner row remained intact
+- post-migration Security Advisor reports no Phase 10C RLS/table findings
+
+The only remaining Supabase Security Advisor warning is the pre-existing project-level Auth warning that leaked-password protection is disabled. The current connector can verify but does not expose that Auth-setting mutation.
+
+## Migration history invariant
+
+The pre-deployment filename `20260910020000_phase_10c_platform_admin.sql` was never a production migration version and has been removed from the branch. Repository source now uses the two exact production versions above. Deployed migration contents remain immutable.
 
 ## Remaining release gates
 
-1. Confirm the current exact head passes unit, type, build, benchmark, CSP browser, and production diagnostic validation.
-2. Apply the reviewed forward migration to the ScopeForge production Supabase project.
-3. Seed the intended initial platform owner through trusted database access without committing account identifiers.
-4. Verify owner and non-admin authorization boundaries, registration control, maintenance behavior, and audit writes.
-5. Run database security advisors and reconcile findings.
-6. Merge only when the exact release head and production checks are clean.
+1. Confirm the current exact branch head passes unit, type, build, benchmark, CSP browser, and production diagnostic validation after migration-history alignment.
+2. Merge PR #75 only when that exact head is green.
+3. Verify the merged production deployment serves the admin surface and existing public/dashboard presentation without runtime regressions.
+4. Keep leaked-password protection as an explicit external provider follow-up until a supported management surface is available.
