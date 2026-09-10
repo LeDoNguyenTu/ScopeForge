@@ -20,6 +20,7 @@ function dependencies(overrides: Partial<ProjectScanServiceDependencies> = {}): 
     snapshotRuntimeEnabled: () => true,
     scanRuntimeEnabled: () => true,
     enqueueSnapshotIntent: vi.fn(async () => ({ taskId: SNAPSHOT_TASK_ID })),
+    loadRecovery: vi.fn(async () => null),
     loadContinuation: vi.fn(async () => ({
       workspaceId: WORKSPACE_ID,
       assetId: ASSET_ID,
