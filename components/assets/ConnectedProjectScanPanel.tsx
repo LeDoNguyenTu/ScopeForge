@@ -124,7 +124,7 @@ export default function ConnectedProjectScanPanel({
 
       {currentStateMessage && <div className="emptyCompact">{currentStateMessage}</div>}
       {!canManage && (
-        <div className="emptyCompact">Your workspace role is read-only for connected project scans. An owner or admin can start a new scan.</div>
+        <div className="emptyCompact">Your workspace role is read-only for connected project scans. Elevated workspace access is required to start a new scan.</div>
       )}
       {project.accessStatus !== "active" && (
         <div className="emptyCompact">GitHub access is no longer active for this repository. Reconnect or restore repository access before scanning.</div>
