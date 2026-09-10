@@ -35,7 +35,7 @@ export interface PlatformAdminUserActionDependencies {
   updateAuthUser(userId: string, attributes: { ban_duration: string }): Promise<void>;
   deleteAuthUser(userId: string): Promise<void>;
   listOwnedWorkspaces(userId: string): Promise<Array<{ id: string; name: string }>>;
-  countWorkspaceMembers(workspaceId: string): Promise<number>;
+  listWorkspaceMemberUserIds(workspaceId: string): Promise<string[]>;
   deleteWorkspace(workspaceId: string): Promise<void>;
   writeAuditEvent(input: {
     actorUserId: string;
@@ -107,13 +107,14 @@ function createDefaultDependencies(): PlatformAdminUserActionDependencies {
       if (error) throw new Error("OWNED_WORKSPACE_LOOKUP_FAILED");
       return data ?? [];
     },
-    countWorkspaceMembers: async (workspaceId) => {
-      const { count, error } = await admin
+    listWorkspaceMemberUserIds: async (workspaceId) => {
+      const { data, error } = await admin
         .from("workspace_members")
-        .select("user_id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId);
-      if (error) throw new Error("WORKSPACE_MEMBER_COUNT_FAILED");
-      return count ?? 0;
+        .select("user_id")
+        .eq("workspace_id", workspaceId)
+        .limit(2);
+      if (error) throw new Error("WORKSPACE_MEMBERSHIP_LOOKUP_FAILED");
+      return (data ?? []).map((row) => row.user_id);
     },
     deleteWorkspace: async (workspaceId) => {
       const { error } = await admin.from("workspaces").delete().eq("id", workspaceId);
@@ -229,11 +230,11 @@ export async function hardDeletePlatformUser(
 
     const ownedWorkspaces = await context.deps.listOwnedWorkspaces(context.targetUserId);
     for (const workspace of ownedWorkspaces) {
-      const memberCount = await context.deps.countWorkspaceMembers(workspace.id);
-      if (memberCount > 1) {
+      const memberUserIds = await context.deps.listWorkspaceMemberUserIds(workspace.id);
+      if (memberUserIds.length !== 1 || memberUserIds[0] !== context.targetUserId) {
         throw new PlatformAdminUserActionError(
           "USER_OWNS_SHARED_WORKSPACE",
-          "This user owns a workspace with other members. Transfer ownership before hard deletion.",
+          "This user owns a workspace that is not exclusively theirs. Transfer or repair ownership before hard deletion.",
         );
       }
     }
