@@ -68,7 +68,7 @@ export type GitHubRepositoryLinkTable = {
     html_url: string;
     auto_scan_enabled: boolean;
     access_status: GitHubRepositoryAccessStatus;
-    project_scan_state: GitHubProjectScanState;
+    project_scan_state?: GitHubProjectScanState;
     created_at: string;
     updated_at: string;
   };

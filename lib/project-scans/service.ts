@@ -14,6 +14,7 @@ import {
   type ConnectedProjectContinuationContext,
   type ConnectedProjectScanContext,
   type ProjectScanContinuationResult,
+  type ProjectScanErrorCode,
   type ProjectScanRequestResult,
   type ProjectScanState,
 } from "./types";
@@ -45,7 +46,7 @@ export interface ProjectScanServiceDependencies {
   recordRetryPending(context: ConnectedProjectContinuationContext): Promise<void>;
 }
 
-function failure(code: ConstructorParameters<typeof ProjectScanError>[0], message: string): ProjectScanError {
+function failure(code: ProjectScanErrorCode, message: string): ProjectScanError {
   return new ProjectScanError(code, message);
 }
 
@@ -70,6 +71,20 @@ function positiveIntegerField(value: unknown): number | null {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
+function isRepositoryAccessStatus(
+  value: unknown,
+): value is ConnectedProjectContinuationContext["accessStatus"] {
+  return value === "active" || value === "inaccessible" || value === "removed";
+}
+
+function isProjectScanState(value: unknown): value is ProjectScanState {
+  return value === "idle"
+    || value === "snapshot_queued"
+    || value === "waiting_scan_runtime"
+    || value === "scan_queued"
+    || value === "retry_pending";
+}
+
 function parseSnapshotEnqueue(value: unknown): { taskId: string } {
   const row = objectValue(value);
   const taskId = uuidField(row?.taskId);
@@ -91,16 +106,11 @@ function parseContinuation(value: unknown): ConnectedProjectContinuationContext 
   const isPrivate = typeof row?.isPrivate === "boolean" ? row.isPrivate : null;
   const accessStatus = row?.accessStatus;
   const state = row?.state;
-  const validAccess = accessStatus === "active" || accessStatus === "inaccessible" || accessStatus === "removed";
-  const validState: state is ProjectScanState = state === "idle"
-    || state === "snapshot_queued"
-    || state === "waiting_scan_runtime"
-    || state === "scan_queued"
-    || state === "retry_pending";
 
   if (
     !workspaceId || !assetId || !actorId || !linkId || !snapshotTaskId || !snapshotId
-    || !repositoryId || !canonicalTarget || isPrivate === null || !validAccess || !validState
+    || !repositoryId || !canonicalTarget || isPrivate === null
+    || !isRepositoryAccessStatus(accessStatus) || !isProjectScanState(state)
   ) {
     throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project continuation state is invalid.");
   }
