@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GitBranch, ScanSearch, ShieldCheck } from "lucide-react";
-import { requestConnectedProjectSecurityScan } from "@/app/dashboard/assets/[assetId]/project-scan-actions";
+import {
+  requestConnectedProjectSecurityScan,
+  resumeConnectedProjectSecurityScan,
+} from "@/app/dashboard/assets/[assetId]/project-scan-actions";
 import type { WorkspaceRole } from "@/lib/database.types";
 import type { ConnectedProjectScanReadModel } from "@/lib/project-scans/read-model";
 
@@ -15,10 +18,8 @@ interface ConnectedProjectScanPanelProps {
   scanRuntimeAvailable: boolean;
 }
 
-const ACTIVE_STATES = new Set<ConnectedProjectScanReadModel["projectScanState"]>([
-  "snapshot_queued",
+const RECOVERABLE_STATES = new Set<ConnectedProjectScanReadModel["projectScanState"]>([
   "waiting_scan_runtime",
-  "scan_queued",
   "retry_pending",
 ]);
 
@@ -31,7 +32,7 @@ function stateMessage(state: ConnectedProjectScanReadModel["projectScanState"]):
     case "scan_queued":
       return "The repository scan is queued. ScopeForge will publish findings when the bounded worker completes.";
     case "retry_pending":
-      return "The project scan continuation is pending a safe retry. A duplicate user start is not required.";
+      return "The project scan continuation is pending a safe retry. Resume will reuse the already-published snapshot.";
     default:
       return null;
   }
@@ -41,16 +42,39 @@ function actionLabel(
   role: WorkspaceRole,
   project: ConnectedProjectScanReadModel,
   snapshotRuntimeAvailable: boolean,
+  scanRuntimeAvailable: boolean,
 ): string {
   if (role !== "owner" && role !== "admin") return "Owner or admin required";
   if (project.isPrivate) return "Private acquisition required";
   if (project.accessStatus !== "active") return "GitHub access inactive";
   if (project.projectScanState === "snapshot_queued") return "Snapshot queued";
-  if (project.projectScanState === "waiting_scan_runtime") return "Waiting for scan runtime";
   if (project.projectScanState === "scan_queued") return "Scan queued";
-  if (project.projectScanState === "retry_pending") return "Retry pending";
+  if (RECOVERABLE_STATES.has(project.projectScanState)) {
+    return scanRuntimeAvailable ? "Resume project scan" : "Waiting for scan runtime";
+  }
   if (!snapshotRuntimeAvailable) return "Snapshot runtime unavailable";
   return "Scan project";
+}
+
+function guardrailMessage(
+  project: ConnectedProjectScanReadModel,
+  snapshotRuntimeAvailable: boolean,
+  scanRuntimeAvailable: boolean,
+): string {
+  if (project.isPrivate) {
+    return "Private repository acquisition remains Phase 10A2 work. The GitHub connection is retained, but Phase 10A1 will not route private source into the public acquisition worker.";
+  }
+  if (RECOVERABLE_STATES.has(project.projectScanState)) {
+    return scanRuntimeAvailable
+      ? "The immutable snapshot is already published. Resume revalidates GitHub access and queues the scan against that exact snapshot without reacquiring source."
+      : "The immutable snapshot is already published and retained. Recovery stays disabled until the repository scan runtime is enabled.";
+  }
+  if (!snapshotRuntimeAvailable) {
+    return "Hosted source acquisition is still gated in this deployment, so starting a project scan is disabled.";
+  }
+  return scanRuntimeAvailable
+    ? "A click queues an immutable public source snapshot and the repository scan continues automatically after publication."
+    : "A click queues the immutable public source snapshot now; the scan will wait safely until the repository scan runtime is enabled.";
 }
 
 export default function ConnectedProjectScanPanel({
@@ -66,27 +90,36 @@ export default function ConnectedProjectScanPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canManage = role === "owner" || role === "admin";
-  const orchestrationActive = ACTIVE_STATES.has(project.projectScanState);
+  const recoverable = RECOVERABLE_STATES.has(project.projectScanState);
+  const newScanAvailable = project.projectScanState === "idle" && snapshotRuntimeAvailable;
+  const recoveryAvailable = recoverable && scanRuntimeAvailable;
   const disabled = pending
     || !canManage
     || project.isPrivate
     || project.accessStatus !== "active"
-    || orchestrationActive
-    || !snapshotRuntimeAvailable;
+    || (!newScanAvailable && !recoveryAvailable);
   const currentStateMessage = stateMessage(project.projectScanState);
 
-  function requestScan() {
+  function runProjectScan() {
     if (disabled) return;
     setMessage(null);
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await requestConnectedProjectSecurityScan(assetId);
+      const result = recoverable
+        ? await resumeConnectedProjectSecurityScan(assetId)
+        : await requestConnectedProjectSecurityScan(assetId);
       if (!result.ok) {
         setErrorMessage(result.error.message);
         return;
       }
       setMessage(result.message);
-      if (result.status === "snapshot_queued") router.refresh();
+      if (
+        result.status === "snapshot_queued"
+        || result.status === "scan_queued"
+        || result.status === "retry_pending"
+      ) {
+        router.refresh();
+      }
     });
   }
 
@@ -112,13 +145,7 @@ export default function ConnectedProjectScanPanel({
         <ShieldCheck size={17} />
         <p>
           <strong>Bounded orchestration.</strong>{" "}
-          {project.isPrivate
-            ? "Private repository acquisition remains Phase 10A2 work. The GitHub connection is retained, but Phase 10A1 will not route private source into the public acquisition worker."
-            : !snapshotRuntimeAvailable
-              ? "Hosted source acquisition is still gated in this deployment, so starting a project scan is disabled."
-              : scanRuntimeAvailable
-                ? "A click queues an immutable public source snapshot and the repository scan continues automatically after publication."
-                : "A click queues the immutable public source snapshot now; the scan will wait safely until the repository scan runtime is enabled."}
+          {guardrailMessage(project, snapshotRuntimeAvailable, scanRuntimeAvailable)}
         </p>
       </div>
 
@@ -133,10 +160,12 @@ export default function ConnectedProjectScanPanel({
       <button
         className="primaryButton compact"
         disabled={disabled}
-        onClick={requestScan}
+        onClick={runProjectScan}
         type="button"
       >
-        <ScanSearch size={14} /> {pending ? "Queueing project scan..." : actionLabel(role, project, snapshotRuntimeAvailable)}
+        <ScanSearch size={14} /> {pending
+          ? recoverable ? "Resuming project scan..." : "Queueing project scan..."
+          : actionLabel(role, project, snapshotRuntimeAvailable, scanRuntimeAvailable)}
       </button>
 
       {message && <div className="authMessage" role="status">{message}</div>}
