@@ -3,7 +3,7 @@
 Date: 2026-09-10
 Branch: `feat/phase-10c-platform-admin-console`
 PR: #75
-Status: release-candidate revalidation, production database unchanged
+Status: final release-candidate validation, production database unchanged
 
 ## Completed in branch
 
@@ -19,6 +19,7 @@ Status: release-candidate revalidation, production database unchanged
 - Guarded suspend and restore through Supabase Auth Admin APIs.
 - Guarded hard deletion with exact fresh email confirmation, self/admin protection, exclusive-workspace-membership verification, and personal-workspace cleanup ordering.
 - Platform mutation audit events with bounded reason and metadata fields.
+- Suspend, restore, hard-delete, and platform-settings mutations record intent before the provider/data mutation and completion afterward where possible.
 - Platform settings service for registration and maintenance state.
 - `/admin` overview, users, user detail, workspaces, audit, and settings surfaces.
 - Server-confirmed admin entry point from the normal workspace UI.
@@ -35,9 +36,9 @@ Earlier red runs on PR #75 were deliberate TDD checkpoints plus real follow-up c
 
 Release candidate `fa5c9cb058c0e66b5da41f469d85d4bd9d2d3132` passed the entire pipeline: unit tests, typecheck, CLI build/version, scanner benchmark, benchmark matrix, Next.js production build, CSP browser smoke, production V5/Turnstile diagnostic, and screenshot upload.
 
-A subsequent security review found one destructive-operation edge case before production deployment: an inconsistent target-owned workspace with one different remaining member could previously satisfy the old `memberCount <= 1` test. Hard deletion now requires every target-created workspace to have exactly one member and that member must be the target account. Zero-member, sole-other-member, and multi-member workspaces all block deletion. The public CI placeholder fallback was also tightened to require `CI=true`, so a production deployment accidentally configured with the fixture tuple cannot silently fail open.
+A subsequent security review found and fixed two final integrity issues before production deployment. Hard deletion now requires every target-created workspace to have exactly one member and that member must be the target account. Zero-member, sole-other-member, and multi-member workspaces all block deletion. Administrative mutations now write an attempted-action audit event before changing Supabase Auth or platform settings so a provider failure cannot erase all evidence that the privileged action was attempted. The public CI placeholder fallback also requires `CI=true`, preventing an accidentally fixture-configured production deployment from silently failing open.
 
-This commit intentionally starts fresh exact-head validation for those final security changes.
+This commit intentionally starts one final exact-head validation run for the completed release candidate.
 
 ## Production state
 
