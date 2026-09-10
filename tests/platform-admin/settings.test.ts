@@ -31,8 +31,8 @@ describe("platform settings service", () => {
     });
   });
 
-  it("persists bounded settings and writes an audit event", async () => {
-    const auditActions: string[] = [];
+  it("records settings intent before persistence and completion afterward", async () => {
+    const order: string[] = [];
     const settings = await updatePlatformSettings(
       {
         registrationEnabled: false,
@@ -40,12 +40,42 @@ describe("platform settings service", () => {
         maintenanceMessage: "Emergency database maintenance",
         reason: "Operational maintenance window",
       },
-      dependencies({ writeAuditEvent: async (input) => { auditActions.push(input.action); } }),
+      dependencies({
+        writeAuditEvent: async (input) => { order.push(`audit:${input.action}`); },
+        persistSettings: async (input) => {
+          order.push("settings:persisted");
+          return { ...input, updatedAt: "2026-09-10T01:00:00.000Z" };
+        },
+      }),
     );
 
     expect(settings.registrationEnabled).toBe(false);
     expect(settings.maintenanceMode).toBe(true);
-    expect(auditActions).toEqual(["settings.updated"]);
+    expect(order).toEqual([
+      "audit:settings.update_started",
+      "settings:persisted",
+      "audit:settings.updated",
+    ]);
+  });
+
+  it("records an attempted settings mutation when provider persistence fails", async () => {
+    const auditActions: string[] = [];
+    await expect(updatePlatformSettings(
+      {
+        registrationEnabled: false,
+        maintenanceMode: true,
+        maintenanceMessage: "Emergency database maintenance",
+        reason: "Operational maintenance window",
+      },
+      dependencies({
+        writeAuditEvent: async (input) => { auditActions.push(input.action); },
+        persistSettings: async () => { throw new Error("provider-secret-body"); },
+      }),
+    )).rejects.toEqual(expect.objectContaining<Partial<PlatformSettingsError>>({
+      code: "PLATFORM_SETTINGS_UPDATE_FAILED",
+      message: "The platform settings could not be updated safely.",
+    }));
+    expect(auditActions).toEqual(["settings.update_started"]);
   });
 
   it("rejects unbounded messages and reasons", async () => {
