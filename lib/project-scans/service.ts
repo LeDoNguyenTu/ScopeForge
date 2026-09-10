@@ -13,10 +13,13 @@ import {
   ProjectScanError,
   type ConnectedProjectContinuationContext,
   type ConnectedProjectScanContext,
+  type ConnectedProjectScanRecovery,
   type ProjectScanContinuationResult,
   type ProjectScanErrorCode,
   type ProjectScanRequestResult,
+  type ProjectScanResumeResult,
   type ProjectScanState,
+  type RecoverableProjectScanState,
 } from "./types";
 
 export { ProjectScanError } from "./types";
@@ -33,6 +36,12 @@ export interface ProjectScanServiceDependencies {
   snapshotRuntimeEnabled(): boolean;
   scanRuntimeEnabled(): boolean;
   enqueueSnapshotIntent(context: ConnectedProjectScanContext): Promise<{ taskId: string }>;
+  loadRecovery(input: {
+    workspaceId: string;
+    assetId: string;
+    actorId: string;
+    linkId: string;
+  }): Promise<ConnectedProjectScanRecovery | null>;
   loadContinuation(input: {
     snapshotTaskId: string;
     snapshotId: string;
@@ -85,6 +94,12 @@ function isProjectScanState(value: unknown): value is ProjectScanState {
     || value === "retry_pending";
 }
 
+function isRecoverableProjectScanState(value: unknown): value is RecoverableProjectScanState {
+  return value === "waiting_scan_runtime"
+    || value === "retry_pending"
+    || value === "scan_queued";
+}
+
 function parseSnapshotEnqueue(value: unknown): { taskId: string } {
   const row = objectValue(value);
   const taskId = uuidField(row?.taskId);
@@ -128,6 +143,18 @@ function parseContinuation(value: unknown): ConnectedProjectContinuationContext 
     snapshotId,
     state,
   };
+}
+
+function parseRecovery(value: unknown): ConnectedProjectScanRecovery | null {
+  if (value === null) return null;
+  const row = objectValue(value);
+  const snapshotTaskId = uuidField(row?.snapshotTaskId);
+  const snapshotId = uuidField(row?.snapshotId);
+  const state = row?.state;
+  if (!snapshotTaskId || !snapshotId || !isRecoverableProjectScanState(state)) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project recovery state is invalid.");
+  }
+  return { snapshotTaskId, snapshotId, state };
 }
 
 function parseScanEnqueue(value: unknown): { taskId: string; scanJobId: string; replayed: boolean } {
@@ -227,6 +254,16 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
       if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project snapshot could not be queued safely.");
       return parseSnapshotEnqueue(data);
     },
+    loadRecovery: async (input) => {
+      const { data, error } = await admin.rpc("get_connected_project_scan_recovery", {
+        target_workspace_id: input.workspaceId,
+        target_asset_id: input.assetId,
+        target_actor_id: input.actorId,
+        target_link_id: input.linkId,
+      });
+      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project recovery state could not be loaded safely.");
+      return parseRecovery(data);
+    },
     loadContinuation: async (input) => {
       const { data, error } = await admin.rpc("get_connected_project_snapshot_continuation", {
         target_snapshot_task_id: input.snapshotTaskId,
@@ -289,6 +326,41 @@ function assertProviderIdentity(
   }
 }
 
+function assertContinuationMatchesProject(
+  continuation: ConnectedProjectContinuationContext,
+  context: ConnectedProjectScanContext,
+  recovery: ConnectedProjectScanRecovery,
+): void {
+  if (
+    continuation.workspaceId !== context.workspaceId
+    || continuation.assetId !== context.assetId
+    || continuation.actorId !== context.actorId
+    || continuation.linkId !== context.linkId
+    || continuation.repositoryId !== context.repositoryId
+    || continuation.canonicalTarget !== context.canonicalTarget
+    || continuation.isPrivate !== context.isPrivate
+    || continuation.snapshotTaskId !== recovery.snapshotTaskId
+    || continuation.snapshotId !== recovery.snapshotId
+    || continuation.accessStatus !== "active"
+  ) {
+    throw failure("PROJECT_SCAN_REPOSITORY_MISMATCH", "Published snapshot no longer matches the connected project recovery intent.");
+  }
+}
+
+async function verifyProviderIdentity(
+  context: ConnectedProjectScanContext,
+  deps: ProjectScanServiceDependencies,
+): Promise<void> {
+  let repository: GitHubRepositorySummary;
+  try {
+    repository = await deps.revalidateRepository(context);
+  } catch (error) {
+    if (error instanceof ProjectScanError) throw error;
+    throw failure("PROJECT_SCAN_PROVIDER_FAILED", "GitHub repository access could not be verified safely.");
+  }
+  assertProviderIdentity(context, repository);
+}
+
 export async function requestConnectedProjectScan(
   input: { workspaceId: string; assetId: string; actorId: string },
   dependencies?: ProjectScanServiceDependencies,
@@ -302,16 +374,9 @@ export async function requestConnectedProjectScan(
   const context = await deps.loadAuthorizedProject(request);
   assertContextMatchesRequest(context, request);
 
-  let repository: GitHubRepositorySummary;
-  try {
-    repository = await deps.revalidateRepository(context);
-  } catch (error) {
-    if (error instanceof ProjectScanError) throw error;
-    throw failure("PROJECT_SCAN_PROVIDER_FAILED", "GitHub repository access could not be verified safely.");
-  }
-  assertProviderIdentity(context, repository);
+  await verifyProviderIdentity(context, deps);
 
-  if (repository.isPrivate) return { status: "private_acquisition_required" };
+  if (context.isPrivate) return { status: "private_acquisition_required" };
   if (!deps.snapshotRuntimeEnabled()) return { status: "snapshot_runtime_unavailable" };
 
   const queued = await deps.enqueueSnapshotIntent(context);
@@ -368,6 +433,55 @@ export async function continueConnectedProjectScanAfterSnapshot(
     };
   } catch {
     await deps.recordRetryPending(context);
+    return { status: "retry_pending" };
+  }
+}
+
+export async function resumeConnectedProjectScan(
+  input: { workspaceId: string; assetId: string; actorId: string },
+  dependencies?: ProjectScanServiceDependencies,
+): Promise<ProjectScanResumeResult> {
+  const request = {
+    workspaceId: validUuid(input.workspaceId),
+    assetId: validUuid(input.assetId),
+    actorId: validUuid(input.actorId),
+  };
+  const deps = dependencies ?? createDefaultDependencies();
+  const context = await deps.loadAuthorizedProject(request);
+  assertContextMatchesRequest(context, request);
+
+  if (context.isPrivate) return { status: "no_pending_scan" };
+  if (!deps.scanRuntimeEnabled()) return { status: "scan_runtime_unavailable" };
+
+  const recovery = await deps.loadRecovery({
+    workspaceId: request.workspaceId,
+    assetId: request.assetId,
+    actorId: request.actorId,
+    linkId: context.linkId,
+  });
+  if (!recovery) return { status: "no_pending_scan" };
+
+  await verifyProviderIdentity(context, deps);
+
+  const continuation = await deps.loadContinuation({
+    snapshotTaskId: recovery.snapshotTaskId,
+    snapshotId: recovery.snapshotId,
+  });
+  if (!continuation) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Published snapshot recovery state could not be reconstructed safely.");
+  }
+  assertContinuationMatchesProject(continuation, context, recovery);
+
+  try {
+    const queued = await deps.enqueueScanContinuation(continuation);
+    return {
+      status: "scan_queued",
+      taskId: queued.taskId,
+      scanJobId: queued.scanJobId,
+      replayed: queued.replayed,
+    };
+  } catch {
+    await deps.recordRetryPending(continuation);
     return { status: "retry_pending" };
   }
 }
