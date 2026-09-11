@@ -123,7 +123,7 @@ function dependencies(
       replayed: false,
       taskId: TASK_ID,
       scanJobId: SCAN_JOB_ID,
-      executionClass: "repository_snapshot_github_public_v1",
+      executionClass: "repository_snapshot_github_public_v1" as const,
       desiredCommitSha: HEAD_SHA,
     })),
     recordDeliveryResult: vi.fn(async () => undefined),
@@ -254,7 +254,7 @@ describe("GitHub webhook reconciliation service", () => {
       deliveryId: DELIVERY_ID,
       commitSha: HEAD_SHA,
     });
-    expect(JSON.stringify(deps.reconcileRepository.mock?.calls ?? [])).not.toContain("attacker/forged");
+    expect(JSON.stringify(vi.mocked(deps.reconcileRepository).mock.calls)).not.toContain("attacker/forged");
   });
 
   it("ignores a non-default branch after authoritative repository revalidation", async () => {
