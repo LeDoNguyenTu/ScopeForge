@@ -47,6 +47,7 @@ function dependencies(repositoryOverrides: Record<string, unknown> = {}) {
       fullName: "example-org/private-repo",
       defaultBranch: "main",
       isPrivate: true,
+      isArchived: false,
       htmlUrl: CANONICAL,
       ...repositoryOverrides,
     })),
