@@ -10,7 +10,9 @@ describe("connected project asset page integration", () => {
     expect(source).toContain("loadConnectedProjectScanReadModel");
     expect(source).toContain("ConnectedProjectScanPanel");
     expect(source).toContain("HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED");
+    expect(source).toContain("HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED");
     expect(source).toContain("HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED");
+    expect(source).toContain("privateSnapshotRuntimeAvailable={HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED}");
     expect(source).toContain("<RepositorySnapshotPanel");
     expect(source).toContain("<RepositoryScanPanel");
     expect(source).toContain("<RepositoryImportPanel");
