@@ -1,154 +1,92 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-11 (Asia/Singapore)
+Last reconciled: 2026-09-12 (Asia/Singapore)
 
 ## Released baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
 - current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
 - released `main` includes Phase 10C platform administration
-- production deployment: `dpl_AueSXj9wWBDMkRTRLAb6x8nsH57z`
-- production deployment state: READY
 - production domain: `scopeforge.dev`
-- deployment alias error: none
 
 The released `main` tree remains authoritative until a later PR is merged and production-verified.
 
-## Released capability and security baseline
+## Released security baseline
 
-Released work includes:
-
-- Phases 1 through 6D
-- Phase 7 Community Security Packs v1
-- Phase 8A offline accuracy foundation
-- Phase 8B deterministic scanner performance matrix
-- Phase 8C reproducible technical publication
-- Phase 9A authentication-boundary hardening
-- Phase 9B provider/auth hardening code
-- Phase 9C database/RPC defense-in-depth
-- Phase 9D security telemetry/browser hardening
-- Phase 9E incident readiness and release engineering
-- strict nonce-based CSP compatibility/enforcement
-- accepted Command Center V5 restoration
-- Phase 10C platform admin console and production owner bootstrap
-
-Phase 10C production database evidence remains documented in `PHASE_10C_WORKING_STATE.md`.
-
-## Production UI and browser security
-
-The accepted Command Center V5 public/authenticated presentation remains authoritative.
-
-Current production baseline keeps:
+Preserve together throughout later phases:
 
 - strict nonce CSP with `strict-dynamic`,
 - no permanent production `unsafe-inline` or `unsafe-eval`,
-- HSTS,
-- nosniff,
-- frame denial,
-- referrer policy,
-- permissions policy,
+- HSTS, nosniff, frame denial, referrer and permissions policies,
 - authenticated dashboard boundaries,
-- public WebGL/V5 composition.
+- workspace RLS/RPC authority separation,
+- worker/runtime authority separation,
+- accepted Command Center V5 desktop/mobile presentation.
 
-PR #74 CI #852 re-ran the production V5/Turnstile diagnostic and strict-CSP browser smoke successfully while validating the Phase 10A1 merge candidate against current `main`.
+## Phase 10A1 production truth
 
-PR #76 CI #897 also passed the repository-defined production build, strict-CSP browser smoke and production V5/Turnstile diagnostic while validating Phase 10A2 code.
+PR #74 (`feat/phase-10a-github-connected-projects`) implements the public GitHub connected-project core.
 
-## Supabase baseline
+Current documentation-reconciled head:
 
-ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
+`17831b98dbbf06adf213cd2c8694ecd0d6852b74`
 
-Last verified Phase 10C migrations:
+CI #912 / run `34611735763`: SUCCESS.
 
-- `20260910153743_phase_10c_platform_admin`
-- `20260910154017_phase_10c_explicit_browser_deny_policies`
+That exact head passed dependency installation/audit, 387 test files / 1,720 tests, TypeScript, CLI build/version, both scanner benchmarks, production Next.js build, strict-CSP browser smoke, production V5/Turnstile diagnostic and visual artifact upload.
 
-The Phase 10C owner bootstrap and browser/RPC boundaries were verified before PR #75 merged. The only known Security Advisor warning at that verification point was the project-level leaked-password-protection setting being disabled.
+Correct ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
 
-A fresh production migration read was attempted during Phase 10A1 release work on 2026-09-11, but the connected Supabase database action became unavailable. No Phase 10A1 or Phase 10A2 production schema mutation should be inferred after that failure. Treat the migration list above as the last verified state, not a fresh read.
+Production records all five reviewed Phase 10A1 migrations:
 
-## Active release candidate - Phase 10A1
+- `20260910160000_phase_10a1_github_connected_projects`
+- `20260910160010_phase_10a1_project_scan_retry_idempotency`
+- `20260910160020_phase_10a1_project_scan_waiting_idempotency`
+- `20260910160030_phase_10a1_project_scan_recovery`
+- `20260911143049_phase_10a1_service_role_table_acl_hardening`
 
-PR #74 (`feat/phase-10a-github-connected-projects`) implements the GitHub connected-project public repository core.
+Live verification confirms browser users are SELECT-only on the two public GitHub integration tables, while `service_role` is reduced to `SELECT`, `INSERT`, `UPDATE`, `DELETE`. Privileged Phase 10A1 RPC execution remains service-role-only with pinned `SECURITY DEFINER` search paths.
 
-Exact executable candidate before documentation reconciliation:
+Security Advisor has no Phase 10A1 release-blocking schema issue. The private project-scan intent table's RLS-with-no-policy INFO is intentional for its service-only private boundary. Supabase leaked-password protection remains disabled and is a separate Auth follow-up.
 
-`005504387cf29d65d6b297acb041b608f0416c1a`
+Phase 10A1 is still not released because the live GitHub App provider canary has not been proven. Production currently has zero `github_connections` and zero `github_repository_links` rows. The connected Vercel surface does not expose environment-variable metadata for the six server-only GitHub App settings.
 
-CI #852 / run `34520609482`: SUCCESS.
+GitHub's exact-head Vercel status currently reports the Hobby build-rate limit. A recent Phase 10A1 branch preview is READY, so this external status is not treated as an application build regression. GitHub CI independently passed the exact head's production build/browser diagnostics.
 
-That validation passed dependency audit, 1,719 tests, typecheck, CLI, both scanner benchmarks, Next.js build, CSP browser smoke, production diagnostic, and artifact upload against the PR merge result with current `main`.
+PR #74 remains draft until the live provider canary is complete.
 
-The implementation includes:
+## Phase 10A2 stacked implementation
 
-- GitHub App connection with signed ScopeForge user/workspace state,
-- authenticated GitHub-user proof of installation access,
-- ephemeral read-only installation credentials,
-- repository picker/import with authoritative server re-fetch,
-- verified repository asset/link creation,
-- one-click connected-project scanning for public repositories,
-- immutable snapshot-to-scan continuation,
-- exact-snapshot recovery for `waiting_scan_runtime` and `retry_pending`,
-- no implicit second snapshot during recovery,
-- fresh GitHub revalidation before recovery,
-- preserved private-repository Phase 10A2 boundary.
+PR #76 (`feat/phase-10a2-private-repository-acquisition`) implements private GitHub repository acquisition as a distinct execution class.
 
-Detailed evidence: `PHASE_10A1_RELEASE_STATE.md`.
+Previously validated head:
 
-Phase 10A1 is not released yet. Its production database migrations and live GitHub App provider configuration are not freshly verified/applied in the current session.
+`6959cea91cbecba9e9e454901d3c57a95bc46edd`
 
-## Active stacked implementation - Phase 10A2
+CI #904 / run `34607770399`: SUCCESS with 392 test files / 1,731 tests and the complete type/build/benchmark/browser matrix.
 
-PR #76 (`feat/phase-10a2-private-repository-acquisition`) is the stacked private-repository acquisition implementation.
+Implemented Phase 10A2 boundaries include:
 
-Current implemented scope includes:
-
-- distinct `repository_snapshot_github_private_v1` worker execution class,
+- distinct `repository_snapshot_github_private_v1` execution class,
 - separate default-off `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` gate,
-- control-plane-only GitHub installation credential use,
-- attempt-bound `github_private_archive_lease_v1` capability instead of provider credentials in worker contracts,
-- exact `codeload.github.com` private archive acquisition with bounded processing,
-- private snapshot persistence/publication through reviewed privileged RPCs,
-- Phase 10A2 database type overlay that preserves Phase 6D worker-control RPCs,
-- dedicated private executor routing through the shared worker supervisor without widening the legacy public executor contract,
-- strict private terminal validation plus canonical repository/default-branch/commit binding before trusted finalization,
-- private connected-project request routing without fallback to public acquisition,
-- fail-closed handling when repository visibility changes,
-- private snapshot publication recognition in the authenticated worker finalize route,
-- exact-snapshot continuation into the existing zero-egress repository scanner,
-- private recovery/retry support for retained published snapshots,
-- dashboard project-level scan UX for private repositories,
-- permanent Phase 10A2 architecture and supervisor integration guards.
+- control-plane-only GitHub App/installation credentials,
+- attempt-bound private archive capability rather than provider credentials in the worker contract,
+- validated `codeload.github.com` archive acquisition only,
+- no repository code/package manager/hook/workflow execution,
+- dedicated private executor routing through the shared supervisor,
+- strict terminal/repository/default-branch/commit binding,
+- private/public visibility changes fail closed,
+- no private-to-public acquisition fallback,
+- immutable private snapshot publication into the existing exact-snapshot zero-egress repository scan continuation,
+- service-role-only privileged Phase 10A2 RPC boundaries.
 
-Exact executable candidate:
+The Phase 10A1 base advanced after that validation. PR #76 is therefore being stack-reconciled before any new release claim. The reconciliation carries the Phase 10A1 ACL hardening migration/test and the latest Phase 10A1 release documentation into the stack without changing Phase 10A2 runtime behavior. The resulting stack requires a fresh complete CI matrix before it can replace the old validation evidence.
 
-`3b1957871103885ac4fd26e3d3ff91f5d4a5a24f`
+PR #76 remains draft and must not merge before Phase 10A1.
 
-CI #897 / run `34606962246`: SUCCESS.
+## Runtime truth
 
-That exact executable candidate passed dependency audit with 0 vulnerabilities, 392 test files and 1,731 tests, typecheck, CLI build/version, both scanner benchmarks, production Next.js build, strict-CSP browser smoke, production V5/Turnstile diagnostic and artifact upload.
-
-The Phase 10A2 changed-file security review completed without an identified release-blocking code defect. Provider credentials remain control-plane-only, private archive capabilities are not persisted, private/public execution classes remain separated, private RPCs remain service-role-only, and continuation remains bound to the exact immutable published snapshot.
-
-Detailed working state: `PHASE_10A2_WORKING_STATE.md`.
-
-PR #76 is still not release-ready. Phase 10A1 must first release safely, then PR #76 must be reconciled and fully revalidated against that released baseline. Production Supabase migration/ACL verification, live GitHub App private-repository permission verification, private worker canary and rollback acceptance also remain outstanding.
-
-## Provider and runtime truth
-
-Current conservative state:
-
-- strict CSP: ENFORCED
-- Phase 10C admin database/owner bootstrap: LAST VERIFIED COMPLETE
-- Phase 10A2 repository executable validation: GREEN on candidate `3b1957871103885ac4fd26e3d3ff91f5d4a5a24f`
-- Phase 10A2 changed-file security review: COMPLETE with no identified release-blocking code defect
-- Supabase leaked-password protection: last verified disabled; current mutation surface unavailable
-- Phase 10A1 GitHub App live provider configuration: NOT VERIFIED
-- Phase 10A1 production schema: NOT APPLIED/VERIFIED IN CURRENT SESSION
-- Phase 10A2 production schema: NOT APPLIED/VERIFIED IN CURRENT SESSION
-- Phase 10A2 private GitHub canary: NOT RUN
-
-Keep these false/absent until independent canary and rollback acceptance explicitly authorizes them:
+Keep these false/absent until independent canary and rollback acceptance authorizes them:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
@@ -156,18 +94,16 @@ Keep these false/absent until independent canary and rollback acceptance explici
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-## Branch hygiene
-
-The temporary Phase 10A2 RED/validation marker files have been removed. Historical completed diagnostic/preview/reconciliation branches still exist. Delete them only through a genuine safe delete-ref operation. Do not simulate deletion by force-moving stale branches.
+Product implementation or CI success does not authorize hosted worker activation.
 
 ## Immediate engineering boundary
 
-1. Safely finish/release Phase 10A1 and retarget/reconcile PR #76 onto the released baseline.
-2. Re-run the complete Phase 10A2 exact-head validation after reconciliation.
-3. Restore a supported Supabase management surface, verify/apply only reviewed forward migrations, and verify RPC ACL/RLS/security-advisor state.
-4. Verify GitHub App private-repository permissions and run a dedicated private acquisition canary with rollback readiness.
-5. Merge/release Phase 10A2 only after every code, provider, schema and runtime gate is satisfied.
-6. Continue independent hosted-runtime canary/rollback work without treating product implementation as runtime authorization.
+1. Finish stack reconciliation for PR #76 and run the complete current-base validation matrix.
+2. Complete the Phase 10A1 live GitHub App provider/configuration and authenticated connection/import canary.
+3. Merge/release PR #74 only when the provider canary remains green.
+4. Verify the merged production deployment and security baseline.
+5. Retarget/reconcile PR #76 onto released `main`, then revalidate if its merge base changes again.
+6. Verify/apply only absent Phase 10A2 production migrations and complete the separate private worker/provider/runtime canary before Phase 10A2 release.
 
 ## Production services
 
