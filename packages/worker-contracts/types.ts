@@ -149,6 +149,18 @@ export interface WorkerTaskContract {
   input: WorkerTaskInput;
 }
 
+export interface PrivateRepositorySnapshotTaskContract {
+  taskId: string;
+  attemptId: string;
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: PrivateRepositorySnapshotInput;
+}
+
+export type AnyWorkerTaskContract = WorkerTaskContract | PrivateRepositorySnapshotTaskContract;
+
 export interface WorkerAttemptMetrics {
   wallTimeMs: number;
   cpuTimeMs: number;
@@ -244,8 +256,29 @@ export interface WorkerTerminalEnvelope {
   result: WorkerTerminalResult | null;
 }
 
+export interface PrivateRepositorySnapshotTerminalEnvelope {
+  schemaVersion: 1;
+  taskId: string;
+  attemptId: string;
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+  outcome: WorkerTerminalOutcome;
+  failureCode: WorkerTerminalFailureCode | null;
+  metrics: WorkerAttemptMetrics;
+  result: PrivateRepositorySnapshotResult | null;
+}
+
+export type AnyWorkerTerminalEnvelope = WorkerTerminalEnvelope | PrivateRepositorySnapshotTerminalEnvelope;
+
 export interface WorkerTerminalExpectation {
   taskId: string;
   attemptId: string;
   executionClass: WorkerExecutionClass;
 }
+
+export interface PrivateRepositorySnapshotTerminalExpectation {
+  taskId: string;
+  attemptId: string;
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+}
+
+export type AnyWorkerTerminalExpectation = WorkerTerminalExpectation | PrivateRepositorySnapshotTerminalExpectation;
