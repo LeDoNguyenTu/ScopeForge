@@ -1,5 +1,8 @@
 import { createRepositorySnapshotServerDependencies } from "@/lib/repository-snapshots/server-dependencies";
-import { publishRepositorySnapshotAttempt } from "@/lib/repository-snapshots/service";
+import {
+  publishPrivateRepositorySnapshotAttempt,
+  publishRepositorySnapshotAttempt,
+} from "@/lib/repository-snapshots/service";
 import { continueConnectedProjectScanAfterSnapshot } from "@/lib/project-scans/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
@@ -17,11 +20,15 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isRepositorySnapshotSuccess(value: unknown): boolean {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+type RepositorySnapshotSuccessKind = "public" | "private";
+
+function repositorySnapshotSuccessKind(value: unknown): RepositorySnapshotSuccessKind | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const candidate = value as Record<string, unknown>;
-  return candidate.executionClass === "repository_snapshot_github_public_v1"
-    && candidate.outcome === "succeeded";
+  if (candidate.outcome !== "succeeded") return null;
+  if (candidate.executionClass === "repository_snapshot_github_public_v1") return "public";
+  if (candidate.executionClass === "repository_snapshot_github_private_v1") return "private";
+  return null;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -35,12 +42,17 @@ export async function POST(request: Request): Promise<Response> {
       throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
     }
 
-    if (isRepositorySnapshotSuccess(body.terminal)) {
-      const result = await publishRepositorySnapshotAttempt({
+    const snapshotKind = repositorySnapshotSuccessKind(body.terminal);
+    if (snapshotKind) {
+      const snapshotDependencies = createRepositorySnapshotServerDependencies();
+      const snapshotInput = {
         workerId: worker.workerId,
         leaseToken: body.leaseToken,
         terminal: body.terminal,
-      }, createRepositorySnapshotServerDependencies());
+      };
+      const result = snapshotKind === "private"
+        ? await publishPrivateRepositorySnapshotAttempt(snapshotInput, snapshotDependencies)
+        : await publishRepositorySnapshotAttempt(snapshotInput, snapshotDependencies);
 
       if (result.outcome === "succeeded" && result.snapshotId) {
         await continueConnectedProjectScanAfterSnapshot({
