@@ -18,6 +18,7 @@ describe("GitHub App JWT", () => {
       privateKey: privatePem,
       slug: "scopeforge-dev",
       stateSecret: "0123456789abcdef0123456789abcdef",
+      webhookSecret: "webhook-secret-0123456789abcdef0123456789",
     }, now);
 
     const [headerPart, payloadPart, signaturePart] = jwt.split(".");
@@ -46,6 +47,7 @@ describe("GitHub App JWT", () => {
       privateKey: "not-a-private-key",
       slug: "scopeforge-dev",
       stateSecret: "0123456789abcdef0123456789abcdef",
+      webhookSecret: "webhook-secret-0123456789abcdef0123456789",
     })).toThrow("GitHub App private key is invalid.");
   });
 });
