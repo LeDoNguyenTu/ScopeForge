@@ -26,7 +26,7 @@ Tasks 2 and 3 RED evidence is captured in CI #918 / run `34637569190`:
 
 Tasks 2 and 3 GREEN implementation now includes:
 
-- fail-closed authoritative GitHub repository archived-state parsing
+- fail-closed authoritative GitHub repository archived-state parsing and downstream preservation
 - exact default-branch head resolution through the fixed GitHub commits endpoint
 - exact GitHub App installation metadata reads
 - private delivery replay metadata and per-link latest-head coalescing state
@@ -35,6 +35,8 @@ Tasks 2 and 3 GREEN implementation now includes:
 - automatic public/private snapshot routing through the existing isolated worker execution classes
 - a Phase 10A3 database type overlay composed on the validated Phase 10A2 surface
 
-This exact head is the Tasks 2 and 3 GREEN validation candidate. The migration remains source-only and has not been applied to any Supabase environment.
+CI #920 / run `34638581146` proved all behavior and migration/security tests green: 396 test files / 1,763 tests passed. Typecheck then identified only five compatibility locations that still constructed or normalized the older repository shape without the new mandatory `isArchived` field. Those exact five locations are now repaired, with no weakening of the authoritative archived-state contract.
+
+This exact head is the final Tasks 2 and 3 GREEN validation candidate. The migration remains source-only and has not been applied to any Supabase environment.
 
 No Phase 10A3 migration has been applied to production. No webhook has been registered. No production secret/runtime flag has been changed.
