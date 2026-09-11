@@ -18,6 +18,7 @@ function config(): GitHubAppConfig {
     privateKey: privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
     slug: "scopeforge-dev",
     stateSecret: "0123456789abcdef0123456789abcdef",
+    webhookSecret: "webhook-secret-0123456789abcdef0123456789",
   };
 }
 
