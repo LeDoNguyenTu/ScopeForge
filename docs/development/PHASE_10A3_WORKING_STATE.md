@@ -29,12 +29,23 @@ Task 6 implementation now includes:
 - repository-restricted installation credentials confined to the trusted control plane
 - worker finalize integration only after successful snapshot publication and exact-snapshot scan continuation
 
-Task 7 RED coverage is committed in:
+Task 7 RED CI #937 / run `34653167208` proved the browser/read-model contract cleanly:
 
-- `tests/project-scans/read-model.test.ts`
-- `tests/components/ConnectedProjectScanPanel.test.tsx`
-- `tests/github-app/webhook-security-architecture.test.ts`
+- dependency install succeeded and `npm audit --audit-level=info` reported zero vulnerabilities
+- all 399 pre-existing test files remained green
+- the new security architecture suite passed all four assertions without production changes
+- exactly two expected suites failed: connected-project browser read model and panel rendering
+- 1,826 tests passed and exactly five new Task 7 assertions failed because `auto_scan_enabled` was not yet selected/validated/exposed and the panel did not yet render automatic scanning on/off
+- no unrelated regression was observed
 
-The Task 7 contract requires the browser model to expose automatic scanning only through the existing public `github_repository_links.auto_scan_enabled` field, display automatic scanning on/off truthfully, preserve the independent manual scan action, keep inactive access truthful, never query private webhook/coalescing tables, and guard webhook/service-role trust and persistence boundaries. Production Task 7 read-model/UI code has not been changed yet, so the new UI/read-model assertions are expected to fail in this controlled RED run while the architecture guards should remain green.
+Task 7 GREEN candidate now includes only the minimum browser-safe changes:
+
+- `ConnectedProjectScanReadModel.autoScanEnabled` sourced exclusively from the existing public `github_repository_links.auto_scan_enabled` field
+- fail-closed validation when that public boolean is absent or malformed
+- `Automatic scanning: On|Off` in the connected-project panel
+- independent manual `Scan project` behavior remains governed by existing access/runtime/orchestration state, not by the automatic-scan preference
+- no browser query of `github_webhook_deliveries`, `github_repository_auto_scan_state`, webhook payload metadata, delivery UUIDs, signatures, provider tokens, archive capabilities, or private coalescing state
+
+The current exact head is a Task 7 GREEN validation candidate. It is not yet recorded as passing until the full CI matrix completes.
 
 The Phase 10A3 migrations remain source-only and have not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
