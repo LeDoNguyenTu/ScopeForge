@@ -1,5 +1,7 @@
 export * from "./control-client";
 export * from "./executor";
+export * from "./foundation-probe";
+export * from "./private-repository-snapshot";
 export * from "./repository-scan-download";
 export * from "./repository-scan-stager";
 export * from "./repository-scan";
