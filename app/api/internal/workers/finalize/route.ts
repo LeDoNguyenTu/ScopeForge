@@ -3,7 +3,10 @@ import {
   publishPrivateRepositorySnapshotAttempt,
   publishRepositorySnapshotAttempt,
 } from "@/lib/repository-snapshots/service";
-import { continueConnectedProjectScanAfterSnapshot } from "@/lib/project-scans/service";
+import {
+  continueConnectedProjectScanAfterSnapshot,
+  reconcileAutomaticProjectScanAfterSnapshot,
+} from "@/lib/project-scans/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
 import {
@@ -61,10 +64,16 @@ export async function POST(request: Request): Promise<Response> {
         : await publishRepositorySnapshotAttempt(snapshotInput, snapshotDependencies);
 
       if (result.outcome === "succeeded" && result.snapshotId) {
-        await continueConnectedProjectScanAfterSnapshot({
+        const continuation = await continueConnectedProjectScanAfterSnapshot({
           snapshotTaskId: result.taskId,
           snapshotId: result.snapshotId,
         });
+        if (continuation.status === "scan_queued") {
+          await reconcileAutomaticProjectScanAfterSnapshot({
+            snapshotTaskId: result.taskId,
+            snapshotId: result.snapshotId,
+          });
+        }
       }
 
       return workerJson({ ok: true, data: result });
