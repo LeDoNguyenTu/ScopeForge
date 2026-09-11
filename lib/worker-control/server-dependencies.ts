@@ -5,7 +5,10 @@ import { createRepositorySnapshotObjectStore } from "@/lib/repository-snapshots/
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createWorkerControlRepository } from "./repository";
 import { WorkerControlError } from "./types";
-import type { WorkerControlServiceDependencies } from "./service";
+import type {
+  PrivateRepositorySourceLeaseRequest,
+  WorkerControlServiceDependencies,
+} from "./service";
 
 export function createWorkerControlServerDependencies(): WorkerControlServiceDependencies {
   const admin = createAdminClient<Phase10a2Database>();
@@ -18,7 +21,7 @@ export function createWorkerControlServerDependencies(): WorkerControlServiceDep
       repositorySnapshotObjectStore ??= createRepositorySnapshotObjectStore();
       return repositorySnapshotObjectStore;
     },
-    privateRepositorySourceLease: async (claim) => {
+    privateRepositorySourceLease: async (claim: PrivateRepositorySourceLeaseRequest) => {
       const { data: link, error: linkError } = await admin
         .from("github_repository_links")
         .select("id,github_connection_id,repository_id,is_private,html_url,access_status")
