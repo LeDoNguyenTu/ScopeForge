@@ -29,6 +29,7 @@ const repository: GitHubRepositorySummary = {
   fullName: "scopeforge-labs/private-app",
   defaultBranch: "main",
   isPrivate: true,
+  isArchived: false,
   htmlUrl: "https://github.com/scopeforge-labs/private-app",
 };
 
