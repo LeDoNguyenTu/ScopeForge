@@ -18,7 +18,47 @@ Server-only variables:
 - `R2_SECRET_ACCESS_KEY` - server-only R2 signing secret.
 - `R2_BUCKET_NAME` - private repository artifact bucket name.
 
-Never prefix a server-only value with `NEXT_PUBLIC_`. Never expose a Supabase secret key, R2 credential, Turnstile secret, worker credential, GitHub App private key, GitHub installation token, presigned artifact URL, private archive lease URL, or environment dump to browser code or logs.
+Never prefix a server-only value with `NEXT_PUBLIC_`. Never expose a Supabase secret key, R2 credential, Turnstile secret, worker credential, GitHub App private key, GitHub installation token, webhook secret, signed webhook body, presigned artifact URL, private archive lease URL, or environment dump to browser code or logs.
+
+## GitHub App connected-project configuration
+
+The connected-project control plane uses seven server-only GitHub App settings:
+
+- `GITHUB_APP_ID` - numeric GitHub App identifier.
+- `GITHUB_APP_CLIENT_ID` - GitHub App OAuth client ID.
+- `GITHUB_APP_CLIENT_SECRET` - GitHub App OAuth client secret.
+- `GITHUB_APP_PRIVATE_KEY` - GitHub App private signing key used to mint short-lived App JWTs.
+- `GITHUB_APP_SLUG` - canonical GitHub App slug used by the connection flow.
+- `GITHUB_APP_STATE_SECRET` - independent secret used for signed, expiring OAuth/setup state.
+- `GITHUB_APP_WEBHOOK_SECRET` - independent 32-512 character secret used only for `X-Hub-Signature-256` verification.
+
+All seven values are server-only. Do not reuse the OAuth client secret, private key, state secret, or webhook secret for another purpose. Do not create `NEXT_PUBLIC_` aliases for any of them.
+
+Production GitHub App URLs for the current ScopeForge deployment are:
+
+- homepage: `https://scopeforge.dev`
+- setup/callback flow: `https://scopeforge.dev/api/integrations/github/callback`
+- webhook endpoint for Phase 10A3: `https://scopeforge.dev/api/integrations/github/webhook`
+
+Repository permissions remain read-only. The connected-project design requires Contents read-only and Metadata read-only; Phase 10A3 does not add repository write, issue/comment, check-run, or generic GitHub API authority.
+
+Phase 10A3 verifies `X-Hub-Signature-256` with HMAC-SHA256 over the untouched raw request bytes before JSON parsing or persistence. The request has a hard 10 MiB raw-body ceiling. The system does not persist the raw webhook body, signature, webhook secret, authorization header, App JWT, OAuth/installation token, temporary archive URL, or source bytes as webhook reconciliation state.
+
+Webhook registration is an operational release action, not an automatic consequence of deploying code. Do not register the production webhook or activate `GITHUB_APP_WEBHOOK_SECRET` until Phase 10A1/10A2 release prerequisites, the reviewed Phase 10A3 migrations, provider configuration, delivery/replay checks, and rollback plan have been accepted.
+
+## Hosted capability flags
+
+Hosted worker capabilities are independent server/worker deployment gates. Keep these false or absent until the corresponding production canary and rollback plan have been accepted:
+
+- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` - public GitHub repository snapshot acquisition.
+- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` - private GitHub repository snapshot acquisition.
+- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED` - hosted zero-egress repository scan continuation.
+- `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED` - passive runtime observation workers.
+- `HOSTED_ACTIVE_CORS_WORKER_ENABLED` - bounded active CORS validation workers.
+
+Each flag is enabled only when its implementation treats the value as exactly `true`. Do not use one capability flag to authorize another execution class.
+
+Code completion, CI success, schema deployment, or provider configuration alone does not authorize any hosted capability. Each runtime requires its own deployment/containment verification, canary, observability, and rollback acceptance.
 
 ## Repository artifact storage
 
@@ -28,13 +68,7 @@ A Vercel deployment may build without R2 credentials when no code path invokes r
 
 ## Private GitHub repository acquisition
 
-Phase 10A2 uses a dedicated hosted capability flag:
-
-- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-
-This flag is server-only and default-off. The runtime is enabled only when the value is exactly `true`.
-
-Do not reuse `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` to authorize private acquisition. The public and private acquisition classes are separate security boundaries.
+Phase 10A2 uses the dedicated `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` capability. It is server-only, default-off, and distinct from the public snapshot runtime.
 
 GitHub App credentials and repository installation tokens belong only in the trusted control plane. They must never be configured on the repository snapshot worker host. A private worker receives only the short-lived attempt-bound archive capability produced after the control plane revalidates the claimed linked repository.
 
