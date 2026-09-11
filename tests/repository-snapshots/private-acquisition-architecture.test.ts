@@ -49,7 +49,7 @@ describe("Phase 10A2 private repository acquisition architecture", () => {
   });
 
   it("pins privileged Phase 10A2 RPCs to explicit service-role ACLs", async () => {
-    const source = await read("supabase/migrations/20260911110000_phase_10a2_connected_private_project_scans.sql");
+    const source = await read("supabase/migrations/20260911110000_phase_10a2_private_project_scan_routing.sql");
     for (const signature of [
       "enqueue_connected_private_project_snapshot(uuid, uuid, uuid, uuid)",
       "enqueue_connected_project_scan_continuation(uuid, uuid)",
