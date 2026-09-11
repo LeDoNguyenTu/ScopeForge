@@ -26,6 +26,7 @@ function claim(overrides: Record<string, unknown> = {}) {
     repository: "private-repo",
     canonicalRepositoryUrl: CANONICAL,
     absoluteDeadlineAt: "2026-09-11T00:10:00.000Z",
+    leaseExpiresAt: "2026-09-11T00:01:30.000Z",
     ...overrides,
   };
 }
@@ -86,7 +87,7 @@ describe("Phase 10A2 private repository source broker", () => {
       defaultBranch: "main",
       resolvedCommitSha: COMMIT,
       archiveUrl: ARCHIVE,
-      expiresAt: "2026-09-11T00:04:00.000Z",
+      expiresAt: "2026-09-11T00:01:30.000Z",
     });
 
     const serialized = JSON.stringify(result);
@@ -122,7 +123,7 @@ describe("Phase 10A2 private repository source broker", () => {
     }
   });
 
-  it("caps the worker lease before token expiry, task deadline, and GitHub's five-minute archive window", async () => {
+  it("caps the worker lease before token expiry, task deadline, worker lease, and GitHub's archive window", async () => {
     const deps = dependencies();
     deps.createInstallationToken.mockResolvedValueOnce({
       token: "ghs_ephemeral_private_token",
@@ -130,10 +131,25 @@ describe("Phase 10A2 private repository source broker", () => {
     });
 
     const result = await createPrivateRepositorySourceLease(
-      claim({ absoluteDeadlineAt: "2026-09-11T00:03:00.000Z" }),
+      claim({
+        absoluteDeadlineAt: "2026-09-11T00:03:00.000Z",
+        leaseExpiresAt: "2026-09-11T00:05:00.000Z",
+      }),
       deps,
     );
     expect(result.expiresAt).toBe("2026-09-11T00:02:30.000Z");
+  });
+
+  it("never lets the private archive capability outlive the current worker lease", async () => {
+    const deps = dependencies();
+    const result = await createPrivateRepositorySourceLease(
+      claim({
+        absoluteDeadlineAt: "2026-09-11T00:10:00.000Z",
+        leaseExpiresAt: "2026-09-11T00:00:45.000Z",
+      }),
+      deps,
+    );
+    expect(result.expiresAt).toBe("2026-09-11T00:00:45.000Z");
   });
 
   it("rejects expired authority before returning any archive capability", async () => {
@@ -145,6 +161,15 @@ describe("Phase 10A2 private repository source broker", () => {
 
     await expect(createPrivateRepositorySourceLease(claim(), deps)).rejects.toThrow(/expired|authority|lease/i);
     expect(deps.getInstallationRepositoryArchiveRedirect).not.toHaveBeenCalled();
+  });
+
+  it("rejects an already-expired worker lease before minting provider authority", async () => {
+    const deps = dependencies();
+    await expect(createPrivateRepositorySourceLease(
+      claim({ leaseExpiresAt: "2026-09-10T23:59:59.000Z" }),
+      deps,
+    )).rejects.toThrow(/expired|authority|lease/i);
+    expect(deps.createInstallationToken).not.toHaveBeenCalled();
   });
 
   it("rejects a redirect that is not bound to the exact private repository commit", async () => {
