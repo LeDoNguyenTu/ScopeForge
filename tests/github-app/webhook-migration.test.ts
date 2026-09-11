@@ -6,9 +6,18 @@ import { describe, expect, it } from "vitest";
 const migrationPath = path.resolve(
   "supabase/migrations/20260912020000_phase_10a3_github_webhook_reconciliation.sql",
 );
+const repositoryIdentityOverlayPath = path.resolve(
+  "supabase/migrations/20260912021000_phase_10a3_repository_asset_identity_reconciliation.sql",
+);
 
 async function migrationSource(): Promise<string> {
   return existsSync(migrationPath) ? readFile(migrationPath, "utf8") : "";
+}
+
+async function repositoryIdentityOverlaySource(): Promise<string> {
+  return existsSync(repositoryIdentityOverlayPath)
+    ? readFile(repositoryIdentityOverlayPath, "utf8")
+    : "";
 }
 
 const publicRpcs = [
@@ -105,15 +114,15 @@ describe("Phase 10A3 GitHub webhook reconciliation migration", () => {
   });
 
   it("reconciles repository-link identity and the linked repository asset atomically", async () => {
-    const sql = (await migrationSource()).replace(/\s+/g, " ");
-    const start = sql.indexOf("create or replace function public.reconcile_github_webhook_repository_state");
-    const next = sql.indexOf("create or replace function public.", start + 1);
-    const segment = sql.slice(start, next === -1 ? sql.length : next);
+    const segment = (await repositoryIdentityOverlaySource()).replace(/\s+/g, " ");
 
+    expect(segment).toContain("create or replace function public.reconcile_github_webhook_repository_state");
     expect(segment).toContain("asset_record public.assets%rowtype");
     expect(segment).toMatch(/select \* into asset_record from public\.assets where id = link_record\.asset_id and workspace_id = connection_record\.workspace_id for update/);
     expect(segment).toContain("asset_record.kind <> 'repository'::public.asset_kind");
     expect(segment).toContain("asset_record.canonical_target <> link_record.html_url");
     expect(segment).toMatch(/update public\.assets set canonical_target = target_html_url, updated_at = now\(\) where id = asset_record\.id and workspace_id = connection_record\.workspace_id/);
+    expect(segment).toMatch(/revoke all on function public\.reconcile_github_webhook_repository_state\([^;]+\) from public, anon, authenticated, service_role/);
+    expect(segment).toMatch(/grant execute on function public\.reconcile_github_webhook_repository_state\([^;]+\) to service_role/);
   });
 });
