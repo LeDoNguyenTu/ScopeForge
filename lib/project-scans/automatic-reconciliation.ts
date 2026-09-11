@@ -437,10 +437,13 @@ export async function reconcilePendingAutomaticProjectScanAfterRepositoryScanTer
   const deps = dependencies ?? createDefaultDependencies();
   let settlement: ManualTerminalSettlement | null;
   try {
-    settlement = parseManualTerminalSettlement(await deps.settleManualProjectScanTerminal(input));
+    settlement = parseManualTerminalSettlement(
+      await deps.settleManualProjectScanTerminal({ scanTaskId: input.scanTaskId }),
+    );
   } catch {
     return { status: "pending", code: "ENQUEUE_DEFERRED" };
   }
+
   if (!settlement || !settlement.followUpRequired) return { status: "ignored" };
   return scheduleAutomaticFollowUp(settlement, deps);
 }
