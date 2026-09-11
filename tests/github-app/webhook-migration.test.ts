@@ -103,4 +103,17 @@ describe("Phase 10A3 GitHub webhook reconciliation migration", () => {
     expect(sql).toContain("installed_by");
     expect(sql).not.toContain("auth.uid()");
   });
+
+  it("reconciles repository-link identity and the linked repository asset atomically", async () => {
+    const sql = (await migrationSource()).replace(/\s+/g, " ");
+    const start = sql.indexOf("create or replace function public.reconcile_github_webhook_repository_state");
+    const next = sql.indexOf("create or replace function public.", start + 1);
+    const segment = sql.slice(start, next === -1 ? sql.length : next);
+
+    expect(segment).toContain("asset_record public.assets%rowtype");
+    expect(segment).toMatch(/select \* into asset_record from public\.assets where id = link_record\.asset_id and workspace_id = connection_record\.workspace_id for update/);
+    expect(segment).toContain("asset_record.kind <> 'repository'::public.asset_kind");
+    expect(segment).toContain("asset_record.canonical_target <> link_record.html_url");
+    expect(segment).toMatch(/update public\.assets set canonical_target = target_html_url, updated_at = now\(\) where id = asset_record\.id and workspace_id = connection_record\.workspace_id/);
+  });
 });
