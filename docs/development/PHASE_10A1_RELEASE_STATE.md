@@ -13,113 +13,116 @@ Phase 10A1 implements the public-repository connected-project core:
 5. start one project-level scan action,
 6. publish an immutable source snapshot,
 7. continue to the repository scanner without exposing snapshot/worker internals as the primary UX,
-8. safely resume an already-published snapshot when the scan runtime becomes available or a continuation retry is required.
+8. safely resume the exact already-published snapshot when continuation is delayed or retried.
 
-Private repository source acquisition remains Phase 10A2 and is not routed through the public Phase 6B acquisition class.
+Private repository acquisition remains a separate Phase 10A2 execution class. Phase 10A1 never routes private source through the public acquisition worker.
 
-## Release candidate
+## Current release candidate
 
 PR: #74
 Branch: `feat/phase-10a-github-connected-projects`
-Implementation candidate: `005504387cf29d65d6b297acb041b608f0416c1a`
-Validation: CI #852 / run `34520609482` - SUCCESS
+Exact executable/schema candidate before this documentation reconciliation: `a8959d4b887463b0b28af056932eabd2a75147a3`
+Validation: CI #907 / run `34610625305` - SUCCESS
 
-The exact candidate was validated as GitHub's PR merge result against current `main` (`1151af2dddb76737ee2f0a0d1a802f06a975d318`, Phase 10C included).
+CI #907 passed end-to-end against the PR merge result:
 
-CI #852 passed:
-
-- dependency audit with zero reported vulnerabilities,
-- 386 test files / 1,719 tests,
+- dependency installation,
+- `npm audit --audit-level=info` with zero reported vulnerabilities,
+- 387 test files / 1,720 tests,
 - TypeScript typecheck,
-- CLI build and version smoke,
+- CLI build and version execution,
 - scanner benchmark,
 - scanner matrix benchmark,
 - Next.js production build,
 - strict-CSP browser smoke,
-- production V5 and Turnstile diagnostic,
+- production V5/Turnstile diagnostic,
 - visual acceptance artifact upload.
+
+The additional test is the permanent service-role table ACL regression guard added during production schema review.
+
+## Production Supabase state - verified
+
+ScopeForge production project: `tdgpibrepzcvdivztkta`.
+
+A fresh production migration read and targeted SQL verification succeeded on 2026-09-11. Production now records all Phase 10A1 forward migrations:
+
+- `20260910160000_phase_10a1_github_connected_projects`
+- `20260910160010_phase_10a1_project_scan_retry_idempotency`
+- `20260910160020_phase_10a1_project_scan_waiting_idempotency`
+- `20260910160030_phase_10a1_project_scan_recovery`
+- `20260911143049_phase_10a1_service_role_table_acl_hardening`
+
+The fifth migration was added after live ACL inspection found that Supabase's trusted `service_role` retained default table privileges beyond application need. TDD evidence for the hardening was explicit:
+
+- RED commit `e5ffd6a8e640483adec01d1856878f78f4114c83`: 1,719 existing tests passed and the one new ACL test failed only because the forward migration did not yet exist.
+- GREEN candidate `a8959d4b887463b0b28af056932eabd2a75147a3`: all 1,720 tests and the complete CI matrix passed.
+
+Live table privileges after hardening are:
+
+- `authenticated`: `SELECT` only on `public.github_connections` and `public.github_repository_links`,
+- `service_role`: `SELECT`, `INSERT`, `UPDATE`, `DELETE` only on those two tables,
+- no retained `TRUNCATE`, `REFERENCES`, or `TRIGGER` table privilege for `service_role`.
+
+Targeted production verification also confirmed:
+
+- both public GitHub tables have RLS enabled,
+- browser mutation authority is absent,
+- `private.github_project_scan_intents` has RLS enabled and no browser/service-role direct table grant,
+- Phase 10A1 privileged public RPCs remain `SECURITY DEFINER`, use pinned empty search paths, and grant execution only to `service_role`.
+
+Security Advisor after hardening reports no Phase 10A1 release-blocking schema finding. The remaining findings are:
+
+- INFO: `private.github_project_scan_intents` has RLS enabled with no policies; this is intentional for its private service-only boundary,
+- WARN: Supabase leaked-password protection is disabled; this predates Phase 10A1 and remains a separate Auth follow-up.
 
 ## Security and correctness properties
 
 - GitHub App configuration is server-only; no provider secret uses a `NEXT_PUBLIC_` variable.
 - Connection state is signed, time-bounded, and bound to the exact ScopeForge user/workspace.
-- GitHub's setup `installation_id` is not treated as proof of ownership. Persistence occurs only after the authenticated GitHub user lists the selected installation.
+- GitHub setup `installation_id` is not treated as proof of ownership. Persistence occurs only after the authenticated GitHub user proves access to that installation.
 - Temporary GitHub user OAuth tokens and installation tokens are not persisted.
-- Installation tokens are short-lived, read-only and repository-scoped when operating on one repository.
+- Installation tokens are short-lived, read-only, and repository-scoped when operating on one repository.
 - Repository import accepts only a numeric repository ID from the browser and re-fetches authoritative metadata through GitHub.
 - Integration mutations are owner/admin-only and server-side.
-- Browser-visible connection/link tables are read-only through workspace-scoped RLS; worker identifiers remain in a private table.
-- Every Phase 10A1 `SECURITY DEFINER` RPC explicitly revokes default execution and grants only the intended service role.
-- Public and private repository execution classes remain separated. Phase 10A1 never sends private source to the public acquisition worker.
-- Hosted snapshot and repository-scan runtime gates remain independently fail-closed.
+- Browser-visible connection/link tables are read-only through workspace-scoped RLS; worker intent remains private.
+- Public and private repository execution classes remain separated.
+- Hosted repository snapshot and scan runtime gates remain independently fail-closed.
+- Exact-snapshot recovery cannot silently select a newer repository snapshot.
 
-## Recovery regression fixed before release
+## GitHub App / Vercel provider gate - still open
 
-Pre-release review found that a published connected-project snapshot could become stranded in `waiting_scan_runtime` or `retry_pending`. The original continuation also delegated to the generic repository-scan enqueue RPC, which chooses the newest eligible snapshot. If a newer snapshot appeared before delayed recovery, a wrong-snapshot job could be created before the post-enqueue mismatch check rejected it.
+Provider requirements are documented in `PHASE_10A1_GITHUB_APP_SETUP.md`.
 
-The release candidate fixes this with:
+The connected Vercel surface available in this session does not expose project environment-variable metadata, so the presence of the six required server-only GitHub App settings cannot be truthfully verified from Vercel configuration.
 
-- an owner/admin service-role recovery lookup,
-- a bounded `Resume project scan` path for waiting/retry states,
-- fresh GitHub access revalidation before recovery,
-- no second snapshot creation during recovery,
-- a dedicated exact-snapshot enqueue transaction that selects `s.id = target_snapshot_id` before creating scan work,
-- idempotent replay for an already queued scan,
-- regression tests covering waiting, retry, runtime-off, no-pending and newer-snapshot cases.
+A recent Phase 10A1 Vercel preview (`dpl_7gyL7zWg8qh8WE549sFxUi9JXa9K`) is READY and its build includes the GitHub connect/callback and integration routes. Recent production logs contain no matching `Missing server-only GitHub App setting` error, but neither fact proves the provider credentials are configured because GitHub App configuration is loaded only inside the authenticated owner/admin connection flow.
 
-The recovery RED checkpoint preserved 1,711 passing existing tests while exactly eight new recovery assertions failed. The subsequent GREEN candidate passed all 1,719 tests.
+Production database verification currently shows zero rows in both `github_connections` and `github_repository_links`. Therefore no live Connect GitHub -> installation proof -> repository listing -> import canary has completed yet.
 
-## Released baseline and production truth
+Do not classify Phase 10A1 as production-active or merge PR #74 solely from code/schema success. The live provider canary remains the final release gate.
 
-Current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
-Current production deployment: `dpl_AueSXj9wWBDMkRTRLAb6x8nsH57z`
-Production domain: `scopeforge.dev`
-Production deployment state: READY
+## Hosted runtime flags
 
-That released baseline includes Phase 10C platform administration. Phase 10A1 has not been merged or claimed as production-enabled by this document.
-
-### Supabase
-
-The last verified Phase 10C production migration state is documented in `PHASE_10C_WORKING_STATE.md`:
-
-- `20260910153743_phase_10c_platform_admin`
-- `20260910154017_phase_10c_explicit_browser_deny_policies`
-
-The Phase 10A1 forward migrations are present in repository source but were **not applied during this release-candidate validation session**. The connected Supabase database action became unavailable when a fresh production migration read was attempted, so no schema mutation was attempted and no fresh Phase 10A1 production migration claim is made.
-
-The four Phase 10A1 migration files must be applied in order only through a supported production database surface, then verified with migration history, targeted SQL checks and Security Advisor before merge/activation is declared complete.
-
-### GitHub App / Vercel provider state
-
-Provider setup requirements are documented in `PHASE_10A1_GITHUB_APP_SETUP.md`.
-
-The current tool surface does not expose a trustworthy read of the required Vercel environment-variable values, so live GitHub App configuration is **NOT VERIFIED** in this release state.
-
-Vercel previews for several intermediate Phase 10A1 commits reached READY. The final candidate's GitHub Vercel status is currently an external Hobby-plan build-rate-limit failure, not an application build failure. GitHub CI independently passed the exact candidate's production build and browser gates.
-
-Do not classify Connect GitHub as production-active until the provider configuration, callback and repository-import flow are verified live.
-
-### Hosted runtime flags
-
-Do not enable these as part of Phase 10A1 merge alone:
+Do not enable these as part of Phase 10A1 release alone:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Their existing independent canary/rollback acceptance remains mandatory.
+Their independent containment/canary/rollback acceptance remains mandatory.
 
 ## Remaining release gates
 
-1. Restore a supported Supabase production management surface and read the fresh migration head.
-2. Apply/reconcile the reviewed Phase 10A1 forward migrations in order and verify schema/RPC ACLs plus Security Advisor.
-3. Verify the required GitHub App and Vercel server-only configuration without exposing secrets.
-4. Perform a live provider callback/repository listing/import acceptance when configuration exists.
-5. Keep hosted worker flags off until their separate canary and rollback acceptance passes.
-6. Re-run exact-head CI if any executable code or migration changes after candidate `005504387cf29d65d6b297acb041b608f0416c1a`.
-7. Merge PR #74 only when the production schema/provider state is safe and the final merge candidate is green.
+1. Verify the six required server-only GitHub App settings through a supported configuration surface without exposing values.
+2. Verify the GitHub App provider uses the documented production homepage/setup/callback URLs and read-only repository permissions.
+3. Perform one authenticated owner/admin live Connect GitHub -> installation proof -> repository list -> repository import acceptance.
+4. Confirm no provider token, App private key, signed state, or installation credential appears in browser state, persisted integration rows, redirects, or ordinary application logs.
+5. Keep hosted worker capability flags off.
+6. Run final exact-head CI after this documentation reconciliation.
+7. Merge PR #74 only after the provider canary succeeds and the final head remains green.
+8. Verify the merged production deployment before reconciling stacked PR #76 onto released `main`.
 
-## Next product boundary
+## Phase 10A2 stack
 
-After Phase 10A1 is safely released, proceed to Phase 10A2 for private repository acquisition using a distinct execution class and short-lived GitHub installation credentials. Do not weaken `repository_snapshot_github_public_v1` or reuse public acquisition rules for private source.
+PR #76 already implements the distinct private-repository acquisition path and remains draft/stacked on the Phase 10A1 branch. Its previously validated head passed its own complete CI matrix, but it must not merge before Phase 10A1 releases. Because the Phase 10A1 branch advanced with the ACL-hardening commits, PR #76 will require stack reconciliation and complete revalidation after Phase 10A1 is released.
