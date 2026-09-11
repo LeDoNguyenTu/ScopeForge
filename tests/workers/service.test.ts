@@ -22,6 +22,11 @@ function repository(overrides: Partial<WorkerControlRepository> = {}): WorkerCon
       executionClass: "repository_snapshot_github_public_v1" as const,
       softwareVersion: "0.1.0",
     })),
+    registerPrivateRepositorySnapshot: vi.fn(async () => ({
+      workerId: "11111111-1111-4111-8111-111111111111",
+      executionClass: "repository_snapshot_github_private_v1" as const,
+      softwareVersion: "0.1.0",
+    })),
     registerRepositoryScan: vi.fn(async () => ({
       workerId: "11111111-1111-4111-8111-111111111111",
       executionClass: "phase3_repository_scan_no_egress_v1" as const,
