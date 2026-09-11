@@ -3,6 +3,7 @@ import type {
   FoundationProbeInput,
   PassiveRuntimeObservationInput,
   PrivateRepositorySnapshotExecutionClass,
+  PrivateRepositorySnapshotInput,
   RepositoryScanInput,
   RepositorySnapshotInput,
   WorkerAttemptMetrics,
@@ -155,7 +156,17 @@ export type RuntimeWorkerPersistenceClaimResult =
   | ActiveCorsWorkerPersistenceClaim
   | null;
 
-export type WorkerClaimResult = WorkerTaskContract | null;
+export interface PrivateRepositorySnapshotWorkerClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "repository_snapshot_github_private_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: PrivateRepositorySnapshotInput;
+}
+
+export type WorkerClaimResult = WorkerTaskContract | PrivateRepositorySnapshotWorkerClaim | null;
 
 export interface WorkerLeaseIdentity {
   workerId: string;
