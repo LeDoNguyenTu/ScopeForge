@@ -1,12 +1,17 @@
 import type {
+  AnyWorkerTerminalEnvelope,
+  AnyWorkerTerminalExpectation,
   PrivateRepositorySnapshotExecutionClass,
   PrivateRepositorySnapshotInput,
+  PrivateRepositorySnapshotTerminalEnvelope,
+  PrivateRepositorySnapshotTerminalExpectation,
   WorkerExecutionClass,
   WorkerTaskInput,
   WorkerTerminalEnvelope,
   WorkerTerminalExpectation,
 } from "./types";
 import { validatePrivateRepositorySnapshotInput } from "./private-repository-validation";
+import { validatePrivateRepositorySnapshotTerminalEnvelope } from "./private-repository-terminal-validation";
 import {
   validateWorkerTaskInput as validateBaseWorkerTaskInput,
   validateWorkerTerminalEnvelope as validateBaseTerminalEnvelope,
@@ -36,8 +41,20 @@ export function validateWorkerTaskInput(
 
 export function validateWorkerTerminalEnvelope(
   value: unknown,
+  expectation: PrivateRepositorySnapshotTerminalExpectation,
+): PrivateRepositorySnapshotTerminalEnvelope;
+export function validateWorkerTerminalEnvelope(
+  value: unknown,
   expectation: WorkerTerminalExpectation,
-): WorkerTerminalEnvelope {
+): WorkerTerminalEnvelope;
+export function validateWorkerTerminalEnvelope(
+  value: unknown,
+  expectation: AnyWorkerTerminalExpectation,
+): AnyWorkerTerminalEnvelope {
+  if (expectation.executionClass === "repository_snapshot_github_private_v1") {
+    return validatePrivateRepositorySnapshotTerminalEnvelope(value, expectation);
+  }
+
   if (!isRecord(value) || value.outcome !== "cancelled") {
     return validateBaseTerminalEnvelope(value, expectation);
   }
