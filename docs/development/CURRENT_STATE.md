@@ -158,17 +158,16 @@ Keep these false/absent until independent canary and rollback acceptance explici
 
 ## Branch hygiene
 
-Historical completed diagnostic/preview/reconciliation branches still exist. Delete them only through a genuine safe delete-ref operation. Do not simulate deletion by force-moving stale branches.
+The temporary Phase 10A2 RED/validation marker files have been removed. Historical completed diagnostic/preview/reconciliation branches still exist. Delete them only through a genuine safe delete-ref operation. Do not simulate deletion by force-moving stale branches.
 
 ## Immediate engineering boundary
 
-1. Finish the Phase 10A2 documentation/branch cleanup and keep PR #76 draft/non-releasable while stacked.
-2. Safely finish/release Phase 10A1 and retarget/reconcile PR #76 onto the released baseline.
-3. Re-run the complete Phase 10A2 exact-head validation after reconciliation.
-4. Restore a supported Supabase management surface, verify/apply only reviewed forward migrations, and verify RPC ACL/RLS/security-advisor state.
-5. Verify GitHub App private-repository permissions and run a dedicated private acquisition canary with rollback readiness.
-6. Merge/release Phase 10A2 only after every code, provider, schema and runtime gate is satisfied.
-7. Continue independent hosted-runtime canary/rollback work without treating product implementation as runtime authorization.
+1. Safely finish/release Phase 10A1 and retarget/reconcile PR #76 onto the released baseline.
+2. Re-run the complete Phase 10A2 exact-head validation after reconciliation.
+3. Restore a supported Supabase management surface, verify/apply only reviewed forward migrations, and verify RPC ACL/RLS/security-advisor state.
+4. Verify GitHub App private-repository permissions and run a dedicated private acquisition canary with rollback readiness.
+5. Merge/release Phase 10A2 only after every code, provider, schema and runtime gate is satisfied.
+6. Continue independent hosted-runtime canary/rollback work without treating product implementation as runtime authorization.
 
 ## Production services
 
