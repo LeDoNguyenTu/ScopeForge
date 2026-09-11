@@ -14,6 +14,6 @@ Task 1 is intentionally at RED:
 - `tests/github-app/webhook.test.ts` defines exact-byte HMAC-SHA256 verification, constant-time-safe malformed-signature behavior, signature-before-JSON ordering, bounded headers, UUID delivery IDs, JSON content type, and the 10 MiB declared/actual raw-body ceiling.
 - Production config/webhook implementation has not yet been changed.
 
-The next action is one controlled stacked-PR CI run to capture RED evidence, followed by the minimal Task 1 implementation and targeted/full validation.
+This exact head is the Task 1 RED validation candidate. The expected CI failure is limited to the missing Phase 10A3 webhook configuration/verification implementation while the existing Phase 10A2 regression suite remains intact.
 
 No Phase 10A3 migration has been applied to production. No webhook has been registered. No production secret/runtime flag has been changed.
