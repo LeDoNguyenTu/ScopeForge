@@ -2,9 +2,12 @@ import { createHash, randomBytes as nodeRandomBytes } from "node:crypto";
 import type { RepositorySnapshotObjectStore } from "@/lib/repository-snapshots/object-store";
 import {
   validateWorkerTerminalEnvelope,
+  workerExecutionProfile,
   type GitHubPrivateArchiveLease,
+  type WorkerAttemptMetrics,
   type WorkerExecutionClass,
   type WorkerTerminalEnvelope,
+  type WorkerTerminalFailureCode,
 } from "@/packages/worker-contracts";
 import {
   WorkerControlError,
@@ -57,6 +60,21 @@ type LegacyRegistrationClass =
 type RuntimeRegistrationClass =
   | "passive_runtime_observation_v1"
   | "active_cors_validation_v1";
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PRIVATE_REPOSITORY_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
+  "WORKER_LOST",
+  "WORKER_BUDGET_EXCEEDED",
+  "WORKER_OUTPUT_INVALID",
+  "WORKER_EXECUTION_FAILED",
+  "WORKER_CLASS_UNAVAILABLE",
+  "REPOSITORY_UNAVAILABLE",
+  "REPOSITORY_IDENTITY_CHANGED",
+  "REPOSITORY_NETWORK_POLICY_FAILED",
+  "REPOSITORY_ARCHIVE_UNSAFE",
+  "REPOSITORY_ARCHIVE_BUDGET_EXCEEDED",
+  "REPOSITORY_ARTIFACT_UPLOAD_FAILED",
+]);
 
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
@@ -407,8 +425,99 @@ function terminalExpectation(value: unknown): {
   };
 }
 
-function terminalDigest(terminal: WorkerTerminalEnvelope): string {
+function terminalDigest(terminal: unknown): string {
   return sha256(JSON.stringify(terminal));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function exactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  return actual.length === wanted.length && actual.every((key, index) => key === wanted[index]);
+}
+
+function boundedMetric(value: unknown, maximum: number): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0 || (value as number) > maximum) {
+    throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+  }
+  return value as number;
+}
+
+function validatePrivateFailureMetrics(value: unknown): WorkerAttemptMetrics {
+  if (!isRecord(value) || !exactKeys(value, [
+    "wallTimeMs",
+    "cpuTimeMs",
+    "peakMemoryBytes",
+    "inputBytes",
+    "outputBytes",
+  ])) {
+    throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+  }
+  const budget = workerExecutionProfile("repository_snapshot_github_private_v1").budget;
+  return Object.freeze({
+    wallTimeMs: boundedMetric(value.wallTimeMs, budget.maxWallTimeMs),
+    cpuTimeMs: boundedMetric(value.cpuTimeMs, budget.maxCpuTimeMs),
+    peakMemoryBytes: boundedMetric(value.peakMemoryBytes, budget.maxMemoryBytes),
+    inputBytes: boundedMetric(value.inputBytes, budget.maxInputBytes),
+    outputBytes: boundedMetric(value.outputBytes, budget.maxOutputBytes),
+  });
+}
+
+function validatePrivateRepositoryFailureTerminal(value: unknown) {
+  if (!isRecord(value) || !exactKeys(value, [
+    "schemaVersion",
+    "taskId",
+    "attemptId",
+    "executionClass",
+    "outcome",
+    "failureCode",
+    "metrics",
+    "result",
+  ])) {
+    throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+  }
+  if (
+    value.schemaVersion !== 1
+    || typeof value.taskId !== "string"
+    || !UUID_PATTERN.test(value.taskId)
+    || typeof value.attemptId !== "string"
+    || !UUID_PATTERN.test(value.attemptId)
+    || value.executionClass !== "repository_snapshot_github_private_v1"
+  ) {
+    throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+  }
+  if (value.outcome === "succeeded") {
+    throw new WorkerControlError("REPOSITORY_SNAPSHOT_PUBLICATION_REQUIRED");
+  }
+  if (value.outcome !== "failed" && value.outcome !== "cancelled") {
+    throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+  }
+  if (value.result !== null) {
+    throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+  }
+  let failureCode: WorkerTerminalFailureCode | null;
+  if (value.outcome === "cancelled") {
+    if (value.failureCode !== null) throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+    failureCode = null;
+  } else {
+    if (
+      typeof value.failureCode !== "string"
+      || !PRIVATE_REPOSITORY_FAILURE_CODES.has(value.failureCode as WorkerTerminalFailureCode)
+    ) {
+      throw new WorkerControlError("WORKER_TERMINAL_INVALID");
+    }
+    failureCode = value.failureCode as WorkerTerminalFailureCode;
+  }
+  return Object.freeze({
+    taskId: value.taskId,
+    attemptId: value.attemptId,
+    outcome: value.outcome,
+    failureCode,
+    metrics: validatePrivateFailureMetrics(value.metrics),
+  });
 }
 
 export async function finalizeWorkerAttempt(
@@ -455,6 +564,34 @@ export async function finalizeWorkerAttempt(
   return terminal.executionClass === "phase3_repository_scan_no_egress_v1"
     ? dependencies.repository.finalizeRepositoryScanFailure(persistenceInput)
     : dependencies.repository.finalize(persistenceInput);
+}
+
+export async function finalizePrivateRepositorySnapshotFailureAttempt(
+  input: {
+    workerId: string;
+    leaseToken: string;
+    terminal: unknown;
+  },
+  dependencies: WorkerControlServiceDependencies,
+) {
+  if (!/^[a-f0-9]{64}$/.test(input.leaseToken)) {
+    throw new Error("Worker lease token is malformed.");
+  }
+  const terminal = validatePrivateRepositoryFailureTerminal(input.terminal);
+  return dependencies.repository.finalize({
+    workerId: input.workerId,
+    taskId: terminal.taskId,
+    attemptId: terminal.attemptId,
+    leaseToken: input.leaseToken,
+    terminalOutcome: terminal.outcome,
+    failureCode: terminal.failureCode,
+    terminalPayloadDigest: terminalDigest(input.terminal),
+    wallTimeMs: terminal.metrics.wallTimeMs,
+    cpuTimeMs: terminal.metrics.cpuTimeMs,
+    peakMemoryBytes: terminal.metrics.peakMemoryBytes,
+    inputBytes: terminal.metrics.inputBytes,
+    outputBytes: terminal.metrics.outputBytes,
+  });
 }
 
 export async function recoverExpiredWorkerAttempts(
