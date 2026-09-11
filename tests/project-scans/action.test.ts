@@ -29,4 +29,11 @@ describe("connected project scan integration", () => {
     expect(source).toContain("repository_snapshot_github_private_v1");
     expect(source).toContain("result.snapshotId");
   });
+
+  it("routes private failure and cancellation terminals through the generic retry/recovery ledger", async () => {
+    const source = await readFile(finalizeRoutePath, "utf8");
+    expect(source).toContain("finalizePrivateRepositorySnapshotFailureAttempt");
+    expect(source).toContain("isPrivateRepositorySnapshotTerminal");
+    expect(source).toContain("finalizeWorkerAttempt");
+  });
 });
