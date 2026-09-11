@@ -24,7 +24,7 @@ Tasks 2 and 3 RED evidence is captured in CI #918 / run `34637569190`:
 - 18 new assertions failed only for the intentionally missing authoritative archived-state/provider reads, webhook persistence migration, and Phase 10A3 database type overlay
 - no unrelated regression was observed
 
-Tasks 2 and 3 GREEN implementation now includes:
+Tasks 2 and 3 GREEN implementation includes:
 
 - fail-closed authoritative GitHub repository archived-state parsing and downstream preservation
 - exact default-branch head resolution through the fixed GitHub commits endpoint
@@ -35,8 +35,21 @@ Tasks 2 and 3 GREEN implementation now includes:
 - automatic public/private snapshot routing through the existing isolated worker execution classes
 - a Phase 10A3 database type overlay composed on the validated Phase 10A2 surface
 
-CI #920 / run `34638581146` proved all behavior and migration/security tests green: 396 test files / 1,763 tests passed. Typecheck then identified only five compatibility locations that still constructed or normalized the older repository shape without the new mandatory `isArchived` field. Those exact five locations are now repaired, with no weakening of the authoritative archived-state contract.
+Final Tasks 2 and 3 CI #922 / run `34639416412` passed every release gate on exact head `d5a71c0504a6531ea94cf5ebd2477c40b6e741f6`:
 
-This exact head is the final Tasks 2 and 3 GREEN validation candidate. The migration remains source-only and has not been applied to any Supabase environment.
+- dependency install succeeded
+- `npm audit --audit-level=info` reported 0 vulnerabilities
+- 396 test files / 1,763 tests passed
+- typecheck passed
+- CLI build and `ScopeForge 0.1.0` version smoke passed
+- scanner-medium and full benchmark matrix remained within their budgets
+- Next.js production build passed
+- CSP browser acceptance passed
+- production ScopeForge/Turnstile diagnostic passed
+- four UI acceptance artifacts uploaded successfully
 
-No Phase 10A3 migration has been applied to production. No webhook has been registered. No production secret/runtime flag has been changed.
+Task 4 RED contract is now committed in `tests/github-app/webhook-service.test.ts`. It pins signed ping/unsupported-event handling, strict push candidate parsing, exact delivery replay, disconnected/inactive/auto-scan-disabled no-op behavior, authoritative provider metadata, default-branch supersession, archived repository handling, semantic SHA replay, active-chain coalescing, independent public/private source runtime gates, and enqueue-race replay behavior.
+
+This exact head is intentionally a Task 4 RED validation candidate. `lib/github-app/webhook-service.ts` has not been created yet, so the new service suite is expected to fail specifically for the missing implementation before GREEN work begins.
+
+The Phase 10A3 migration remains source-only and has not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
