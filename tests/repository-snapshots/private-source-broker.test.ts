@@ -15,6 +15,7 @@ function config(): GitHubAppConfig {
     privateKey: "-----BEGIN PRIVATE KEY-----\nprivate-key-material\n-----END PRIVATE KEY-----",
     slug: "scopeforge-dev",
     stateSecret: "state-secret-that-must-never-leak",
+    webhookSecret: "webhook-secret-that-must-never-leak-0123456789",
   };
 }
 
@@ -98,6 +99,7 @@ describe("Phase 10A2 private repository source broker", () => {
       "client-secret-value-that-must-never-leak",
       "private-key-material",
       "state-secret-that-must-never-leak",
+      "webhook-secret-that-must-never-leak",
     ]) {
       expect(serialized).not.toContain(forbidden);
     }
