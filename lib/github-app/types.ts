@@ -5,6 +5,7 @@ export interface GitHubAppConfig {
   privateKey: string;
   slug: string;
   stateSecret: string;
+  webhookSecret: string;
 }
 
 export interface GitHubConnectionState {
