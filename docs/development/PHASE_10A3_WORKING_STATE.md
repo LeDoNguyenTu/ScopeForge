@@ -66,8 +66,12 @@ Task 4 route RED evidence is captured in CI #926 / run `34646601886`:
 - exactly one new suite failed during import because `app/api/integrations/github/webhook/route.ts` did not exist
 - no unrelated regression was observed
 
-The Task 4 route GREEN implementation now exists. The route is POST-only, pinned to the Node runtime and force-dynamic execution, maps bounded webhook input errors to 400/401/413 before service invocation, passes only the verified webhook envelope into reconciliation, returns bounded 200/202 success states, and collapses all provider/persistence/internal failures to a generic retryable 503 without reflecting raw body, signatures, or provider error details.
+The Task 4 route GREEN implementation is POST-only, pinned to the Node runtime and force-dynamic execution, maps bounded webhook input errors to 400/401/413 before service invocation, passes only the verified webhook envelope into reconciliation, returns bounded 200/202 success states, and collapses all provider/persistence/internal failures to a generic retryable 503 without reflecting raw body, signatures, or provider error details.
 
-This exact head is the Task 4 route GREEN validation candidate. Task 5 lifecycle reconciliation has not started yet and will begin only after this route candidate passes the complete release gate.
+Final Task 4 route CI #927 / run `34649158445` passed every release gate on exact head `c6d6b20a1f654539b2218994c48c8b3d7dac3edf`: dependency install, 0-vulnerability audit, all tests, typecheck, CLI build/version, both benchmark stages, production build, CSP browser smoke, production diagnostics, and artifact handling.
+
+Task 5 lifecycle RED coverage is now committed in `tests/github-app/webhook-lifecycle.test.ts` plus an atomic repository-asset reconciliation guard in `tests/github-app/webhook-migration.test.ts`. The contract requires installation suspend/remove/unsuspend behavior, repository-selection removal and safe reactivation, no webhook auto-import, authoritative repository re-fetch for rename/transfer/privacy/archive transitions, historical identity retention on deletion, unknown-action rejection, exact-delivery replay protection, no lifecycle-triggered scan enqueue, and atomic repository-link plus asset canonical-target reconciliation.
+
+This exact head is intentionally a Task 5 RED validation candidate. Production lifecycle dispatch and the asset canonical-target migration repair have not been implemented yet, so the new tests are expected to fail only on those missing behaviors before GREEN implementation begins.
 
 The Phase 10A3 migration remains source-only and has not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
