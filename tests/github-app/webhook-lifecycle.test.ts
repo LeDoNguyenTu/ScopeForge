@@ -163,7 +163,7 @@ beforeEach(() => {
 
 describe("GitHub webhook lifecycle reconciliation", () => {
   it.each([
-    ["suspended", "suspended", "INSTALLATION_SUSPENDED"],
+    ["suspend", "suspended", "INSTALLATION_SUSPENDED"],
     ["deleted", "removed", "INSTALLATION_REMOVED"],
   ] as const)("handles installation %s without trusting payload metadata or starting scans", async (action, status, code) => {
     const deps = lifecycleDependencies();
@@ -194,7 +194,7 @@ describe("GitHub webhook lifecycle reconciliation", () => {
   it("requires authoritative provider revalidation before unsuspending an installation", async () => {
     const deps = lifecycleDependencies();
 
-    await expect(processGitHubWebhook(verified("installation", installationPayload("unsuspended")), deps))
+    await expect(processGitHubWebhook(verified("installation", installationPayload("unsuspend")), deps))
       .resolves.toEqual({ status: "accepted", code: "INSTALLATION_ACTIVE" });
 
     expect(deps.getAppInstallation).toHaveBeenCalledWith(INSTALLATION_ID, config);
