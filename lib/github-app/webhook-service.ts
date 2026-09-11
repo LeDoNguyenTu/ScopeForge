@@ -6,12 +6,14 @@ import {
 } from "@/lib/repository-snapshots/runtime";
 import {
   createInstallationToken,
+  getAppInstallation,
   getInstallationDefaultBranchHead,
   getInstallationRepository,
 } from "./client";
 import { getGitHubAppConfig } from "./config";
 import type {
   GitHubAppConfig,
+  GitHubInstallationSummary,
   GitHubInstallationToken,
   GitHubRepositorySummary,
 } from "./types";
@@ -21,9 +23,33 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const COMMIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
 const ZERO_COMMIT_SHA = "0".repeat(40);
 const MAX_PUSH_REF_LENGTH = 512;
+const MAX_ACTION_LENGTH = 64;
+const MAX_LIFECYCLE_REPOSITORIES = 1000;
+
+const INSTALLATION_ACTIONS = new Set(["suspend", "deleted", "unsuspend"]);
+const INSTALLATION_REPOSITORY_ACTIONS = new Set(["added", "removed"]);
+const REPOSITORY_ACTIONS = new Set([
+  "renamed",
+  "transferred",
+  "privatized",
+  "publicized",
+  "archived",
+  "unarchived",
+  "deleted",
+]);
 
 export type GitHubWebhookResult =
-  | { status: "accepted"; code: "PING" }
+  | {
+      status: "accepted";
+      code:
+        | "PING"
+        | "INSTALLATION_SUSPENDED"
+        | "INSTALLATION_REMOVED"
+        | "INSTALLATION_ACTIVE"
+        | "REPOSITORIES_RECONCILED"
+        | "REPOSITORY_RECONCILED"
+        | "REPOSITORY_REMOVED";
+    }
   | { status: "ignored"; code: string }
   | { status: "replayed"; code: "DELIVERY_REPLAY" | "SEMANTIC_REPLAY" }
   | {
@@ -63,6 +89,15 @@ export interface GitHubWebhookRepositoryContext {
   desiredCommitSha: string | null;
   successfulCommitSha: string | null;
   pending: boolean;
+}
+
+export interface GitHubWebhookConnectionReconciliationInput {
+  installationId: number;
+  status: GitHubWebhookConnectionStatus;
+  accountId: number | null;
+  accountLogin: string | null;
+  accountType: "User" | "Organization" | null;
+  repositorySelection: "all" | "selected" | null;
 }
 
 export interface GitHubWebhookRepositoryReconciliationInput {
@@ -107,6 +142,13 @@ export interface GitHubWebhookServiceDependencies {
     installationId: number,
     repositoryId: number,
   ): Promise<GitHubWebhookRepositoryContext | null>;
+  getAppInstallation?(
+    installationId: number,
+    config: GitHubAppConfig,
+  ): Promise<GitHubInstallationSummary>;
+  reconcileConnection?(
+    input: GitHubWebhookConnectionReconciliationInput,
+  ): Promise<{ matched: boolean }>;
   createInstallationToken(
     installationId: number,
     config: GitHubAppConfig,
@@ -384,6 +426,19 @@ function createDefaultDependencies(): GitHubWebhookServiceDependencies {
       if (error) throw new GitHubWebhookServiceError();
       return parseRepositoryContext(data);
     },
+    getAppInstallation: (installationId, config) => getAppInstallation(installationId, config),
+    reconcileConnection: async (input) => {
+      const { data, error } = await admin.rpc("reconcile_github_webhook_connection_state", {
+        target_installation_id: input.installationId,
+        target_status: input.status,
+        target_account_id: input.accountId,
+        target_account_login: input.accountLogin,
+        target_account_type: input.accountType,
+        target_repository_selection: input.repositorySelection,
+      });
+      if (error) throw new GitHubWebhookServiceError();
+      return parseReconciliation(data);
+    },
     createInstallationToken: (installationId, config, options) => (
       createInstallationToken(installationId, config, options)
     ),
@@ -468,12 +523,297 @@ function expectedExecutionClass(repository: GitHubRepositorySummary):
     : "repository_snapshot_github_public_v1";
 }
 
+function lifecycleAction(input: VerifiedGitHubWebhookRequest): string | null {
+  const action = boundedString(input.payload.action, MAX_ACTION_LENGTH);
+  if (!action) return null;
+  if (input.event === "installation") return INSTALLATION_ACTIONS.has(action) ? action : null;
+  if (input.event === "installation_repositories") {
+    return INSTALLATION_REPOSITORY_ACTIONS.has(action) ? action : null;
+  }
+  if (input.event === "repository") return REPOSITORY_ACTIONS.has(action) ? action : null;
+  return null;
+}
+
+function lifecycleInstallationId(payload: Record<string, unknown>): number | null {
+  return positiveInteger(objectValue(payload.installation)?.id);
+}
+
+function lifecycleRepositoryId(payload: Record<string, unknown>): number | null {
+  return positiveInteger(objectValue(payload.repository)?.id);
+}
+
+function repositoryIds(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length > MAX_LIFECYCLE_REPOSITORIES) return null;
+  const ids: number[] = [];
+  for (const item of value) {
+    const id = positiveInteger(objectValue(item)?.id);
+    if (!id) return null;
+    ids.push(id);
+  }
+  return ids;
+}
+
+function storedRepositoryReconciliation(
+  context: GitHubWebhookRepositoryContext,
+  access: GitHubWebhookRepositoryAccessStatus,
+): GitHubWebhookRepositoryReconciliationInput {
+  return {
+    installationId: context.installationId,
+    repositoryId: context.repositoryId,
+    ownerLogin: context.ownerLogin,
+    repositoryName: context.repositoryName,
+    fullName: context.fullName,
+    defaultBranch: context.defaultBranch,
+    isPrivate: context.isPrivate,
+    htmlUrl: context.htmlUrl,
+    providerArchived: context.providerArchived,
+    accessStatus: access,
+  };
+}
+
+function providerRepositoryReconciliation(
+  installationId: number,
+  repository: GitHubRepositorySummary,
+): GitHubWebhookRepositoryReconciliationInput {
+  return {
+    installationId,
+    repositoryId: repository.id,
+    ownerLogin: repository.ownerLogin,
+    repositoryName: repository.name,
+    fullName: repository.fullName,
+    defaultBranch: repository.defaultBranch,
+    isPrivate: repository.isPrivate,
+    htmlUrl: repository.htmlUrl,
+    providerArchived: repository.isArchived,
+    accessStatus: "active",
+  };
+}
+
+function requireLifecycleDependencies(deps: GitHubWebhookServiceDependencies): {
+  getAppInstallation: NonNullable<GitHubWebhookServiceDependencies["getAppInstallation"]>;
+  reconcileConnection: NonNullable<GitHubWebhookServiceDependencies["reconcileConnection"]>;
+} {
+  if (!deps.getAppInstallation || !deps.reconcileConnection) {
+    throw new GitHubWebhookServiceError();
+  }
+  return {
+    getAppInstallation: deps.getAppInstallation,
+    reconcileConnection: deps.reconcileConnection,
+  };
+}
+
+async function fetchAuthoritativeRepository(
+  deps: GitHubWebhookServiceDependencies,
+  installationId: number,
+  repositoryId: number,
+): Promise<GitHubRepositorySummary> {
+  const token = await deps.createInstallationToken(
+    installationId,
+    deps.getConfig(),
+    { repositoryId },
+  );
+  const repository = await deps.getInstallationRepository(token.token, repositoryId);
+  if (repository.id !== repositoryId) throw new GitHubWebhookServiceError();
+  return repository;
+}
+
+async function processLifecycleWebhook(
+  input: VerifiedGitHubWebhookRequest,
+  deps: GitHubWebhookServiceDependencies,
+): Promise<GitHubWebhookResult> {
+  const action = lifecycleAction(input);
+  if (!action) return { status: "ignored", code: "ACTION_UNSUPPORTED" };
+
+  const installationId = lifecycleInstallationId(input.payload);
+  if (!installationId) throw new GitHubWebhookServiceError();
+
+  const repositoryId = input.event === "repository"
+    ? lifecycleRepositoryId(input.payload)
+    : null;
+  if (input.event === "repository" && !repositoryId) throw new GitHubWebhookServiceError();
+
+  let admitted = false;
+  try {
+    const admission = await deps.admitDelivery({
+      deliveryId: input.deliveryId,
+      eventName: input.event,
+      action,
+      installationId,
+      repositoryId,
+      pushAfterSha: null,
+    });
+    if (admission.replayed) return { status: "replayed", code: "DELIVERY_REPLAY" };
+    if (!admission.admitted) throw new GitHubWebhookServiceError();
+    admitted = true;
+
+    if (input.event === "installation") {
+      const lifecycle = requireLifecycleDependencies(deps);
+      if (action === "suspend" || action === "deleted") {
+        const status = action === "suspend" ? "suspended" : "removed";
+        const reconciliation = await lifecycle.reconcileConnection({
+          installationId,
+          status,
+          accountId: null,
+          accountLogin: null,
+          accountType: null,
+          repositorySelection: null,
+        });
+        const code = action === "suspend" ? "INSTALLATION_SUSPENDED" : "INSTALLATION_REMOVED";
+        if (!reconciliation.matched) {
+          return finish(
+            deps,
+            input.deliveryId,
+            "ignored",
+            "INSTALLATION_NOT_CONNECTED",
+            { status: "ignored", code: "INSTALLATION_NOT_CONNECTED" },
+          );
+        }
+        return finish(deps, input.deliveryId, "processed", code, { status: "accepted", code });
+      }
+
+      const installation = await lifecycle.getAppInstallation(installationId, deps.getConfig());
+      if (installation.id !== installationId) throw new GitHubWebhookServiceError();
+      const reconciliation = await lifecycle.reconcileConnection({
+        installationId,
+        status: "active",
+        accountId: installation.accountId,
+        accountLogin: installation.accountLogin,
+        accountType: installation.accountType,
+        repositorySelection: installation.repositorySelection,
+      });
+      if (!reconciliation.matched) {
+        return finish(
+          deps,
+          input.deliveryId,
+          "ignored",
+          "INSTALLATION_NOT_CONNECTED",
+          { status: "ignored", code: "INSTALLATION_NOT_CONNECTED" },
+        );
+      }
+      return finish(
+        deps,
+        input.deliveryId,
+        "processed",
+        "INSTALLATION_ACTIVE",
+        { status: "accepted", code: "INSTALLATION_ACTIVE" },
+      );
+    }
+
+    if (input.event === "installation_repositories") {
+      const added = repositoryIds(input.payload.repositories_added);
+      const removed = repositoryIds(input.payload.repositories_removed);
+      if (!added || !removed) throw new GitHubWebhookServiceError();
+      const targetIds = action === "added" ? added : removed;
+
+      for (const targetRepositoryId of targetIds) {
+        const context = await deps.loadRepositoryContext(installationId, targetRepositoryId);
+        if (!context) continue;
+        if (context.installationId !== installationId || context.repositoryId !== targetRepositoryId) {
+          throw new GitHubWebhookServiceError();
+        }
+
+        if (action === "removed") {
+          await deps.reconcileRepository(storedRepositoryReconciliation(context, "inaccessible"));
+          continue;
+        }
+
+        const repository = await fetchAuthoritativeRepository(deps, installationId, targetRepositoryId);
+        await deps.reconcileRepository(providerRepositoryReconciliation(installationId, repository));
+      }
+
+      return finish(
+        deps,
+        input.deliveryId,
+        "processed",
+        "REPOSITORIES_RECONCILED",
+        { status: "accepted", code: "REPOSITORIES_RECONCILED" },
+      );
+    }
+
+    const exactRepositoryId = repositoryId as number;
+    const context = await deps.loadRepositoryContext(installationId, exactRepositoryId);
+    if (!context) {
+      return finish(
+        deps,
+        input.deliveryId,
+        "ignored",
+        "REPOSITORY_NOT_CONNECTED",
+        { status: "ignored", code: "REPOSITORY_NOT_CONNECTED" },
+      );
+    }
+    if (context.installationId !== installationId || context.repositoryId !== exactRepositoryId) {
+      throw new GitHubWebhookServiceError();
+    }
+
+    if (action === "deleted") {
+      const reconciliation = await deps.reconcileRepository(
+        storedRepositoryReconciliation(context, "removed"),
+      );
+      if (!reconciliation.matched) {
+        return finish(
+          deps,
+          input.deliveryId,
+          "ignored",
+          "REPOSITORY_NOT_CONNECTED",
+          { status: "ignored", code: "REPOSITORY_NOT_CONNECTED" },
+        );
+      }
+      return finish(
+        deps,
+        input.deliveryId,
+        "processed",
+        "REPOSITORY_REMOVED",
+        { status: "accepted", code: "REPOSITORY_REMOVED" },
+      );
+    }
+
+    const repository = await fetchAuthoritativeRepository(deps, installationId, exactRepositoryId);
+    const reconciliation = await deps.reconcileRepository(
+      providerRepositoryReconciliation(installationId, repository),
+    );
+    if (!reconciliation.matched) {
+      return finish(
+        deps,
+        input.deliveryId,
+        "ignored",
+        "REPOSITORY_NOT_CONNECTED",
+        { status: "ignored", code: "REPOSITORY_NOT_CONNECTED" },
+      );
+    }
+    return finish(
+      deps,
+      input.deliveryId,
+      "processed",
+      "REPOSITORY_RECONCILED",
+      { status: "accepted", code: "REPOSITORY_RECONCILED" },
+    );
+  } catch {
+    if (admitted) {
+      try {
+        await deps.recordDeliveryResult(input.deliveryId, "failed", "PROCESSING_FAILED");
+      } catch {
+        // Best-effort bounded failure recording only. Never expose persistence/provider detail.
+      }
+    }
+    throw new GitHubWebhookServiceError();
+  }
+}
+
 export async function processGitHubWebhook(
   input: VerifiedGitHubWebhookRequest,
   dependencies?: GitHubWebhookServiceDependencies,
 ): Promise<GitHubWebhookResult> {
   if (input.event === "ping") {
     return { status: "accepted", code: "PING" };
+  }
+
+  const deps = dependencies ?? createDefaultDependencies();
+  if (
+    input.event === "installation"
+    || input.event === "installation_repositories"
+    || input.event === "repository"
+  ) {
+    return processLifecycleWebhook(input, deps);
   }
   if (input.event !== "push") {
     return { status: "ignored", code: "EVENT_UNSUPPORTED" };
@@ -484,7 +824,6 @@ export async function processGitHubWebhook(
     return { status: "ignored", code: "PUSH_NOT_SCANNABLE" };
   }
 
-  const deps = dependencies ?? createDefaultDependencies();
   let admitted = false;
 
   try {
