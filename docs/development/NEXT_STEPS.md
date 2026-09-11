@@ -112,7 +112,7 @@ A canary must prove the exact worker class, containment, quotas, cancellation/re
 
 ## Branch cleanup
 
-Remove temporary Phase 10A2 validation marker files before final branch handoff. Historical completed diagnostic/preview/reconciliation branches remain. Delete them only when a genuine safe delete-ref operation is available. Never simulate deletion by moving stale refs to `main`.
+The temporary Phase 10A2 validation marker files are removed. Historical completed diagnostic/preview/reconciliation branches remain. Delete them only when a genuine safe delete-ref operation is available. Never simulate deletion by moving stale refs to `main`.
 
 ## Baseline rule
 
