@@ -25,6 +25,7 @@ export interface PrivateRepositorySourceClaim {
   repository: string;
   canonicalRepositoryUrl: string;
   absoluteDeadlineAt: string;
+  leaseExpiresAt: string;
 }
 
 export interface PrivateRepositorySourceBrokerDependencies {
@@ -216,13 +217,16 @@ function boundedLeaseExpiry(
   now: Date,
   installationTokenExpiresAt: string,
   absoluteDeadlineAt: string,
+  workerLeaseExpiresAt: string,
 ): string {
   const tokenExpiry = timestamp(installationTokenExpiresAt, "installation authority expiry");
   const deadline = timestamp(absoluteDeadlineAt, "task deadline");
+  const workerLeaseExpiry = timestamp(workerLeaseExpiresAt, "worker lease expiry");
   const nowMs = now.getTime();
   if (
     tokenExpiry - nowMs < MIN_REMAINING_AUTHORITY_MS
     || deadline - nowMs < MIN_REMAINING_AUTHORITY_MS
+    || workerLeaseExpiry - nowMs < MIN_REMAINING_AUTHORITY_MS
   ) {
     throw failure(
       "PRIVATE_REPOSITORY_SOURCE_AUTHORITY_EXPIRED",
@@ -233,6 +237,7 @@ function boundedLeaseExpiry(
     nowMs + PRIVATE_ARCHIVE_LEASE_TTL_MS,
     tokenExpiry,
     deadline,
+    workerLeaseExpiry,
   )).toISOString();
 }
 
@@ -263,7 +268,11 @@ export async function createPrivateRepositorySourceLease(
     repositoryName,
   );
   const deadline = timestamp(input.absoluteDeadlineAt, "task deadline");
-  if (deadline - now.getTime() < MIN_REMAINING_AUTHORITY_MS) {
+  const workerLeaseExpiry = timestamp(input.leaseExpiresAt, "worker lease expiry");
+  if (
+    deadline - now.getTime() < MIN_REMAINING_AUTHORITY_MS
+    || workerLeaseExpiry - now.getTime() < MIN_REMAINING_AUTHORITY_MS
+  ) {
     throw failure("PRIVATE_REPOSITORY_SOURCE_AUTHORITY_EXPIRED", "Private repository source authority is expired.");
   }
 
@@ -281,6 +290,7 @@ export async function createPrivateRepositorySourceLease(
     now,
     installationToken.expiresAt,
     input.absoluteDeadlineAt,
+    input.leaseExpiresAt,
   );
 
   const repository = await providerCall(() => readRepository(
