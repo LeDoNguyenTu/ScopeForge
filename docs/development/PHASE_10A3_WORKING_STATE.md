@@ -16,31 +16,28 @@ Task 4 service RED evidence is captured in CI #923 / run `34645026763`. Final se
 
 Task 4 route RED evidence is captured in CI #926 / run `34646601886`: all 397 existing test files / 1,782 existing tests remained green and only the intentionally missing route suite failed import. Final route CI #927 / run `34649158445` passed every release gate on exact head `c6d6b20a1f654539b2218994c48c8b3d7dac3edf`.
 
-Task 5 lifecycle RED coverage is committed in `tests/github-app/webhook-lifecycle.test.ts` plus an atomic repository-asset reconciliation guard in `tests/github-app/webhook-migration.test.ts`. The lifecycle fixtures use GitHub's current installation action names `suspend` and `unsuspend`. CI #928 was started before that fixture correction and is obsolete.
+Corrected Task 5 RED CI #929 / run `34649891292` proved the lifecycle contract cleanly with all pre-existing tests green and only the new lifecycle/atomic asset-link guards failing. Final Task 5 CI #930 / run `34650537947` passed every release gate on exact head `0e5584436bfb72189071c9e681a2ed0ef65e408e`: dependency install, 0-vulnerability audit, full tests, typecheck, CLI build/version, both benchmarks, production build, CSP browser smoke, production diagnostics, and artifact handling.
 
-Corrected Task 5 RED CI #929 / run `34649891292` proved the contract cleanly on exact head `b3a9940e95ff7503c65916215ff4edb4c9892df8`:
+Task 6 RED CI #931 / run `34651520973` proved the completion/no-lost-head contract cleanly on exact head `17cb335a86754f889ab5a374e78080c2254c2e48`:
 
-- dependency install succeeded and `npm audit --audit-level=info` reported 0 vulnerabilities
-- all 397 pre-existing test files remained green
-- all 15 lifecycle tests failed only because lifecycle dispatch was still missing
-- one migration assertion failed only because repository identity reconciliation did not yet lock/update the linked repository asset
-- total result was 399 files: 397 passed / 2 expected failing suites, and 1,796 passed / 16 expected failing tests
+- dependency install and zero-vulnerability audit passed
+- all 399 pre-existing test files remained green
+- exactly one new suite failed: `tests/project-scans/webhook-reconciliation.test.ts`
+- 1,812 pre-existing tests remained green; exactly 10 new Task 6 assertions failed
+- eight service assertions failed because `reconcileAutomaticProjectScanAfterSnapshot` did not yet exist
+- one persistence guard failed because completion still accepted caller/trigger SHA rather than exact immutable snapshot identity
+- one finalize-route guard failed because automatic reconciliation was not yet invoked after successful snapshot continuation
 - no unrelated regression was observed
 
-Task 5 GREEN implementation includes:
+Task 6 GREEN candidate now includes:
 
-- installation `suspend` and `deleted` fail closed from stable installation identity without requiring provider objects that may already be unavailable
-- installation `unsuspend` requires authoritative GitHub App installation revalidation before returning to active state
-- `installation_repositories.removed` marks only already-connected stored repository links inaccessible without minting provider authority
-- `installation_repositories.added` never auto-imports; an already-connected repository can reactivate only after a repository-restricted installation token and authoritative repository re-fetch
-- repository rename/transfer/privacy/archive/unarchive events use only stable numeric IDs from the signed payload and provider-authoritative repository metadata
-- repository deletion retains historical stored identity while marking access removed
-- unknown lifecycle actions are ignored before delivery persistence/provider work and exact delivery UUID replays stop before provider work
-- lifecycle handlers never enqueue scans or mutate existing queued task execution classes
-- corrective migration `20260912021000_phase_10a3_repository_asset_identity_reconciliation.sql` preserves the original service-role RPC contract while locking the linked repository asset, validating repository kind/current canonical identity, and updating its canonical target atomically with the repository link
+- forward-only migration `20260912022000_phase_10a3_completion_reconciliation.sql` that removes the trigger-SHA completion overload and binds completion to exact webhook intent, snapshot task, immutable snapshot ID, and `repository_source_snapshots.resolved_commit_sha`
+- replay-safe completion that clears the exact task/snapshot binding after first successful reconciliation and leaves a newer desired head pending under the existing per-link advisory lock
+- server-only automatic reconciliation using repository-restricted GitHub App installation credentials, authoritative repository/default-branch/head revalidation, public/private runtime gates, bounded failure states, and exactly-one follow-up enqueue
+- fresh provider-head advancement before follow-up, reusing the latest accepted delivery identity rather than inventing a webhook delivery
+- worker finalize integration only after successful snapshot publication and successful exact-snapshot scan continuation (`scan_queued`)
+- no provider token, raw webhook data, archive capability, or secret is returned to the worker
 
-Final Task 5 CI #930 / run `34650537947` passed every release gate on exact head `0e5584436bfb72189071c9e681a2ed0ef65e408e`: dependency install, 0-vulnerability audit, full tests, typecheck, CLI build/version, both benchmarks, production build, CSP browser smoke, production diagnostics, and artifact handling.
-
-Task 6 RED coverage is now committed in `tests/project-scans/webhook-reconciliation.test.ts`. It pins manual-intent ignore behavior, immutable snapshot SHA success tracking, equal-head no-op, exactly-one advanced-head follow-up, fresh provider-head advancement before enqueue, replay idempotency, revoked eligibility/runtime gates, authoritative identity drift, exact intent/snapshot database binding, and finalize-route ordering. Production Task 6 behavior has not been changed yet; this exact head is the controlled RED validation candidate.
+This exact head is the controlled Task 6 GREEN validation candidate. Task 7 has not started.
 
 The Phase 10A3 migrations remain source-only and have not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
