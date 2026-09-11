@@ -3,7 +3,7 @@
 Last reconciled: 2026-09-11 (Asia/Singapore)
 Branch: `feat/phase-10a-github-connected-projects`
 PR: #74
-Status: implementation complete and exact-head code validation green; production database/provider activation still gated
+Status: implementation and production schema verification complete; live GitHub App provider canary still gated
 
 ## Implemented
 
@@ -23,74 +23,81 @@ Status: implementation complete and exact-head code validation green; production
 - Private repositories may be linked but remain outside the Phase 10A1 public acquisition execution class.
 - Connected-project dashboard UX presents one project-level scan action while retaining existing manual repository tools.
 - Public connected-project scan orchestration persists private worker intent, queues immutable source acquisition, and automatically continues after successful snapshot publication.
-- Project-level read model exposes only safe state (`idle`, `snapshot_queued`, `waiting_scan_runtime`, `scan_queued`, `retry_pending`).
-- Hosted snapshot/scan capability gates remain independently fail-closed.
+- Project-level read model exposes only bounded safe state.
+- Exact-snapshot recovery supports `waiting_scan_runtime`, `retry_pending`, and idempotent `scan_queued` replay without implicit source reacquisition.
 
-## Recovery hardening completed
+## Production database verification completed
 
-Release review found a liveness/correctness defect after snapshot publication: `waiting_scan_runtime` and `retry_pending` had no safe resume action. The generic repository-scan enqueue function also chooses the newest eligible snapshot, so delayed continuation could create work for a newer snapshot before detecting mismatch.
+Correct ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
 
-The branch now includes:
+Production currently records five Phase 10A1 migrations:
 
-- `get_connected_project_scan_recovery` service-role RPC with owner/admin authorization,
-- `enqueue_repository_scan_worker_task_for_snapshot` exact-snapshot RPC,
-- replacement connected-project continuation that binds scan creation to `target_snapshot_id` before any job/task side effect,
-- `resumeConnectedProjectScan()` with fresh GitHub revalidation,
-- bounded server action and `Resume project scan` UI for waiting/retry states,
-- fail-closed behavior while scan runtime is disabled,
-- no implicit second snapshot during recovery,
-- idempotent replay for an already queued scan.
+- `20260910160000_phase_10a1_github_connected_projects`
+- `20260910160010_phase_10a1_project_scan_retry_idempotency`
+- `20260910160020_phase_10a1_project_scan_waiting_idempotency`
+- `20260910160030_phase_10a1_project_scan_recovery`
+- `20260911143049_phase_10a1_service_role_table_acl_hardening`
+
+The final forward migration was added after live review found trusted `service_role` inherited table privileges beyond application need. It now has only `SELECT`, `INSERT`, `UPDATE`, and `DELETE` on the two public GitHub integration tables. Authenticated browser users retain `SELECT` only.
+
+Live checks confirm RLS/browser-write boundaries, private intent-table isolation, pinned `SECURITY DEFINER` search paths, and service-role-only privileged RPC execution.
+
+Security Advisor has no Phase 10A1 release-blocking schema finding. The private intent table's no-policy INFO is intentional for the private service-only boundary. The existing leaked-password-protection WARN remains a separate Auth follow-up.
 
 ## TDD / validation history
 
-The environment cannot clone GitHub directly, so implementation used GitHub branches and CI for executable proof.
-
-Relevant checkpoints:
-
-- Tasks 1-3 candidate `f4020265f4d884588147f8f278370f1c4e2d35ab`: complete CI success.
-- Task 4 candidate `8cd1983b5b9d54fc2300bd1f27c288ef2f268793`: complete CI success.
-- Connected-project UI candidate before recovery review: complete CI success with 1,710 tests.
-- Recovery RED checkpoint `b776ab78b61b490be04a8121bb07958d36ed19f2`: 1,711 existing tests passed and exactly eight new recovery assertions failed as intended.
+- Recovery RED checkpoint `b776ab78b61b490be04a8121bb07958d36ed19f2`: 1,711 existing tests passed and exactly eight new recovery assertions failed.
 - Recovery GREEN candidate `005504387cf29d65d6b297acb041b608f0416c1a`: CI #852 / run `34520609482` SUCCESS.
+- ACL-hardening RED checkpoint `e5ffd6a8e640483adec01d1856878f78f4114c83`: all 1,719 existing tests passed and exactly the new migration-presence assertion failed.
+- ACL-hardening GREEN candidate `a8959d4b887463b0b28af056932eabd2a75147a3`: CI #907 / run `34610625305` SUCCESS.
 
-CI #852 passed:
+CI #907 passed:
 
-- dependency audit: 0 reported vulnerabilities,
-- 386 test files / 1,719 tests,
-- TypeScript,
+- dependency audit with zero reported vulnerabilities,
+- 387 test files / 1,720 tests,
+- TypeScript typecheck,
 - CLI build/version,
 - scanner benchmark,
 - benchmark matrix,
 - Next.js production build,
-- CSP browser smoke,
+- strict-CSP browser smoke,
 - production V5/Turnstile diagnostic,
 - visual artifact upload.
 
-GitHub CI validates the PR merge result against current `main`, which is `1151af2dddb76737ee2f0a0d1a802f06a975d318` and already includes Phase 10C.
+## Released baseline
 
-## Production truth
+Current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`.
+Current production domain: `scopeforge.dev`.
+The Phase 10C admin/V5/CSP baseline remains authoritative until PR #74 is safely merged and production-verified.
 
-Current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
-Current production Vercel deployment: `dpl_AueSXj9wWBDMkRTRLAb6x8nsH57z`, READY, aliased to `scopeforge.dev`.
+## Provider state
 
-Phase 10C production database state was previously verified and is documented in `PHASE_10C_WORKING_STATE.md`.
+The live GitHub App provider gate is not yet complete.
 
-Phase 10A1 production database migration was **not performed in the current validation session**. A fresh Supabase migration-head read was attempted after code validation, but the connected Supabase database action became unavailable. No schema write was attempted after that failure.
+The required server-only Vercel variables remain:
 
-Live GitHub App/Vercel server-only environment configuration is also not freshly verifiable through the present Vercel tool surface. Therefore Connect GitHub is not claimed as production-active yet.
+- `GITHUB_APP_ID`
+- `GITHUB_APP_CLIENT_ID`
+- `GITHUB_APP_CLIENT_SECRET`
+- `GITHUB_APP_PRIVATE_KEY`
+- `GITHUB_APP_SLUG`
+- `GITHUB_APP_STATE_SECRET`
 
-Vercel produced READY previews for multiple Phase 10A1 intermediate commits. The final candidate's GitHub Vercel status currently reports the Hobby-plan build-rate limit; GitHub CI independently passed the exact candidate's production build and browser gates.
+The connected Vercel surface in this session does not expose environment-variable metadata, so configuration presence cannot be asserted from tooling. A READY Phase 10A1 preview proves the app builds with the integration routes, but configuration is evaluated inside the authenticated owner/admin flow and therefore needs a real provider acceptance.
 
-Hosted runtime flags remain default-off/unaccepted and must not be enabled by this phase alone.
+Production currently has no `github_connections` or `github_repository_links` rows, so a live connection/import canary has not yet completed.
+
+Hosted runtime flags remain default-off/unaccepted and must not be enabled by Phase 10A1 release alone.
 
 ## Remaining release work
 
-1. Restore a supported Supabase production management surface and inspect the fresh migration head.
-2. Apply/reconcile the four reviewed Phase 10A1 migrations in order; verify targeted schema/RPC behavior and Security Advisor.
-3. Verify live GitHub App provider configuration and callback/repository import without exposing secrets.
-4. Keep snapshot/scan/passive/CORS hosted runtime flags off until their independent canary/rollback acceptance succeeds.
-5. Re-run exact-head CI after any executable or migration change.
-6. Merge PR #74 only once schema/provider state is safe.
-7. After safe Phase 10A1 release, begin Phase 10A2 private repository acquisition as a separate execution class.
+1. Verify the six server-only GitHub App settings through a supported provider/configuration surface without exposing values.
+2. Verify provider URLs and read-only GitHub App permissions match `PHASE_10A1_GITHUB_APP_SETUP.md`.
+3. Perform authenticated Connect GitHub -> installation proof -> repository listing -> repository import acceptance.
+4. Check browser/persistence/log surfaces for provider-token leakage during the canary.
+5. Run final exact-head CI after release-document reconciliation.
+6. Merge PR #74 only after provider acceptance remains green.
+7. Verify the merged production deployment and security baseline.
+8. Reconcile draft PR #76 onto the released Phase 10A1 baseline and rerun the complete Phase 10A2 matrix.
 
 Detailed release evidence: `docs/development/PHASE_10A1_RELEASE_STATE.md`.
