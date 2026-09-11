@@ -29,7 +29,7 @@ Task 6 RED CI #931 / run `34651520973` proved the completion/no-lost-head contra
 - one finalize-route guard failed because automatic reconciliation was not yet invoked after successful snapshot continuation
 - no unrelated regression was observed
 
-Task 6 GREEN candidate now includes:
+Task 6 GREEN implementation includes:
 
 - forward-only migration `20260912022000_phase_10a3_completion_reconciliation.sql` that removes the trigger-SHA completion overload and binds completion to exact webhook intent, snapshot task, immutable snapshot ID, and `repository_source_snapshots.resolved_commit_sha`
 - replay-safe completion that clears the exact task/snapshot binding after first successful reconciliation and leaves a newer desired head pending under the existing per-link advisory lock
@@ -38,6 +38,8 @@ Task 6 GREEN candidate now includes:
 - worker finalize integration only after successful snapshot publication and successful exact-snapshot scan continuation (`scan_queued`)
 - no provider token, raw webhook data, archive capability, or secret is returned to the worker
 
-This exact head is the controlled Task 6 GREEN validation candidate. Task 7 has not started.
+First GREEN CI #933 / run `34652326280` reached 399 passing files and 1,821 passing tests, with exactly one remaining Task 6 replay-idempotency failure. The failure proved the injected completion dependency could return a truthy replay/no-match object that bypassed the production parser. The root fix now normalizes every completion dependency result through the same strict `parseCompletion` boundary, so `{ matched: false, replayed: true }` becomes the intended idempotent ignore result instead of a partial completed result.
+
+This exact head is the corrected Task 6 GREEN validation candidate. Task 7 has not started.
 
 The Phase 10A3 migrations remain source-only and have not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
