@@ -80,6 +80,12 @@ export type Phase10a3Functions = Phase10a2Database["public"]["Functions"] & {
     };
     Returns: Json;
   };
+  settle_manual_connected_project_scan_terminal: {
+    Args: {
+      target_scan_task_id: string;
+    };
+    Returns: Json;
+  };
 };
 
 export type Phase10a3Database = Omit<Phase10a2Database, "public"> & {
