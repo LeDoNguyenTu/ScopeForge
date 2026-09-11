@@ -16,30 +16,39 @@ Released boundaries include Phases 1-9E, strict CSP, accepted Command Center V5,
 
 Do not regress the V5/CSP/auth/RLS/worker-authority baseline while completing later phases.
 
-## Priority 1 - finish exact-head Phase 10A2 validation
+## Phase 10A2 executable validation completed
 
 Active PR: #76
 
 Branch: `feat/phase-10a2-private-repository-acquisition`
 
-Phase 10A2 private repository acquisition is implemented through the project-level routing, worker acquisition/publication and exact-snapshot repository scan continuation path. Permanent architecture guards and working-state documentation are present.
+Exact executable candidate:
 
-Before treating the current implementation as green:
+`3b1957871103885ac4fd26e3d3ff91f5d4a5a24f`
 
-1. Trigger fresh CI against the exact candidate head.
-2. Require `npm audit --audit-level=info` to pass at the repository-defined threshold.
-3. Require the full Vitest suite to pass, including Phase 10A2 service, action, component, persistence and architecture guards.
-4. Require `npm run typecheck` to pass.
-5. Require CLI build/version execution to pass.
-6. Require scanner and matrix benchmarks to pass their repository thresholds.
-7. Require the production Next.js build to pass with the repository's CI fixture environment.
-8. Require CSP browser smoke and production diagnostic checks to pass or identify an external quota/provider blocker explicitly.
-9. Review every PR #76 changed file for credential leakage, archive-capability logging, arbitrary egress, public-class widening, cross-workspace/task confusion, expiry/retry bypass, RPC ACL regression and runtime-gate bypass.
-10. Any executable correction restarts focused TDD and invalidates prior candidate evidence.
+CI #897 / run `34606962246`: SUCCESS.
+
+The exact executable candidate passed:
+
+- dependency installation,
+- `npm audit --audit-level=info` with 0 vulnerabilities,
+- 392 Vitest files and 1,731 tests,
+- TypeScript typecheck,
+- CLI build and version execution,
+- scanner benchmark,
+- matrix benchmark,
+- production Next.js build,
+- strict CSP browser smoke,
+- production V5/Turnstile diagnostic,
+- UI artifact upload step.
+
+The Phase 10A2 changed-file security review also completed without an identified release-blocking code defect. Credential boundaries, codeload-only private acquisition, public/private worker class separation, exact task/lease/snapshot binding, retry/expiry handling, privileged RPC ACLs and runtime gates were reviewed.
+
+Any later executable change invalidates this executable evidence and requires a fresh complete validation run.
 
 Detailed state: `docs/development/PHASE_10A2_WORKING_STATE.md`.
 
-## Priority 2 - safely release Phase 10A1 and reconcile the stack
+## Priority 1 - safely release Phase 10A1 and reconcile the stack
 
 PR #74 remains the Phase 10A1 public connected-project release boundary.
 
@@ -59,9 +68,11 @@ Required sequence:
 10. Retarget/rebase/reconcile PR #76 onto the released Phase 10A1/main state.
 11. Re-run the complete Phase 10A2 validation matrix after that reconciliation.
 
-## Priority 3 - Phase 10A2 production schema/provider/private canary
+PR #76 must remain draft or otherwise non-releasable until this stack sequence is complete.
 
-Do not enable the private acquisition runtime merely because the code is merged or CI is green.
+## Priority 2 - Phase 10A2 production schema/provider/private canary
+
+Do not enable the private acquisition runtime merely because the repository code is green.
 
 After Phase 10A1 stack reconciliation:
 
@@ -77,7 +88,7 @@ After Phase 10A1 stack reconciliation:
 10. Disable the flag immediately if identity, credential, network, publication, containment or cleanup invariants fail.
 11. Merge/release Phase 10A2 only after the exact production deployment is verified.
 
-## Priority 4 - independent hosted runtime acceptance
+## Priority 3 - independent hosted runtime acceptance
 
 Phase 10A product releases do not automatically authorize dormant worker activation.
 
@@ -91,7 +102,7 @@ Keep these false/absent until independent operational canary and rollback accept
 
 A canary must prove the exact worker class, containment, quotas, cancellation/recovery, observability, and rollback path before its flag changes in production.
 
-## Priority 5 - remaining provider/security follow-ups
+## Priority 4 - remaining provider/security follow-ups
 
 - Supabase leaked-password protection was last verified disabled; enable only through a supported Auth-management surface and re-verify auth flows.
 - Verify Turnstile production enforcement rather than inferring it from configuration code.
@@ -101,7 +112,7 @@ A canary must prove the exact worker class, containment, quotas, cancellation/re
 
 ## Branch cleanup
 
-Historical completed diagnostic/preview/reconciliation branches remain. Delete them only when a genuine safe delete-ref operation is available. Never simulate deletion by moving stale refs to `main`.
+Remove temporary Phase 10A2 validation marker files before final branch handoff. Historical completed diagnostic/preview/reconciliation branches remain. Delete them only when a genuine safe delete-ref operation is available. Never simulate deletion by moving stale refs to `main`.
 
 ## Baseline rule
 
