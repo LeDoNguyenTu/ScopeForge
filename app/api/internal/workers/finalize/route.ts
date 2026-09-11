@@ -8,6 +8,7 @@ import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
 import {
   authenticateWorkerNode,
+  finalizePrivateRepositorySnapshotFailureAttempt,
   finalizeWorkerAttempt,
 } from "@/lib/worker-control/service";
 import { createWorkerControlServerDependencies } from "@/lib/worker-control/server-dependencies";
@@ -29,6 +30,11 @@ function repositorySnapshotSuccessKind(value: unknown): RepositorySnapshotSucces
   if (candidate.executionClass === "repository_snapshot_github_public_v1") return "public";
   if (candidate.executionClass === "repository_snapshot_github_private_v1") return "private";
   return null;
+}
+
+function isPrivateRepositorySnapshotTerminal(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  return (value as Record<string, unknown>).executionClass === "repository_snapshot_github_private_v1";
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -64,11 +70,17 @@ export async function POST(request: Request): Promise<Response> {
       return workerJson({ ok: true, data: result });
     }
 
-    const result = await finalizeWorkerAttempt({
-      workerId: worker.workerId,
-      leaseToken: body.leaseToken,
-      terminal: body.terminal,
-    }, dependencies);
+    const result = isPrivateRepositorySnapshotTerminal(body.terminal)
+      ? await finalizePrivateRepositorySnapshotFailureAttempt({
+          workerId: worker.workerId,
+          leaseToken: body.leaseToken,
+          terminal: body.terminal,
+        }, dependencies)
+      : await finalizeWorkerAttempt({
+          workerId: worker.workerId,
+          leaseToken: body.leaseToken,
+          terminal: body.terminal,
+        }, dependencies);
     return workerJson({ ok: true, data: result });
   } catch (error) {
     return workerRouteError(error, "worker.finalize");
