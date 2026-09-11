@@ -27,7 +27,7 @@ Corrected Task 5 RED CI #929 / run `34649891292` proved the contract cleanly on 
 - total result was 399 files: 397 passed / 2 expected failing suites, and 1,796 passed / 16 expected failing tests
 - no unrelated regression was observed
 
-Task 5 GREEN implementation now exists:
+Task 5 GREEN implementation includes:
 
 - installation `suspend` and `deleted` fail closed from stable installation identity without requiring provider objects that may already be unavailable
 - installation `unsuspend` requires authoritative GitHub App installation revalidation before returning to active state
@@ -39,6 +39,8 @@ Task 5 GREEN implementation now exists:
 - lifecycle handlers never enqueue scans or mutate existing queued task execution classes
 - corrective migration `20260912021000_phase_10a3_repository_asset_identity_reconciliation.sql` preserves the original service-role RPC contract while locking the linked repository asset, validating repository kind/current canonical identity, and updating its canonical target atomically with the repository link
 
-This exact head is the Task 5 GREEN validation candidate. Task 6 automatic scan completion/no-lost-head follow-up has not started yet and will begin only after this candidate passes the complete release gate.
+Final Task 5 CI #930 / run `34650537947` passed every release gate on exact head `0e5584436bfb72189071c9e681a2ed0ef65e408e`: dependency install, 0-vulnerability audit, full tests, typecheck, CLI build/version, both benchmarks, production build, CSP browser smoke, production diagnostics, and artifact handling.
+
+Task 6 RED coverage is now committed in `tests/project-scans/webhook-reconciliation.test.ts`. It pins manual-intent ignore behavior, immutable snapshot SHA success tracking, equal-head no-op, exactly-one advanced-head follow-up, fresh provider-head advancement before enqueue, replay idempotency, revoked eligibility/runtime gates, authoritative identity drift, exact intent/snapshot database binding, and finalize-route ordering. Production Task 6 behavior has not been changed yet; this exact head is the controlled RED validation candidate.
 
 The Phase 10A3 migrations remain source-only and have not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
