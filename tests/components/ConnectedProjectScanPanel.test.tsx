@@ -24,6 +24,7 @@ const publicProject = {
   isPrivate: false,
   accessStatus: "active" as const,
   projectScanState: "idle" as const,
+  autoScanEnabled: true,
 };
 
 function renderPanel(overrides: Partial<React.ComponentProps<typeof ConnectedProjectScanPanel>> = {}) {
@@ -47,6 +48,20 @@ afterEach(() => {
 });
 
 describe("ConnectedProjectScanPanel", () => {
+  it("shows automatic scanning enabled while preserving the manual scan action", () => {
+    renderPanel();
+    expect(screen.getByText(/automatic scanning/i)).toBeInTheDocument();
+    expect(screen.getByText(/^on$/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^scan project$/i })).toBeEnabled();
+  });
+
+  it("shows automatic scanning disabled without disabling the independent manual scan action", () => {
+    renderPanel({ project: { ...publicProject, autoScanEnabled: false } });
+    expect(screen.getByText(/automatic scanning/i)).toBeInTheDocument();
+    expect(screen.getByText(/^off$/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^scan project$/i })).toBeEnabled();
+  });
+
   it("makes the connected public repository a one-click project scan", () => {
     renderPanel();
     expect(screen.getByText("scopeforge-labs/app")).toBeInTheDocument();
@@ -141,6 +156,12 @@ describe("ConnectedProjectScanPanel", () => {
     renderPanel({ role: "member" });
     expect(screen.getByText(/elevated workspace access/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /owner or admin required/i })).toBeDisabled();
+  });
+
+  it("shows inactive access truthfully and keeps the manual action disabled", () => {
+    renderPanel({ project: { ...publicProject, accessStatus: "inaccessible" } });
+    expect(screen.getByText(/github access is no longer active/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /github access inactive/i })).toBeDisabled();
   });
 
   it("shows the bounded server result and refreshes after a queued scan", async () => {
