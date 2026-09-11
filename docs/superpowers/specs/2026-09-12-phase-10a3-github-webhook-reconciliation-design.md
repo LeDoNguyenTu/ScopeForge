@@ -7,40 +7,34 @@ Target integration order: Phase 10A1 -> Phase 10A2 -> Phase 10A3
 
 ## Goal
 
-Phase 10A3 turns connected GitHub projects from a manual one-click scan workflow into a continuously reconciled workflow driven by authenticated GitHub App webhooks.
+Phase 10A3 turns connected GitHub projects from a manual scan workflow into a continuously reconciled workflow driven by authenticated GitHub App webhooks.
 
-The target user experience is:
+Target flow:
 
 ```text
 Connect GitHub
   -> select repository
   -> verified ScopeForge project
-  -> initial manual scan remains available
-  -> default-branch push occurs
-  -> ScopeForge verifies the webhook and repository state
-  -> latest eligible commit is queued through the existing public or private snapshot class
+  -> default-branch push
+  -> authenticated webhook
+  -> authoritative repository/head revalidation
+  -> coalesced automatic scan intent
+  -> existing public or private snapshot class
   -> immutable snapshot
   -> existing zero-egress repository scan
   -> findings refresh
 ```
 
-Phase 10A3 does not weaken any Phase 10A1 or Phase 10A2 provider, credential, worker, snapshot, or runtime boundary.
+Manual `Scan project` remains available. Phase 10A3 does not widen Phase 10A1 or Phase 10A2 credentials, worker network authority, repository permissions, or runtime gates.
 
-## Core design decision
+## Core decisions
 
-Use GitHub App webhooks as the event source. Do not add provider polling as the primary mechanism.
-
-Reasons:
-
-- near-real-time updates without scheduled GitHub API polling
-- lower provider API usage
-- native installation and repository lifecycle signals
-- replay-safe delivery IDs
-- clean separation between provider event ingestion and the existing scan pipeline
-
-Polling may be added later only as a repair mechanism for missed webhook state, not as the Phase 10A3 normal path.
-
-Phase 10A3 also intentionally does not add pull-request checks, status annotations, or repository write permissions. Those are a separate follow-up because they require a wider product and GitHub permission surface.
+1. GitHub App webhooks are the normal event source. Polling is not the primary mechanism.
+2. Phase 10A3 scans only the current authoritative default-branch head.
+3. Rapid pushes coalesce through a per-link desired-head watermark so the newest commit is never lost while an older scan is active.
+4. Automatic scans are system-triggered. No browser session is invented and no user is treated as having manually requested the scan.
+5. Public and private source acquisition remain separate execution classes.
+6. Phase 10A3 adds no GitHub write permission, pull-request annotation, check run, issue/comment mutation, or repository code execution.
 
 ## Webhook endpoint
 
@@ -50,15 +44,13 @@ Add one public server endpoint:
 POST /api/integrations/github/webhook
 ```
 
-The route is unauthenticated at the browser/session layer because GitHub is the caller. Its trust boundary is the GitHub webhook HMAC signature plus subsequent provider and database revalidation.
+The route is unauthenticated at the browser/session layer because GitHub is the caller. Trust comes from HMAC verification over the raw request bytes and subsequent database/provider revalidation.
 
-The route accepts only `POST`. Other methods remain unsupported.
+The route returns bounded responses and never echoes the raw payload, signature, provider body, token, temporary archive URL, or secret material.
 
-The route must return bounded responses and never echo raw webhook payloads, provider bodies, signatures, or secret material.
+## Server-only configuration
 
-## Server-only webhook secret
-
-Add one new server-only setting:
+Add:
 
 ```text
 GITHUB_APP_WEBHOOK_SECRET
@@ -68,51 +60,48 @@ Requirements:
 
 - separate from `GITHUB_APP_CLIENT_SECRET`
 - separate from `GITHUB_APP_STATE_SECRET`
-- minimum 32 characters
-- maximum 512 characters
-- never exposed through `NEXT_PUBLIC_*`
-- never included in browser state, logs, audit metadata, error responses, worker tasks, snapshots, or findings
+- 32 to 512 characters
+- server-only, never `NEXT_PUBLIC_*`
+- included in validated `GitHubAppConfig` as `webhookSecret`
+- never logged, persisted, returned to the browser, passed to workers, or included in audit metadata
 
-`GitHubAppConfig` gains `webhookSecret` so the GitHub App configuration remains one validated server-only boundary.
+## Raw request validation
 
-## Request size and header validation
+Hard raw-body ceiling: 10 MiB.
 
-The webhook route enforces a hard raw-body ceiling of 10 MiB.
+Before event processing:
 
-Before JSON processing, validate:
+- require JSON-compatible content type
+- require `x-hub-signature-256` in `sha256=<64 hex>` form
+- require `x-github-delivery` to be a UUID
+- require `x-github-event` to be a bounded ASCII token of at most 64 characters
+- reject `Content-Length` above 10 MiB before reading the full body when present
+- independently enforce the same 10 MiB ceiling while reading the request body
 
-- `content-type` is JSON-compatible
-- `x-hub-signature-256` exists and matches `sha256=<64 lowercase or uppercase hex characters>`
-- `x-github-delivery` is a valid UUID string
-- `x-github-event` is a bounded ASCII token no longer than 64 characters
-- request body does not exceed 10 MiB
+Responses:
 
-If `Content-Length` is present and exceeds the limit, reject before reading the full body. The streamed/raw body reader must also enforce the same ceiling so a missing or dishonest header cannot bypass the limit.
+- oversized body: `413`
+- malformed headers/body: `400`
+- invalid signature: `401`
 
-Oversized requests return `413` with a bounded generic response.
-
-Malformed headers or payload shape return `400` without persistence.
-
-Invalid signatures return `401` without persistence.
+None of these failure paths persist a delivery or call GitHub APIs.
 
 ## Signature verification
 
-Verification uses HMAC-SHA256 over the exact raw request bytes and `GITHUB_APP_WEBHOOK_SECRET`.
+Use HMAC-SHA256 over the exact untouched raw bytes and `GITHUB_APP_WEBHOOK_SECRET`.
 
 Implementation requirements:
 
-- compute the expected digest from the untouched raw bytes
-- decode both expected and supplied digests into equal-length byte arrays
-- use a constant-time comparison such as `crypto.timingSafeEqual`
-- never compare secrets using ordinary string equality
+- compute expected digest from raw bytes
+- decode expected and supplied digests to equal-length byte arrays
+- compare with `crypto.timingSafeEqual`
+- never use ordinary string equality for digest comparison
 - never parse or normalize JSON before signature verification
-- never log the supplied or computed signature
+- never log supplied/computed signatures
 
-Signature failure must occur before any event-specific provider lookup, database mutation, or scan enqueue.
+## Event allowlist
 
-## Supported event set
-
-Phase 10A3 handles only this allowlist:
+Phase 10A3 handles:
 
 ```text
 ping
@@ -122,45 +111,33 @@ installation_repositories
 repository
 ```
 
-Unknown but correctly signed GitHub events return `202` with an ignored result and do not create delivery records. This avoids retry storms when the App receives events that ScopeForge does not currently use.
+A correctly signed unknown event returns `202` ignored and creates no delivery row.
 
 ### `ping`
 
-Used only for provider setup verification.
-
-A valid signed `ping` returns `200`. It does not create a scan and does not persist the raw payload.
+A valid signed ping returns `200`. It creates no scan and persists no payload.
 
 ### `push`
 
-Used for continuous scanning.
-
-Only pushes to the repository's authoritative current default branch are eligible. Tag pushes, non-default branches, branch deletion events, and stale default-branch pushes are ignored safely.
+Only the authoritative current default-branch head is eligible. Ignore tags, non-default branches, branch deletion/zero SHA, and superseded commits.
 
 ### `installation`
 
-Used to reconcile installation suspension/removal state.
-
-Supported actions:
+Handle:
 
 - `suspend`
 - `unsuspend`
 - `deleted`
 
-`created` does not create a ScopeForge workspace connection because webhook payloads are not a substitute for the owner/admin OAuth/install callback that binds an installation to a ScopeForge workspace and user.
+`created` never creates a ScopeForge workspace connection. Workspace binding remains the owner/admin install/OAuth flow from Phase 10A1.
 
 ### `installation_repositories`
 
-Used when repository access is added or removed from an existing installation.
-
-Removed repositories become inaccessible for existing ScopeForge links until an authoritative future reconciliation proves access again.
-
-Added repositories do not automatically create new ScopeForge projects. The user must still explicitly import/connect a repository into a workspace.
+Removed repository IDs make existing matching links inaccessible. Added repository IDs may reactivate an existing matching link only after provider revalidation. They never create new ScopeForge assets or links.
 
 ### `repository`
 
-Used for relevant repository identity/lifecycle changes.
-
-Supported actions are limited to events that can affect a connected link:
+Handle only lifecycle actions that affect an existing connected link:
 
 - renamed
 - transferred
@@ -170,238 +147,270 @@ Supported actions are limited to events that can affect a connected link:
 - unarchived
 - deleted
 
-ScopeForge uses the stable GitHub numeric repository ID as the primary lookup key and then performs authoritative provider revalidation where access still exists.
+Stable GitHub numeric repository ID is the lookup key.
 
-## Minimal persisted delivery model
+## Persisted webhook delivery model
 
-Add a private service-only delivery table. Suggested name:
+Add private service-only table:
 
 ```text
 private.github_webhook_deliveries
 ```
 
-Persist only bounded metadata needed for replay protection, reconciliation state, and operational diagnosis:
+Persist only:
 
-- delivery UUID
+- delivery UUID, unique
 - event name
-- action if applicable
-- installation ID if present
-- repository ID if present
-- event commit SHA for an eligible push if present
-- processing state
-- bounded result/error code
+- bounded action
+- installation ID when present
+- repository ID when present
+- push `after` SHA when relevant
+- processing/result state
+- bounded error/result code
 - received timestamp
 - processed timestamp
 
-Do not persist:
+Never persist:
 
 - raw webhook JSON
 - signature header
 - webhook secret
-- installation token
 - App JWT
-- user OAuth token
+- installation/user OAuth token
 - authorization headers
-- temporary archive URL
-- repository source code
+- sender/user profile payload
 - commit messages
-- author email/name data from push payloads
+- author details
+- temporary private archive URL
+- source code
 
-The delivery UUID is unique and provides first-line replay protection.
+RLS is enabled. Browser roles receive no policy and no direct grant. New privileged RPCs are service-role-only.
 
-The table has RLS enabled with no browser policy and no direct browser grant. Normal browser roles have no access. `service_role` authority is restricted to the minimum operations required by the trusted webhook service.
+## Per-link automatic scan state
 
-## Delivery replay and idempotency
+Add private service-only state keyed one-to-one by connected repository link. Suggested table:
 
-A signed supported webhook delivery is admitted through one atomic service operation.
+```text
+private.github_repository_auto_scan_state
+```
 
-The delivery UUID is unique. Re-delivery of the same UUID must not repeat repository state mutation or scan enqueue.
+Persist only bounded synchronization metadata:
 
-For continuous scans, Phase 10A3 also deduplicates by stable repository ID plus immutable commit SHA. A new delivery UUID for a commit already accepted or already represented by the active project scan must not create a duplicate snapshot/scan chain.
+- workspace ID
+- link ID
+- repository ID
+- latest observed authoritative default-branch SHA
+- latest successfully scanned snapshot SHA
+- latest accepted delivery UUID
+- `pending` boolean
+- bounded last outcome/error code
+- timestamps
 
-The design deliberately distinguishes:
+This table is the coalescing boundary.
 
-- delivery replay: same `x-github-delivery`
-- semantic replay: different delivery ID for the same repository commit
-- stale delivery: signed event for an older default-branch head
+It must not contain raw payloads, provider tokens, signatures, source URLs, archive capabilities, or source bytes.
 
-All three must be safe.
+## Delivery and semantic idempotency
 
-## Push event trust model
+Three cases are distinct:
 
-Webhook payload repository metadata is a hint, not authority.
+1. Delivery replay - same `x-github-delivery`. No side effect repeats.
+2. Semantic replay - new delivery ID for repository SHA already accepted/scanned. No duplicate scan chain.
+3. Stale delivery - event SHA is no longer the authoritative default-branch head. Record/return superseded and do not scan it.
 
-For a signed `push` event, ScopeForge reads only the bounded fields required to identify the candidate:
+The delivery UUID is the replay key. Repository ID plus authoritative SHA is the semantic dedupe key.
+
+## Push trust model
+
+Webhook repository metadata is a hint only.
+
+Read only bounded candidate fields from the signed payload:
 
 - installation ID
-- numeric repository ID
+- repository ID
 - `ref`
-- `after` commit SHA
-- deletion flag / zero SHA condition
+- `after`
+- deletion/zero-SHA condition
 
-It does not trust payload `private`, repository URL, owner/name, default branch, or permissions as final authority.
+Do not trust payload visibility, URL, owner/name, default branch, or permissions.
 
 Processing sequence:
 
 1. Verify HMAC over raw bytes.
-2. Validate delivery/event headers and JSON shape.
+2. Validate headers and bounded JSON shape.
 3. Atomically admit the delivery UUID.
-4. Load connected ScopeForge repository links by stable repository ID and installation mapping.
-5. Require the stored GitHub connection and link to be active and `auto_scan_enabled = true`.
-6. Mint a repository-restricted read-only installation token using the stored installation ID.
-7. Re-fetch the exact repository from GitHub and verify stable repository ID, canonical URL, visibility, current default branch, and installation access.
-8. Fetch the authoritative current default-branch head SHA through the provider client.
+4. Load matching stored GitHub connection/link by stable repository ID and installation mapping.
+5. Require active connection, active link, and `auto_scan_enabled = true`.
+6. Mint repository-restricted read-only installation credentials through the existing control plane.
+7. Re-fetch the exact repository and verify ID, canonical URL, current visibility, installation access, and default branch.
+8. Fetch the authoritative current default-branch head SHA.
 9. Require event `ref` to equal `refs/heads/<authoritative-default-branch>`.
-10. Require event `after` to be a valid 40-character Git SHA and equal the authoritative current default-branch head SHA.
-11. If the event SHA is older than the current default-branch head, record/return a bounded `superseded` result and do not scan it.
-12. Reconcile safe repository metadata on the link when provider identity is still valid.
-13. Route the repository through the existing public or private project-scan acquisition class based only on authoritative current provider visibility.
-14. Apply existing runtime gates. No webhook can bypass a disabled hosted runtime.
-15. Persist only bounded delivery outcome metadata.
+10. Require event `after` to be a 40-character hex SHA and equal the authoritative current head.
+11. If not equal, record `superseded` and stop.
+12. Reconcile safe link/asset metadata only after identity verification.
+13. Atomically update the per-link desired-head watermark to the authoritative SHA.
+14. If no compatible automatic scan is active and the desired SHA is not already the latest successfully scanned SHA, enqueue one automatic scan chain.
+15. If a scan is already active, set `pending = true` and do not create a second active chain.
+16. Apply the existing public/private source runtime gates and repository scan gate. No webhook bypass exists.
+17. Persist only bounded delivery outcome metadata.
 
-This model intentionally coalesces rapid pushes. If commits A, B, and C arrive quickly and C is the current provider head when processing occurs, stale A/B events do not create obsolete scans. C is scanned once.
+## Rapid push coalescing and no-lost-head guarantee
 
-## Default branch changes
+Example:
 
-A default branch rename/change may arrive through repository metadata before or around a push.
+- push A arrives and starts scan A
+- push B arrives while A is active
+- push C arrives while A is active
 
-ScopeForge always treats the provider's freshly fetched `default_branch` as authoritative. Stored `github_repository_links.default_branch` is reconciled only after stable repository identity is verified.
+B and C do not create concurrent snapshot tasks. Each valid event advances the desired-head watermark. The final desired SHA becomes C.
 
-A push to the former default branch is ignored once GitHub reports a different current default branch.
+When scan A reaches terminal publication/continuation state, the automatic reconciliation hook compares:
 
-## Public/private visibility transitions
+```text
+latest successfully scanned snapshot SHA
+vs
+latest observed desired-head SHA
+```
 
-Phase 10A3 must preserve Phase 10A1/10A2 execution-class isolation.
+If they differ and the link/connection/runtime remains eligible, ScopeForge enqueues exactly one follow-up chain for the then-current authoritative default-branch head.
 
-If authoritative GitHub metadata says visibility differs from the stored link:
+If the provider head advanced again to D before that enqueue, fresh provider revalidation updates the watermark to D and D becomes the next target. Intermediate B/C scans may be skipped, but the newest head is never silently lost.
 
-- update safe link metadata only through the trusted reconciliation path
-- do not reuse an already queued acquisition class across the visibility transition
-- a new eligible scan uses the execution class matching fresh provider visibility
-- public acquisition must never receive private authority
-- private acquisition must still require `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+This provides latest-state continuous scanning without an unbounded queue per push.
 
-A visibility transition cannot silently broaden worker credentials or network authority.
+## Automatic scan authorization and attribution
 
-## Installation state reconciliation
+A webhook delivery has no human session. Automatic scans are authorized by trusted system state, not by pretending a user clicked the button.
 
-For a signed `installation` event whose installation ID matches a stored ScopeForge connection:
+Add a dedicated service-role-only automatic project-scan enqueue path. It must:
 
-### Suspend
+- require a verified active GitHub connection and repository link
+- require `auto_scan_enabled = true`
+- require the repository/installation/workspace relationship to match
+- require the requested automatic target to equal the current trusted desired-head watermark
+- preserve existing workspace quotas, cooldown/backpressure rules, task limits, and runtime gates
+- create the same worker execution classes and immutable snapshot pipeline used by manual scans
+- record trigger origin as `github_webhook`
 
-- set connection status to `suspended`
-- mark associated repository links `inaccessible`
-- do not enqueue new scans
-- do not cancel already published immutable snapshots
-- queued provider acquisition that has not established fresh claim-time authorization must fail closed through existing authorization checks
+For backward-compatible audit/FK fields that still require a user reference, `github_connections.installed_by` may be retained only as historical attribution. It is not fresh authorization and the automatic enqueue RPC must not require that user to have an active browser session.
 
-### Deleted
+The preferred schema adds explicit trigger provenance to the connected-project intent, such as:
 
-- set connection status to `removed`
-- mark associated repository links `removed`
-- disable automatic scanning for those links
-- do not delete historical assets, snapshots, findings, or audit history
+```text
+trigger_kind = manual | github_webhook
+trigger_delivery_id = nullable UUID
+trigger_commit_sha = nullable 40-char hex
+```
 
-### Unsuspend
+Manual flows keep their current owner/admin authorization. Automatic flows are service-role-only and derive authority from the active connection/link/auto-scan state.
 
-Do not trust the event alone to reactivate repository links.
+## Scan completion reconciliation
 
-- re-fetch installation/repository access using the GitHub App control plane
-- set connection back to `active` only when provider access is confirmed
-- individually reactivate links only when each repository is still accessible and identity matches
-- links no longer in scope remain inaccessible
+The existing snapshot/scan finalization path gains a narrowly scoped automatic reconciliation hook after a connected-project scan reaches a safe terminal point.
 
-## Installation repository selection changes
+For webhook-triggered project scans:
 
-For `installation_repositories`:
+1. read the published immutable snapshot SHA
+2. update `latest successfully scanned snapshot SHA`
+3. re-read the desired-head watermark under lock
+4. if equal, clear `pending`
+5. if different, leave/set `pending` and schedule one follow-up automatic scan when runtime/backpressure allows
 
-- `removed` repository IDs are immediately marked inaccessible for matching links
-- `added` repository IDs are provider-revalidated before an existing matching ScopeForge link can become active again
-- no webhook-created asset or repository link is allowed
-- connection `repository_selection` may be reconciled from authoritative installation metadata when available
+This hook must be idempotent under replayed worker finalization.
 
-## Repository lifecycle reconciliation
+A failed scan does not advance `latest successfully scanned snapshot SHA`. Retry/recovery continues through the existing project-scan mechanisms. The auto-scan state keeps the desired SHA pending until a successful later scan or an explicit ineligible state.
 
-Repository events are used only to maintain existing connected links.
+## Default branch and repository identity changes
+
+Fresh GitHub provider metadata is authoritative.
 
 For rename/transfer:
 
-- look up by stable numeric repository ID
-- re-fetch repository through the stored installation
-- verify access still belongs to the installation
-- update owner login, repository name, full name, canonical GitHub URL, default branch, and visibility only after provider verification
-- update the linked repository asset canonical target atomically with the link to prevent identity drift
+- lookup by stable repository ID
+- re-fetch through stored installation
+- atomically update link owner/name/full name/default branch/visibility/canonical URL and repository asset canonical target only after provider verification
 
-For archive/unarchive:
+A push to an old default branch is ignored after GitHub reports a new default branch.
 
-- archive status is not a new database field in Phase 10A3 unless required by implementation evidence
-- archived repositories are not automatically scanned from push events
-- existing historical results remain readable
+Deleted or inaccessible repositories are marked removed/inaccessible. Historical assets, snapshots, findings, and audit history remain.
 
-For deleted or inaccessible repositories:
+Archived repositories are not automatically scanned. Archive state may remain provider-derived without a new public field unless implementation requires a bounded persisted state.
 
-- mark the link removed/inaccessible using bounded state
-- do not delete historical findings or snapshots
+## Visibility transitions
 
-## Automatic scan actor
+Phase 10A3 preserves execution-class isolation.
 
-Webhook scans have no browser user making the request at delivery time.
+If authoritative visibility changes:
 
-The existing project-scan pipeline currently records `requested_by` and worker tasks require an actor identity. Phase 10A3 therefore uses the link's original trusted installation/import actor only as an attribution principal, not as fresh user authorization.
+- update trusted link metadata only after provider verification
+- never reuse a queued public acquisition as private or vice versa
+- the next automatic scan chooses its class from fresh provider visibility
+- public acquisition never receives private authority
+- private acquisition still requires `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 
-The webhook service must not pretend a user session exists.
+## Installation reconciliation
 
-The preferred database design is to add a dedicated automatic-scan enqueue RPC that:
+### Suspend
 
-- accepts the verified workspace/link/repository/commit context from the service-role control plane
-- derives the attribution actor from trusted persisted connection/link provenance
-- does not require a browser session
-- revalidates connection/link/workspace relationships inside the RPC
-- reuses the existing public/private snapshot enqueue primitives
-- preserves existing project scan intent state and continuation behavior
+- set connection `suspended`
+- mark links inaccessible
+- prevent new automatic scans
+- retain historical results
+- queued provider acquisition that has not completed fresh claim-time authorization fails closed
 
-No browser-callable webhook scan RPC is allowed.
+### Deleted
 
-## Runtime gating
+- set connection `removed`
+- mark links removed
+- disable automatic scanning
+- retain historical data
 
-Webhook acceptance and scan execution are separate capabilities.
+### Unsuspend
 
-A valid webhook may be accepted and reconciled even when hosted scan runtimes are disabled.
+Do not reactivate from event payload alone.
 
-However:
+- re-fetch installation/provider access
+- reactivate connection only after verification
+- individually reactivate existing links only when repository identity/access still matches
+- no new asset/link is created
 
-- public source acquisition still requires `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- private source acquisition still requires `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- repository scanning still requires `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
+### Installation repository selection
 
-When the required source runtime is disabled, the delivery records a bounded `runtime_unavailable` outcome and creates no unauthorized task.
+- removed IDs immediately make matching links inaccessible
+- added IDs can reactivate only an existing link after provider revalidation
+- no automatic import
 
-Phase 10A3 introduces no new bypass or implicit runtime activation.
+## Runtime gates
 
-## Provider API client changes
+Webhook acceptance/reconciliation and worker execution remain separate.
 
-Extend the existing server-only GitHub provider client rather than creating a generic webhook-time HTTP client.
+Existing gates stay authoritative:
 
-Required provider operations are narrowly typed:
+```text
+HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED
+HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED
+HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED
+```
 
-- fetch exact installation repository by stable repository ID
-- fetch authoritative default-branch head SHA
-- fetch installation metadata when reconciling installation status/repository selection
+If the required source runtime is disabled, no source worker task is created. The desired-head watermark stays pending with bounded `runtime_unavailable` state so a later explicit recovery/reconciliation path can continue after runtime authorization.
 
-Each method:
+Phase 10A3 does not enable any hosted runtime flag.
 
-- uses existing bounded GitHub request/error handling
-- never returns raw provider response bodies to callers
-- uses repository-scoped read-only installation credentials when repository access is needed
-- never exposes token material beyond the trusted control-plane call
+## Provider client boundary
 
-No generic arbitrary GitHub API URL method is added.
+Extend the existing server-only GitHub provider client with narrow typed methods only:
+
+- exact installation repository lookup
+- authoritative default-branch head lookup
+- installation metadata lookup for suspend/selection reconciliation
+
+No generic arbitrary GitHub URL client is introduced.
+
+Provider errors are normalized. Raw provider bodies and credentials never escape the control-plane client.
 
 ## Error model
 
-Webhook responses and persisted outcomes use bounded codes.
-
-Representative codes:
+Representative bounded codes:
 
 ```text
 GITHUB_WEBHOOK_SIGNATURE_INVALID
@@ -420,158 +429,153 @@ GITHUB_WEBHOOK_RUNTIME_UNAVAILABLE
 GITHUB_WEBHOOK_RECONCILE_FAILED
 ```
 
-Raw GitHub error bodies, signatures, webhook payloads, temporary URLs, and credentials must never become error messages.
+Correctly signed transient internal/provider failures may return retryable `5xx`. Permanent ignored/ineligible states return `2xx` to avoid useless GitHub retry storms.
 
-For correctly signed deliveries, transient internal/provider failure may return a retryable `5xx` so GitHub can redeliver. Replayed deliveries must remain idempotent.
+No raw payload, provider body, signature, token, secret, authorization header, or private archive URL appears in errors.
 
-Permanent ignored/ineligible states return `2xx` to prevent useless provider retries.
+## Database and RPC security
 
-## Database/RPC security
+All Phase 10A3 schema is forward-only and stacked after Phase 10A2.
 
-All Phase 10A3 schema changes are forward-only and stacked after Phase 10A2.
+Every new `SECURITY DEFINER` function:
 
-Any new `SECURITY DEFINER` function:
+- uses `set search_path = ''`
+- fully qualifies objects
+- validates IDs and workspace/link/installation relationships
+- uses advisory/row locking for delivery admission and per-link coalescing
+- revokes execution from `PUBLIC`, `anon`, and `authenticated`
+- grants only minimum `service_role` execution
 
-- sets `search_path = ''`
-- fully qualifies all database objects
-- validates non-null IDs and expected relationships
-- uses stable repository ID plus workspace/link/installation constraints
-- takes advisory/row locks where duplicate deliveries or concurrent repository events could race
-- revokes default execution from `PUBLIC`, `anon`, and `authenticated`
-- grants only the minimum intended `service_role` execution
+Browser roles receive no direct mutation or read access to raw webhook synchronization tables.
 
-No raw webhook payload column is permitted.
-
-No token, secret, signature, authorization header, archive capability, or source blob is permitted in Phase 10A3 event tables.
+No Phase 10A3 table may contain raw payloads, secrets, signatures, provider tokens, authorization headers, temporary archive capabilities, or source bytes.
 
 ## Logging and privacy
 
-Allowed operational log fields:
+Allowed log fields:
 
 - delivery UUID
-- event name
-- bounded action
+- event/action
 - installation ID
 - repository ID
 - ScopeForge link/task IDs
 - bounded result/error code
 - duration
 
-Do not log:
+Forbidden log fields:
 
 - request body
 - commit messages
-- push author details
-- sender payload
-- signature header
+- sender/author payload data
+- signature
 - webhook secret
-- provider token
+- provider credential
 - raw provider body
-- temporary private archive URL
+- private archive URL
 
-Repository source privacy boundaries from Phase 10A2 remain unchanged.
+## UI
 
-## UI behavior
+No new dashboard architecture is required.
 
-Phase 10A3 does not require a new dashboard architecture.
+Existing connected-project UI may show:
 
-Existing connected-project UI gains truthful automatic-scan status:
+- automatic scanning on/off
+- latest bounded automatic scan state
+- inactive/suspended provider state
+- manual `Scan project` action
 
-- `Automatic scanning on` when `auto_scan_enabled` is true
-- latest accepted automatic event/scan state when useful
-- manual `Scan project` remains available
-- if provider access is suspended/removed, the panel shows the existing inactive/access state rather than pretending automatic scanning is healthy
+No webhook payload is browser-readable.
 
-No webhook delivery payload is exposed to the browser.
+`auto_scan_enabled` must be honored immediately. An owner/admin toggle is a bounded follow-up if the current UI does not expose it yet.
 
-A later bounded follow-up may add an owner/admin toggle for `auto_scan_enabled` if the existing UI does not already expose it. The Phase 10A3 webhook service must honor the persisted flag from day one.
+## TDD requirements
 
-## Testing strategy
+Implementation must preserve RED then GREEN evidence for security-sensitive behavior.
 
-Implementation follows TDD and must preserve evidence of RED before GREEN for each security-sensitive boundary.
+Required tests:
 
-Required tests include:
+1. separate `GITHUB_APP_WEBHOOK_SECRET` validation
+2. valid HMAC over exact raw bytes
+3. altered body fails old signature
+4. missing/malformed signature fails before persistence/provider calls
+5. constant-time comparison path
+6. content-length and streamed 10 MiB ceiling
+7. invalid delivery UUID/event header rejection
+8. same delivery UUID has no repeated side effects
+9. unsupported signed event ignored without persistence
+10. signed ping succeeds without scan
+11. tags/non-default branch ignored
+12. deletion/zero SHA ignored
+13. stale push superseded after head re-fetch
+14. current authoritative default-branch push accepted
+15. payload URL/visibility/default branch cannot override provider state
+16. disconnected or auto-scan-disabled link creates no scan
+17. suspended/removed connection/link creates no scan
+18. semantic duplicate repository/SHA creates no duplicate chain
+19. push while scan active advances desired watermark and sets pending
+20. multiple rapid pushes coalesce to newest watermark
+21. terminal scan reconciliation clears pending when scanned SHA equals desired SHA
+22. terminal scan reconciliation schedules one follow-up when desired SHA advanced
+23. replayed finalization cannot duplicate the follow-up
+24. failed scan does not advance latest-successful SHA
+25. automatic enqueue requires no browser session
+26. automatic enqueue authority derives from active connection/link/auto-scan state
+27. installed-by user is attribution only, not fresh manual authorization
+28. public repository routes only to public snapshot class
+29. private repository routes only to private snapshot class
+30. visibility transition cannot reuse wrong class
+31. runtime gates stay fail-closed
+32. installation suspend/delete lifecycle behavior
+33. unsuspend requires provider revalidation
+34. repository selection removal/inclusion reconciliation
+35. webhook events cannot create new assets/links
+36. rename/transfer updates link and asset identity atomically
+37. repository deletion preserves history
+38. event/auto-scan tables contain no raw payload/secret/token/archive URL columns
+39. new privileged RPCs remain service-role-only with pinned search path
+40. logs/results exclude secret-bearing fields
+41. existing manual public/private project scan tests remain green
+42. Phase 10C admin, strict CSP, V5/dashboard, worker authorization, runtime, snapshot, repository-scan, and scanner regression suites remain green
 
-1. configuration requires a separate valid `GITHUB_APP_WEBHOOK_SECRET`
-2. valid HMAC-SHA256 signature succeeds over exact raw bytes
-3. altered body with old signature fails
-4. malformed/missing signature fails before persistence/provider calls
-5. constant-time digest comparison path is used
-6. oversized body is rejected by both content-length and streamed byte ceiling
-7. invalid delivery UUID/event header is rejected
-8. duplicate delivery UUID does not repeat side effects
-9. unsupported signed event is ignored without persistence
-10. valid `ping` succeeds without scan creation
-11. push to tag/non-default branch is ignored
-12. branch deletion/zero SHA is ignored
-13. stale default-branch push is superseded after authoritative head re-fetch
-14. current default-branch head push is accepted
-15. different delivery IDs for same repository/commit do not create duplicate scan chains
-16. disconnected repository push creates no scan
-17. `auto_scan_enabled = false` creates no scan
-18. inactive/suspended/removed connection or link creates no scan
-19. payload visibility/URL/default branch cannot override authoritative provider metadata
-20. public repository routes only to the public snapshot class
-21. private repository routes only to the private snapshot class
-22. visibility transition never reuses the wrong acquisition class
-23. disabled public/private/scan runtime gates remain fail-closed
-24. installation suspend marks connection/links inactive without deleting history
-25. installation delete marks connection/links removed and disables autoscan
-26. unsuspend requires provider revalidation before reactivation
-27. installation repository removal marks matching links inaccessible
-28. added repository event cannot create a new ScopeForge asset/link
-29. repository rename/transfer updates link and asset identity atomically after provider verification
-30. repository deletion does not delete findings/snapshot history
-31. webhook scan path requires no browser session
-32. webhook scan attribution is derived only from trusted persisted provenance
-33. new event tables contain no raw payload/secret/token/archive URL columns
-34. all new privileged RPCs remain service-role-only with pinned search path
-35. logs/results contain no signature, secret, token, raw payload, raw provider body, or private archive capability
-36. existing manual public and private scan tests remain green
-37. Phase 10C admin, strict CSP, V5/dashboard, worker authorization, repository scan, runtime worker, and scanner regression suites remain green
+## Release gates
 
-## Release and operational gates
-
-Phase 10A3 is stacked and cannot release ahead of Phase 10A1 or Phase 10A2.
+Phase 10A3 cannot release ahead of Phase 10A1 or Phase 10A2.
 
 Before release:
 
-1. Phase 10A1 live GitHub provider canary must pass and Phase 10A1 must release safely.
-2. Phase 10A2 private acquisition schema/provider/runtime canary must satisfy its own release gates before any Phase 10A3 private automatic scan is authorized.
-3. Phase 10A3 must be reconciled onto the final released predecessor base and fully revalidated.
-4. Exact-head tests, audit, typecheck, CLI, benchmarks, Next.js build, CSP browser smoke, production diagnostics, and changed-file security review must pass.
-5. Apply only absent reviewed Phase 10A3 migrations to the ScopeForge Supabase project, never the Job Command Center project.
-6. Re-run targeted ACL/schema queries and Supabase Security Advisor after migration.
-7. Configure `GITHUB_APP_WEBHOOK_SECRET` through a supported secret-management surface without exposing its value.
-8. Set the GitHub App webhook URL to `https://scopeforge.dev/api/integrations/github/webhook`.
-9. Verify webhook SSL delivery and signed `ping` acceptance.
-10. Verify the App subscribes only to the events Phase 10A3 handles, plus any already-required App events.
-11. Run a canary default-branch push on an explicitly connected public repository and prove one automatic scan chain.
-12. After Phase 10A2 is operationally released, run a separate private repository automatic-scan canary before enabling that path broadly.
-13. Prove duplicate/redelivery behavior and repository access removal behavior during canary.
-14. Confirm no webhook secret/signature/raw payload/provider credential appears in browser state, database event rows, audit rows, redirects, ordinary logs, worker contracts, or findings.
-15. Keep unrelated hosted worker capability flags independently gated.
+1. Phase 10A1 live GitHub provider canary passes and Phase 10A1 releases.
+2. Phase 10A2 satisfies its schema/provider/private-runtime canary and releases before private automatic scanning is authorized.
+3. Phase 10A3 is reconciled onto the released predecessor and fully revalidated.
+4. Exact-head audit, tests, typecheck, CLI, benchmarks, production build, CSP browser smoke, production diagnostics, and security review pass.
+5. Apply only absent reviewed Phase 10A3 migrations to the ScopeForge Supabase project, never Job Command Center.
+6. Re-run targeted ACL/schema queries and Security Advisor.
+7. Configure `GITHUB_APP_WEBHOOK_SECRET` through a supported secret-management surface without exposing it.
+8. Configure webhook URL `https://scopeforge.dev/api/integrations/github/webhook`.
+9. Verify signed GitHub `ping` over TLS.
+10. Subscribe only to the handled event families required by the design.
+11. Canary one connected public repository default-branch push and prove one automatic scan chain.
+12. Prove rapid-push coalescing and no-lost-latest-head behavior.
+13. Prove duplicate delivery and repository-access-removal behavior.
+14. After Phase 10A2 private runtime acceptance, canary one private automatic scan separately.
+15. Confirm no webhook/provider secret-bearing material reaches browser state, webhook rows, audit rows, logs, redirects, worker contracts, snapshots, or findings.
 
 ## Explicitly out of scope
 
 Phase 10A3 does not add:
 
-- pull request scanning
-- GitHub Checks API annotations
-- commit status writes
+- pull-request scanning
+- GitHub Checks/status writes
 - repository write permissions
 - issue/comment creation
-- automatic repository import from webhook events
-- automatic workspace creation
+- automatic repository import/workspace creation
 - generic GitHub API worker access
-- polling as the normal event source
+- polling as normal event source
 - arbitrary webhook event execution
 - repository code execution
 - package installation/build/test execution
 - deployment discovery or DAST authorization
-- generic target scanning triggered from untrusted webhook fields
-- automatic production runtime activation
+- automatic hosted runtime activation
 
 ## Success criteria
 
-Phase 10A3 succeeds when a connected repository with automatic scanning enabled can receive a legitimate GitHub default-branch push and ScopeForge safely turns only the current authoritative head into one existing project-scan chain, while duplicate/stale deliveries coalesce, repository/install lifecycle changes reconcile fail-closed, public/private acquisition classes remain isolated, runtime gates remain authoritative, and no webhook or provider credential material crosses into browser, persistence, worker, snapshot, or finding surfaces.
+Phase 10A3 succeeds when a connected repository with automatic scanning enabled receives legitimate GitHub default-branch pushes and ScopeForge safely converges on scanning the newest authoritative head exactly once per effective state, while replayed/stale deliveries are harmless, rapid pushes coalesce without losing the latest commit, installation/repository lifecycle changes fail closed, automatic scans are system-authorized rather than browser-user impersonation, public/private execution classes remain isolated, runtime gates remain authoritative, and no webhook/provider credential material crosses into browser, persistence, worker, snapshot, or finding surfaces.
