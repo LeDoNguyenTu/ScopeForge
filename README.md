@@ -1,49 +1,113 @@
 # ScopeForge
 
-**Open-source application security that helps developers discover security problems, understand the evidence, and verify fixes without turning a scanner into another source of risk.**
+**Open-source application security for finding problems, preserving evidence, and verifying fixes without turning the scanner itself into another source of risk.**
 
-ScopeForge is designed around a practical security loop:
+ScopeForge combines a deterministic local repository scanner with a hosted security control plane built around a practical loop:
 
 **Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify**
 
-The project combines a local/passive repository scanner with a web control plane that will later support authorized runtime security, normalized findings, remediation workflows, and community security knowledge.
+The project is deliberately security-boundary-first: scanned repositories are hostile input, provider credentials stay out of workers and browsers, source acquisition is separated from scanner execution, and higher-risk runtime capabilities remain independently gated.
 
 > Use ScopeForge only on systems and repositories you own or are explicitly authorized to assess.
 
-## Current status
+## Current state
 
-The Phase 3 code and supply-chain security feature set is implemented. Final completion is gated by the release-readiness process in `docs/scanner/RELEASE_READINESS.md`, including exact-head CI and post-merge `main` verification.
+The released production baseline is the Phase 10C platform/admin build on `scopeforge.dev`. The local scanner and the broader hosted security platform are implemented across the repository, while the GitHub connected-project rollout is progressing through a deliberately stacked release sequence:
 
-Phase 3 scanning is local and passive. It does not require a ScopeForge account.
+- **Phase 10A1 — Connected GitHub projects:** implemented and fully CI-validated. Production database migrations/ACL hardening are already verified, but release still requires a live GitHub App configuration and authenticated connection/import canary.
+- **Phase 10A2 — Private GitHub repository acquisition:** implemented as a separate credential-isolated execution class and fully validated on the current Phase 10A1 stack. Its production schema/private-worker canary is intentionally blocked behind Phase 10A1 release.
+- **Phase 10A3 — GitHub webhook reconciliation:** implemented on the stacked development branch with signed raw-body verification, replay protection, provider-authoritative lifecycle reconciliation, latest-head coalescing, immutable-snapshot completion tracking, and browser-safe automatic-scan status. Its migrations remain source-only and no production webhook/secret/runtime activation is implied by implementation or CI.
 
-Phase 7 Community Security Packs v1 is implemented in candidate PR #54 and is pending exact-head acceptance. The v1 design is local-only, explicitly selected, data-only, and limited to the closed `static_literal_v1` matcher. Hosted pack distribution/activation, active rules, executable plugins, and target-repository auto-discovery do not exist.
+Exact release state, validation evidence, blockers, and sequencing are tracked in `docs/development/CURRENT_STATE.md`, `docs/development/NEXT_STEPS.md`, and the active phase working-state documents.
 
-### Local scanner capabilities
+## What ScopeForge provides
+
+### Local deterministic repository security
+
+The local scanner is passive by default and does not require a ScopeForge account. Current capabilities include:
 
 - bounded hostile-repository inventory with file-count, file-size, total-byte, ignore, and symlink boundaries
 - safe no-follow content reads with file identity and size revalidation
 - normalized findings, stable fingerprints, deterministic ordering, explicit scanner errors, and policy exit codes
-- report-only default with opt-in severity enforcement
 - provider-aware secret detection with mandatory redaction and one-way fingerprints
 - JavaScript/TypeScript syntax-aware structural SAST without target module execution
 - bounded high-confidence Express request-input to Node `child_process.exec` / `execSync` command-injection analysis
 - npm dependency inventory from supported lockfiles and manifest fallback
 - optional OSV vulnerability enrichment, disabled by default
 - CycloneDX 1.7 JSON SBOM generation independent of OSV availability
-- Dockerfile security analysis
-- Kubernetes manifest security analysis
-- selected Terraform AWS configuration analysis
-- GitHub Actions workflow security analysis
-- `.npmrc` and `vercel.json` security checks
-- explicitly selected local Security Packs using the bounded `static_literal_v1` matcher
+- Dockerfile, Kubernetes, selected Terraform AWS, GitHub Actions, `.npmrc`, and `vercel.json` checks
+- explicitly selected local Security Packs using the closed `static_literal_v1` matcher
 - versioned baselines with new/existing finding classification
 - terminal, deterministic native JSON, and deterministic SARIF 2.1.0 output
-- GitHub Code Scanning compatible SARIF generation
-- committed golden-output continuity tests
-- mixed-repository and hostile-input integration coverage
-- deterministic 700-file CI benchmark for catastrophic performance regression detection
+- GitHub Code Scanning-compatible SARIF generation
+- hostile-input integration coverage and deterministic CI performance benchmarks
 
 Detailed limitations are documented in `docs/scanner/LIMITATIONS.md`.
+
+### Hosted security control plane
+
+The Next.js/Supabase control plane adds product workflows around deterministic evidence while preserving separate authority boundaries:
+
+- authenticated workspaces and RLS-backed browser read models
+- repository assets, verification, canonical security findings, evidence, and lifecycle history
+- remediation/retest workflows and Security Story presentation
+- isolated worker scheduling, leases, recovery, cancellation, and bounded execution classes
+- immutable repository source snapshots backed by private artifact storage
+- exact-snapshot hosted repository scanning with no implicit reacquisition
+- platform administration and operational visibility
+- strict nonce CSP and hardened browser security headers
+
+Hosted runtime/network capabilities remain independently reviewed and default-off until their own production canaries pass.
+
+## Connected GitHub project pipeline
+
+ScopeForge’s connected-project architecture is designed to support the convenient workflow of selecting a repository while keeping provider credentials and hostile source code out of inappropriate trust zones.
+
+```text
+GitHub App installation
+        |
+        v
+ScopeForge control plane
+  +--> verify installation + repository identity
+  +--> repository-scoped read-only provider token
+  +--> choose public/private acquisition class
+        |
+        v
+immutable source snapshot
+        |
+        v
+zero-egress repository scanner
+        |
+        v
+canonical findings + evidence
+```
+
+For automatic scanning, Phase 10A3 extends that path without trusting webhook payload metadata as repository truth:
+
+```text
+signed GitHub webhook
+        |
+        +--> exact raw-byte HMAC-SHA256 verification
+        +--> delivery replay protection
+        +--> authoritative installation/repository/default-head re-fetch
+        +--> latest-default-head coalescing
+        |
+        v
+existing immutable snapshot + zero-egress scan pipeline
+```
+
+Important boundaries:
+
+- GitHub App private keys, OAuth tokens, App JWTs, and installation tokens remain in the trusted control plane.
+- Public and private repository acquisition use distinct execution classes and capability gates.
+- A private worker receives only an attempt-bound archive capability, never provider credentials.
+- Repository scanners consume immutable published snapshots and do not receive GitHub/R2 acquisition authority.
+- Webhook raw bodies, signatures, secrets, authorization headers, temporary archive URLs, and source bytes are not persisted as webhook reconciliation metadata.
+- Browser code sees only reviewed public link/read-model state such as repository identity, access status, scan state, and the automatic-scan preference.
+- Manual owner/admin scans remain independent from the automatic-scan preference.
+- Rapid default-branch pushes coalesce to the newest authoritative head rather than creating an unbounded scan fan-out.
+
+The full authority model is documented in `docs/ARCHITECTURE.md`.
 
 ## Quick start
 
@@ -61,7 +125,7 @@ npm run scopeforge -- rules list
 npm run scopeforge -- scan .
 ```
 
-The repository is currently source-installed. ScopeForge is not yet published as a standalone npm package or reusable GitHub Action.
+ScopeForge is currently source-installed; the CLI is not yet published as a standalone npm package or reusable GitHub Action.
 
 ## CLI examples
 
@@ -134,9 +198,9 @@ List built-in rules:
 npm run scopeforge -- rules list
 ```
 
-## Security Packs - local v1 candidate
+## Security Packs
 
-Security Packs are loaded only from explicit local paths. A target repository containing `scopeforge-pack.json` or a `fixtures/` directory cannot activate a pack.
+Security Packs v1 are explicitly selected local, data-only rule bundles. They cannot be auto-activated by content inside the target repository and cannot execute arbitrary code.
 
 Validate and inspect the first-party example:
 
@@ -153,9 +217,7 @@ node .scopeforge-build/packages/cli/index.js scan . \
   --pack security-packs/first-party/node-tls-verification
 ```
 
-Multiple `--pack` flags may be supplied up to the fixed v1 ceiling. Pack paths resolve from the CLI working directory, not from the scanned repository. Baseline creation remains pack-free, and hosted JSON rejects Security Pack findings.
-
-See `docs/security-packs/AUTHORING.md` and `docs/security-packs/REVIEWING.md` for the exact schema, limits, fixture contract, versioning, and review requirements.
+See `docs/security-packs/AUTHORING.md` and `docs/security-packs/REVIEWING.md` for schema, limits, fixture contracts, versioning, and review requirements.
 
 ## Exit codes
 
@@ -204,23 +266,15 @@ Repository configuration may tighten inventory budgets but cannot raise ScopeFor
 
 ## Secret handling
 
-The current provider-aware scanner includes GitHub, Stripe live, Slack, complete private-key block, and contextual high-entropy assignment rules.
+The provider-aware scanner includes GitHub, Stripe live, Slack, complete private-key block, and contextual high-entropy assignment rules.
 
 Raw detected secret values are redacted before normalized findings are constructed. They must not appear in terminal, native JSON, SARIF, baselines, benchmark output, or hosted audit data.
 
 Use `scopeforge:allow-secret` only for intentional fixture content on the same line or on an exact standalone immediately preceding comment. Prefer reviewed fingerprint allowlisting for durable exceptions.
 
-## JavaScript and TypeScript analysis
+## Dependency and infrastructure analysis
 
-ScopeForge parses JS, JSX, MJS, CJS, TS, TSX, MTS, and CTS using the TypeScript parser without executing repository code or resolving target modules.
-
-Current structural rules include direct dynamic-code execution constructs and explicit TLS certificate-verification disablement where Node HTTPS identity can be established statically.
-
-The current bounded taint rule proves selected Express `req.query`, `req.params`, and `req.body` field flows into statically established Node `child_process.exec` or `execSync` sinks. It is intentionally narrow and does not claim generalized whole-program taint coverage.
-
-## Dependency and SBOM behavior
-
-JavaScript dependency inventory currently supports:
+JavaScript dependency inventory supports:
 
 - `npm-shrinkwrap.json`
 - `package-lock.json`
@@ -230,65 +284,31 @@ JavaScript dependency inventory currently supports:
 
 Resolved lockfile versions are preferred. OSV enrichment is disabled by default. When enabled, only normalized npm package identity and exact version are sent to ScopeForge's fixed OSV endpoint. Repository source, arbitrary target configuration, and detected secret values are not sent.
 
-CycloneDX generation is local and independent of OSV. A network outage does not prevent supported dependency inventory or SBOM generation.
-
-## Infrastructure and workflow analysis
-
-Phase 3 includes conservative local checks for:
-
-- Dockerfiles
-- Kubernetes YAML
-- selected Terraform AWS resources and policy documents
-- GitHub Actions workflows under `.github/workflows/`
-- `.npmrc`
-- `vercel.json`
-
-ScopeForge does not execute Dockerfiles, shell commands, Terraform, providers, provisioners, Kubernetes manifests, Helm, Kustomize, kubectl, GitHub Actions workflows, package managers from the target repository, or cloud APIs while scanning.
-
-## GitHub Actions and Code Scanning
-
-A complete source-install and SARIF upload example is documented in `docs/scanner/CI.md`.
-
-Until a standalone distribution exists, CI users should pin a reviewed ScopeForge revision, install ScopeForge's own dependencies with lifecycle scripts disabled in an isolated tool directory, build the CLI there, and pass the target repository path explicitly.
-
-## Performance evidence
-
-The Phase 3 completion benchmark generates a deterministic 700-file mixed repository and invokes the compiled CLI in-process with OSV disabled.
-
-Diagnostic CI #311 observed 700 files analyzed, 0 findings, 0 errors, 928 ms wall time, 859 ms scanner duration, and a 22,900,736-byte process RSS delta on a GitHub-hosted Ubuntu 24.04 runner. The CI gate uses a deliberately broad 20-second ceiling only to catch catastrophic regressions.
-
-These values are benchmark evidence, not a production performance guarantee. Methodology and caveats are in `docs/scanner/PERFORMANCE.md`.
+ScopeForge also performs conservative local checks for Dockerfiles, Kubernetes YAML, selected Terraform AWS resources/policies, GitHub Actions workflows, `.npmrc`, and `vercel.json`. It does not execute those definitions or invoke target package managers/cloud tooling while scanning.
 
 ## Architecture
 
 ```text
-Repository
-  |
-  v
-ScopeForge CLI
-  +--> bounded inventory
-  +--> safe no-follow content reads
-  +--> secrets
-  +--> JS/TS structural SAST
-  +--> bounded command taint analysis
-  +--> dependency inventory
-  +--> optional fixed-endpoint OSV enrichment
-  +--> Docker / Kubernetes / Terraform / GitHub Actions / config checks
-  +--> explicitly selected local static Security Packs
-  +--> normalized findings + explicit scanner errors
-  +--> baseline classification + policy
-  +--> terminal / JSON / SARIF
-  +--> local CycloneDX SBOM
-
-Browser
-  |
-  v
-Next.js / Vercel control plane
-  +--> Supabase Auth + PostgreSQL
-  +--> authorized hosted/runtime workflows behind separate capability boundaries
+Repository / GitHub project
+        |
+        +-------------------- local ---------------------+
+        |                                                |
+        v                                                v
+ScopeForge CLI                                Next.js / Vercel control plane
+  +--> bounded inventory                       +--> Supabase Auth + PostgreSQL
+  +--> safe no-follow reads                     +--> verified GitHub App integration
+  +--> secrets / SAST / SCA / IaC              +--> immutable snapshot orchestration
+  +--> local Security Packs                     +--> private worker/control boundaries
+  +--> JSON / SARIF / SBOM                      +--> canonical findings + remediation
+                                                    |
+                                                    v
+                                           isolated worker classes
+                                             +--> public acquisition
+                                             +--> private acquisition
+                                             +--> zero-egress repo scan
 ```
 
-The local scanner and web control plane are deliberately separated. Local Security Pack selection does not grant hosted, worker, browser, or network authority.
+The local scanner and hosted control plane are deliberately separated. Local rule selection does not grant hosted, browser, worker, provider, or network authority.
 
 ## Security boundary
 
@@ -296,52 +316,52 @@ Scanned repositories are hostile input.
 
 ScopeForge local scanning:
 
-- reads only through bounded repository inventory and safe content-read boundaries
-- does not follow repository symlinks for scanner content reads
+- uses bounded inventory and safe no-follow content reads
 - does not execute target repository code or lifecycle scripts
-- does not install target project dependencies
+- does not install target dependencies
 - does not execute target Docker, Terraform, Kubernetes, or workflow definitions
 - does not send source code to OSV
 - does not send detected secret values anywhere
 - fails distinctly when requested analysis is incomplete
-- uses no-follow output and baseline file handling
-- requires Security Packs to be explicitly selected outside the target repository
-- keeps Security Packs data-only and offline
+
+ScopeForge hosted scanning additionally separates provider authorization, source acquisition, immutable artifact publication, zero-egress scanner execution, runtime-network capabilities, and browser authority. Workers never receive Supabase `service_role`, and repository scanner workers do not inherit GitHub App credentials or general network access.
 
 Report ScopeForge vulnerabilities privately as described in `SECURITY.md`.
 
+## Environment and deployment
+
+Environment requirements, server-only GitHub App settings, R2 configuration, runtime gates, and rollout rules are documented in `docs/ENVIRONMENT.md` and `.env.example`.
+
+Production capability flags are intentionally default-off. A successful code review or CI run does **not** by itself authorize production worker activation, database migration, webhook registration, or provider-secret changes.
+
 ## Development validation
 
+The CI release matrix covers the full repository rather than only the changed package:
+
 ```bash
+npm audit --audit-level=info
 npm test
 npm run typecheck
 npm run build:cli
 node .scopeforge-build/packages/cli/index.js version
 npm run benchmark:scanner
+npm run benchmark:matrix
 npm run build
 ```
 
-Current validation evidence is tracked in `docs/development/TEST_STATUS.md` and the active phase release/handover documents.
+CI also runs the strict-CSP browser smoke, production V5/Turnstile diagnostic, and visual acceptance artifact step.
+
+Current validation evidence is tracked in `docs/development/TEST_STATUS.md` and the active phase release/working-state documents.
 
 ## Project direction
 
-ScopeForge is being built around more than detection.
+ScopeForge is designed around more than detection:
 
-### Security Story
-
-Important findings should separate observed evidence from inferred consequence and help people understand what could be affected.
-
-### Explain Mode
-
-Security information should support progressive disclosure from plain-language explanation to developer and security detail.
-
-### Prepare Mode
-
-Findings should lead to practical preparation, including what to fix, what related systems to review, what telemetry to inspect, whether credentials may need rotation, and how to verify remediation.
-
-### Community Security Packs
-
-The reviewed local v1 candidate carries versioned static detection metadata, mappings, explainers, remediation guidance, preparedness information, fixtures, validation, and false-positive notes through a closed machine-validated schema. It does not execute arbitrary community JavaScript, provide hosted distribution, or permit active/network-capable pack rules.
+- **Security Story** separates observed evidence from inferred consequence and helps explain what can be affected.
+- **Explain Mode** supports progressive disclosure from plain-language explanation to developer/security detail.
+- **Prepare Mode** turns findings into practical remediation, telemetry, credential-rotation, and verification steps.
+- **Community Security Packs** provide reviewed, versioned, machine-validated local detection knowledge without executable plugin authority.
+- **Connected projects** aim to make repository security continuous while retaining immutable provenance and strict provider/worker isolation.
 
 ## Roadmap
 
@@ -354,6 +374,7 @@ The reviewed local v1 candidate carries versioned static detection metadata, map
 7. Community Security Packs
 8. Validation, benchmarks, and public methodology
 9. Production hardening and public release
+10. Connected repositories, platform operations, and continuous reconciliation
 
 Detailed phase state and acceptance gates are tracked in `docs/PHASES.md`.
 
@@ -361,17 +382,17 @@ Detailed phase state and acceptance gates are tracked in `docs/PHASES.md`.
 
 Start with:
 
-1. `docs/development/SESSION_HANDOFF.md`
-2. `docs/development/CURRENT_STATE.md`
-3. `docs/scanner/CI.md`
-4. `docs/scanner/LIMITATIONS.md`
-5. `docs/scanner/PERFORMANCE.md`
-6. `docs/security-packs/AUTHORING.md`
-7. `docs/security-packs/REVIEWING.md`
+1. `docs/development/CURRENT_STATE.md`
+2. `docs/development/NEXT_STEPS.md`
+3. `docs/ARCHITECTURE.md`
+4. `docs/ENVIRONMENT.md`
+5. `docs/scanner/CI.md`
+6. `docs/scanner/LIMITATIONS.md`
+7. `docs/scanner/PERFORMANCE.md`
+8. `docs/security-packs/AUTHORING.md`
+9. `docs/security-packs/REVIEWING.md`
 
-Long-term product architecture is in `docs/superpowers/specs/2026-08-24-community-platform-design.md`.
-
-Phase 7 Security Pack architecture and implementation steps are in the active Phase 7 spec/plan under `docs/superpowers/`.
+Long-term and phase-specific designs/plans live under `docs/superpowers/`.
 
 ## Community
 
