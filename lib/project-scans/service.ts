@@ -36,21 +36,18 @@ export interface ProjectScanServiceDependencies {
     actorId: string;
   }): Promise<ConnectedProjectScanContext>;
   revalidateRepository(context: ConnectedProjectScanContext): Promise<GitHubRepositorySummary>;
-  snapshotRuntimeEnabled(): boolean;
-  privateSnapshotRuntimeEnabled(): boolean;
-  scanRuntimeEnabled(): boolean;
   enqueueSnapshotIntent(context: ConnectedProjectScanContext): Promise<{ taskId: string }>;
   enqueuePrivateSnapshotIntent(context: ConnectedProjectScanContext): Promise<{ taskId: string }>;
+  loadContinuation(input: {
+    snapshotTaskId: string;
+    snapshotId: string;
+  }): Promise<ConnectedProjectContinuationContext | null>;
   loadRecovery(input: {
     workspaceId: string;
     assetId: string;
     actorId: string;
     linkId: string;
   }): Promise<ConnectedProjectScanRecovery | null>;
-  loadContinuation(input: {
-    snapshotTaskId: string;
-    snapshotId: string;
-  }): Promise<ConnectedProjectContinuationContext | null>;
   markWaitingForScanRuntime(context: ConnectedProjectContinuationContext): Promise<void>;
   enqueueScanContinuation(context: ConnectedProjectContinuationContext): Promise<{
     taskId: string;
@@ -58,6 +55,9 @@ export interface ProjectScanServiceDependencies {
     replayed: boolean;
   }>;
   recordRetryPending(context: ConnectedProjectContinuationContext): Promise<void>;
+  snapshotRuntimeEnabled(): boolean;
+  privateSnapshotRuntimeEnabled(): boolean;
+  scanRuntimeEnabled(): boolean;
 }
 
 function failure(code: ProjectScanErrorCode, message: string): ProjectScanError {
@@ -65,191 +65,155 @@ function failure(code: ProjectScanErrorCode, message: string): ProjectScanError 
 }
 
 function validUuid(value: string): string {
-  if (!UUID_PATTERN.test(value)) {
-    throw failure("PROJECT_SCAN_INPUT_INVALID", "Connected project scan input is invalid.");
+  if (!UUID_PATTERN.test(value)) throw failure("PROJECT_SCAN_INPUT_INVALID", "Connected project identifier is invalid.");
+  return value;
+}
+
+function parseProjectState(value: unknown): ProjectScanState {
+  if (
+    value !== "idle"
+    && value !== "snapshot_queued"
+    && value !== "waiting_scan_runtime"
+    && value !== "scan_queued"
+    && value !== "retry_pending"
+  ) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan state is invalid.");
   }
   return value;
 }
 
-function objectValue(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function uuidField(value: unknown): string | null {
-  return typeof value === "string" && UUID_PATTERN.test(value) ? value : null;
-}
-
-function positiveIntegerField(value: unknown): number | null {
-  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
-}
-
-function isRepositoryAccessStatus(
-  value: unknown,
-): value is ConnectedProjectContinuationContext["accessStatus"] {
-  return value === "active" || value === "inaccessible" || value === "removed";
-}
-
-function isProjectScanState(value: unknown): value is ProjectScanState {
-  return value === "idle"
-    || value === "snapshot_queued"
-    || value === "waiting_scan_runtime"
-    || value === "scan_queued"
-    || value === "retry_pending";
-}
-
-function isRecoverableProjectScanState(value: unknown): value is RecoverableProjectScanState {
-  return value === "waiting_scan_runtime"
-    || value === "retry_pending"
-    || value === "scan_queued";
-}
-
-function parseSnapshotEnqueue(value: unknown): { taskId: string } {
-  const row = objectValue(value);
-  const taskId = uuidField(row?.taskId);
-  if (!taskId) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project snapshot could not be queued safely.");
-  return { taskId };
-}
-
 function parseContinuation(value: unknown): ConnectedProjectContinuationContext | null {
   if (value === null) return null;
-  const row = objectValue(value);
-  const workspaceId = uuidField(row?.workspaceId);
-  const assetId = uuidField(row?.assetId);
-  const actorId = uuidField(row?.actorId);
-  const linkId = uuidField(row?.linkId);
-  const snapshotTaskId = uuidField(row?.snapshotTaskId);
-  const snapshotId = uuidField(row?.snapshotId);
-  const repositoryId = positiveIntegerField(row?.repositoryId);
-  const canonicalTarget = typeof row?.canonicalTarget === "string" ? row.canonicalTarget : null;
-  const isPrivate = typeof row?.isPrivate === "boolean" ? row.isPrivate : null;
-  const accessStatus = row?.accessStatus;
-  const state = row?.state;
-
-  if (
-    !workspaceId || !assetId || !actorId || !linkId || !snapshotTaskId || !snapshotId
-    || !repositoryId || !canonicalTarget || isPrivate === null
-    || !isRepositoryAccessStatus(accessStatus) || !isProjectScanState(state)
-  ) {
-    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project continuation state is invalid.");
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan continuation is invalid.");
   }
-
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.workspaceId !== "string"
+    || typeof row.assetId !== "string"
+    || typeof row.actorId !== "string"
+    || typeof row.linkId !== "string"
+    || typeof row.repositoryId !== "number"
+    || typeof row.canonicalTarget !== "string"
+    || typeof row.isPrivate !== "boolean"
+    || (row.accessStatus !== "active" && row.accessStatus !== "inaccessible" && row.accessStatus !== "removed")
+    || typeof row.snapshotTaskId !== "string"
+    || typeof row.snapshotId !== "string"
+  ) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan continuation is invalid.");
+  }
   return {
-    workspaceId,
-    assetId,
-    actorId,
-    linkId,
-    repositoryId,
-    canonicalTarget,
-    isPrivate,
-    accessStatus,
-    snapshotTaskId,
-    snapshotId,
-    state,
+    workspaceId: validUuid(row.workspaceId),
+    assetId: validUuid(row.assetId),
+    actorId: validUuid(row.actorId),
+    linkId: validUuid(row.linkId),
+    repositoryId: row.repositoryId,
+    canonicalTarget: row.canonicalTarget,
+    isPrivate: row.isPrivate,
+    accessStatus: row.accessStatus,
+    snapshotTaskId: validUuid(row.snapshotTaskId),
+    snapshotId: validUuid(row.snapshotId),
+    state: parseProjectState(row.state),
   };
 }
 
 function parseRecovery(value: unknown): ConnectedProjectScanRecovery | null {
   if (value === null) return null;
-  const row = objectValue(value);
-  const snapshotTaskId = uuidField(row?.snapshotTaskId);
-  const snapshotId = uuidField(row?.snapshotId);
-  const state = row?.state;
-  if (!snapshotTaskId || !snapshotId || !isRecoverableProjectScanState(state)) {
-    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project recovery state is invalid.");
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan recovery state is invalid.");
   }
-  return { snapshotTaskId, snapshotId, state };
+  const row = value as Record<string, unknown>;
+  if (typeof row.snapshotTaskId !== "string" || typeof row.snapshotId !== "string") {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan recovery state is invalid.");
+  }
+  const state = parseProjectState(row.state);
+  if (state !== "waiting_scan_runtime" && state !== "retry_pending" && state !== "scan_queued") {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan recovery state is invalid.");
+  }
+  return {
+    snapshotTaskId: validUuid(row.snapshotTaskId),
+    snapshotId: validUuid(row.snapshotId),
+    state: state as RecoverableProjectScanState,
+  };
 }
 
 function parseScanEnqueue(value: unknown): { taskId: string; scanJobId: string; replayed: boolean } {
-  const row = objectValue(value);
-  const taskId = uuidField(row?.taskId);
-  const scanJobId = uuidField(row?.scanJobId);
-  const replayed = row?.replayed;
-  if (!taskId || !scanJobId || typeof replayed !== "boolean") {
-    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan could not be queued safely.");
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan enqueue result is invalid.");
   }
-  return { taskId, scanJobId, replayed };
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.taskId !== "string"
+    || typeof row.scanJobId !== "string"
+    || typeof row.replayed !== "boolean"
+  ) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan enqueue result is invalid.");
+  }
+  return {
+    taskId: validUuid(row.taskId),
+    scanJobId: validUuid(row.scanJobId),
+    replayed: row.replayed,
+  };
+}
+
+function parseProjectContext(value: unknown): ConnectedProjectScanContext {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan context is invalid.");
+  }
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.workspaceId !== "string"
+    || typeof row.assetId !== "string"
+    || typeof row.actorId !== "string"
+    || typeof row.linkId !== "string"
+    || typeof row.connectionId !== "string"
+    || typeof row.installationId !== "number"
+    || typeof row.repositoryId !== "number"
+    || typeof row.canonicalTarget !== "string"
+    || typeof row.isPrivate !== "boolean"
+    || (row.accessStatus !== "active" && row.accessStatus !== "inaccessible" && row.accessStatus !== "removed")
+  ) {
+    throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project scan context is invalid.");
+  }
+  return {
+    workspaceId: validUuid(row.workspaceId),
+    assetId: validUuid(row.assetId),
+    actorId: validUuid(row.actorId),
+    linkId: validUuid(row.linkId),
+    connectionId: validUuid(row.connectionId),
+    installationId: row.installationId,
+    repositoryId: row.repositoryId,
+    canonicalTarget: row.canonicalTarget,
+    isPrivate: row.isPrivate,
+    accessStatus: row.accessStatus,
+  };
 }
 
 function createDefaultDependencies(): ProjectScanServiceDependencies {
   const admin = createAdminClient<Phase10a2Database>();
-
   return {
     loadAuthorizedProject: async (input) => {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.id !== input.actorId) {
-        throw failure("PROJECT_SCAN_NOT_CONNECTED", "Sign in with access to this connected project.");
+      const supabase = await createClient<Phase10a2Database>();
+      const { data, error } = await supabase.rpc("get_connected_project_scan_context", {
+        target_workspace_id: input.workspaceId,
+        target_asset_id: input.assetId,
+      });
+      if (error) throw failure("PROJECT_SCAN_NOT_CONNECTED", "Connected GitHub project could not be authorized.");
+      const context = parseProjectContext(data);
+      if (context.actorId !== input.actorId) {
+        throw failure("PROJECT_SCAN_REPOSITORY_MISMATCH", "Connected project actor does not match the authenticated user.");
       }
-
-      const { data: membership, error: membershipError } = await supabase
-        .from("workspace_members")
-        .select("role")
-        .eq("workspace_id", input.workspaceId)
-        .eq("user_id", input.actorId)
-        .maybeSingle();
-      if (membershipError || !membership || (membership.role !== "owner" && membership.role !== "admin")) {
-        throw failure("PROJECT_SCAN_NOT_CONNECTED", "Workspace owner or admin access is required.");
-      }
-
-      const { data: link, error: linkError } = await admin
-        .from("github_repository_links")
-        .select("id,workspace_id,github_connection_id,asset_id,repository_id,is_private,html_url,access_status")
-        .eq("workspace_id", input.workspaceId)
-        .eq("asset_id", input.assetId)
-        .maybeSingle();
-      if (linkError) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project state could not be loaded safely.");
-      if (!link) throw failure("PROJECT_SCAN_NOT_CONNECTED", "This repository is not connected to GitHub.");
-
-      const { data: connection, error: connectionError } = await admin
-        .from("github_connections")
-        .select("id,workspace_id,installation_id,status")
-        .eq("id", link.github_connection_id)
-        .eq("workspace_id", input.workspaceId)
-        .maybeSingle();
-      if (connectionError) throw failure("PROJECT_SCAN_PERSIST_FAILED", "GitHub connection state could not be loaded safely.");
-      if (!connection || connection.status !== "active" || link.access_status !== "active") {
-        throw failure("PROJECT_SCAN_ACCESS_INACTIVE", "The connected GitHub repository is no longer active.");
-      }
-
-      const { data: asset, error: assetError } = await admin
-        .from("assets")
-        .select("id,workspace_id,kind,canonical_target")
-        .eq("id", input.assetId)
-        .eq("workspace_id", input.workspaceId)
-        .maybeSingle();
-      if (assetError) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Repository asset state could not be loaded safely.");
-      if (!asset || asset.kind !== "repository" || asset.canonical_target !== link.html_url) {
-        throw failure("PROJECT_SCAN_REPOSITORY_MISMATCH", "Connected repository identity no longer matches the registered asset.");
-      }
-
-      return {
-        workspaceId: input.workspaceId,
-        assetId: input.assetId,
-        actorId: input.actorId,
-        linkId: link.id,
-        connectionId: connection.id,
-        installationId: connection.installation_id,
-        repositoryId: link.repository_id,
-        canonicalTarget: link.html_url,
-        isPrivate: link.is_private,
-        accessStatus: link.access_status,
-      };
+      return context;
     },
     revalidateRepository: async (context) => {
       const config = getGitHubAppConfig();
-      const token = await createInstallationToken(
-        context.installationId,
-        config,
-        { repositoryId: context.repositoryId },
-      );
-      return getInstallationRepository(token.token, context.repositoryId);
+      try {
+        const token = await createInstallationToken(context.installationId, config, { repositoryId: context.repositoryId });
+        return await getInstallationRepository(token.token, context.repositoryId);
+      } catch {
+        throw failure("PROJECT_SCAN_PROVIDER_FAILED", "GitHub repository access could not be verified safely.");
+      }
     },
-    snapshotRuntimeEnabled: () => HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
-    privateSnapshotRuntimeEnabled: () => HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
-    scanRuntimeEnabled: () => HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED,
     enqueueSnapshotIntent: async (context) => {
       const { data, error } = await admin.rpc("enqueue_connected_project_snapshot", {
         target_workspace_id: context.workspaceId,
@@ -257,18 +221,38 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
         target_actor_id: context.actorId,
         target_link_id: context.linkId,
       });
-      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project snapshot could not be queued safely.");
-      return parseSnapshotEnqueue(data);
+      if (error || !data || typeof data !== "object" || Array.isArray(data)) {
+        throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project snapshot could not be queued safely.");
+      }
+      const taskId = (data as Record<string, unknown>).taskId;
+      if (typeof taskId !== "string") {
+        throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project snapshot task is invalid.");
+      }
+      return { taskId: validUuid(taskId) };
     },
     enqueuePrivateSnapshotIntent: async (context) => {
-      const { data, error } = await admin.rpc("enqueue_connected_private_project_snapshot", {
+      const { data, error } = await admin.rpc("enqueue_connected_project_private_snapshot", {
         target_workspace_id: context.workspaceId,
         target_asset_id: context.assetId,
         target_actor_id: context.actorId,
         target_link_id: context.linkId,
       });
-      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected private project snapshot could not be queued safely.");
-      return parseSnapshotEnqueue(data);
+      if (error || !data || typeof data !== "object" || Array.isArray(data)) {
+        throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected private project snapshot could not be queued safely.");
+      }
+      const taskId = (data as Record<string, unknown>).taskId;
+      if (typeof taskId !== "string") {
+        throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected private project snapshot task is invalid.");
+      }
+      return { taskId: validUuid(taskId) };
+    },
+    loadContinuation: async (input) => {
+      const { data, error } = await admin.rpc("get_connected_project_scan_continuation", {
+        target_snapshot_task_id: input.snapshotTaskId,
+        target_snapshot_id: input.snapshotId,
+      });
+      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project continuation could not be loaded safely.");
+      return parseContinuation(data);
     },
     loadRecovery: async (input) => {
       const { data, error } = await admin.rpc("get_connected_project_scan_recovery", {
@@ -277,16 +261,8 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
         target_actor_id: input.actorId,
         target_link_id: input.linkId,
       });
-      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project recovery state could not be loaded safely.");
+      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project recovery could not be loaded safely.");
       return parseRecovery(data);
-    },
-    loadContinuation: async (input) => {
-      const { data, error } = await admin.rpc("get_connected_project_snapshot_continuation", {
-        target_snapshot_task_id: input.snapshotTaskId,
-        target_snapshot_id: input.snapshotId,
-      });
-      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project continuation could not be loaded safely.");
-      return parseContinuation(data);
     },
     markWaitingForScanRuntime: async (context) => {
       const { error } = await admin.rpc("mark_connected_project_scan_waiting", {
@@ -296,7 +272,7 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
       if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project waiting state could not be recorded safely.");
     },
     enqueueScanContinuation: async (context) => {
-      const { data, error } = await admin.rpc("enqueue_connected_project_scan_continuation", {
+      const { data, error } = await admin.rpc("enqueue_connected_project_scan", {
         target_snapshot_task_id: context.snapshotTaskId,
         target_snapshot_id: context.snapshotId,
       });
@@ -310,6 +286,9 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
       });
       if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project retry state could not be recorded safely.");
     },
+    snapshotRuntimeEnabled: () => HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
+    privateSnapshotRuntimeEnabled: () => HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
+    scanRuntimeEnabled: () => HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED,
   };
 }
 
@@ -507,5 +486,8 @@ export async function resumeConnectedProjectScan(
   }
 }
 
-export { reconcileAutomaticProjectScanAfterSnapshot } from "./automatic-reconciliation";
+export {
+  reconcileAutomaticProjectScanAfterSnapshot,
+  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
+} from "./automatic-reconciliation";
 export type { AutomaticProjectScanReconciliationDependencies } from "./automatic-reconciliation";
