@@ -2,6 +2,7 @@ import { createHash, randomBytes as nodeRandomBytes } from "node:crypto";
 import type { RepositorySnapshotObjectStore } from "@/lib/repository-snapshots/object-store";
 import {
   validateWorkerTerminalEnvelope,
+  type GitHubPrivateArchiveLease,
   type WorkerExecutionClass,
   type WorkerTerminalEnvelope,
 } from "@/packages/worker-contracts";
@@ -27,10 +28,22 @@ export type {
   WorkerControlRepository,
 } from "./repository";
 
+export interface PrivateRepositorySourceLeaseRequest {
+  githubRepositoryLinkId: string;
+  owner: string;
+  repository: string;
+  canonicalRepositoryUrl: string;
+  absoluteDeadlineAt: string;
+  leaseExpiresAt: string;
+}
+
 export interface WorkerControlServiceDependencies {
   repository: WorkerControlRepository;
   runtimeRepository?: RuntimeWorkerControlRepository;
   repositorySnapshotObjectStore?: () => RepositorySnapshotObjectStore;
+  privateRepositorySourceLease?: (
+    input: PrivateRepositorySourceLeaseRequest,
+  ) => Promise<GitHubPrivateArchiveLease>;
   randomBytes?: (size: number) => Buffer;
   now?: () => Date;
 }
@@ -38,6 +51,7 @@ export interface WorkerControlServiceDependencies {
 type LegacyRegistrationClass =
   | "foundation_no_egress_v1"
   | "repository_snapshot_github_public_v1"
+  | "repository_snapshot_github_private_v1"
   | "phase3_repository_scan_no_egress_v1";
 
 type RuntimeRegistrationClass =
@@ -84,7 +98,9 @@ async function registerWith(
     ? await dependencies.repository.register(input)
     : executionClass === "repository_snapshot_github_public_v1"
       ? await dependencies.repository.registerRepositorySnapshot(input)
-      : await dependencies.repository.registerRepositoryScan(input);
+      : executionClass === "repository_snapshot_github_private_v1"
+        ? await dependencies.repository.registerPrivateRepositorySnapshot(input)
+        : await dependencies.repository.registerRepositoryScan(input);
   if (node.executionClass !== executionClass) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
@@ -123,6 +139,13 @@ export async function registerRepositorySnapshotWorkerNode(
   dependencies: WorkerControlServiceDependencies,
 ) {
   return registerWith(input.softwareVersion, dependencies, "repository_snapshot_github_public_v1");
+}
+
+export async function registerPrivateRepositorySnapshotWorkerNode(
+  input: { softwareVersion: string },
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return registerWith(input.softwareVersion, dependencies, "repository_snapshot_github_private_v1");
 }
 
 export async function registerRepositoryScanWorkerNode(
@@ -203,9 +226,27 @@ function repositoryClaimExpiry(
   return expiresAt;
 }
 
-async function composePublicClaim(
+function boundedPrivateCapabilityExpiry(
+  claim: Exclude<WorkerPersistenceClaimResult, null>,
+  sourceLease: GitHubPrivateArchiveLease,
+  now: Date,
+): Date {
+  const publicBound = repositoryClaimExpiry(claim, now);
+  const sourceExpiry = new Date(sourceLease.expiresAt);
+  if (!Number.isFinite(sourceExpiry.getTime())) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const expiresAt = new Date(Math.min(publicBound.getTime(), sourceExpiry.getTime()));
+  if (expiresAt.getTime() - now.getTime() < 1_000) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  return expiresAt;
+}
+
+async function composeClaim(
   claim: WorkerPersistenceClaimResult,
   dependencies: WorkerControlServiceDependencies,
+  workerId?: string,
 ): Promise<WorkerClaimResult> {
   if (claim === null) return null;
   if (claim.executionClass === "foundation_no_egress_v1"
@@ -223,6 +264,51 @@ async function composePublicClaim(
 
   const objectStoreFactory = dependencies.repositorySnapshotObjectStore;
   if (!objectStoreFactory) throw new WorkerControlError("WORKER_CONTROL_FAILED");
+
+  if (claim.executionClass === "repository_snapshot_github_private_v1") {
+    if (!workerId || !dependencies.privateRepositorySourceLease) {
+      throw new WorkerControlError("WORKER_CONTROL_FAILED");
+    }
+    const heartbeat = await dependencies.repository.heartbeat({
+      workerId,
+      taskId: claim.taskId,
+      attemptId: claim.attemptId,
+      leaseToken: claim.leaseToken,
+    });
+    if (heartbeat.cancelRequested) {
+      throw new WorkerControlError("WORKER_JOB_STATE_CONFLICT");
+    }
+    const privateArchiveLease = await dependencies.privateRepositorySourceLease({
+      githubRepositoryLinkId: claim.input.githubRepositoryLinkId,
+      owner: claim.input.owner,
+      repository: claim.input.repository,
+      canonicalRepositoryUrl: claim.input.canonicalRepositoryUrl,
+      absoluteDeadlineAt: claim.absoluteDeadlineAt,
+      leaseExpiresAt: heartbeat.leaseExpiresAt,
+    });
+    const now = currentTime(dependencies);
+    const upload = await objectStoreFactory().createAttemptUpload({
+      objectKey: claim.artifactObjectKey,
+      expiresAt: boundedPrivateCapabilityExpiry(claim, privateArchiveLease, now),
+    });
+    return Object.freeze({
+      taskId: claim.taskId,
+      attemptId: claim.attemptId,
+      executionClass: claim.executionClass,
+      leaseToken: claim.leaseToken,
+      absoluteDeadlineAt: claim.absoluteDeadlineAt,
+      budget: claim.budget,
+      input: Object.freeze({
+        kind: "repository_snapshot_github_private" as const,
+        owner: claim.input.owner,
+        repository: claim.input.repository,
+        canonicalRepositoryUrl: claim.input.canonicalRepositoryUrl,
+        privateArchiveLease,
+        artifactUpload: upload,
+      }),
+    });
+  }
+
   const upload = await objectStoreFactory().createAttemptUpload({
     objectKey: claim.artifactObjectKey,
     expiresAt: repositoryClaimExpiry(claim, currentTime(dependencies)),
@@ -261,7 +347,7 @@ export async function claimWorkerTask(
   dependencies: WorkerControlServiceDependencies,
 ): Promise<WorkerClaimResult> {
   const claim = await dependencies.repository.claim({ workerId: input.workerId });
-  return composePublicClaim(claim, dependencies);
+  return composeClaim(claim, dependencies, input.workerId);
 }
 
 export async function claimWorkerTaskForNode(
@@ -285,7 +371,7 @@ export async function claimWorkerTaskForNode(
   if (claim !== null && claim.executionClass !== worker.executionClass) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
-  return composePublicClaim(claim, dependencies);
+  return composeClaim(claim, dependencies, worker.workerId);
 }
 
 export async function heartbeatWorkerAttempt(
