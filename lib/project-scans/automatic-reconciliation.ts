@@ -40,7 +40,7 @@ export interface AutomaticProjectScanReconciliationDependencies {
   completeAutomaticProjectScan(input: {
     snapshotTaskId: string;
     snapshotId: string;
-  }): Promise<AutomaticProjectScanCompletionContext | null>;
+  }): Promise<unknown>;
   getConfig(): GitHubAppConfig;
   createInstallationToken(
     installationId: number,
@@ -178,7 +178,7 @@ function createDefaultDependencies(): AutomaticProjectScanReconciliationDependen
         target_snapshot_id: input.snapshotId,
       });
       if (error) throw new Error("AUTOMATIC_PROJECT_SCAN_COMPLETION_FAILED");
-      return parseCompletion(data);
+      return data;
     },
     getConfig: getGitHubAppConfig,
     createInstallationToken: (installationId, config, options) =>
@@ -241,7 +241,7 @@ export async function reconcileAutomaticProjectScanAfterSnapshot(
   const deps = dependencies ?? createDefaultDependencies();
   let completion: AutomaticProjectScanCompletionContext | null;
   try {
-    completion = await deps.completeAutomaticProjectScan(input);
+    completion = parseCompletion(await deps.completeAutomaticProjectScan(input));
   } catch {
     return { status: "pending", code: "ENQUEUE_DEFERRED" };
   }
