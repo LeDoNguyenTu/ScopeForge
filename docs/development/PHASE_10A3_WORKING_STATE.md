@@ -48,17 +48,19 @@ Final Tasks 2 and 3 CI #922 / run `34639416412` passed every release gate on exa
 - production ScopeForge/Turnstile diagnostic passed
 - four UI acceptance artifacts uploaded successfully
 
-Task 4 RED contract is committed in `tests/github-app/webhook-service.test.ts`. CI #923 / run `34645026763` captured the intended RED evidence:
+Task 4 service RED evidence is captured in CI #923 / run `34645026763`:
 
 - dependency install and audit passed with 0 vulnerabilities
 - all 396 existing test files / 1,763 existing tests remained green
 - exactly one new suite failed during import because `lib/github-app/webhook-service.ts` did not exist
 - no unrelated regression was observed
 
-The Task 4 webhook service GREEN implementation now exists. It keeps raw webhook bytes and payload repository metadata out of scheduling authority, admits exact delivery UUIDs, loads only stored stable context, mints repository-restricted installation authority, re-fetches authoritative repository/default-head state, reconciles safe provider metadata, coalesces latest-head state through the Phase 10A3 RPCs, respects independent public/private snapshot runtime gates, and maps enqueue races to bounded pending state without starting a second chain.
+The Task 4 webhook service GREEN implementation keeps raw webhook bytes and payload repository metadata out of scheduling authority, admits exact delivery UUIDs, loads only stored stable context, mints repository-restricted installation authority, re-fetches authoritative repository/default-head state, reconciles safe provider metadata, coalesces latest-head state through the Phase 10A3 RPCs, respects independent public/private snapshot runtime gates, and maps enqueue races to bounded pending state without starting a second chain.
 
-Task 4 service CI #924 / run `34645582197` proved all 19 new service behaviors and the full repository test suite: 397 test files / 1,782 tests passed. Typecheck then identified only two test-fixture typing issues - a widened execution-class literal and typed mock call inspection. Both test-only diagnostics are now repaired without changing service behavior.
+Task 4 service CI #924 / run `34645582197` proved all 19 new service behaviors and the full repository test suite: 397 test files / 1,782 tests passed. Typecheck then identified only two test-fixture typing issues. Those diagnostics were repaired without changing service behavior. Final service CI #925 / run `34646073036` then passed every release gate on exact head `27154ade5a0cbfe5a3b7f28ecb6ca25da9b0257b`: install, 0-vulnerability audit, all tests, typecheck, CLI build/version, both benchmark stages, production build, CSP browser smoke, production diagnostics, and artifact handling.
 
-This exact head is the final Task 4 service GREEN validation candidate. The public webhook route has not been added yet and will be implemented only after this candidate passes the complete release gate.
+The Task 4 public route RED contract is now committed in `tests/github-app/webhook-route.test.ts`. It pins Node/force-dynamic execution, input failures before service invocation, bounded 200/202 success mapping, generic retryable 503 behavior, and non-reflection of raw body/signature/provider error details.
+
+This exact head is intentionally a Task 4 route RED validation candidate. `app/api/integrations/github/webhook/route.ts` has not been created yet, so the new route suite is expected to fail specifically for the missing public route before GREEN implementation begins.
 
 The Phase 10A3 migration remains source-only and has not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
