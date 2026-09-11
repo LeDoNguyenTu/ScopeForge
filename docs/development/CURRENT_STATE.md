@@ -50,7 +50,9 @@ Current production baseline keeps:
 - authenticated dashboard boundaries,
 - public WebGL/V5 composition.
 
-PR #74 CI #852 also re-ran the production V5/Turnstile diagnostic and strict-CSP browser smoke successfully while validating the Phase 10A1 merge candidate against current `main`.
+PR #74 CI #852 re-ran the production V5/Turnstile diagnostic and strict-CSP browser smoke successfully while validating the Phase 10A1 merge candidate against current `main`.
+
+PR #76 CI #897 also passed the repository-defined production build, strict-CSP browser smoke and production V5/Turnstile diagnostic while validating Phase 10A2 code.
 
 ## Supabase baseline
 
@@ -108,17 +110,29 @@ Current implemented scope includes:
 - exact `codeload.github.com` private archive acquisition with bounded processing,
 - private snapshot persistence/publication through reviewed privileged RPCs,
 - Phase 10A2 database type overlay that preserves Phase 6D worker-control RPCs,
+- dedicated private executor routing through the shared worker supervisor without widening the legacy public executor contract,
+- strict private terminal validation plus canonical repository/default-branch/commit binding before trusted finalization,
 - private connected-project request routing without fallback to public acquisition,
 - fail-closed handling when repository visibility changes,
 - private snapshot publication recognition in the authenticated worker finalize route,
 - exact-snapshot continuation into the existing zero-egress repository scanner,
 - private recovery/retry support for retained published snapshots,
 - dashboard project-level scan UX for private repositories,
-- permanent Phase 10A2 architecture guards.
+- permanent Phase 10A2 architecture and supervisor integration guards.
+
+Exact executable candidate:
+
+`3b1957871103885ac4fd26e3d3ff91f5d4a5a24f`
+
+CI #897 / run `34606962246`: SUCCESS.
+
+That exact executable candidate passed dependency audit with 0 vulnerabilities, 392 test files and 1,731 tests, typecheck, CLI build/version, both scanner benchmarks, production Next.js build, strict-CSP browser smoke, production V5/Turnstile diagnostic and artifact upload.
+
+The Phase 10A2 changed-file security review completed without an identified release-blocking code defect. Provider credentials remain control-plane-only, private archive capabilities are not persisted, private/public execution classes remain separated, private RPCs remain service-role-only, and continuation remains bound to the exact immutable published snapshot.
 
 Detailed working state: `PHASE_10A2_WORKING_STATE.md`.
 
-PR #76 is not release-ready yet. The exact current candidate still requires fresh complete validation, Phase 10A1 release reconciliation, production Supabase migration/ACL verification, GitHub App private-repository provider verification, private worker canary and rollback acceptance.
+PR #76 is still not release-ready. Phase 10A1 must first release safely, then PR #76 must be reconciled and fully revalidated against that released baseline. Production Supabase migration/ACL verification, live GitHub App private-repository permission verification, private worker canary and rollback acceptance also remain outstanding.
 
 ## Provider and runtime truth
 
@@ -126,12 +140,13 @@ Current conservative state:
 
 - strict CSP: ENFORCED
 - Phase 10C admin database/owner bootstrap: LAST VERIFIED COMPLETE
+- Phase 10A2 repository executable validation: GREEN on candidate `3b1957871103885ac4fd26e3d3ff91f5d4a5a24f`
+- Phase 10A2 changed-file security review: COMPLETE with no identified release-blocking code defect
 - Supabase leaked-password protection: last verified disabled; current mutation surface unavailable
 - Phase 10A1 GitHub App live provider configuration: NOT VERIFIED
 - Phase 10A1 production schema: NOT APPLIED/VERIFIED IN CURRENT SESSION
 - Phase 10A2 production schema: NOT APPLIED/VERIFIED IN CURRENT SESSION
 - Phase 10A2 private GitHub canary: NOT RUN
-- final Phase 10A1/10A2 Vercel preview failures may include Hobby-plan build-rate limits and must be distinguished from application build failures
 
 Keep these false/absent until independent canary and rollback acceptance explicitly authorizes them:
 
@@ -147,14 +162,13 @@ Historical completed diagnostic/preview/reconciliation branches still exist. Del
 
 ## Immediate engineering boundary
 
-1. Run fresh exact-head Phase 10A2 validation and repair any executable regression using focused TDD.
-2. Complete the Phase 10A2 changed-file security review and documentation reconciliation.
-3. Safely finish/release Phase 10A1 and retarget/reconcile PR #76 onto the released baseline.
-4. Re-run the complete Phase 10A2 exact-head validation after reconciliation.
-5. Restore a supported Supabase management surface, verify/apply only reviewed forward migrations, and verify RPC ACL/RLS/security-advisor state.
-6. Verify GitHub App private-repository permissions and run a dedicated private acquisition canary with rollback readiness.
-7. Merge/release Phase 10A2 only after every code, provider, schema and runtime gate is satisfied.
-8. Continue independent hosted-runtime canary/rollback work without treating product implementation as runtime authorization.
+1. Finish the Phase 10A2 documentation/branch cleanup and keep PR #76 draft/non-releasable while stacked.
+2. Safely finish/release Phase 10A1 and retarget/reconcile PR #76 onto the released baseline.
+3. Re-run the complete Phase 10A2 exact-head validation after reconciliation.
+4. Restore a supported Supabase management surface, verify/apply only reviewed forward migrations, and verify RPC ACL/RLS/security-advisor state.
+5. Verify GitHub App private-repository permissions and run a dedicated private acquisition canary with rollback readiness.
+6. Merge/release Phase 10A2 only after every code, provider, schema and runtime gate is satisfied.
+7. Continue independent hosted-runtime canary/rollback work without treating product implementation as runtime authorization.
 
 ## Production services
 
