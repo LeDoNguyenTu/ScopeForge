@@ -21,6 +21,15 @@ export type Phase10a2Functions = Phase10a1Database["public"]["Functions"]
       };
       Returns: Json;
     };
+    enqueue_connected_private_project_snapshot: {
+      Args: {
+        target_workspace_id: string;
+        target_asset_id: string;
+        target_actor_id: string;
+        target_link_id: string;
+      };
+      Returns: Json;
+    };
   };
 
 export type Phase10a2Database = Omit<Phase10a1Database, "public"> & {
