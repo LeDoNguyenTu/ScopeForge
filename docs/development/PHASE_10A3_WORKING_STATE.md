@@ -20,7 +20,7 @@ Task 6 RED CI #931 / run `34651520973` proved the completion/no-lost-head contra
 
 Final Task 6 CI #935 / run `34652736967` passed every release gate on exact head `d6cb9126191dd2476171ac3ed35835d773a59720`: dependency install, zero-vulnerability audit, full tests, typecheck, CLI build/version, scanner and matrix benchmarks, production build, CSP browser smoke, production diagnostics, and artifact handling.
 
-Task 6 implementation now includes:
+Task 6 implementation includes:
 
 - immutable-snapshot completion authority from exact webhook intent + snapshot task + snapshot ID + `repository_source_snapshots.resolved_commit_sha`
 - replay-safe successful watermark advancement
@@ -29,16 +29,11 @@ Task 6 implementation now includes:
 - repository-restricted installation credentials confined to the trusted control plane
 - worker finalize integration only after successful snapshot publication and exact-snapshot scan continuation
 
-Task 7 RED CI #937 / run `34653167208` proved the browser/read-model contract cleanly:
+Task 7 RED CI #937 / run `34653167208` proved the browser/read-model contract cleanly: dependency install and zero-vulnerability audit passed, all 399 pre-existing files remained green, the new security architecture suite passed all four assertions, and only the new browser read-model/panel assertions failed as intended.
 
-- dependency install succeeded and `npm audit --audit-level=info` reported zero vulnerabilities
-- all 399 pre-existing test files remained green
-- the new security architecture suite passed all four assertions without production changes
-- exactly two expected suites failed: connected-project browser read model and panel rendering
-- 1,826 tests passed and exactly five new Task 7 assertions failed because `auto_scan_enabled` was not yet selected/validated/exposed and the panel did not yet render automatic scanning on/off
-- no unrelated regression was observed
+Final Task 7 CI #938 / run `34653612240` passed every release gate on exact head `2a99c0fb91d1b28c309cf145f1367cbffa3410c3`: dependency install, zero-vulnerability audit, complete tests, typecheck, CLI build/version, scanner and matrix benchmarks, production Next.js build, strict-CSP browser smoke, production V5/Turnstile diagnostic, and artifact handling.
 
-Task 7 GREEN candidate now includes only the minimum browser-safe changes:
+Task 7 implementation includes only the minimum browser-safe state:
 
 - `ConnectedProjectScanReadModel.autoScanEnabled` sourced exclusively from the existing public `github_repository_links.auto_scan_enabled` field
 - fail-closed validation when that public boolean is absent or malformed
@@ -46,6 +41,29 @@ Task 7 GREEN candidate now includes only the minimum browser-safe changes:
 - independent manual `Scan project` behavior remains governed by existing access/runtime/orchestration state, not by the automatic-scan preference
 - no browser query of `github_webhook_deliveries`, `github_repository_auto_scan_state`, webhook payload metadata, delivery UUIDs, signatures, provider tokens, archive capabilities, or private coalescing state
 
-The current exact head is a Task 7 GREEN validation candidate. It is not yet recorded as passing until the full CI matrix completes.
+Task 8 documentation has refreshed `README.md`, `docs/ARCHITECTURE.md`, `docs/ENVIRONMENT.md`, `.env.example`, `docs/development/CURRENT_STATE.md`, and `docs/development/NEXT_STEPS.md` to reflect the current local scanner, hosted control plane, connected-project stack, public/private acquisition boundaries, Phase 10A3 webhook model, seven server-only GitHub App settings, and release sequencing.
+
+During the required Task 8 changed-file security/lifecycle review, a real no-lost-head bug was discovered before merge:
+
+- Phase 10A1 manual connected-project intents remain `scan_queued` after the repository scan is queued; existing recovery migrations do not reset them to `idle` at repository-scan terminal state.
+- Phase 10A3 `record_github_webhook_push_head` correctly treats any non-idle intent as an active chain, so a webhook arriving during a manual scan is coalesced as pending.
+- The Task 6 automatic snapshot-completion hook correctly ignores manual intents, so it cannot release that manual intent or enqueue the pending automatic head.
+- Replaying the same desired head remains a semantic replay and does not enqueue, which can strand automatic scanning after a manual scan.
+
+Root-cause tracing confirmed the correct authority boundary is repository-scan terminal persistence: successful scans finish through `finalize_repository_scan_success`; failed/cancelled scans finish through `finalize_repository_scan_worker_failure`, where failed attempts can remain `retry_wait` and must not release the intent prematurely.
+
+A new RED regression suite is committed at `tests/project-scans/manual-auto-followup.test.ts`. It requires the eventual correction to:
+
+- bind only by exact persisted repository `scan_task_id`
+- settle only `trigger_kind='manual'` intents
+- leave queued/leased/retry-wait tasks untouched
+- accept only persisted terminal task/job pairs (`completed/succeeded`, `cancelled/cancelled`, `dead_letter/failed`)
+- let a successful manual scan satisfy the desired watermark only when its immutable snapshot SHA exactly equals the pending desired SHA
+- otherwise release the manual intent and schedule at most one provider-authoritative newest-head automatic follow-up
+- preserve public/private acquisition runtime gates and repository-scoped provider authority
+- invoke the reconciliation hook after both successful repository-scan publication and failed/cancelled finalization
+- remain replay-safe and service-role-only.
+
+Production behavior for this newly discovered case has not been changed yet. The current exact head is the controlled RED validation candidate.
 
 The Phase 10A3 migrations remain source-only and have not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
