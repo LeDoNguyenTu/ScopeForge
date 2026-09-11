@@ -1,4 +1,4 @@
-import type { Phase10a1Database } from "@/lib/database.phase10a1.types";
+import type { Phase10a2Database } from "@/lib/database.phase10a2.types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -8,7 +8,10 @@ import {
 import { getGitHubAppConfig } from "@/lib/github-app/config";
 import type { GitHubRepositorySummary } from "@/lib/github-app/types";
 import { HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED } from "@/lib/repository-scans/runtime";
-import { HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED } from "@/lib/repository-snapshots/runtime";
+import {
+  HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
+  HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
+} from "@/lib/repository-snapshots/runtime";
 import {
   ProjectScanError,
   type ConnectedProjectContinuationContext,
@@ -34,8 +37,10 @@ export interface ProjectScanServiceDependencies {
   }): Promise<ConnectedProjectScanContext>;
   revalidateRepository(context: ConnectedProjectScanContext): Promise<GitHubRepositorySummary>;
   snapshotRuntimeEnabled(): boolean;
+  privateSnapshotRuntimeEnabled(): boolean;
   scanRuntimeEnabled(): boolean;
   enqueueSnapshotIntent(context: ConnectedProjectScanContext): Promise<{ taskId: string }>;
+  enqueuePrivateSnapshotIntent(context: ConnectedProjectScanContext): Promise<{ taskId: string }>;
   loadRecovery(input: {
     workspaceId: string;
     assetId: string;
@@ -169,7 +174,7 @@ function parseScanEnqueue(value: unknown): { taskId: string; scanJobId: string; 
 }
 
 function createDefaultDependencies(): ProjectScanServiceDependencies {
-  const admin = createAdminClient<Phase10a1Database>();
+  const admin = createAdminClient<Phase10a2Database>();
 
   return {
     loadAuthorizedProject: async (input) => {
@@ -243,6 +248,7 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
       return getInstallationRepository(token.token, context.repositoryId);
     },
     snapshotRuntimeEnabled: () => HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
+    privateSnapshotRuntimeEnabled: () => HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
     scanRuntimeEnabled: () => HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED,
     enqueueSnapshotIntent: async (context) => {
       const { data, error } = await admin.rpc("enqueue_connected_project_snapshot", {
@@ -252,6 +258,16 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
         target_link_id: context.linkId,
       });
       if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project snapshot could not be queued safely.");
+      return parseSnapshotEnqueue(data);
+    },
+    enqueuePrivateSnapshotIntent: async (context) => {
+      const { data, error } = await admin.rpc("enqueue_connected_private_project_snapshot", {
+        target_workspace_id: context.workspaceId,
+        target_asset_id: context.assetId,
+        target_actor_id: context.actorId,
+        target_link_id: context.linkId,
+      });
+      if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected private project snapshot could not be queued safely.");
       return parseSnapshotEnqueue(data);
     },
     loadRecovery: async (input) => {
@@ -376,7 +392,13 @@ export async function requestConnectedProjectScan(
 
   await verifyProviderIdentity(context, deps);
 
-  if (context.isPrivate) return { status: "private_acquisition_required" };
+  if (context.isPrivate) {
+    if (!deps.privateSnapshotRuntimeEnabled()) {
+      return { status: "private_snapshot_runtime_unavailable" };
+    }
+    const queued = await deps.enqueuePrivateSnapshotIntent(context);
+    return { status: "snapshot_queued", taskId: queued.taskId };
+  }
   if (!deps.snapshotRuntimeEnabled()) return { status: "snapshot_runtime_unavailable" };
 
   const queued = await deps.enqueueSnapshotIntent(context);
@@ -401,7 +423,7 @@ export async function continueConnectedProjectScanAfterSnapshot(
   ) {
     throw failure("PROJECT_SCAN_REPOSITORY_MISMATCH", "Published snapshot does not match the connected project intent.");
   }
-  if (context.isPrivate || context.accessStatus !== "active") return { status: "ignored" };
+  if (context.accessStatus !== "active") return { status: "ignored" };
 
   if (context.state === "scan_queued") {
     try {
@@ -450,7 +472,6 @@ export async function resumeConnectedProjectScan(
   const context = await deps.loadAuthorizedProject(request);
   assertContextMatchesRequest(context, request);
 
-  if (context.isPrivate) return { status: "no_pending_scan" };
   if (!deps.scanRuntimeEnabled()) return { status: "scan_runtime_unavailable" };
 
   const recovery = await deps.loadRecovery({
