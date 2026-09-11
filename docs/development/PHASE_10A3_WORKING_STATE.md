@@ -35,43 +35,14 @@ Tasks 2 and 3 GREEN implementation includes:
 - automatic public/private snapshot routing through the existing isolated worker execution classes
 - a Phase 10A3 database type overlay composed on the validated Phase 10A2 surface
 
-Final Tasks 2 and 3 CI #922 / run `34639416412` passed every release gate on exact head `d5a71c0504a6531ea94cf5ebd2477c40b6e741f6`:
+Final Tasks 2 and 3 CI #922 / run `34639416412` passed every release gate on exact head `d5a71c0504a6531ea94cf5ebd2477c40b6e741f6`: dependency install, 0-vulnerability audit, 396 test files / 1,763 tests, typecheck, CLI build/version, both scanner benchmarks, production build, CSP browser acceptance, production diagnostics, and four UI acceptance artifacts.
 
-- dependency install succeeded
-- `npm audit --audit-level=info` reported 0 vulnerabilities
-- 396 test files / 1,763 tests passed
-- typecheck passed
-- CLI build and `ScopeForge 0.1.0` version smoke passed
-- scanner-medium and full benchmark matrix remained within their budgets
-- Next.js production build passed
-- CSP browser acceptance passed
-- production ScopeForge/Turnstile diagnostic passed
-- four UI acceptance artifacts uploaded successfully
+Task 4 service RED evidence is captured in CI #923 / run `34645026763`; all 396 existing test files / 1,763 existing tests remained green and only the intentionally missing service suite failed import. Final service CI #925 / run `34646073036` passed every release gate on exact head `27154ade5a0cbfe5a3b7f28ecb6ca25da9b0257b` after two test-only typecheck fixes.
 
-Task 4 service RED evidence is captured in CI #923 / run `34645026763`:
+Task 4 route RED evidence is captured in CI #926 / run `34646601886`: all 397 existing test files / 1,782 existing tests remained green and only the intentionally missing route suite failed import. Final route CI #927 / run `34649158445` passed every release gate on exact head `c6d6b20a1f654539b2218994c48c8b3d7dac3edf`.
 
-- dependency install and audit passed with 0 vulnerabilities
-- all 396 existing test files / 1,763 existing tests remained green
-- exactly one new suite failed during import because `lib/github-app/webhook-service.ts` did not exist
-- no unrelated regression was observed
+Task 5 lifecycle RED coverage is committed in `tests/github-app/webhook-lifecycle.test.ts` plus an atomic repository-asset reconciliation guard in `tests/github-app/webhook-migration.test.ts`. The contract requires installation suspend/remove/unsuspend behavior, repository-selection removal and safe reactivation, no webhook auto-import, authoritative repository re-fetch for rename/transfer/privacy/archive transitions, historical identity retention on deletion, unknown-action rejection, exact-delivery replay protection, no lifecycle-triggered scan enqueue, and atomic repository-link plus asset canonical-target reconciliation.
 
-The Task 4 webhook service GREEN implementation keeps raw webhook bytes and payload repository metadata out of scheduling authority, admits exact delivery UUIDs, loads only stored stable context, mints repository-restricted installation authority, re-fetches authoritative repository/default-head state, reconciles safe provider metadata, coalesces latest-head state through the Phase 10A3 RPCs, respects independent public/private snapshot runtime gates, and maps enqueue races to bounded pending state without starting a second chain.
-
-Task 4 service CI #924 / run `34645582197` proved all 19 new service behaviors and the full repository test suite: 397 test files / 1,782 tests passed. Typecheck then identified only two test-fixture typing issues. Those diagnostics were repaired without changing service behavior. Final service CI #925 / run `34646073036` then passed every release gate on exact head `27154ade5a0cbfe5a3b7f28ecb6ca25da9b0257b`: install, 0-vulnerability audit, all tests, typecheck, CLI build/version, both benchmark stages, production build, CSP browser smoke, production diagnostics, and artifact handling.
-
-Task 4 route RED evidence is captured in CI #926 / run `34646601886`:
-
-- dependency install and audit passed with 0 vulnerabilities
-- all 397 existing test files / 1,782 existing tests remained green
-- exactly one new suite failed during import because `app/api/integrations/github/webhook/route.ts` did not exist
-- no unrelated regression was observed
-
-The Task 4 route GREEN implementation is POST-only, pinned to the Node runtime and force-dynamic execution, maps bounded webhook input errors to 400/401/413 before service invocation, passes only the verified webhook envelope into reconciliation, returns bounded 200/202 success states, and collapses all provider/persistence/internal failures to a generic retryable 503 without reflecting raw body, signatures, or provider error details.
-
-Final Task 4 route CI #927 / run `34649158445` passed every release gate on exact head `c6d6b20a1f654539b2218994c48c8b3d7dac3edf`: dependency install, 0-vulnerability audit, all tests, typecheck, CLI build/version, both benchmark stages, production build, CSP browser smoke, production diagnostics, and artifact handling.
-
-Task 5 lifecycle RED coverage is now committed in `tests/github-app/webhook-lifecycle.test.ts` plus an atomic repository-asset reconciliation guard in `tests/github-app/webhook-migration.test.ts`. The contract requires installation suspend/remove/unsuspend behavior, repository-selection removal and safe reactivation, no webhook auto-import, authoritative repository re-fetch for rename/transfer/privacy/archive transitions, historical identity retention on deletion, unknown-action rejection, exact-delivery replay protection, no lifecycle-triggered scan enqueue, and atomic repository-link plus asset canonical-target reconciliation.
-
-This exact head is intentionally a Task 5 RED validation candidate. Production lifecycle dispatch and the asset canonical-target migration repair have not been implemented yet, so the new tests are expected to fail only on those missing behaviors before GREEN implementation begins.
+The lifecycle fixtures use GitHub's current installation action names `suspend` and `unsuspend`. CI #928 was started before that fixture correction and is intentionally obsolete. This exact head is the corrected Task 5 RED validation candidate. Production lifecycle dispatch and the asset canonical-target migration repair have not been implemented yet, so the new tests are expected to fail only on those missing behaviors before GREEN implementation begins.
 
 The Phase 10A3 migration remains source-only and has not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
