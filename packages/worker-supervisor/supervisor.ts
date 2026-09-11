@@ -7,13 +7,17 @@ import {
   type WorkerTerminalEnvelope,
 } from "@/packages/worker-contracts";
 import type { WorkerSupervisorControlClient } from "./control-client";
-import type { WorkerExecutor, WorkerExecutorContract } from "./executor";
+import type {
+  AnyWorkerExecutor,
+  AnyWorkerExecutorContract,
+  WorkerExecutorContract,
+} from "./executor";
 import type { RepositoryScanPreparer } from "./repository-scan";
 import type { RuntimeNetworkPreparer } from "./runtime-network";
 
 export interface WorkerSupervisorDependencies {
   control: WorkerSupervisorControlClient;
-  executor: WorkerExecutor;
+  executor: AnyWorkerExecutor;
   repositoryScanPreparer?: RepositoryScanPreparer;
   runtimeNetworkPreparer?: RuntimeNetworkPreparer;
   heartbeatMs?: number;
@@ -33,7 +37,7 @@ function isRuntimeExecutionClass(
     || executionClass === "active_cors_validation_v1";
 }
 
-function executorContract(task: AnyWorkerTaskContract): WorkerExecutorContract {
+function executorContract(task: AnyWorkerTaskContract): AnyWorkerExecutorContract {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
     throw new Error("Phase 6C tasks must be prepared before executor dispatch.");
   }
@@ -47,7 +51,7 @@ function executorContract(task: AnyWorkerTaskContract): WorkerExecutorContract {
     absoluteDeadlineAt: task.absoluteDeadlineAt,
     budget: task.budget,
     input: task.input,
-  });
+  }) as AnyWorkerExecutorContract;
 }
 
 function failureTerminal(
@@ -177,8 +181,8 @@ function executionTimeoutMs(
 }
 
 function executeWithinSupervisorBoundary(
-  executor: WorkerExecutor,
-  contract: WorkerExecutorContract,
+  executor: AnyWorkerExecutor,
+  contract: AnyWorkerExecutorContract,
   signal: AbortSignal,
 ): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -211,8 +215,8 @@ function executeWithinSupervisorBoundary(
 
 async function executePreparedTask(
   task: AnyWorkerTaskContract,
-  executor: WorkerExecutor,
-  contract: WorkerExecutorContract,
+  executor: AnyWorkerExecutor,
+  contract: AnyWorkerExecutorContract,
   signal: AbortSignal,
 ): Promise<unknown> {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1"
@@ -293,7 +297,7 @@ async function preparedExecutorContract(
   dependencies: WorkerSupervisorDependencies,
   signal: AbortSignal,
   runtimeIsCancelled: () => Promise<boolean>,
-): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
+): Promise<{ contract: AnyWorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
     return prepareRepositoryScanTask(task as WorkerTaskContract, dependencies, signal);
   }
