@@ -59,8 +59,15 @@ The Task 4 webhook service GREEN implementation keeps raw webhook bytes and payl
 
 Task 4 service CI #924 / run `34645582197` proved all 19 new service behaviors and the full repository test suite: 397 test files / 1,782 tests passed. Typecheck then identified only two test-fixture typing issues. Those diagnostics were repaired without changing service behavior. Final service CI #925 / run `34646073036` then passed every release gate on exact head `27154ade5a0cbfe5a3b7f28ecb6ca25da9b0257b`: install, 0-vulnerability audit, all tests, typecheck, CLI build/version, both benchmark stages, production build, CSP browser smoke, production diagnostics, and artifact handling.
 
-The Task 4 public route RED contract is now committed in `tests/github-app/webhook-route.test.ts`. It pins Node/force-dynamic execution, input failures before service invocation, bounded 200/202 success mapping, generic retryable 503 behavior, and non-reflection of raw body/signature/provider error details.
+Task 4 route RED evidence is captured in CI #926 / run `34646601886`:
 
-This exact head is intentionally a Task 4 route RED validation candidate. `app/api/integrations/github/webhook/route.ts` has not been created yet, so the new route suite is expected to fail specifically for the missing public route before GREEN implementation begins.
+- dependency install and audit passed with 0 vulnerabilities
+- all 397 existing test files / 1,782 existing tests remained green
+- exactly one new suite failed during import because `app/api/integrations/github/webhook/route.ts` did not exist
+- no unrelated regression was observed
+
+The Task 4 route GREEN implementation now exists. The route is POST-only, pinned to the Node runtime and force-dynamic execution, maps bounded webhook input errors to 400/401/413 before service invocation, passes only the verified webhook envelope into reconciliation, returns bounded 200/202 success states, and collapses all provider/persistence/internal failures to a generic retryable 503 without reflecting raw body, signatures, or provider error details.
+
+This exact head is the Task 4 route GREEN validation candidate. Task 5 lifecycle reconciliation has not started yet and will begin only after this route candidate passes the complete release gate.
 
 The Phase 10A3 migration remains source-only and has not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
