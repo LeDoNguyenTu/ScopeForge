@@ -92,8 +92,8 @@ export function createWorkerExecutorDispatcher(
         case "active_cors_validation_v1":
           return requiredRuntimeExecutor(dependencies.activeCors, contract.executionClass).execute(contract, signal);
       }
-      const unreachable: never = contract.executionClass;
-      throw new Error(`Unsupported worker execution class: ${String(unreachable)}`);
+      const unreachable: never = contract;
+      throw new Error(`Unsupported worker executor contract: ${String(unreachable)}`);
     },
   };
   return Object.freeze(dispatcher);
