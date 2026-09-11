@@ -57,6 +57,8 @@ Task 4 RED contract is committed in `tests/github-app/webhook-service.test.ts`. 
 
 The Task 4 webhook service GREEN implementation now exists. It keeps raw webhook bytes and payload repository metadata out of scheduling authority, admits exact delivery UUIDs, loads only stored stable context, mints repository-restricted installation authority, re-fetches authoritative repository/default-head state, reconciles safe provider metadata, coalesces latest-head state through the Phase 10A3 RPCs, respects independent public/private snapshot runtime gates, and maps enqueue races to bounded pending state without starting a second chain.
 
-This exact head is the Task 4 service GREEN validation candidate. The public webhook route has not been added yet and will be implemented only after this service candidate is proven green.
+Task 4 service CI #924 / run `34645582197` proved all 19 new service behaviors and the full repository test suite: 397 test files / 1,782 tests passed. Typecheck then identified only two test-fixture typing issues - a widened execution-class literal and typed mock call inspection. Both test-only diagnostics are now repaired without changing service behavior.
+
+This exact head is the final Task 4 service GREEN validation candidate. The public webhook route has not been added yet and will be implemented only after this candidate passes the complete release gate.
 
 The Phase 10A3 migration remains source-only and has not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
