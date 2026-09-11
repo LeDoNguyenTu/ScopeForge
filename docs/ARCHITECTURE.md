@@ -23,6 +23,7 @@ Next.js / Vercel control plane
   |      +--> finding/import/retest RPCs
   |      +--> worker-control RPCs
   |      +--> repository snapshot services
+  |      +--> verified GitHub App + webhook reconciliation
   |
   +--> private PostgreSQL worker queue
            |
@@ -39,7 +40,7 @@ Next.js / Vercel control plane
            +--> repository_snapshot_github_private_v1
 ```
 
-Workers never receive Supabase `service_role`. Browser components do not receive worker credentials, lease tokens, R2 credentials, private object keys, scanner execution authority, GitHub App credentials, GitHub installation tokens, or generic network authority.
+Workers never receive Supabase `service_role`. Browser components do not receive worker credentials, lease tokens, R2 credentials, private object keys, scanner execution authority, GitHub App credentials, GitHub installation tokens, webhook secrets, or generic network authority.
 
 ## Phase 3 local scanner
 
@@ -238,6 +239,90 @@ Code implementation and CI do not authorize production private-source execution.
 
 The private runtime flag remains false/absent until those operational gates pass.
 
+## Phase 10A3 authenticated GitHub webhook reconciliation
+
+Phase 10A3 adds continuous reconciliation without turning GitHub webhook payload metadata into repository authority.
+
+The public endpoint is:
+
+`/api/integrations/github/webhook`
+
+### Webhook trust boundary
+
+The route reads bounded raw bytes and verifies `X-Hub-Signature-256` with HMAC-SHA256 using the independent server-only `GITHUB_APP_WEBHOOK_SECRET`. Verification occurs over the untouched request bytes before JSON parsing, delivery persistence, provider lookup, or state mutation.
+
+The boundary also requires a valid delivery UUID, a bounded event header/content type, and a hard 10 MiB ceiling enforced from declared `Content-Length` when present and again from the actual bytes read.
+
+The system does not persist raw webhook bodies, signatures, webhook secrets, App JWTs, OAuth/installation tokens, authorization headers, temporary archive URLs, commit message/author bodies, or source bytes as webhook reconciliation data.
+
+### Provider-authoritative reconciliation
+
+Signed webhook payloads provide only bounded candidate identifiers/signals such as installation ID, numeric repository ID, ref/action, and candidate commit SHA. They do not authorize canonical repository URL, visibility, archived state, default branch, account identity, or current default-head state.
+
+Before a state-changing repository reconciliation or automatic scan decision, trusted control-plane code re-fetches the relevant GitHub App installation/repository state using the stored installation relationship and repository-restricted read-only credentials.
+
+Lifecycle events reconcile by stable numeric identity:
+
+- installation suspension/removal fails closed without requiring provider data that may no longer be available,
+- installation reactivation requires authoritative provider revalidation,
+- repository removal marks only already-connected links inaccessible and never auto-imports a new repository,
+- repository re-add/rename/transfer/privacy/archive/unarchive uses provider-authoritative metadata before updating the stored link/asset,
+- repository deletion retains historical identity while marking access removed.
+
+### Delivery replay and desired-head coalescing
+
+`private.github_webhook_deliveries` provides delivery UUID replay protection. `private.github_repository_auto_scan_state` stores only bounded per-link reconciliation watermarks/state.
+
+For default-branch pushes, the control plane resolves the current authoritative provider head and records it as the desired SHA. Rapid pushes do not create parallel unbounded scan chains. The per-link state/locking contract coalesces changes to the newest accepted desired head.
+
+Automatic snapshot intents carry explicit provenance:
+
+- `trigger_kind = 'github_webhook'`
+- exact accepted delivery UUID
+- exact authoritative commit SHA
+
+System-triggered automatic scans do not invent a browser session and do not treat historical `installed_by` as fresh authorization.
+
+### Immutable completion authority and no-lost-head follow-up
+
+Automatic completion never advances a successful watermark from a worker-supplied or webhook-supplied SHA. The completion RPC binds:
+
+- the exact webhook-triggered project intent,
+- the exact snapshot worker task,
+- the exact immutable snapshot row,
+- `repository_source_snapshots.resolved_commit_sha`.
+
+Only that persisted immutable snapshot SHA may advance `successful_commit_sha`.
+
+After successful snapshot publication and exact-snapshot scan continuation is established, trusted server reconciliation compares the successful immutable SHA with the desired watermark. If the provider default head advanced while the earlier chain was active, the control plane revalidates the current head again and schedules at most one follow-up against the newest accepted head. Replay of the same completion cannot advance the watermark twice.
+
+### Browser boundary
+
+Browser code does not query private webhook delivery/coalescing tables. The connected-project browser read model uses only existing public repository-link fields, including `auto_scan_enabled`, access status, and project scan state.
+
+The UI can display automatic scanning On/Off truthfully without exposing delivery UUIDs, provider tokens, webhook payload metadata, private auto-scan watermarks, or archive capabilities. Manual owner/admin `Scan project` behavior remains independent from the automatic-scan preference and retains its existing authorization/runtime gates.
+
+### Database authority
+
+Phase 10A3 uses forward-only migrations. New privileged public RPCs remain `SECURITY DEFINER`, pin `search_path = ''`, fully qualify referenced objects, revoke default/browser execution, and grant only the reviewed `service_role` boundary.
+
+Private webhook/automatic-scan tables enable RLS but intentionally expose no browser policy/grant. Architecture regression tests pin the absence of credential/raw-payload/signature/archive-capability persistence contracts and browser/private-table access.
+
+### Rollout boundary
+
+Phase 10A3 implementation/CI does not authorize production activation. Production rollout additionally requires:
+
+1. Phase 10A1 and Phase 10A2 release in order.
+2. Fresh production migration-head and Phase 10A3 RPC/RLS/ACL verification.
+3. Independent production `GITHUB_APP_WEBHOOK_SECRET` configuration through an encrypted server-only surface.
+4. Reviewed GitHub App webhook registration for `https://scopeforge.dev/api/integrations/github/webhook`.
+5. Invalid-signature, malformed/oversize, UUID replay, lifecycle, and rapid-push coalescing canaries.
+6. One complete automatic scan canary through immutable snapshot publication, exact zero-egress scan continuation, findings, and successful-head advancement.
+7. Verification that secrets/signatures/raw payloads/provider tokens/private source/archive capabilities do not leak to browser state, persistence contracts, redirects, workers, or ordinary logs.
+8. A rollback path that can remove/disable webhook delivery without widening any hosted worker capability.
+
+Phase 10A3 adds orchestration, not a new worker authority. Existing runtime flags remain independently gated.
+
 ## Authority guards
 
 Executable repository guards enforce security dependency direction, including:
@@ -249,6 +334,7 @@ Executable repository guards enforce security dependency direction, including:
 - acquisition cannot invoke package managers or scanner coordinator/inventory/filesystem execution
 - acquisition cannot import runtime observer/validator or model providers
 - browser components cannot import R2/object-store/server snapshot authority or internal worker broker/supervisor
+- browser project-scan code cannot query private webhook delivery or auto-scan state tables
 - foundation worker path cannot import GitHub/R2 acquisition authority
 - repository snapshot normalization does not persist findings or call Phase 3 hosted import persistence
 - worker supervisor remains free of repository provider credentials and generic target network authority
@@ -257,7 +343,9 @@ Executable repository guards enforce security dependency direction, including:
 - private executor has no GitHub API control-plane authority
 - worker claim remains authenticated and request-body-free
 - private acquisition runtime remains default-off unless explicitly enabled
-- Phase 10A2 privileged RPCs retain explicit service-role ACLs
+- Phase 10A2/10A3 privileged RPCs retain explicit service-role ACLs
+- webhook service trust begins with raw-byte HMAC verification rather than browser/session authorization
+- webhook persistence contracts reject raw payload/signature/credential/archive capability fields
 
 These are security controls, not formatting conventions.
 
@@ -271,11 +359,15 @@ After Phase 6B live hardening, `service_role` has zero direct privileges on `pub
 
 Phase 10A2 connected-project routing preserves this model: browser roles cannot directly enqueue private worker tasks or mutate private project-scan intent state, and the public/private acquisition distinction is enforced inside trusted server/RPC boundaries.
 
+Phase 10A3 adds private webhook delivery/auto-scan state and service-role-only reconciliation RPCs without expanding browser DML or worker database authority.
+
 ## Evidence and secret boundary
 
 Runtime persistence stores normalized observations instead of raw responses. Phase 5C stores privacy-reduced scanner facts instead of arbitrary source/snippet/secret content.
 
 Repository snapshot phases intentionally store source bytes only in private R2 artifacts. The public snapshot row exposes bounded provenance and digests, not source content, object keys, presigned URLs, private archive lease URLs, GitHub tokens, or download locators.
+
+Webhook reconciliation stores bounded event/result/watermark metadata only. It does not persist the raw delivery body, HMAC signature/secret, authorization material, provider tokens, temporary archive URLs, or source bytes.
 
 ## Repository scan isolation boundary
 
@@ -289,4 +381,4 @@ Dedicated network-enabled runtime/active worker execution remains a separately r
 
 ## Non-goals
 
-The architecture does not authorize generalized crawling, endpoint discovery, arbitrary user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, arbitrary repository command execution, or automatic remediation.
+The architecture does not authorize generalized crawling, endpoint discovery, arbitrary user-supplied origins, arbitrary methods/headers/bodies, authenticated testing, credential/cookie replay, browser automation, exploit probes, fuzzing, credential attacks, denial-of-service behavior, generalized DAST, arbitrary repository command execution, automatic remediation, repository write access, arbitrary GitHub API access, or webhook-triggered auto-import of repositories.
