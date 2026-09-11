@@ -6,7 +6,7 @@ Base: `feat/phase-10a2-private-repository-acquisition` at validated head `e812a2
 
 ## Current checkpoint
 
-Phase 10A3 design and implementation plan are approved and committed.
+Phase 10A3 design and implementation plan are approved and committed. The complete Phase 10A3 implementation, Task 8 documentation refresh, and the release-hardening correction discovered during changed-file review are now GREEN against the exact Phase 10A2 base.
 
 Task 1 RED evidence is captured in CI #914 / run `34631217021`. Final Task 1 CI #916 / run `34632551953` passed every release gate.
 
@@ -41,29 +41,57 @@ Task 7 implementation includes only the minimum browser-safe state:
 - independent manual `Scan project` behavior remains governed by existing access/runtime/orchestration state, not by the automatic-scan preference
 - no browser query of `github_webhook_deliveries`, `github_repository_auto_scan_state`, webhook payload metadata, delivery UUIDs, signatures, provider tokens, archive capabilities, or private coalescing state
 
-Task 8 documentation has refreshed `README.md`, `docs/ARCHITECTURE.md`, `docs/ENVIRONMENT.md`, `.env.example`, `docs/development/CURRENT_STATE.md`, and `docs/development/NEXT_STEPS.md` to reflect the current local scanner, hosted control plane, connected-project stack, public/private acquisition boundaries, Phase 10A3 webhook model, seven server-only GitHub App settings, and release sequencing.
+Task 8 documentation refreshed `README.md`, `docs/ARCHITECTURE.md`, `docs/ENVIRONMENT.md`, `.env.example`, `docs/development/CURRENT_STATE.md`, and `docs/development/NEXT_STEPS.md` to reflect the current local scanner, hosted control plane, connected-project stack, public/private acquisition boundaries, Phase 10A3 webhook model, seven server-only GitHub App settings, and release sequencing.
 
-During the required Task 8 changed-file security/lifecycle review, a real no-lost-head bug was discovered before merge:
+## Release-hardening lifecycle correction
 
-- Phase 10A1 manual connected-project intents remain `scan_queued` after the repository scan is queued; existing recovery migrations do not reset them to `idle` at repository-scan terminal state.
-- Phase 10A3 `record_github_webhook_push_head` correctly treats any non-idle intent as an active chain, so a webhook arriving during a manual scan is coalesced as pending.
-- The Task 6 automatic snapshot-completion hook correctly ignores manual intents, so it cannot release that manual intent or enqueue the pending automatic head.
-- Replaying the same desired head remains a semantic replay and does not enqueue, which can strand automatic scanning after a manual scan.
+During the required Task 8 changed-file security/lifecycle review, a real no-lost-head edge case was discovered before merge:
 
-Root-cause tracing confirmed the correct authority boundary is repository-scan terminal persistence: successful scans finish through `finalize_repository_scan_success`; failed/cancelled scans finish through `finalize_repository_scan_worker_failure`, where failed attempts can remain `retry_wait` and must not release the intent prematurely.
+- a Phase 10A1 manual connected-project intent can remain `scan_queued` while its repository scan owns the per-link chain
+- a default-branch webhook push arriving during that manual scan is correctly coalesced as the desired automatic head
+- automatic snapshot completion intentionally ignores manual intents
+- without a repository-scan terminal reconciliation boundary, the desired automatic head could remain stranded after the manual scan completed
 
-A new RED regression suite is committed at `tests/project-scans/manual-auto-followup.test.ts`. It requires the eventual correction to:
+Root-cause tracing confirmed that repository-scan terminal persistence is the only correct authority boundary. A failed attempt can legitimately become `retry_wait`, so an attempt-level failure result must never release the manual intent by itself.
 
-- bind only by exact persisted repository `scan_task_id`
-- settle only `trigger_kind='manual'` intents
-- leave queued/leased/retry-wait tasks untouched
-- accept only persisted terminal task/job pairs (`completed/succeeded`, `cancelled/cancelled`, `dead_letter/failed`)
-- let a successful manual scan satisfy the desired watermark only when its immutable snapshot SHA exactly equals the pending desired SHA
-- otherwise release the manual intent and schedule at most one provider-authoritative newest-head automatic follow-up
-- preserve public/private acquisition runtime gates and repository-scoped provider authority
-- invoke the reconciliation hook after both successful repository-scan publication and failed/cancelled finalization
-- remain replay-safe and service-role-only.
+RED CI #940 / run `34654759881` validated the regression contract before implementation. The run kept all 401 pre-existing test files / 1,831 pre-existing tests GREEN and failed only the eight new `tests/project-scans/manual-auto-followup.test.ts` assertions as intended.
 
-Production behavior for this newly discovered case has not been changed yet. The current exact head is the controlled RED validation candidate.
+The forward-only correction adds `20260912023000_phase_10a3_manual_scan_auto_followup.sql` and now:
 
-The Phase 10A3 migrations remain source-only and have not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
+- binds terminal settlement only by the exact persisted repository `scan_task_id`
+- accepts only manual intents in `scan_queued`
+- preserves queued, leased, and `retry_wait` tasks without releasing the chain
+- accepts only persisted terminal task/job pairs: `completed/succeeded`, `cancelled/cancelled`, or `dead_letter/failed`
+- allows a successful manual scan to satisfy the automatic successful watermark only when the immutable scanned snapshot SHA exactly equals the pending desired SHA
+- otherwise releases only the exact terminal manual chain and schedules at most one provider-authoritative latest-head automatic follow-up
+- reuses the existing repository-scoped GitHub installation-token boundary and public/private acquisition runtime gates
+- invokes reconciliation after trusted successful repository-scan publication and after trusted failed/cancelled repository-scan finalization using only the persisted returned task ID
+- keeps the new settlement RPC `SECURITY DEFINER`, service-role-only, and inaccessible to browser roles
+
+GREEN CI #947 / run `34655979305` passed every release gate against synthetic merge ref `8960e9eff9e1db85f2a115754e8c54d4a6548b95`, which merges exact implementation head `94957dc229b96a56f5ce4e392e756358babeac25` into exact Phase 10A2 base `e812a236f3782059e72a5fd2793d4f9b2641e81f`.
+
+Fresh CI #947 evidence:
+
+- `npm audit --audit-level=info`: 0 vulnerabilities
+- Vitest: 402 / 402 files and 1,839 / 1,839 tests passed, including all eight manual/automatic terminal reconciliation regressions
+- TypeScript typecheck passed
+- CLI build and `ScopeForge 0.1.0` version check passed
+- scanner benchmark and dependency/IaC/source-AST benchmark matrix passed within their budgets
+- optimized Next.js 15.5.24 production build passed, including `/api/integrations/github/webhook` and both repository-scan finalization routes
+- strict-CSP browser smoke passed
+- production `scopeforge.dev` V5/Turnstile diagnostic passed
+- visual acceptance artifact upload passed with four files, artifact ID `10285786365`
+
+The remaining warnings in CI #947 are non-gating tooling/performance deprecations (Vite future config-loader behavior, Next.js cache/performance notices, and GitHub action Node runtime deprecation notices); no application/security gate failed.
+
+## Release state
+
+The Phase 10A3 code and documentation are current-stack CI GREEN, but the PR remains release-sequenced behind Phase 10A1 and Phase 10A2. This validation does not authorize skipping their production gates.
+
+The Phase 10A3 migrations remain source-only and have not been applied to any Supabase environment. No webhook has been registered. No production GitHub App webhook secret or runtime flag has been changed.
+
+Release order remains:
+
+1. complete the Phase 10A1 live GitHub App owner/admin connection/import canary and release Phase 10A1
+2. apply/canary the Phase 10A2 private acquisition schema/runtime and release Phase 10A2
+3. apply the Phase 10A3 migrations, configure the webhook secret/endpoint, run signed webhook + replay/lifecycle/public-private canaries, then merge/release Phase 10A3
