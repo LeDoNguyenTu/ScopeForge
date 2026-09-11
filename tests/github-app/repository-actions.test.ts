@@ -31,6 +31,7 @@ const repository: GitHubRepositorySummary = {
   fullName: "scopeforge-labs/secure-app",
   defaultBranch: "trunk",
   isPrivate: false,
+  isArchived: false,
   htmlUrl: "https://github.com/scopeforge-labs/secure-app",
 };
 
