@@ -119,6 +119,23 @@ function commitSha(value: string): string {
   return value;
 }
 
+function installationFromProvider(value: unknown): GitHubInstallationSummary {
+  if (!value || typeof value !== "object") throw providerFailure();
+  const row = value as Record<string, unknown>;
+  const account = row.account && typeof row.account === "object" ? row.account as Record<string, unknown> : null;
+  const id = typeof row.id === "number" ? row.id : NaN;
+  const accountId = typeof account?.id === "number" ? account.id : NaN;
+  const accountLogin = stringField(account?.login, 100);
+  const accountType = account?.type;
+  const repositorySelection = row.repository_selection;
+  if (!Number.isSafeInteger(id) || id <= 0 || !Number.isSafeInteger(accountId) || accountId <= 0 || !accountLogin) {
+    throw providerFailure();
+  }
+  if (accountType !== "User" && accountType !== "Organization") throw providerFailure();
+  if (repositorySelection !== "all" && repositorySelection !== "selected") throw providerFailure();
+  return Object.freeze({ id, accountId, accountLogin, accountType, repositorySelection });
+}
+
 function repositoryFromProvider(value: unknown): GitHubRepositorySummary {
   if (!value || typeof value !== "object") throw providerFailure();
   const row = value as Record<string, unknown>;
@@ -129,11 +146,30 @@ function repositoryFromProvider(value: unknown): GitHubRepositorySummary {
   const fullName = stringField(row.full_name, 201);
   const defaultBranch = stringField(row.default_branch, 255);
   const htmlUrl = stringField(row.html_url, 500);
-  if (!Number.isSafeInteger(id) || id <= 0 || !ownerLogin || !name || !fullName || !defaultBranch || !htmlUrl || typeof row.private !== "boolean") {
+  if (
+    !Number.isSafeInteger(id)
+    || id <= 0
+    || !ownerLogin
+    || !name
+    || !fullName
+    || !defaultBranch
+    || !htmlUrl
+    || typeof row.private !== "boolean"
+    || typeof row.archived !== "boolean"
+  ) {
     throw providerFailure();
   }
   if (fullName !== `${ownerLogin}/${name}` || htmlUrl !== `https://github.com/${fullName}`) throw providerFailure();
-  return Object.freeze({ id, ownerLogin, name, fullName, defaultBranch, isPrivate: row.private, htmlUrl });
+  return Object.freeze({
+    id,
+    ownerLogin,
+    name,
+    fullName,
+    defaultBranch,
+    isPrivate: row.private,
+    isArchived: row.archived,
+    htmlUrl,
+  });
 }
 
 export async function exchangeGitHubUserCode(
@@ -168,22 +204,23 @@ export async function listUserInstallations(
     method: "GET",
     headers: githubHeaders(userToken.accessToken),
   }, fetchImpl);
-  if (!payload || typeof payload !== "object" || !Array.isArray((payload as Record<string, unknown>).installations)) throw providerFailure();
+  if (!payload || typeof payload !== "object" || !Array.isArray((payload as Record<string, unknown>).installations)) {
+    throw providerFailure();
+  }
+  return (payload as { installations: unknown[] }).installations.slice(0, 100).map(installationFromProvider);
+}
 
-  return (payload as { installations: unknown[] }).installations.slice(0, 100).map((value) => {
-    if (!value || typeof value !== "object") throw providerFailure();
-    const row = value as Record<string, unknown>;
-    const account = row.account && typeof row.account === "object" ? row.account as Record<string, unknown> : null;
-    const id = typeof row.id === "number" ? row.id : NaN;
-    const accountId = typeof account?.id === "number" ? account.id : NaN;
-    const accountLogin = stringField(account?.login, 100);
-    const accountType = account?.type;
-    const repositorySelection = row.repository_selection;
-    if (!Number.isSafeInteger(id) || id <= 0 || !Number.isSafeInteger(accountId) || accountId <= 0 || !accountLogin) throw providerFailure();
-    if (accountType !== "User" && accountType !== "Organization") throw providerFailure();
-    if (repositorySelection !== "all" && repositorySelection !== "selected") throw providerFailure();
-    return Object.freeze({ id, accountId, accountLogin, accountType, repositorySelection });
-  });
+export async function getAppInstallation(
+  installationId: number,
+  config: GitHubAppConfig,
+  fetchImpl: typeof fetch = fetch,
+): Promise<GitHubInstallationSummary> {
+  const id = positiveSafeInteger(installationId);
+  const payload = await providerJson(`${GITHUB_API}/app/installations/${id}`, {
+    method: "GET",
+    headers: githubHeaders(createGitHubAppJwt(config)),
+  }, fetchImpl);
+  return installationFromProvider(payload);
 }
 
 export async function createInstallationToken(
@@ -223,7 +260,9 @@ export async function listInstallationRepositories(
   }, fetchImpl);
   if (!payload || typeof payload !== "object") throw providerFailure();
   const row = payload as Record<string, unknown>;
-  if (!Array.isArray(row.repositories) || typeof row.total_count !== "number" || !Number.isFinite(row.total_count) || row.total_count < 0) throw providerFailure();
+  if (!Array.isArray(row.repositories) || typeof row.total_count !== "number" || !Number.isFinite(row.total_count) || row.total_count < 0) {
+    throw providerFailure();
+  }
   const repositories = row.repositories.slice(0, 100).map(repositoryFromProvider);
   return Object.freeze({
     repositories,
@@ -261,6 +300,20 @@ export async function resolveInstallationRepositoryCommitSha(
   const sha = (payload as Record<string, unknown>).sha;
   if (typeof sha !== "string" || !COMMIT_SHA_PATTERN.test(sha)) throw providerFailure();
   return sha;
+}
+
+export async function getInstallationDefaultBranchHead(
+  token: string,
+  repository: GitHubRepositorySummary,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  return resolveInstallationRepositoryCommitSha(
+    token,
+    repository.ownerLogin,
+    repository.name,
+    repository.defaultBranch,
+    fetchImpl,
+  );
 }
 
 export async function getInstallationRepositoryArchiveRedirect(

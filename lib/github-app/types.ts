@@ -42,6 +42,7 @@ export interface GitHubRepositorySummary {
   fullName: string;
   defaultBranch: string;
   isPrivate: boolean;
+  isArchived: boolean;
   htmlUrl: string;
 }
 
