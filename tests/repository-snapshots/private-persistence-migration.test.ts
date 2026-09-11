@@ -46,12 +46,13 @@ describe("Phase 10A2 private repository snapshot persistence migration", () => {
 
   it("keeps every new public SECURITY DEFINER entry point service-role only", async () => {
     const sql = await readFile(migrationPath, "utf8");
+    const normalizedSql = sql.replace(/\s+/g, " ");
     for (const signature of [
       "public.register_private_repository_snapshot_worker_node(text, text)",
       "public.enqueue_private_repository_snapshot_worker_task(uuid, uuid, uuid, uuid)",
     ]) {
-      expect(sql).toContain(`revoke all on function ${signature}`);
-      expect(sql).toContain(`grant execute on function ${signature} to service_role`);
+      expect(normalizedSql).toContain(`revoke all on function ${signature}`);
+      expect(normalizedSql).toContain(`grant execute on function ${signature} to service_role`);
     }
   });
 });
