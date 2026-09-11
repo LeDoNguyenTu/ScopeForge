@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migrationPath = path.resolve(
-  "supabase/migrations/20260911143000_phase_10a1_service_role_table_acl_hardening.sql",
+  "supabase/migrations/20260911143049_phase_10a1_service_role_table_acl_hardening.sql",
 );
 
 describe("Phase 10A1 service-role table ACL hardening", () => {
