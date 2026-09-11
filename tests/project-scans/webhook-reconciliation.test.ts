@@ -218,7 +218,7 @@ describe("automatic connected-project completion reconciliation", () => {
 
 describe("Task 6 persistence and worker-finalize integration", () => {
   it("binds completion to the exact webhook intent and immutable snapshot resolved SHA", async () => {
-    const sql = await readFile(path.resolve("supabase/migrations/20260912020000_phase_10a3_github_webhook_reconciliation.sql"), "utf8");
+    const sql = await readFile(path.resolve("supabase/migrations/20260912022000_phase_10a3_completion_reconciliation.sql"), "utf8");
     const normalized = sql.replace(/\s+/g, " ");
     const start = normalized.indexOf("create or replace function public.complete_github_webhook_project_scan");
     const segment = normalized.slice(start);
