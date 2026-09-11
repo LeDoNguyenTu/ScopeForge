@@ -15,13 +15,15 @@ Task 1 RED evidence is captured in CI #914 / run `34631217021`:
 - the new webhook suite failed because `lib/github-app/webhook.ts` did not exist
 - exactly four new config assertions failed because `GITHUB_APP_WEBHOOK_SECRET` / `webhookSecret` were not implemented
 
-Task 1 production implementation is now present:
+Task 1 first GREEN candidate CI #915 / run `34631875292` proved the behavior contract:
 
-- `GitHubAppConfig` requires `webhookSecret`
-- `getGitHubAppConfig` requires `GITHUB_APP_WEBHOOK_SECRET` and validates 32-512 characters
-- `lib/github-app/webhook.ts` implements exact-byte HMAC-SHA256 verification with constant-time byte comparison
-- request parsing validates JSON content type, delivery UUID, bounded event token, declared/actual 10 MiB ceiling, signature before JSON parsing, and bounded input errors
+- dependency install and audit passed with 0 vulnerabilities
+- all 394 test files / 1,745 tests passed
+- typecheck then identified only legacy test fixtures still constructing the old six-field `GitHubAppConfig`
+- no production type error was reported
 
-This exact head is the Task 1 GREEN validation candidate.
+Those exact fixture diagnostics are now repaired with inert test-only webhook secrets. The private-source broker fixture also asserts the webhook secret cannot leak through its worker-facing result.
+
+This exact head is the Task 1 type-compatible GREEN validation candidate.
 
 No Phase 10A3 migration has been applied to production. No webhook has been registered. No production secret/runtime flag has been changed.
