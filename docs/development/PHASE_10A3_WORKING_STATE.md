@@ -48,8 +48,15 @@ Final Tasks 2 and 3 CI #922 / run `34639416412` passed every release gate on exa
 - production ScopeForge/Turnstile diagnostic passed
 - four UI acceptance artifacts uploaded successfully
 
-Task 4 RED contract is now committed in `tests/github-app/webhook-service.test.ts`. It pins signed ping/unsupported-event handling, strict push candidate parsing, exact delivery replay, disconnected/inactive/auto-scan-disabled no-op behavior, authoritative provider metadata, default-branch supersession, archived repository handling, semantic SHA replay, active-chain coalescing, independent public/private source runtime gates, and enqueue-race replay behavior.
+Task 4 RED contract is committed in `tests/github-app/webhook-service.test.ts`. CI #923 / run `34645026763` captured the intended RED evidence:
 
-This exact head is intentionally a Task 4 RED validation candidate. `lib/github-app/webhook-service.ts` has not been created yet, so the new service suite is expected to fail specifically for the missing implementation before GREEN work begins.
+- dependency install and audit passed with 0 vulnerabilities
+- all 396 existing test files / 1,763 existing tests remained green
+- exactly one new suite failed during import because `lib/github-app/webhook-service.ts` did not exist
+- no unrelated regression was observed
+
+The Task 4 webhook service GREEN implementation now exists. It keeps raw webhook bytes and payload repository metadata out of scheduling authority, admits exact delivery UUIDs, loads only stored stable context, mints repository-restricted installation authority, re-fetches authoritative repository/default-head state, reconciles safe provider metadata, coalesces latest-head state through the Phase 10A3 RPCs, respects independent public/private snapshot runtime gates, and maps enqueue races to bounded pending state without starting a second chain.
+
+This exact head is the Task 4 service GREEN validation candidate. The public webhook route has not been added yet and will be implemented only after this service candidate is proven green.
 
 The Phase 10A3 migration remains source-only and has not been applied to any Supabase environment. No webhook has been registered. No production secret/runtime flag has been changed.
