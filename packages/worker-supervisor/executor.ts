@@ -1,10 +1,9 @@
 import type {
   AnyWorkerTerminalEnvelope,
-  PrivateRepositorySnapshotExecutionClass,
-  PrivateRepositorySnapshotInput,
   WorkerExecutionBudget,
   WorkerExecutionClass,
   WorkerTaskInput,
+  WorkerTerminalEnvelope,
 } from "@/packages/worker-contracts";
 import type { RuntimeMediatorSessionIdentity } from "@/packages/runtime-worker-mediator/contracts";
 import type {
@@ -35,15 +34,24 @@ export interface RuntimeWorkerPreparedInput {
 export interface WorkerExecutorContract {
   taskId: string;
   attemptId: string;
-  executionClass: WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass;
+  executionClass: WorkerExecutionClass;
   absoluteDeadlineAt: string;
   budget: WorkerExecutionBudget;
-  input: WorkerTaskInput | PrivateRepositorySnapshotInput | RepositoryScanPreparedInput | RuntimeWorkerPreparedInput;
+  input: WorkerTaskInput | RepositoryScanPreparedInput | RuntimeWorkerPreparedInput;
 }
+
+export type AnyWorkerExecutorContract = WorkerExecutorContract | PrivateRepositorySnapshotExecutorContract;
 
 export interface WorkerExecutor {
   execute(
     contract: WorkerExecutorContract,
+    signal: AbortSignal,
+  ): Promise<WorkerTerminalEnvelope>;
+}
+
+export interface AnyWorkerExecutor {
+  execute(
+    contract: AnyWorkerExecutorContract,
     signal: AbortSignal,
   ): Promise<AnyWorkerTerminalEnvelope>;
 }
@@ -67,8 +75,8 @@ function requiredRuntimeExecutor(
 
 export function createWorkerExecutorDispatcher(
   dependencies: WorkerExecutorDispatcherDependencies,
-): WorkerExecutor {
-  const dispatcher: WorkerExecutor = {
+): AnyWorkerExecutor {
+  const dispatcher: AnyWorkerExecutor = {
     execute(contract, signal) {
       switch (contract.executionClass) {
         case "foundation_no_egress_v1":
@@ -76,10 +84,7 @@ export function createWorkerExecutorDispatcher(
         case "repository_snapshot_github_public_v1":
           return dependencies.repositorySnapshot.execute(contract, signal);
         case "repository_snapshot_github_private_v1":
-          return dependencies.privateRepositorySnapshot.execute(
-            contract as PrivateRepositorySnapshotExecutorContract,
-            signal,
-          );
+          return dependencies.privateRepositorySnapshot.execute(contract, signal);
         case "phase3_repository_scan_no_egress_v1":
           return dependencies.repositoryScan.execute(contract, signal);
         case "passive_runtime_observation_v1":
