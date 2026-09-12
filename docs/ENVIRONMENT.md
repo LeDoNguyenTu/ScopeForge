@@ -13,12 +13,33 @@ Server-only variables:
 
 - `SUPABASE_SECRET_KEY` - trusted Supabase secret key used only by server-side privileged operations.
 - `TURNSTILE_SECRET_KEY` - Cloudflare Turnstile verification secret when Turnstile is enabled.
+- `HOSTED_GITHUB_INTEGRATION_ENABLED` - exact-`true` release gate for GitHub connected projects. Missing, `false`, or any other value keeps the integration unavailable.
+- `GITHUB_APP_ID` - numeric GitHub App ID.
+- `GITHUB_APP_CLIENT_ID` - GitHub App OAuth client ID.
+- `GITHUB_APP_CLIENT_SECRET` - GitHub App OAuth client secret.
+- `GITHUB_APP_PRIVATE_KEY` - GitHub App private key used only by trusted server composition.
+- `GITHUB_APP_SLUG` - canonical GitHub App slug used for installation URLs.
+- `GITHUB_APP_STATE_SECRET` - independent high-entropy secret for signed connection state.
 - `R2_ACCOUNT_ID` - Cloudflare account identifier for private repository snapshot storage.
 - `R2_ACCESS_KEY_ID` - server-only R2 signing access key.
 - `R2_SECRET_ACCESS_KEY` - server-only R2 signing secret.
 - `R2_BUCKET_NAME` - private repository artifact bucket name.
 
-Never prefix a server-only value with `NEXT_PUBLIC_`. Never expose a Supabase secret key, R2 credential, Turnstile secret, worker credential, GitHub App private key, GitHub installation token, presigned artifact URL, private archive lease URL, or environment dump to browser code or logs.
+Never prefix a server-only value with `NEXT_PUBLIC_`. Never expose a Supabase secret key, GitHub App secret/private key/state secret, GitHub OAuth or installation token, R2 credential, Turnstile secret, worker credential, presigned artifact URL, private archive lease URL, or environment dump to browser code or logs.
+
+## GitHub connected-project release gate
+
+`HOSTED_GITHUB_INTEGRATION_ENABLED` is intentionally independent from GitHub App credential presence. Configuring provider credentials must not expose the integration by itself.
+
+The safe production sequence is:
+
+1. deploy/merge with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or set to `false`,
+2. verify the six server-only GitHub App settings and provider URLs/permissions,
+3. set `HOSTED_GITHUB_INTEGRATION_ENABLED=true` deliberately for the authenticated owner/admin provider canary,
+4. keep the gate enabled only if installation proof, repository listing/import, persistence and log/browser leakage checks all pass,
+5. disable it immediately if provider identity, callback, persistence or leakage acceptance fails.
+
+This gate covers the connect route, callback route, integration dashboard, Add Asset GitHub import entry point, and repository-import server action. Hosted repository snapshot/scan runtime gates remain separate and must stay disabled until their own acceptance is complete.
 
 ## Repository artifact storage
 

@@ -2,33 +2,43 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Github } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import AssetForm from "@/components/assets/AssetForm";
+import { serverCapabilityEnabled } from "@/lib/runtime-capabilities/server";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewAssetPage() {
   const { workspace, role, displayName } = await getDashboardContext();
+  const githubIntegrationEnabled = serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED");
 
   return (
     <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
       <Link className="backLink" href="/dashboard/assets"><ArrowLeft size={14} /> Assets</Link>
       <section className="pageHeader assetPageHeader">
-        <div><span className="sectionEyebrow">Add to authorized scope</span><h1>Register an asset</h1><p>Connect repositories through GitHub for verified project identity, or register web and API targets manually and prove control before remote testing.</p></div>
+        <div>
+          <span className="sectionEyebrow">Add to authorized scope</span>
+          <h1>Register an asset</h1>
+          <p>{githubIntegrationEnabled
+            ? "Connect repositories through GitHub for verified project identity, or register web and API targets manually and prove control before remote testing."
+            : "Register web and API targets manually and prove control before remote testing. GitHub connected projects remain unavailable until provider acceptance is complete."}</p>
+        </div>
       </section>
 
-      <section className="panel">
-        <div className="panelTitle">
-          <div>
-            <span>Recommended for repositories</span>
-            <h2>Import from GitHub</h2>
+      {githubIntegrationEnabled ? (
+        <section className="panel">
+          <div className="panelTitle">
+            <div>
+              <span>Recommended for repositories</span>
+              <h2>Import from GitHub</h2>
+            </div>
+            <Github size={20} aria-hidden="true" />
           </div>
-          <Github size={20} aria-hidden="true" />
-        </div>
-        <p>Use the read-only ScopeForge GitHub App to select a repository from an installation you control. ScopeForge revalidates repository identity server-side before marking the project verified.</p>
-        <Link className="primaryButton compact" href="/dashboard/integrations/github">
-          Import from GitHub <ArrowRight size={15} />
-        </Link>
-      </section>
+          <p>Use the read-only ScopeForge GitHub App to select a repository from an installation you control. ScopeForge revalidates repository identity server-side before marking the project verified.</p>
+          <Link className="primaryButton compact" href="/dashboard/integrations/github">
+            Import from GitHub <ArrowRight size={15} />
+          </Link>
+        </section>
+      ) : null}
 
       <div className="formLayout">
         <AssetForm />

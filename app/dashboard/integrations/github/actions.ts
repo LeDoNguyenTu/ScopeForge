@@ -5,6 +5,7 @@ import {
   GitHubRepositoryServiceError,
   importGitHubRepository,
 } from "@/lib/github-app/repositories";
+import { serverCapabilityEnabled } from "@/lib/runtime-capabilities/server";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export type GitHubRepositoryActionResult =
@@ -22,6 +23,16 @@ function invalidRepository(): GitHubRepositoryActionResult {
 }
 
 export async function linkGitHubRepository(formData: FormData): Promise<GitHubRepositoryActionResult> {
+  if (!serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")) {
+    return {
+      ok: false,
+      error: {
+        code: "GITHUB_INTEGRATION_DISABLED",
+        message: "GitHub integration is not enabled.",
+      },
+    };
+  }
+
   const rawRepositoryId = String(formData.get("repositoryId") ?? "").trim();
   if (!/^[1-9][0-9]{0,15}$/.test(rawRepositoryId)) return invalidRepository();
   const repositoryId = Number(rawRepositoryId);

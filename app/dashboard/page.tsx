@@ -4,6 +4,7 @@ import {
   buildAttackSurfaceModel,
   type AttackSurfaceFindingInput,
 } from "@/lib/dashboard/attack-surface-model";
+import { getOptionalPlatformAdmin } from "@/lib/platform-admin/authorization";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +20,12 @@ const ACTIVE_FINDING_STATES = [
 export default async function DashboardPage() {
   const { supabase, workspace, role, displayName } = await getDashboardContext();
   const [
+    platformAdmin,
     { data: assets, error: assetsError },
     { count: openFindingCount, error: findingCountError },
     { data: findingSample, error: findingSampleError },
   ] = await Promise.all([
+    getOptionalPlatformAdmin(),
     supabase
       .from("assets")
       .select("id,kind,name,canonical_target,verification_status,created_at")
@@ -97,6 +100,7 @@ export default async function DashboardPage() {
       workspaceName={workspace.name}
       role={role}
       variant="immersive"
+      platformAdminHref={platformAdmin ? "/admin" : undefined}
     >
       <ImmersiveDashboardExperience
         model={surfaceModel}
