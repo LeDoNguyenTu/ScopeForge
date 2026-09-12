@@ -182,4 +182,14 @@ Enabling the GitHub provider integration must not implicitly enable repository s
 7. Apply only reviewed absent Phase 10A3 migrations, including `20260912024000_phase_10a3_same_head_pending_recovery.sql`, configure the independent webhook secret/endpoint, and run signed-delivery, invalid-signature/oversize, replay, lifecycle, latest-head coalescing, #80 same-head recovery, #85 stale-trigger authoritative-head recovery, leak-check and full automatic-scan canaries.
 8. Merge/release PR #77 only after all operational checks pass.
 
-Never skip stack order or infer provider/runtime acceptance from code or CI success alone.
+## Resume references
+
+- `docs/development/CURRENT_STATE.md`
+- `docs/development/NEXT_STEPS.md`
+- `docs/development/PHASE_10A3_WORKING_STATE.md`
+- `docs/development/PHASE_10A1_GITHUB_APP_SETUP.md`
+- PR #76
+- PR #77
+- issue #79
+
+Always inspect actual branch heads first. Never skip stack order or infer provider/runtime acceptance from code or CI success alone.
