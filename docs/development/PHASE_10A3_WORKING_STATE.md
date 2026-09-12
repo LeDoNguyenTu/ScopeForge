@@ -234,4 +234,8 @@ Independent checks also established:
 6. Configure the independent webhook secret/endpoint and run signed-delivery, invalid-signature/oversize, replay, lifecycle, latest-head coalescing, #80 same-head recovery, #85 stale-trigger authoritative-head recovery, public/private separation, leak-check and full automatic-scan canaries.
 7. Merge/release PR #77 only after operational acceptance is complete.
 
+## Resume point
+
+Start with issue #79 plus `CURRENT_STATE.md`, `NEXT_STEPS.md`, this file, `PHASE_10A1_GITHUB_APP_SETUP.md`, PR #76 and PR #77. Inspect actual branch heads first.
+
 Never skip stack order or infer operational acceptance from code/CI alone.
