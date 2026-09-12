@@ -3,11 +3,11 @@
 Last reconciled: 2026-09-12 (Asia/Singapore)
 Branch: `feat/phase-10a-github-connected-projects`
 PR: #74
-Status: release-gate GREEN candidate pending exact-head CI; provider activation remains post-merge and default-off
+Status: release-gate implementation GREEN; final docs-inclusive exact-head CI pending before merge
 
 ## Implemented
 
-- Shared strict boolean runtime-capability parser for hosted repository snapshot and repository scan gates.
+- Shared strict boolean runtime-capability parser for hosted GitHub integration, repository snapshot and repository scan gates.
 - Server-only GitHub App configuration with no public-secret fallback.
 - Ten-minute signed user/workspace connection state and constant-time signature verification.
 - RS256 GitHub App JWT signing using Node crypto.
@@ -25,6 +25,7 @@ Status: release-gate GREEN candidate pending exact-head CI; provider activation 
 - Public connected-project scan orchestration persists private worker intent, queues immutable source acquisition, and automatically continues after successful snapshot publication.
 - Project-level read model exposes only bounded safe state.
 - Exact-snapshot recovery supports `waiting_scan_runtime`, `retry_pending`, and idempotent `scan_queued` replay without implicit source reacquisition.
+- GitHub connected-project entry points are now dark-gated by default through `HOSTED_GITHUB_INTEGRATION_ENABLED`.
 
 ## Production database verification completed
 
@@ -52,8 +53,6 @@ Security Advisor has no Phase 10A1 release-blocking schema finding. The private 
 - ACL-hardening GREEN candidate `a8959d4b887463b0b28af056932eabd2a75147a3`: CI #907 / run `34610625305` SUCCESS.
 - Fresh current-main synthetic validation CI #949 / run `34656537969`: SUCCESS on Phase 10A1 head `17831b98dbbf06adf213cd2c8694ecd0d6852b74` merged into released `main` `1151af2dddb76737ee2f0a0d1a802f06a975d318`.
 
-Fresh CI #949 passed dependency audit with zero reported vulnerabilities, 387 test files / 1,720 tests, typecheck, CLI build/version, both benchmark layers, production build, CSP smoke, production V5/Turnstile diagnostic and visual artifact upload.
-
 ## Release-gate hardening RED evidence
 
 A provider-side Preview probe exposed two related release issues:
@@ -61,7 +60,7 @@ A provider-side Preview probe exposed two related release issues:
 1. unauthenticated `/api/integrations/github/connect` errors fell back to `http://localhost:3000/...` when Preview did not define `NEXT_PUBLIC_SITE_URL`, and
 2. GitHub connected-project entry points would become visible immediately after merge even though the real GitHub App installation/callback is intentionally production-bound to `scopeforge.dev` and cannot be truthfully accepted on Preview.
 
-The complete RED contract therefore required:
+The complete RED contract required:
 
 - a default-off server capability `HOSTED_GITHUB_INTEGRATION_ENABLED`,
 - connect and callback routes to fail closed before provider/OAuth work while disabled,
@@ -81,23 +80,30 @@ CI #953 / run `34678149019` proved the RED contract on head `207d5c443027e9301e1
 
 No unrelated regression appeared.
 
-## Release-gate GREEN candidate
+## Release-gate GREEN evidence
 
-The missing behavior is now implemented as a narrow release-hardening layer:
+CI #954 / run `34678603273` validated exact head `88fcf9312e6c83312dd5461e8d46dab97387d23b` as synthetic merge `73476056d1d04b08a9a43e90a77f4b0c4dbccdfc` into current `main`.
 
-- `HOSTED_GITHUB_INTEGRATION_ENABLED` is part of the existing exact-`true` server capability parser and defaults disabled,
-- `/api/integrations/github/connect` refuses provider work while disabled and uses request origin as the no-canonical-site fallback,
-- `/api/integrations/github/callback` refuses OAuth/provider work while disabled and clears transient GitHub cookies through the terminal redirect path,
-- the GitHub integration dashboard presents a truthful disabled state with no Connect action,
-- the Add Asset page omits the GitHub import panel while disabled,
-- the repository-import server action fails closed with bounded `GITHUB_INTEGRATION_DISABLED`,
-- `.env.example`, `docs/ENVIRONMENT.md`, provider setup and release-state documentation now define the dark-gated rollout.
+CI #954 passed:
 
-This is a GREEN **candidate only** until the exact docs-inclusive head completes the full CI matrix. No success claim should be inferred before that run finishes.
+- dependency install,
+- audit with 0 vulnerabilities,
+- 387 / 387 test files,
+- 1,726 / 1,726 tests,
+- TypeScript typecheck,
+- CLI build/version (`ScopeForge 0.1.0`),
+- scanner benchmark (`scanner-medium-v1`, 700 files, 778 ms wall time against 20 s maximum),
+- dependency-lockfile / IaC / source-AST benchmark matrix within all budgets,
+- optimized Next.js production build,
+- strict-CSP browser smoke,
+- production `scopeforge.dev` V5/Turnstile diagnostic,
+- four-file visual acceptance upload, artifact `10293955396`.
+
+All six release-hardening assertions turned GREEN and there are no unresolved PR review threads.
 
 ## Safe release model
 
-Once the exact-head GREEN candidate is fully validated, Phase 10A1 can merge/deploy with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or false. That leaves all GitHub connected-project entry points dark while preserving the production provider-acceptance standard.
+Phase 10A1 can merge/deploy with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or false. That leaves all GitHub connected-project entry points dark while preserving the production provider-acceptance standard.
 
 After dark deployment:
 
@@ -118,11 +124,10 @@ The Phase 10C admin/V5/CSP baseline remains authoritative until PR #74 is merged
 
 ## Remaining release work
 
-1. Complete the full exact-head GREEN CI for this docs-inclusive candidate.
-2. Perform a final changed-file/security review against the RED contract.
-3. Merge PR #74 only if the final head is green and the new integration gate remains default-off.
-4. Verify the merged production deployment and confirm the connect edge is dark-gated before any provider activation.
-5. Reconcile draft PR #76 onto the released Phase 10A1 baseline and rerun the complete Phase 10A2 matrix.
-6. Continue Phase 10A2/10A3 operational canaries in release order without enabling worker runtimes prematurely.
+1. Complete the final docs-inclusive exact-head CI created by this release-state reconciliation commit.
+2. Merge PR #74 only if that exact head remains fully green and the integration gate remains default-off.
+3. Verify the merged production deployment and confirm the connect edge is dark-gated before provider activation.
+4. Reconcile draft PR #76 onto the released Phase 10A1 baseline and rerun the complete Phase 10A2 matrix.
+5. Continue Phase 10A2/10A3 operational canaries in release order without enabling worker runtimes prematurely.
 
 Detailed release evidence: `docs/development/PHASE_10A1_RELEASE_STATE.md`.
