@@ -44,6 +44,44 @@ function jsonCompatibleContentType(value: string | null): boolean {
   return mediaType === "application/json" || Boolean(mediaType?.endsWith("+json"));
 }
 
+async function readBoundedRawBody(request: Request): Promise<Uint8Array> {
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_GITHUB_WEBHOOK_BODY_BYTES) {
+        throw fail("GITHUB_WEBHOOK_PAYLOAD_TOO_LARGE", 413);
+      }
+      chunks.push(value);
+    }
+  } catch (error) {
+    try {
+      await reader.cancel();
+    } catch {
+      // Preserve the original read or validation failure.
+    }
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+
+  const rawBody = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    rawBody.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return rawBody;
+}
+
 export function verifyGitHubWebhookSignature(
   rawBody: Uint8Array,
   signatureHeader: string,
@@ -90,10 +128,7 @@ export async function readGitHubWebhookRequest(
     }
   }
 
-  const rawBody = new Uint8Array(await request.arrayBuffer());
-  if (rawBody.byteLength > MAX_GITHUB_WEBHOOK_BODY_BYTES) {
-    throw fail("GITHUB_WEBHOOK_PAYLOAD_TOO_LARGE", 413);
-  }
+  const rawBody = await readBoundedRawBody(request);
   if (!verifyGitHubWebhookSignature(rawBody, signature, webhookSecret)) {
     throw fail("GITHUB_WEBHOOK_SIGNATURE_INVALID", 401);
   }
