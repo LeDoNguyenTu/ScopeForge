@@ -7,6 +7,7 @@ const integrationPagePath = path.join(root, "app/dashboard/integrations/github/p
 const pickerPath = path.join(root, "components/integrations/GitHubRepositoryPicker.tsx");
 const newAssetPagePath = path.join(root, "app/dashboard/assets/new/page.tsx");
 const actionPath = path.join(root, "app/dashboard/integrations/github/actions.ts");
+const capabilityPath = path.join(root, "lib/runtime-capabilities/server.ts");
 
 describe("GitHub connected project UI", () => {
   it("keeps a prominent GitHub import path beside manual asset registration", async () => {
@@ -22,6 +23,16 @@ describe("GitHub connected project UI", () => {
     expect(source).toContain("GitHubRepositoryPicker");
     expect(source).toContain("GITHUB_CONNECTION_MISSING");
     expect(source).toContain("/api/integrations/github/connect");
+  });
+
+  it("keeps the GitHub Connect action dark behind a default-off server capability", async () => {
+    const [pageSource, capabilitySource] = await Promise.all([
+      readFile(integrationPagePath, "utf8"),
+      readFile(capabilityPath, "utf8"),
+    ]);
+    expect(capabilitySource).toContain('"HOSTED_GITHUB_INTEGRATION_ENABLED"');
+    expect(pageSource).toContain('serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")');
+    expect(pageSource).toMatch(/GitHub integration (?:is )?not enabled/i);
   });
 
   it("shows repository visibility, default branch and the private scanning limitation", async () => {
