@@ -1,5 +1,19 @@
 # Phase 10A3 Working State
 
+## Webhook reconciliation checkpoint - 2026-09-12
+
+This checkpoint supersedes older stack status below.
+
+- Phase 10A1 is released as `33d21de652f3c04aa88ebd4f122348803e59b153`; Vercel production is READY and live connect/callback probes confirm the integration is disabled.
+- Phase 10A2 PR #76 targets main at `47b5360cbf2a6b6388d77557cd9fcc14e2d618ff` and contains released main with no missing base commits.
+- This Phase 10A3 reconciliation merges that exact Phase 10A2 head. Environment documentation retains webhook configuration, private archive secrecy, and the separate GitHub integration gate. The example environment has each key exactly once.
+- Fresh local integrated validation: `npm test` passed 411 files / 1,894 tests; `npm run typecheck` exited 0; production `npm run build` exited 0 with the documented CI-only placeholder environment; `git diff --check` passed.
+- A redundant Phase 10A2 test attempt overlapped the branch switch and is invalid as evidence. The completed stable Phase 10A2 run passed 402 files / 1,787 tests; the fresh stable Phase 10A3 run above is the combined-state evidence.
+- No new hosted browser or runtime canary was performed for this combined branch. PR #77 remains draft and cannot release ahead of Phase 10A2 operational acceptance.
+- Remaining: supported Vercel environment configuration access; GitHub App URL/permission verification; authenticated owner/admin connection/import acceptance; dedicated private-worker containment/end-to-end acceptance; then signed webhook replay/lifecycle/coalescing canaries. Apply reviewed Phase 10A2/10A3 migrations only in release order.
+- No provider secret was created or exposed, no runtime flag was enabled, and no Phase 10A2/10A3 production migration was applied in this continuation.
+
+
 Date: 2026-09-12
 Branch: `feat/phase-10a3-github-webhook-reconciliation`
 Base: `feat/phase-10a2-private-repository-acquisition` at validated head `e812a236f3782059e72a5fd2793d4f9b2641e81f`

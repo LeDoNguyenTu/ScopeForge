@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   GitHubConnectionAuthorizationError,
   beginGitHubConnection,
 } from "@/lib/github-app/authorization";
+import { serverCapabilityEnabled } from "@/lib/runtime-capabilities/server";
 
 const STATE_COOKIE = "scopeforge_github_state";
 const CALLBACK_COOKIE_PATH = "/api/integrations/github/callback";
 
-function localUrl(pathname: string): URL {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+function localUrl(pathname: string, request: NextRequest): URL {
+  const base = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
   return new URL(pathname, base);
 }
 
@@ -26,7 +27,11 @@ function errorPath(error: unknown): string {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")) {
+    return NextResponse.redirect(localUrl("/dashboard/integrations/github?error=disabled", request));
+  }
+
   try {
     const installationUrl = await beginGitHubConnection();
     const state = installationUrl.searchParams.get("state");
@@ -42,6 +47,6 @@ export async function GET() {
     });
     return response;
   } catch (error) {
-    return NextResponse.redirect(localUrl(errorPath(error)));
+    return NextResponse.redirect(localUrl(errorPath(error), request));
   }
 }

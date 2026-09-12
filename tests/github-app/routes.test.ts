@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
@@ -25,15 +25,53 @@ beforeEach(() => {
   mocks.beginGitHubConnection.mockReset();
   mocks.prepareGitHubUserAuthorization.mockReset();
   mocks.completeGitHubConnection.mockReset();
+  process.env.HOSTED_GITHUB_INTEGRATION_ENABLED = "true";
+  delete process.env.NEXT_PUBLIC_SITE_URL;
+});
+
+afterEach(() => {
+  delete process.env.HOSTED_GITHUB_INTEGRATION_ENABLED;
+  delete process.env.NEXT_PUBLIC_SITE_URL;
 });
 
 describe("GitHub integration routes", () => {
+  it("fails closed before provider work when the hosted GitHub integration is disabled", async () => {
+    delete process.env.HOSTED_GITHUB_INTEGRATION_ENABLED;
+    const { GET } = await import("@/app/api/integrations/github/connect/route");
+    const response = await (GET as unknown as (request: NextRequest) => Promise<Response>)(
+      new NextRequest("https://scopeforge-preview.example/api/integrations/github/connect"),
+    );
+
+    expect(mocks.beginGitHubConnection).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe(
+      "https://scopeforge-preview.example/dashboard/integrations/github?error=disabled",
+    );
+  });
+
+  it("keeps local error redirects on the request origin when no canonical site URL is configured", async () => {
+    const { GitHubConnectionAuthorizationError } = await import("@/lib/github-app/authorization");
+    mocks.beginGitHubConnection.mockRejectedValue(
+      new GitHubConnectionAuthorizationError("GITHUB_CONNECTION_UNAUTHENTICATED", "Sign in."),
+    );
+    const { GET } = await import("@/app/api/integrations/github/connect/route");
+    const response = await (GET as unknown as (request: NextRequest) => Promise<Response>)(
+      new NextRequest("https://scopeforge-preview.example/api/integrations/github/connect"),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://scopeforge-preview.example/auth/sign-in?next=%2Fdashboard%2Fintegrations%2Fgithub",
+    );
+    expect(response.headers.get("location")).not.toContain("localhost");
+  });
+
   it("starts installation with a secure state cookie and fixed GitHub redirect", async () => {
     mocks.beginGitHubConnection.mockResolvedValue(
       new URL("https://github.com/apps/scopeforge-dev/installations/new?state=signed-state-value"),
     );
     const { GET } = await import("@/app/api/integrations/github/connect/route");
-    const response = await GET();
+    const response = await (GET as unknown as (request: NextRequest) => Promise<Response>)(
+      new NextRequest("https://scopeforge.dev/api/integrations/github/connect"),
+    );
 
     expect(response.headers.get("location")).toBe(
       "https://github.com/apps/scopeforge-dev/installations/new?state=signed-state-value",
@@ -44,6 +82,21 @@ describe("GitHub integration routes", () => {
     expect(cookie).toMatch(/Secure/i);
     expect(cookie).toMatch(/SameSite=Lax/i);
     expect(cookie).toMatch(/Max-Age=600/i);
+  });
+
+  it("fails closed on callback before OAuth/provider work when the hosted integration is disabled", async () => {
+    delete process.env.HOSTED_GITHUB_INTEGRATION_ENABLED;
+    const { GET } = await import("@/app/api/integrations/github/callback/route");
+    const response = await GET(new NextRequest(
+      "https://scopeforge-preview.example/api/integrations/github/callback?code=oauth-code&state=signed-state-value",
+      { headers: { cookie: "scopeforge_github_state=signed-state-value; scopeforge_github_installation=9001" } },
+    ));
+
+    expect(mocks.completeGitHubConnection).not.toHaveBeenCalled();
+    expect(mocks.prepareGitHubUserAuthorization).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe(
+      "https://scopeforge-preview.example/dashboard/integrations/github?error=disabled",
+    );
   });
 
   it("turns the untrusted post-install id into a pending cookie before GitHub user OAuth", async () => {

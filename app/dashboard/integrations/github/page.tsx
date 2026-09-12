@@ -6,6 +6,7 @@ import {
   GitHubRepositoryServiceError,
   listConnectedRepositories,
 } from "@/lib/github-app/repositories";
+import { serverCapabilityEnabled } from "@/lib/runtime-capabilities/server";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,28 @@ export default async function GitHubIntegrationPage({
   const params = await searchParams;
   const page = normalizePage(params.page);
   const { workspace, role, displayName } = await getDashboardContext();
+
+  if (!serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")) {
+    return (
+      <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
+        <Link className="backLink" href="/dashboard/assets/new"><ArrowLeft size={14} /> Add asset</Link>
+        <section className="pageHeader">
+          <div>
+            <span className="sectionEyebrow">Connected projects</span>
+            <h1>GitHub repositories</h1>
+            <p>GitHub connected projects are released behind a server-side capability gate so provider acceptance can be completed before the integration is exposed.</p>
+          </div>
+        </section>
+        <section className="panel">
+          <div className="emptyState">
+            <span className="emptyIcon"><ShieldCheck size={23} /></span>
+            <h3>GitHub integration is not enabled</h3>
+            <p>The integration remains unavailable until its production GitHub App configuration and owner/admin connection canary have been verified.</p>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
 
   let repositoryPage: Awaited<ReturnType<typeof listConnectedRepositories>> | null = null;
   let connectionError: GitHubRepositoryServiceError | null = null;
