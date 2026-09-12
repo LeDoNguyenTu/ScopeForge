@@ -15,7 +15,7 @@ Use these provider settings for the Phase 10A1 production integration:
 - Setup URL: `https://scopeforge.dev/api/integrations/github/callback`
 - Callback URL: `https://scopeforge.dev/api/integrations/github/callback`
 - Request user authorization (OAuth) during installation: **disabled**
-- Webhook: not required for Phase 10A1. Continuous push/install reconciliation is Phase 10A3 and will add a separate webhook secret and event review.
+- Webhook: not required for Phase 10A1. Continuous push/install reconciliation is Phase 10A3 and adds a separate webhook secret and event review.
 - Repository permissions:
   - Contents: Read-only
   - Metadata: Read-only
@@ -32,6 +32,7 @@ This avoids trusting the setup URL's `installation_id` by itself.
 
 Configure these values only in trusted server environments:
 
+- `HOSTED_GITHUB_INTEGRATION_ENABLED` - release gate; leave missing or `false` through deployment, then set exact `true` only for the accepted production canary/rollout.
 - `GITHUB_APP_ID`
 - `GITHUB_APP_CLIENT_ID`
 - `GITHUB_APP_CLIENT_SECRET`
@@ -42,6 +43,20 @@ Configure these values only in trusted server environments:
 None may use a `NEXT_PUBLIC_` prefix. `NEXT_PUBLIC_SITE_URL` remains the existing client-safe canonical site URL and production must remain `https://scopeforge.dev`.
 
 `GITHUB_APP_STATE_SECRET` should be an independently generated high-entropy secret and must not reuse the App client secret, private key, Supabase key, worker credential, or any existing signing key.
+
+The release gate is intentionally independent from credential presence. Supplying all six provider values does not expose the integration unless `HOSTED_GITHUB_INTEGRATION_ENABLED` is exactly `true`.
+
+## Release-gate boundary
+
+While `HOSTED_GITHUB_INTEGRATION_ENABLED` is missing, `false`, or any value other than exact `true`:
+
+- `/api/integrations/github/connect` returns to the integration page before provider work,
+- `/api/integrations/github/callback` terminates before OAuth/provider work and clears transient cookies,
+- the disconnected integration dashboard does not expose the Connect GitHub action,
+- the Add Asset page does not expose Import from GitHub,
+- the repository-import server action fails closed.
+
+Repository snapshot/scan worker capability flags remain separate. Enabling the GitHub integration must not implicitly enable hosted source acquisition or scanning.
 
 ## Cookie boundary
 
@@ -68,13 +83,17 @@ The following must never be stored in the integration tables, audit metadata, br
 
 ## Release verification
 
-Before enabling the live Connect GitHub button:
+The safe rollout order is:
 
-1. Confirm the GitHub App provider settings match this document.
-2. Confirm all six server-only environment variables exist in the production deployment.
-3. Confirm callback URL wildcard matching is disabled unless there is a separately reviewed reason to enable it.
-4. Connect a controlled GitHub account and installation.
-5. Attempt a callback with a different valid numeric installation ID and confirm ScopeForge rejects it.
-6. Confirm no GitHub user or installation token appears in application logs, database tables, redirects, or browser-readable cookies.
-7. Confirm a normal workspace member/viewer cannot start or complete a connection.
-8. Keep hosted repository snapshot and scan runtime gates disabled until their independent operational acceptance is complete.
+1. Deploy/merge Phase 10A1 with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or `false`.
+2. Confirm the GitHub App provider settings match this document.
+3. Confirm all six server-only GitHub App values exist in the production deployment without exposing their contents.
+4. Confirm callback URL wildcard matching is disabled unless there is a separately reviewed reason to enable it.
+5. Set `HOSTED_GITHUB_INTEGRATION_ENABLED=true` deliberately for the controlled owner/admin acceptance.
+6. Connect a controlled GitHub account and installation.
+7. Verify repository listing and one repository import using authoritative server-side re-fetch.
+8. Attempt a callback with a different valid numeric installation ID and confirm ScopeForge rejects it.
+9. Confirm no GitHub user or installation token appears in application logs, database tables, redirects, or browser-readable cookies.
+10. Confirm a normal workspace member/viewer cannot start or complete a connection.
+11. Keep the integration enabled only if all provider acceptance checks remain green; otherwise set the gate back to false immediately.
+12. Keep hosted repository snapshot and scan runtime gates disabled until their independent operational acceptance is complete.
