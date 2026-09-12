@@ -4,6 +4,7 @@ import {
   completeGitHubConnection,
   prepareGitHubUserAuthorization,
 } from "@/lib/github-app/authorization";
+import { serverCapabilityEnabled } from "@/lib/runtime-capabilities/server";
 
 const STATE_COOKIE = "scopeforge_github_state";
 const INSTALLATION_COOKIE = "scopeforge_github_installation";
@@ -67,6 +68,10 @@ function parseInstallationId(value: string | undefined | null): number | null {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (!serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")) {
+    return terminalRedirect(request, "/dashboard/integrations/github?error=disabled");
+  }
+
   const state = request.nextUrl.searchParams.get("state");
   const stateCookie = request.cookies.get(STATE_COOKIE)?.value;
 
