@@ -937,15 +937,6 @@ export async function processGitHubWebhook(
 
     const authoritativeHead = await deps.getDefaultBranchHead(installationToken.token, repository);
     if (!COMMIT_SHA_PATTERN.test(authoritativeHead)) throw new GitHubWebhookServiceError();
-    if (candidate.after !== authoritativeHead) {
-      return finish(
-        deps,
-        input.deliveryId,
-        "processed",
-        "AUTHORITATIVE_HEAD_ADVANCED",
-        { status: "superseded", code: "AUTHORITATIVE_HEAD_ADVANCED" },
-      );
-    }
 
     if (repository.isPrivate) {
       if (!deps.privateSnapshotRuntimeEnabled()) {

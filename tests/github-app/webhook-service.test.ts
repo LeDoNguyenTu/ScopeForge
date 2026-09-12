@@ -284,15 +284,32 @@ describe("GitHub webhook reconciliation service", () => {
     expect(deps.enqueueProjectSnapshot).not.toHaveBeenCalled();
   });
 
-  it("marks stale webhook after-SHA as superseded by the authoritative default head", async () => {
+  it("recovers the provider-authoritative current head when webhook after-SHA is stale", async () => {
     const deps = dependencies({ getDefaultBranchHead: vi.fn(async () => HEAD_SHA) });
 
     await expect(processGitHubWebhook(verified("push", pushPayload({ after: STALE_SHA })), deps))
-      .resolves.toEqual({ status: "superseded", code: "AUTHORITATIVE_HEAD_ADVANCED" });
+      .resolves.toEqual({
+        status: "queued",
+        taskId: TASK_ID,
+        executionClass: "repository_snapshot_github_public_v1",
+      });
 
-    expect(deps.recordPushHead).not.toHaveBeenCalled();
-    expect(deps.enqueueProjectSnapshot).not.toHaveBeenCalled();
-    expect(deps.recordDeliveryResult).toHaveBeenCalledWith(DELIVERY_ID, "processed", "AUTHORITATIVE_HEAD_ADVANCED");
+    expect(deps.recordPushHead).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      linkId: LINK_ID,
+      repositoryId: REPOSITORY_ID,
+      deliveryId: DELIVERY_ID,
+      commitSha: HEAD_SHA,
+    });
+    expect(deps.enqueueProjectSnapshot).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      linkId: LINK_ID,
+      deliveryId: DELIVERY_ID,
+      commitSha: HEAD_SHA,
+    });
+    expect(JSON.stringify(vi.mocked(deps.recordPushHead).mock.calls)).not.toContain(STALE_SHA);
+    expect(JSON.stringify(vi.mocked(deps.enqueueProjectSnapshot).mock.calls)).not.toContain(STALE_SHA);
+    expect(deps.recordDeliveryResult).toHaveBeenCalledWith(DELIVERY_ID, "processed", "SNAPSHOT_QUEUED");
   });
 
   it("returns semantic replay without creating another snapshot chain", async () => {
