@@ -1,168 +1,146 @@
 # ScopeForge Current State
 
-## Webhook reconciliation checkpoint - 2026-09-12
-
-This checkpoint supersedes older stack status below.
-
-- Phase 10A1 is released as `33d21de652f3c04aa88ebd4f122348803e59b153`; Vercel production is READY and live connect/callback probes confirm the integration is disabled.
-- Phase 10A2 PR #76 targets main at `47b5360cbf2a6b6388d77557cd9fcc14e2d618ff` and contains released main with no missing base commits.
-- This Phase 10A3 reconciliation merges that exact Phase 10A2 head. Environment documentation retains webhook configuration, private archive secrecy, and the separate GitHub integration gate. The example environment has each key exactly once.
-- Fresh local integrated validation: `npm test` passed 411 files / 1,894 tests; `npm run typecheck` exited 0; production `npm run build` exited 0 with the documented CI-only placeholder environment; `git diff --check` passed.
-- A redundant Phase 10A2 test attempt overlapped the branch switch and is invalid as evidence. The completed stable Phase 10A2 run passed 402 files / 1,787 tests; the fresh stable Phase 10A3 run above is the combined-state evidence.
-- No new hosted browser or runtime canary was performed for this combined branch. PR #77 remains draft and cannot release ahead of Phase 10A2 operational acceptance.
-- Remaining: supported Vercel environment configuration access; GitHub App URL/permission verification; authenticated owner/admin connection/import acceptance; dedicated private-worker containment/end-to-end acceptance; then signed webhook replay/lifecycle/coalescing canaries. Apply reviewed Phase 10A2/10A3 migrations only in release order.
-- No provider secret was created or exposed, no runtime flag was enabled, and no Phase 10A2/10A3 production migration was applied in this continuation.
-
-
-## Continuation checkpoint - 2026-09-12
-
-This checkpoint supersedes the older release status below.
-
-- PR #74 merged as `33d21de652f3c04aa88ebd4f122348803e59b153` after final CI run `34678875883` succeeded (387 files, 1,726 tests, audit 0, typecheck, builds, benchmarks and browser acceptance).
-- Vercel production deployment `dpl_BFbUfBRQKCbMgHViMhsXX5kvfTYk` is READY for that merge.
-- Fresh production GET probes confirmed both GitHub connect and callback return HTTP 307 to `https://scopeforge.dev/dashboard/integrations/github?error=disabled`. Callback clears both transient cookies with Secure, HttpOnly and SameSite=Lax attributes.
-- GitHub provider configuration and authenticated connection/import acceptance remain unverified. No integration or worker runtime flag was enabled.
-- PR #76 now targets `main`. This reconciliation merges released main into Phase 10A2, retaining the Phase 10C admin console, GitHub release gate and private acquisition capability. The sole conflict in `docs/ENVIRONMENT.md` was resolved by retaining both the release-gate instructions and private archive lease secrecy rule.
-- Local integrated validation: `npm test` passed 402 files / 1,787 tests; `npm run typecheck` exited 0; `git diff --check` passed.
-- PR #76 remains draft. Provider/worker containment and private end-to-end canaries remain required before release. Phase 10A2/10A3 production migrations were not applied in this continuation.
-- Next: propagate this reconciliation into PR #77, validate the combined candidate, then complete provider configuration and runtime acceptance in order. Earlier CI records below describe historical candidates only.
-
-
 Last reconciled: 2026-09-12 (Asia/Singapore)
 
-## Released baseline
+## Released production baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
-- production: `scopeforge.dev`
-- released baseline includes Phases 1-9E, strict nonce CSP, accepted Command Center V5, and Phase 10C platform administration
+- production: `https://scopeforge.dev`
+- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
+- Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
+- ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
+- released Phase 10A1 `main`: `33d21de652f3c04aa88ebd4f122348803e59b153`
+- Phase 10A1 GitHub connected-projects code is released with `HOSTED_GITHUB_INTEGRATION_ENABLED` disabled/missing until operational provider acceptance
+- production connect/callback probes previously confirmed the disabled path and secure transient-cookie clearing
+- fresh production fetches remain HTTP 200 with the expected strict nonce CSP and released ScopeForge UI
+- fresh Vercel runtime-error inspection after the latest hardening found no production runtime-error cluster in the last hour
 
-The released `main` tree remains authoritative until a later PR is merged and production-verified.
+The released production tree remains authoritative until later phases are independently accepted, merged and production-verified.
 
-## Phase 10A1 - connected GitHub projects core
+## Phase 10A1 - provider acceptance is the first blocker
 
-PR #74 (`feat/phase-10a-github-connected-projects`) is open, draft, and mergeable.
+PR #74 is already merged and deployed. The remaining Phase 10A1 work is operational GitHub App acceptance, not application implementation.
 
-Exact Phase 10A1 head:
+Tracked blocker: issue #79.
 
-`17831b98dbbf06adf213cd2c8694ecd0d6852b74`
+Current connected tooling can inspect Vercel projects, deployments and logs but cannot read or mutate production environment variables. Do not infer provider configuration and do not expose secrets in chat, GitHub issues, PR comments, repository files, browser-readable variables, or logs.
 
-Fresh current-`main` validation supersedes the older exact-head run:
+Required server-only GitHub App values:
 
-- current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
-- synthetic merge ref: `c53b21f0b28735f3fc3fa59c85414f977346a403`
-- CI #949 / run `34656537969`: SUCCESS
-- `npm audit --audit-level=info`: 0 vulnerabilities
-- Vitest: 387 / 387 files, 1,720 / 1,720 tests
-- TypeScript typecheck: PASS
-- CLI build/version: PASS (`ScopeForge 0.1.0`)
-- scanner benchmark and dependency/IaC/source-AST benchmark matrix: PASS
-- optimized Next.js 15.5.24 production build: PASS
-- strict-CSP browser smoke: PASS
-- production `scopeforge.dev` V5/Turnstile diagnostic: PASS
-- four-file visual acceptance artifact upload: PASS, artifact `10285666527`
+- `GITHUB_APP_ID`
+- `GITHUB_APP_CLIENT_ID`
+- `GITHUB_APP_CLIENT_SECRET`
+- `GITHUB_APP_PRIVATE_KEY`
+- `GITHUB_APP_SLUG`
+- `GITHUB_APP_STATE_SECRET`
 
-Correct ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
+Independent release gate:
 
-Production records exactly the five reviewed Phase 10A1 migrations, ending at:
+- `HOSTED_GITHUB_INTEGRATION_ENABLED`
 
-`20260911143049_phase_10a1_service_role_table_acl_hardening`
+Required provider configuration remains:
 
-Verified production authority remains least-privilege:
+- homepage: `https://scopeforge.dev`
+- setup URL: `https://scopeforge.dev/api/integrations/github/callback`
+- callback URL: `https://scopeforge.dev/api/integrations/github/callback`
+- OAuth during installation: disabled
+- Contents: read-only
+- Metadata: read-only
+- no repository write permissions for Phase 10A1
 
-- authenticated browser roles have `SELECT` only on `github_connections` and `github_repository_links`
-- `service_role` has only `SELECT`, `INSERT`, `UPDATE`, `DELETE` on those integration tables
-- private project-scan intent has no direct browser/service-role table grant
-- privileged Phase 10A1 RPCs are `SECURITY DEFINER`, pin `search_path`, and execute only for `service_role`
-- Security Advisor has no Phase 10A1 release-blocking schema issue
-
-Production still contains zero `github_connections` and zero `github_repository_links`.
-
-The remaining Phase 10A1 release blocker is a real provider acceptance gate, not code/schema validation. Before merge, a workspace owner/admin must complete `Connect GitHub -> installation proof -> repository listing -> repository import` against the configured production GitHub App, and the six server-only GitHub App settings must be verified through a configuration surface that does not expose their values. Current connected Vercel tooling does not expose environment-variable metadata, so those settings cannot be asserted from this session without guessing.
+The controlled owner/admin canary must prove installation ownership, repository listing/import, wrong-installation rejection, role authorization, persistence and no credential leakage. Keep the release gate false if any check fails.
 
 ## Phase 10A2 - private GitHub repository acquisition
 
-PR #76 (`feat/phase-10a2-private-repository-acquisition`) is open, draft, mergeable, and stacked exactly on Phase 10A1.
+PR #76 is open, draft and must remain unreleased until the Phase 10A1 provider canary passes.
+
+Current branch:
+
+`feat/phase-10a2-private-repository-acquisition`
 
 Current head:
 
-`e812a236f3782059e72a5fd2793d4f9b2641e81f`
+`709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
-CI #913 / run `34621671597`: SUCCESS against synthesized merge `b7abd24bf5aa76663ecbdebcc78cdc06fd309122`.
+The latest head change is documentation-only branch-cleanup reconciliation. Previously validated Phase 10A2 implementation preserves:
 
-Validated evidence:
+- distinct `repository_snapshot_github_private_v1` execution class
+- separate default-off private runtime gate
+- control-plane-only provider credentials
+- attempt-bound private archive capability
+- immutable snapshot publication
+- exact-snapshot zero-egress continuation
+- no public fallback for private acquisition
 
-- audit: 0 vulnerabilities
-- 393 Vitest files / 1,732 tests: PASS
-- typecheck: PASS
-- CLI build/version: PASS
-- scanner and matrix benchmarks: PASS
-- production Next.js build: PASS
-- strict-CSP browser smoke: PASS
-- production V5/Turnstile diagnostic: PASS
-- artifact handling: PASS
+A fresh static review in this continuation rechecked the private archive boundary. The control plane binds authoritative repository and commit identity, the worker independently validates the exact codeload host/path/commit, and the snapshot parser independently enforces streamed archive bounds. No additional actionable Phase 10A2 defect was identified in that review pass.
 
-Phase 10A2 preserves a distinct `repository_snapshot_github_private_v1` execution class, a separate default-off private runtime gate, control-plane-only provider credentials, attempt-bound private archive capabilities, no public fallback, immutable publication, and exact-snapshot zero-egress continuation.
-
-No Phase 10A2 migration has been applied to production and no private runtime flag has been enabled. PR #76 must not merge ahead of Phase 10A1.
+No Phase 10A2 production migration has been applied and no private runtime flag has been enabled.
 
 ## Phase 10A3 - authenticated GitHub webhook reconciliation
 
-PR #77 (`feat/phase-10a3-github-webhook-reconciliation`) is open, draft, mergeable, and stacked on exact Phase 10A2 head `e812a236f3782059e72a5fd2793d4f9b2641e81f`.
+PR #77 is open, draft and stacked on Phase 10A2.
 
-Current head before this documentation reconciliation:
+Current branch:
 
-`3cf6dc800eafeb7967b231063afb2e4177acf64f`
+`feat/phase-10a3-github-webhook-reconciliation`
 
-Final docs-inclusive validation at that head:
+Latest executable implementation candidate:
 
-- synthetic merge ref: `87e11f9e22bb79e6f9810860ed182a85cc868fd2`
-- CI #948 / run `34656348562`: SUCCESS
+`eb3dc7d35bf334b51b93ebdeb8011277028ae504`
+
+Issue #78 bounded-stream hardening is completed and closed.
+
+### Verified bounded-body correction
+
+Static review found that unknown-length webhook bodies previously used `request.arrayBuffer()`, so an oversized chunked body could be fully buffered before the application-level 10 MiB actual-body check rejected it.
+
+RED evidence:
+
+- tests-only head: `5de02284a16e79d03c2f275b990ae793a70687f9`
+- CI #958 / run `34681195661`
+- 411 files / 1,895 tests executed
+- exactly the new bounded-stream regression failed because the old reader consumed beyond the overflow boundary
+
+GREEN evidence:
+
+- implementation head: `eb3dc7d35bf334b51b93ebdeb8011277028ae504`
+- synthetic merge against the current Phase 10A2 base: `4b5d2d287f6d747c69c769a70d63e1671f4ad3a2`
+- CI #959 / run `34681343582`: SUCCESS
 - `npm audit --audit-level=info`: 0 vulnerabilities
-- Vitest: 402 / 402 files, 1,839 / 1,839 tests
-- TypeScript typecheck: PASS
-- CLI build/version: PASS
-- scanner benchmark and benchmark matrix: PASS
-- optimized Next.js 15.5.24 production build: PASS
-- strict-CSP browser smoke: PASS
-- production `scopeforge.dev` V5/Turnstile diagnostic: PASS
-- four-file visual acceptance artifact upload: PASS, artifact `10286501039`
+- Vitest: 411 / 411 files, 1,895 / 1,895 tests
+- webhook trust-boundary suite: 13 / 13 tests
+- typecheck: PASS
+- CLI build/version: PASS, `ScopeForge 0.1.0`
+- scanner benchmark: PASS, 700 files, zero errors, 880 ms wall time against 20,000 ms budget
+- dependency-lockfile / IaC / source-AST benchmark matrix: PASS
+- optimized Next.js production build: PASS
+- strict CSP browser smoke: PASS
+- production ScopeForge/Turnstile diagnostic: PASS
+- visual acceptance artifact: `10293699844`
 
-Implemented Phase 10A3 boundaries include:
+The reader now consumes the request stream incrementally, rejects as soon as accumulated bytes exceed 10 MiB, attempts cancellation on overflow/read failure, and only assembles accepted bytes after the bounded read. Exact raw-byte HMAC-SHA256 verification still occurs before JSON parsing. Existing 400/401/413 semantics remain intact.
+
+Documentation-only commits after executable head `eb3dc7d35bf334b51b93ebdeb8011277028ae504` do not replace CI #959 as executable-tree validation. Any later executable change requires fresh validation.
+
+### Existing Phase 10A3 boundaries
 
 - independent server-only `GITHUB_APP_WEBHOOK_SECRET`
-- exact raw-byte HMAC-SHA256 verification before JSON parsing or persistence
-- strict delivery/event/content-type validation and 10 MiB declared/actual body ceilings
-- provider-authoritative installation/repository/default-branch/default-head revalidation
-- delivery replay protection and latest-default-head coalescing
-- lifecycle reconciliation for installation/repository access, rename/transfer/privacy/archive/delete changes
-- completion authority bound to exact webhook intent, snapshot task, snapshot ID, and immutable resolved commit SHA
-- replay-safe successful-head watermark advancement and at-most-one newest-head follow-up scheduling
-- public/private acquisition runtime/class separation preserved
-- browser read model exposes only the existing safe `auto_scan_enabled` preference
+- exact raw-byte HMAC-SHA256 verification before JSON parsing/persistence
+- strict delivery/event/content-type validation
+- incrementally enforced declared/actual 10 MiB payload ceiling
+- delivery replay protection
+- provider-authoritative installation/repository/default-head revalidation
+- lifecycle reconciliation for installation and repository-access changes
+- latest-head coalescing
+- exact immutable snapshot completion authority
+- public/private acquisition runtime separation
+- no raw webhook payload/signature/token/private source persistence
 
-Release-hardening review found and fixed a manual-scan/coalesced-webhook no-lost-head edge case before release. The forward-only correction binds settlement to the persisted repository `scan_task_id`, preserves queued/leased/`retry_wait`, accepts only terminal task/job pairs, and triggers provider-authoritative follow-up only after trusted repository-scan terminal settlement. RED CI #940 isolated exactly eight new failing assertions; GREEN CI #947 and final CI #948 passed all eight plus the full suite.
-
-No Phase 10A3 migration has been applied to production, no production webhook has been registered, and no webhook secret/runtime flag has been activated.
-
-## Independent security follow-ups
-
-### Supabase leaked-password protection
-
-Fresh project/org inspection confirms the ScopeForge Supabase organization is on the `free` plan. Current Supabase documentation states leaked-password protection is available on Pro and above. Therefore the existing leaked-password-protection advisor warning cannot be removed on the current plan by a safe project configuration change. Do not change unrelated database/auth behavior merely to silence the warning.
-
-### Turnstile enforcement
-
-Verified on 2026-09-12 with a single direct POST to the production Supabase password-token endpoint. A deliberately nonexistent `example.invalid` account and invalid password, without CAPTCHA, returned HTTP 400 with `captcha_failed` and `captcha protection: request disallowed (no captcha_token found)`. No real user credential was used, no account was created and no email was requested. This closes password-sign-in CAPTCHA enforcement verification; successful interactive challenge and other Auth endpoints are not claimed.
-
-
-### Vercel firewall / rate limiting
-
-Vercel provides automatic platform DDoS mitigation on all plans, but the connected Vercel surface available in this session does not expose the project's live custom firewall/rate-limit configuration and no authenticated Vercel CLI is available in the execution container. Treat custom WAF/rate-limit verification as still open rather than inferring it from platform defaults.
+No Phase 10A3 migration has been applied to production. No production webhook has been registered. No webhook secret or worker runtime gate has been enabled.
 
 ## Runtime truth
 
-Keep these false/absent until independent canary and rollback acceptance authorizes them:
+Keep these false/absent until independent containment, canary and rollback acceptance authorizes them:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
@@ -170,19 +148,44 @@ Keep these false/absent until independent canary and rollback acceptance authori
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Product implementation, schema presence, or CI success does not authorize hosted worker activation.
+Enabling the GitHub provider integration must not implicitly enable repository snapshot/scan runtimes.
+
+## Repository hygiene
+
+`docs/development/BRANCH_CLEANUP_CANDIDATES.md` is refreshed on PR #76.
+
+Retain:
+
+- `main`
+- `feat/phase-10a2-private-repository-acquisition`
+- `feat/phase-10a3-github-webhook-reconciliation`
+- `demo/portfolio-20260910`
+
+The connected GitHub write surface still has no genuine delete-ref operation. Do not simulate branch deletion by force-moving stale refs.
+
+## Independent security status
+
+### Turnstile
+
+Production password-sign-in server enforcement was independently verified by a no-token password request returning HTTP 400 / `captcha_failed`. This does not claim successful challenge acceptance on every Auth endpoint.
+
+### Supabase leaked-password protection
+
+The ScopeForge organization is on the Free plan and leaked-password protection remains plan-gated. Do not change unrelated auth/database behavior merely to silence the advisor warning.
+
+### Vercel WAF / rate limiting
+
+The current connected surface does not expose live custom firewall/rate-limit configuration. Treat custom WAF posture as unverified until authenticated configuration access is available. Do not infer custom rules from Vercel platform defaults.
 
 ## Immediate release sequence
 
-1. Complete the authenticated Phase 10A1 GitHub App provider canary; merge PR #74 only after it is genuine and clean.
-2. Verify the merged Phase 10A1 production deployment/security baseline.
-3. Retarget/reconcile PR #76 onto released `main`, apply only absent reviewed Phase 10A2 migrations, and complete the private provider/worker/runtime canary before Phase 10A2 merge.
-4. Retarget/reconcile PR #77 onto released Phase 10A2/main, apply only absent reviewed Phase 10A3 migrations, configure the webhook secret/endpoint, and complete signed-delivery/replay/lifecycle/coalescing/end-to-end automatic-scan canaries before Phase 10A3 merge.
-5. Turnstile password-enforcement is verified; Vercel WAF/rate-limit verification still needs authenticated configuration access.
-6. Never skip stack order or infer provider/runtime acceptance from CI alone.
+1. Resolve issue #79 with supported authenticated provider/environment-management access.
+2. Verify the six server-only GitHub App settings and provider-side URL/permission configuration without exposing secret values.
+3. Deliberately enable only `HOSTED_GITHUB_INTEGRATION_ENABLED=true` for the controlled owner/admin connection/import canary. Disable immediately on failure.
+4. Keep all hosted worker flags disabled while performing the provider-only canary.
+5. Re-read PR #76 head and production migration history, apply only absent reviewed Phase 10A2 migrations, complete dedicated private-worker containment and private archive -> immutable snapshot -> exact zero-egress scan -> findings acceptance, then merge/release PR #76.
+6. Reconcile PR #77 onto released Phase 10A2/main and perform fresh exact-candidate validation.
+7. Apply reviewed Phase 10A3 migrations, configure the independent webhook secret/endpoint, and run signed-delivery, oversized/invalid-signature, replay, lifecycle, coalescing, leak-check and end-to-end automatic-scan canaries.
+8. Merge/release PR #77 only after all operational checks pass.
 
-## Production services
-
-- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
-- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8` (`scopeforge`)
-- production: `scopeforge.dev`
+Never skip stack order or infer provider/runtime acceptance from CI success alone.
