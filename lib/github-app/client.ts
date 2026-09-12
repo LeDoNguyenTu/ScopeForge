@@ -12,6 +12,8 @@ import {
 const GITHUB_API = "https://api.github.com";
 const OAUTH_ENDPOINT = "https://github.com/login/oauth/access_token";
 const REQUEST_TIMEOUT_MS = 8_000;
+const COMMIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
+const MAX_ARCHIVE_LOCATION_BYTES = 4_096;
 
 function providerFailure(): GitHubProviderError {
   return new GitHubProviderError("GITHUB_PROVIDER_REQUEST_FAILED", "GitHub provider request failed.");
@@ -59,8 +61,62 @@ async function providerJson(
   }
 }
 
+async function providerRedirectLocation(
+  url: string,
+  init: RequestInit,
+  fetchImpl: typeof fetch,
+): Promise<string> {
+  try {
+    const response = await fetchImpl(url, {
+      ...init,
+      redirect: "manual",
+      signal: init.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (response.status !== 302) throw providerFailure();
+    const location = response.headers.get("location");
+    if (!location || new TextEncoder().encode(location).byteLength > MAX_ARCHIVE_LOCATION_BYTES) {
+      throw providerFailure();
+    }
+    return location;
+  } catch (error) {
+    if (error instanceof GitHubProviderError) throw error;
+    throw providerFailure();
+  }
+}
+
 function stringField(value: unknown, maximum: number): string | null {
   return typeof value === "string" && value.length >= 1 && value.length <= maximum ? value : null;
+}
+
+function repositorySegment(value: string): string {
+  if (
+    typeof value !== "string"
+    || value.length < 1
+    || value.length > 100
+    || value.includes("/")
+    || value.includes("\\")
+    || /[\u0000-\u001f\u007f]/.test(value)
+  ) {
+    throw invalidInput();
+  }
+  return encodeURIComponent(value);
+}
+
+function repositoryRef(value: string): string {
+  if (
+    typeof value !== "string"
+    || value.length < 1
+    || value.length > 512
+    || /[\u0000-\u001f\u007f]/.test(value)
+  ) {
+    throw invalidInput();
+  }
+  return encodeURIComponent(value);
+}
+
+function commitSha(value: string): string {
+  if (typeof value !== "string" || !COMMIT_SHA_PATTERN.test(value)) throw invalidInput();
+  return value;
 }
 
 function repositoryFromProvider(value: unknown): GitHubRepositorySummary {
@@ -187,4 +243,36 @@ export async function getInstallationRepository(
     headers: githubHeaders(token),
   }, fetchImpl);
   return repositoryFromProvider(payload);
+}
+
+export async function resolveInstallationRepositoryCommitSha(
+  token: string,
+  owner: string,
+  repository: string,
+  ref: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  const payload = await providerJson(
+    `${GITHUB_API}/repos/${repositorySegment(owner)}/${repositorySegment(repository)}/commits/${repositoryRef(ref)}`,
+    { method: "GET", headers: githubHeaders(token) },
+    fetchImpl,
+  );
+  if (!payload || typeof payload !== "object") throw providerFailure();
+  const sha = (payload as Record<string, unknown>).sha;
+  if (typeof sha !== "string" || !COMMIT_SHA_PATTERN.test(sha)) throw providerFailure();
+  return sha;
+}
+
+export async function getInstallationRepositoryArchiveRedirect(
+  token: string,
+  owner: string,
+  repository: string,
+  resolvedCommitSha: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  return providerRedirectLocation(
+    `${GITHUB_API}/repos/${repositorySegment(owner)}/${repositorySegment(repository)}/tarball/${commitSha(resolvedCommitSha)}`,
+    { method: "GET", headers: githubHeaders(token) },
+    fetchImpl,
+  );
 }

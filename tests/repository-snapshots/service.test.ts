@@ -23,6 +23,12 @@ function repository(overrides: Partial<RepositorySnapshotRepository> = {}): Repo
       executionClass: "repository_snapshot_github_public_v1" as const,
       absoluteDeadlineAt: "2026-08-27T03:40:00.000Z",
     })),
+    enqueuePrivate: vi.fn(async () => ({
+      scanJobId: "77777777-7777-4777-8777-777777777777",
+      taskId: ids.taskId,
+      executionClass: "repository_snapshot_github_private_v1" as const,
+      absoluteDeadlineAt: "2026-08-27T03:40:00.000Z",
+    })),
     getAttemptArtifact: vi.fn(async () => ({
       objectKey: `repository-source/${"a".repeat(64)}.tar.gz`,
       createdAt: "2026-08-27T03:20:00.000Z",

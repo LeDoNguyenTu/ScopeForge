@@ -1,5 +1,6 @@
 import type {
-  WorkerTaskContract,
+  AnyWorkerTaskContract,
+  AnyWorkerTerminalEnvelope,
   WorkerTerminalEnvelope,
 } from "@/packages/worker-contracts";
 import type {
@@ -37,7 +38,7 @@ export type PreparedRuntimeWorkerExecution =
   | PreparedActiveCorsWorkerExecution;
 
 export interface WorkerSupervisorControlClient {
-  claim(): Promise<WorkerTaskContract | null>;
+  claim(): Promise<AnyWorkerTaskContract | null>;
   repositoryScanArtifact?(input: {
     taskId: string;
     attemptId: string;
@@ -67,6 +68,6 @@ export interface WorkerSupervisorControlClient {
   }): Promise<{ cancelRequested: boolean; leaseExpiresAt: string }>;
   finalize(input: {
     leaseToken: string;
-    terminal: WorkerTerminalEnvelope;
+    terminal: AnyWorkerTerminalEnvelope;
   }): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }>;
 }

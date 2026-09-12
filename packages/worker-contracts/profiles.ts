@@ -1,4 +1,6 @@
 import type {
+  PrivateRepositorySnapshotExecutionClass,
+  PrivateRepositorySnapshotExecutionProfile,
   WorkerExecutionClass,
   WorkerExecutionProfile,
 } from "./types";
@@ -21,6 +23,21 @@ const FOUNDATION_NO_EGRESS_V1: WorkerExecutionProfile = Object.freeze({
 const REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1: WorkerExecutionProfile = Object.freeze({
   executionClass: "repository_snapshot_github_public_v1",
   networkPolicy: "github_public_archive_and_attempt_artifact_put_v1",
+  budget: Object.freeze({
+    maxWallTimeMs: 300_000,
+    maxCpuTimeMs: 120_000,
+    maxMemoryBytes: 536_870_912,
+    maxProcesses: 1,
+    maxInputFiles: 20_000,
+    maxInputBytes: 268_435_456,
+    maxScratchBytes: 536_870_912,
+    maxOutputBytes: 65_536,
+  }),
+});
+
+const REPOSITORY_SNAPSHOT_GITHUB_PRIVATE_V1: PrivateRepositorySnapshotExecutionProfile = Object.freeze({
+  executionClass: "repository_snapshot_github_private_v1",
+  networkPolicy: "github_private_archive_lease_and_attempt_artifact_put_v1",
   budget: Object.freeze({
     maxWallTimeMs: 300_000,
     maxCpuTimeMs: 120_000,
@@ -79,13 +96,21 @@ const ACTIVE_CORS_VALIDATION_V1: WorkerExecutionProfile = Object.freeze({
 });
 
 export function workerExecutionProfile(
+  executionClass: PrivateRepositorySnapshotExecutionClass,
+): PrivateRepositorySnapshotExecutionProfile;
+export function workerExecutionProfile(
   executionClass: WorkerExecutionClass,
-): WorkerExecutionProfile {
+): WorkerExecutionProfile;
+export function workerExecutionProfile(
+  executionClass: WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass,
+): WorkerExecutionProfile | PrivateRepositorySnapshotExecutionProfile {
   switch (executionClass) {
     case "foundation_no_egress_v1":
       return FOUNDATION_NO_EGRESS_V1;
     case "repository_snapshot_github_public_v1":
       return REPOSITORY_SNAPSHOT_GITHUB_PUBLIC_V1;
+    case "repository_snapshot_github_private_v1":
+      return REPOSITORY_SNAPSHOT_GITHUB_PRIVATE_V1;
     case "phase3_repository_scan_no_egress_v1":
       return PHASE3_REPOSITORY_SCAN_NO_EGRESS_V1;
     case "passive_runtime_observation_v1":
