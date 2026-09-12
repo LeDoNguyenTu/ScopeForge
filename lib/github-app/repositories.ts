@@ -190,6 +190,7 @@ function safeRepository(value: GitHubRepositorySummary): GitHubRepositorySummary
     || !value.defaultBranch
     || value.defaultBranch.length > 255
     || typeof value.isPrivate !== "boolean"
+    || typeof value.isArchived !== "boolean"
     || value.htmlUrl !== `https://github.com/${value.fullName}`
   ) {
     throw failure("GITHUB_REPOSITORY_PROVIDER_FAILED", "GitHub returned invalid repository metadata.");
@@ -201,6 +202,7 @@ function safeRepository(value: GitHubRepositorySummary): GitHubRepositorySummary
     fullName: value.fullName,
     defaultBranch: value.defaultBranch,
     isPrivate: value.isPrivate,
+    isArchived: value.isArchived,
     htmlUrl: value.htmlUrl,
   });
 }

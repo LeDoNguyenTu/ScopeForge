@@ -11,6 +11,7 @@ export interface ConnectedProjectScanReadModel {
   isPrivate: boolean;
   accessStatus: GitHubRepositoryAccessStatus;
   projectScanState: GitHubProjectScanState;
+  autoScanEnabled: boolean;
 }
 
 type QueryResult = PromiseLike<{ data: unknown; error: { message: string } | null }>;
@@ -53,7 +54,7 @@ export async function loadConnectedProjectScanReadModel(
   const untyped = client as unknown as UntypedReadClient;
   const { data, error } = await untyped
     .from("github_repository_links")
-    .select("full_name,default_branch,is_private,access_status,project_scan_state")
+    .select("full_name,default_branch,is_private,access_status,project_scan_state,auto_scan_enabled")
     .eq("workspace_id", workspaceId)
     .eq("asset_id", assetId)
     .maybeSingle();
@@ -68,6 +69,7 @@ export async function loadConnectedProjectScanReadModel(
   const isPrivate = row?.is_private;
   const accessStatus = row?.access_status;
   const projectScanState = row?.project_scan_state;
+  const autoScanEnabled = row?.auto_scan_enabled;
 
   if (
     !fullName
@@ -75,6 +77,7 @@ export async function loadConnectedProjectScanReadModel(
     || typeof isPrivate !== "boolean"
     || !isAccessStatus(accessStatus)
     || !isProjectScanState(projectScanState)
+    || typeof autoScanEnabled !== "boolean"
   ) return null;
 
   return Object.freeze({
@@ -83,5 +86,6 @@ export async function loadConnectedProjectScanReadModel(
     isPrivate,
     accessStatus,
     projectScanState,
+    autoScanEnabled,
   });
 }

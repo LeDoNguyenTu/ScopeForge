@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           package-manager-cache: false
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm audit --audit-level=info
@@ -120,7 +120,7 @@ jobs:
           node tests/browser/production-ui-smoke.mjs
       - name: Upload V5 visual acceptance screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: v5-ui-acceptance-${{ github.sha }}
           path: .artifacts/ui-acceptance/*.png

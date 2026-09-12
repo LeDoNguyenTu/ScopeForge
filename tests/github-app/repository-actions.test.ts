@@ -21,6 +21,7 @@ const config: GitHubAppConfig = {
   privateKey: "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
   slug: "scopeforge-test",
   stateSecret: "s".repeat(32),
+  webhookSecret: "w".repeat(32),
 };
 
 const repository: GitHubRepositorySummary = {
@@ -30,6 +31,7 @@ const repository: GitHubRepositorySummary = {
   fullName: "scopeforge-labs/secure-app",
   defaultBranch: "trunk",
   isPrivate: false,
+  isArchived: false,
   htmlUrl: "https://github.com/scopeforge-labs/secure-app",
 };
 

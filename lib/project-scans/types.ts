@@ -45,6 +45,45 @@ export interface ConnectedProjectScanRecovery {
   state: RecoverableProjectScanState;
 }
 
+export interface AutomaticProjectScanCompletionContext {
+  matched: true;
+  replayed: false;
+  followUpRequired: boolean;
+  workspaceId: string;
+  linkId: string;
+  installationId: number;
+  repositoryId: number;
+  latestDeliveryId: string;
+  defaultBranch: string;
+  isPrivate: boolean;
+  htmlUrl: string;
+  accessStatus: "active" | "inaccessible" | "removed";
+  autoScanEnabled: boolean;
+  providerArchived: boolean;
+  desiredCommitSha: string | null;
+  successfulCommitSha: string;
+}
+
+export type AutomaticProjectScanReconciliationResult =
+  | { status: "ignored" }
+  | { status: "completed"; successfulCommitSha: string }
+  | { status: "follow_up_queued"; taskId: string; commitSha: string }
+  | {
+      status: "pending";
+      code:
+        | "INELIGIBLE"
+        | "PROVIDER_STATE_CHANGED"
+        | "PROVIDER_UNAVAILABLE"
+        | "COALESCED"
+        | "ENQUEUE_DEFERRED";
+    }
+  | {
+      status: "runtime_unavailable";
+      code:
+        | "PUBLIC_SNAPSHOT_RUNTIME_UNAVAILABLE"
+        | "PRIVATE_SNAPSHOT_RUNTIME_UNAVAILABLE";
+    };
+
 export type ProjectScanRequestResult =
   | { status: "snapshot_queued"; taskId: string }
   | { status: "private_snapshot_runtime_unavailable" }

@@ -1,106 +1,160 @@
 # ScopeForge Current State
 
-## Continuation checkpoint - 2026-09-12
+Last reconciled: 2026-09-13 (Asia/Singapore)
 
-This checkpoint supersedes the older release status below.
-
-- PR #74 merged as `33d21de652f3c04aa88ebd4f122348803e59b153` after final CI run `34678875883` succeeded (387 files, 1,726 tests, audit 0, typecheck, builds, benchmarks and browser acceptance).
-- Vercel production deployment `dpl_BFbUfBRQKCbMgHViMhsXX5kvfTYk` is READY for that merge.
-- Fresh production GET probes confirmed both GitHub connect and callback return HTTP 307 to `https://scopeforge.dev/dashboard/integrations/github?error=disabled`. Callback clears both transient cookies with Secure, HttpOnly and SameSite=Lax attributes.
-- GitHub provider configuration and authenticated connection/import acceptance remain unverified. No integration or worker runtime flag was enabled.
-- PR #76 now targets `main`. This reconciliation merges released main into Phase 10A2, retaining the Phase 10C admin console, GitHub release gate and private acquisition capability. The sole conflict in `docs/ENVIRONMENT.md` was resolved by retaining both the release-gate instructions and private archive lease secrecy rule.
-- Local integrated validation: `npm test` passed 402 files / 1,787 tests; `npm run typecheck` exited 0; `git diff --check` passed.
-- PR #76 remains draft. Provider/worker containment and private end-to-end canaries remain required before release. Phase 10A2/10A3 production migrations were not applied in this continuation.
-- Next: propagate this reconciliation into PR #77, validate the combined candidate, then complete provider configuration and runtime acceptance in order. Earlier CI records below describe historical candidates only.
-
-
-Last reconciled: 2026-09-12 (Asia/Singapore)
-
-## Released baseline
+## Released production baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
-- released `main` includes Phase 10C platform administration
-- production domain: `scopeforge.dev`
+- production: `https://scopeforge.dev`
+- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
+- Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
+- ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
+- released Phase 10A1 `main`: `33d21de652f3c04aa88ebd4f122348803e59b153`
+- Phase 10A1 remains dark-gated behind `HOSTED_GITHUB_INTEGRATION_ENABLED`
 
-The released `main` tree remains authoritative until a later PR is merged and production-verified.
+The released production tree remains authoritative until later phases are independently accepted, merged and production-verified.
 
-## Released security baseline
+## First blocker - GitHub provider operational acceptance
 
-Preserve together throughout later phases:
+Tracked in issue #79. This is access-blocked, not approval-blocked.
 
-- strict nonce CSP with `strict-dynamic`,
-- no permanent production `unsafe-inline` or `unsafe-eval`,
-- HSTS, nosniff, frame denial, referrer and permissions policies,
-- authenticated dashboard boundaries,
-- workspace RLS/RPC authority separation,
-- worker/runtime authority separation,
-- accepted Command Center V5 desktop/mobile presentation.
+The connected Vercel surface can inspect project/deployment/log state but cannot read or mutate production environment variables. Do not infer provider configuration and do not expose provider secrets in chat, issues, PR comments, repository files, browser-readable variables or logs.
 
-## Phase 10A1 production truth
+Required server-only values:
 
-PR #74 (`feat/phase-10a-github-connected-projects`) implements the public GitHub connected-project core.
+- `GITHUB_APP_ID`
+- `GITHUB_APP_CLIENT_ID`
+- `GITHUB_APP_CLIENT_SECRET`
+- `GITHUB_APP_PRIVATE_KEY`
+- `GITHUB_APP_SLUG`
+- `GITHUB_APP_STATE_SECRET`
 
-Current documentation-reconciled head:
+Independent provider release gate:
 
-`17831b98dbbf06adf213cd2c8694ecd0d6852b74`
+- `HOSTED_GITHUB_INTEGRATION_ENABLED`
 
-CI #912 / run `34611735763`: SUCCESS.
+Required GitHub App configuration remains:
 
-That exact head passed dependency installation/audit, 387 test files / 1,720 tests, TypeScript, CLI build/version, both scanner benchmarks, production Next.js build, strict-CSP browser smoke, production V5/Turnstile diagnostic and visual artifact upload.
+- homepage: `https://scopeforge.dev`
+- setup URL: `https://scopeforge.dev/api/integrations/github/callback`
+- callback URL: `https://scopeforge.dev/api/integrations/github/callback`
+- OAuth during installation: disabled
+- Contents: read-only
+- Metadata: read-only
+- no repository write permissions for Phase 10A1
 
-Correct ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
+The owner/admin provider canary must prove installation ownership, repository listing/import, wrong-installation rejection, role authorization, persistence and no credential leakage while all hosted worker flags remain disabled.
 
-Production records all five reviewed Phase 10A1 migrations:
+## Phase 10A2 - private GitHub repository acquisition
 
-- `20260910160000_phase_10a1_github_connected_projects`
-- `20260910160010_phase_10a1_project_scan_retry_idempotency`
-- `20260910160020_phase_10a1_project_scan_waiting_idempotency`
-- `20260910160030_phase_10a1_project_scan_recovery`
-- `20260911143049_phase_10a1_service_role_table_acl_hardening`
+PR #76 remains open and draft.
 
-Live verification confirms browser users are SELECT-only on the two public GitHub integration tables, while `service_role` is reduced to `SELECT`, `INSERT`, `UPDATE`, `DELETE`. Privileged Phase 10A1 RPC execution remains service-role-only with pinned `SECURITY DEFINER` search paths.
+- branch: `feat/phase-10a2-private-repository-acquisition`
+- current head: `709ef8af4ce4befae12ba910d3bca15599b5cab1`
+- latest head change is documentation-only branch-cleanup reconciliation
 
-Security Advisor has no Phase 10A1 release-blocking schema issue. The private project-scan intent table's RLS-with-no-policy INFO is intentional for its service-only private boundary. Supabase leaked-password protection remains disabled and is a separate Auth follow-up.
+Validated architecture preserves:
 
-Phase 10A1 is still not released because the live GitHub App provider canary has not been proven. Production currently has zero `github_connections` and zero `github_repository_links` rows. The connected Vercel surface does not expose environment-variable metadata for the six server-only GitHub App settings.
+- distinct `repository_snapshot_github_private_v1` execution class
+- separate default-off private runtime gate
+- control-plane-only provider credentials
+- attempt-bound private archive capability
+- immutable snapshot publication
+- exact-snapshot zero-egress continuation
+- no public fallback for private acquisition
 
-GitHub's exact-head Vercel status currently reports the Hobby build-rate limit. A recent Phase 10A1 branch preview is READY, so this external status is not treated as an application build regression. GitHub CI independently passed the exact head's production build/browser diagnostics.
+Static review rechecked the private archive boundary: the control plane binds authoritative repository/commit identity, the worker independently validates the exact codeload host/path/commit, and the snapshot reader independently enforces streamed archive bounds. No additional actionable Phase 10A2 defect was found in that pass.
 
-PR #74 remains draft until the live provider canary is complete.
+No Phase 10A2 production migration has been applied and no private runtime flag has been enabled.
 
-## Phase 10A2 stacked implementation
+## Phase 10A3 - authenticated GitHub webhook reconciliation
 
-PR #76 (`feat/phase-10a2-private-repository-acquisition`) implements private GitHub repository acquisition as a distinct execution class.
+PR #77 remains open, draft and stacked on Phase 10A2.
 
-Previously validated head:
+Latest exact executable candidate before documentation-only reconciliation:
 
-`6959cea91cbecba9e9e454901d3c57a95bc46edd`
+- executable head: `5f05ed964c8ab43f38a420b1b77317bae630cc1e`
+- synthetic merge: `d7322502d3b01e583d0ccf4f4cdadf2cf955bc1b`
+- CI #981 / run `34711218370`: SUCCESS
+- Node: `v24.20.0`
+- npm: `11.19.0`
+- audit: 0 vulnerabilities
+- Vitest: 415 / 415 files, 1,900 / 1,900 tests
+- typecheck: PASS
+- CommonJS CLI build/version: PASS, `ScopeForge 0.1.0`
+- scanner benchmark: 700 files, 0 errors, 697 ms wall time / 20,000 ms budget
+- dependency-lockfile-heavy median: 1,823 ms / 20,000 ms
+- IaC-heavy median: 425 ms / 30,000 ms
+- source-AST-heavy median: 1,220 ms / 30,000 ms
+- optimized Next.js 15.5.24 production build: PASS
+- CSP browser acceptance: PASS
+- production UI/Turnstile diagnostic: PASS
+- visual acceptance artifact: `10303292695`
 
-CI #904 / run `34607770399`: SUCCESS with 392 test files / 1,731 tests and the complete type/build/benchmark/browser matrix.
+Documentation-only `[skip ci]` commits after executable head `5f05ed964c8ab43f38a420b1b77317bae630cc1e` do not replace CI #981 as executable-tree evidence. Any later executable change requires fresh exact-candidate validation.
 
-Implemented Phase 10A2 boundaries include:
+### Completed hardening #78 - bounded webhook streaming
 
-- distinct `repository_snapshot_github_private_v1` execution class,
-- separate default-off `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` gate,
-- control-plane-only GitHub App/installation credentials,
-- attempt-bound private archive capability rather than provider credentials in the worker contract,
-- validated `codeload.github.com` archive acquisition only,
-- no repository code/package manager/hook/workflow execution,
-- dedicated private executor routing through the shared supervisor,
-- strict terminal/repository/default-branch/commit binding,
-- private/public visibility changes fail closed,
-- no private-to-public acquisition fallback,
-- immutable private snapshot publication into the existing exact-snapshot zero-egress repository scan continuation,
-- service-role-only privileged Phase 10A2 RPC boundaries.
+Issue #78 is closed. Unknown-length webhook bodies are streamed under the actual 10 MiB ceiling with cancellation on overflow/read failure. Exact raw bytes remain the HMAC-SHA256 input and signature verification still occurs before JSON parsing.
 
-The Phase 10A1 base advanced after that validation. PR #76 is therefore being stack-reconciled before any new release claim. The reconciliation carries the Phase 10A1 ACL hardening migration/test and the latest Phase 10A1 release documentation into the stack without changing Phase 10A2 runtime behavior. The resulting stack requires a fresh complete CI matrix before it can replace the old validation evidence.
+- RED: CI #958 / run `34681195661`, tests-only head `5de02284a16e79d03c2f275b990ae793a70687f9`
+- GREEN: CI #959 / run `34681343582`, implementation head `eb3dc7d35bf334b51b93ebdeb8011277028ae504`
 
-PR #76 remains draft and must not merge before Phase 10A1.
+### Completed hardening #80 - same-head pending enqueue recovery
+
+Issue #80 is closed. Migration `20260912024000_phase_10a3_same_head_pending_recovery.sql` prevents `pending=true` with no active scan intent from being stranded by a newer same-head delivery while preserving the exact downstream `latest_delivery_id` stale-enqueue check.
+
+- RED: CI #961 / run `34687272810`, tests-only head `d4582236a45d746c6dba47f6810624b50bd1dd50`
+- GREEN: CI #962 / run `34687506721`, implementation head `9c40e89bb9433d8b4ce268302e1a9e5b04f29151`
+- migration is reviewed/CI-validated only and remains unapplied to production
+
+### Completed hardening #85 - superseded push authoritative-head recovery
+
+Issue #85 is closed and PR #86 was squash-merged into the Phase 10A3 branch.
+
+A signed default-branch push can arrive after GitHub's current default-branch head has advanced. The old path fetched that newer provider-authoritative head but then returned `AUTHORITATIVE_HEAD_ADVANCED` without advancing the desired-head watermark or enqueueing/coalescing the newly revalidated head. The correction removes only that premature terminal branch.
+
+The signed payload is now a trigger only:
+
+- repository identity/default branch/archive/visibility remain provider-authoritative
+- the stale payload SHA is never passed to `recordPushHead` or enqueue
+- the freshly fetched GitHub head enters the existing replay/coalescing/runtime-gate machinery
+- exact `latest_delivery_id` stale protection remains unchanged
+- public/private acquisition-class separation remains unchanged
+
+TDD evidence:
+
+- RED: CI #976 / run `34710448050`, tests-only head `1501b723f394938b8c2af501d50204bcd0db14f0`; all 1,899 pre-existing tests passed and only the new recovery regression failed
+- feature GREEN: CI #979 / run `34710886639`, feature head `312495c5e4aef9e5a42d5e06d9e2f2471b0d2ced`, 415 / 415 files and 1,900 / 1,900 tests
+- integrated GREEN: CI #981 / run `34711218370` on executable Phase 10A3 head `5f05ed964c8ab43f38a420b1b77317bae630cc1e`
+
+### Completed CI/tooling maintenance
+
+- issue #81 is closed: CI uses `actions/upload-artifact@v7`; the old hosted Node 20 action-runtime warning is gone
+- Node runtime alignment is integrated: root engine contract is `>=24 <25`, CI uses Node 24, and the regression guard passes
+- Vitest config is now `vitest.config.mts`; the prior CommonJS-loaded ESM warning is gone without converting the CommonJS CLI package to ESM
+- architecture audit issue #82 is closed; provider-neutral AI advisory boundaries remain intact, and broader SCM/workspace abstractions are deferred until real requirements justify them
+
+## Phase 10A3 security boundaries
+
+- independent server-only `GITHUB_APP_WEBHOOK_SECRET`
+- exact raw-byte HMAC-SHA256 verification before JSON parsing/persistence
+- strict delivery/event/content-type validation
+- declared and incrementally enforced 10 MiB payload ceiling
+- delivery replay protection
+- provider-authoritative installation/repository/default-head revalidation
+- signed payloads are triggers only, including stale payload heads after #85
+- installation/repository lifecycle reconciliation
+- latest-head coalescing plus same-head stranded-pending recovery
+- exact immutable snapshot completion authority
+- public/private acquisition runtime separation
+- no raw webhook payload/signature/token/private source persistence
+
+No Phase 10A3 production migration has been applied. No production webhook has been registered and no webhook secret or worker runtime gate has been enabled.
 
 ## Runtime truth
 
-Keep these false/absent until independent canary and rollback acceptance authorizes them:
+Keep these false/absent until independent containment, canary and rollback acceptance authorizes them:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
@@ -108,19 +162,34 @@ Keep these false/absent until independent canary and rollback acceptance authori
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Product implementation or CI success does not authorize hosted worker activation.
+Enabling the GitHub provider integration must not implicitly enable repository snapshot/scan runtimes.
 
-## Immediate engineering boundary
+## Independent security/production status
 
-1. Finish stack reconciliation for PR #76 and run the complete current-base validation matrix.
-2. Complete the Phase 10A1 live GitHub App provider/configuration and authenticated connection/import canary.
-3. Merge/release PR #74 only when the provider canary remains green.
-4. Verify the merged production deployment and security baseline.
-5. Retarget/reconcile PR #76 onto released `main`, then revalidate if its merge base changes again.
-6. Verify/apply only absent Phase 10A2 production migrations and complete the separate private worker/provider/runtime canary before Phase 10A2 release.
+- production password sign-in without a CAPTCHA token was independently rejected with HTTP 400 / `captcha_failed`
+- Supabase leaked-password protection remains plan-gated on the current Free organization
+- Vercel custom WAF/rate-limit posture remains unverified because the connected surface does not expose authenticated firewall configuration
+- fresh production runtime-log checks during Phase 10A3 hardening found no current warning/error/fatal cluster
 
-## Production services
+## Immediate release sequence
 
-- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
-- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8` (`scopeforge`)
-- production: `scopeforge.dev`
+1. Resolve #79 through supported authenticated provider/environment-management access.
+2. Verify the six server-only GitHub App values and provider-side URL/permission settings without exposing secret values.
+3. Enable only `HOSTED_GITHUB_INTEGRATION_ENABLED=true` for the controlled owner/admin provider canary; disable immediately on failure.
+4. Keep all hosted worker flags disabled during the provider-only canary.
+5. Re-read PR #76 and production migration history, apply only absent reviewed Phase 10A2 migrations, complete dedicated private-worker containment and private archive -> immutable snapshot -> exact zero-egress scan -> findings acceptance, then merge/release PR #76.
+6. Reconcile PR #77 onto released Phase 10A2/main and perform fresh exact-candidate validation.
+7. Apply only reviewed absent Phase 10A3 migrations, including `20260912024000_phase_10a3_same_head_pending_recovery.sql`, configure the independent webhook secret/endpoint, and run signed-delivery, invalid-signature/oversize, replay, lifecycle, latest-head coalescing, #80 same-head recovery, #85 stale-trigger authoritative-head recovery, leak-check and full automatic-scan canaries.
+8. Merge/release PR #77 only after all operational checks pass.
+
+## Resume references
+
+- `docs/development/CURRENT_STATE.md`
+- `docs/development/NEXT_STEPS.md`
+- `docs/development/PHASE_10A3_WORKING_STATE.md`
+- `docs/development/PHASE_10A1_GITHUB_APP_SETUP.md`
+- PR #76
+- PR #77
+- issue #79
+
+Always inspect actual branch heads first. Never skip stack order or infer provider/runtime acceptance from code or CI success alone.

@@ -1,3 +1,4 @@
+import { reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal } from "@/lib/project-scans/service";
 import { createRepositoryScanArtifactRepository } from "@/lib/repository-scans/repository";
 import { publishRepositoryScanSuccess } from "@/lib/repository-scans/service";
 import { RepositoryScanError } from "@/lib/repository-scans/types";
@@ -48,6 +49,10 @@ export async function POST(request: Request): Promise<Response> {
       terminal: body.terminal,
       claimedSnapshot,
     }, { repository });
+
+    await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
+      scanTaskId: result.taskId,
+    });
 
     return workerJson({ ok: true, data: result });
   } catch (error) {
