@@ -3,7 +3,7 @@
 Last reconciled: 2026-09-12 (Asia/Singapore)
 Branch: `feat/phase-10a-github-connected-projects`
 PR: #74
-Status: implementation and production schema verification complete; live GitHub App provider canary still gated
+Status: release-gate GREEN candidate pending exact-head CI; provider activation remains post-merge and default-off
 
 ## Implemented
 
@@ -42,7 +42,7 @@ The final forward migration was added after live review found trusted `service_r
 
 Live checks confirm RLS/browser-write boundaries, private intent-table isolation, pinned `SECURITY DEFINER` search paths, and service-role-only privileged RPC execution.
 
-Security Advisor has no Phase 10A1 release-blocking schema finding. The private intent table's no-policy INFO is intentional for the private service-only boundary. Leaked-password protection remains a separate plan-gated Auth follow-up.
+Security Advisor has no Phase 10A1 release-blocking schema finding. The private intent table's no-policy INFO is intentional for the private service-only boundary. Leaked-password protection remains a separate account-plan/Auth follow-up.
 
 ## TDD / validation history
 
@@ -52,71 +52,77 @@ Security Advisor has no Phase 10A1 release-blocking schema finding. The private 
 - ACL-hardening GREEN candidate `a8959d4b887463b0b28af056932eabd2a75147a3`: CI #907 / run `34610625305` SUCCESS.
 - Fresh current-main synthetic validation CI #949 / run `34656537969`: SUCCESS on Phase 10A1 head `17831b98dbbf06adf213cd2c8694ecd0d6852b74` merged into released `main` `1151af2dddb76737ee2f0a0d1a802f06a975d318`.
 
-Fresh CI #949 passed:
+Fresh CI #949 passed dependency audit with zero reported vulnerabilities, 387 test files / 1,720 tests, typecheck, CLI build/version, both benchmark layers, production build, CSP smoke, production V5/Turnstile diagnostic and visual artifact upload.
 
-- dependency audit with zero reported vulnerabilities,
-- 387 test files / 1,720 tests,
-- TypeScript typecheck,
-- CLI build/version,
-- scanner benchmark,
-- benchmark matrix,
-- Next.js production build,
-- strict-CSP browser smoke,
-- production V5/Turnstile diagnostic,
-- visual artifact upload.
+## Release-gate hardening RED evidence
 
-## Release-gate hardening RED candidate
+A provider-side Preview probe exposed two related release issues:
 
-A provider-side preview probe on 2026-09-12 found that the Phase 10A1 preview route exists but an unauthenticated `/api/integrations/github/connect` request redirects to `http://localhost:3000/...` when `NEXT_PUBLIC_SITE_URL` is absent in Preview. The callback itself already falls back to the request origin; the connect route did not.
+1. unauthenticated `/api/integrations/github/connect` errors fell back to `http://localhost:3000/...` when Preview did not define `NEXT_PUBLIC_SITE_URL`, and
+2. GitHub connected-project entry points would become visible immediately after merge even though the real GitHub App installation/callback is intentionally production-bound to `scopeforge.dev` and cannot be truthfully accepted on Preview.
 
-More importantly, Phase 10A1 currently exposes GitHub entry points immediately after merge even though the real production GitHub App canary cannot be completed safely on Preview because GitHub's setup/callback URL is intentionally fixed to `scopeforge.dev`.
-
-The complete RED contract now requires:
+The complete RED contract therefore required:
 
 - a default-off server capability `HOSTED_GITHUB_INTEGRATION_ENABLED`,
-- connect and callback routes to fail closed before provider/OAuth work while that capability is disabled,
-- the disconnected integration dashboard to hide the live Connect action while disabled,
-- the Add Asset page to hide the GitHub import entry point while disabled,
+- connect and callback routes to fail closed before provider/OAuth work while disabled,
+- the integration dashboard to hide the live Connect action while disabled,
+- the Add Asset page to hide Import from GitHub while disabled,
 - the repository-import server action to reject while disabled,
-- local connect-route errors to fall back to the actual request origin instead of `localhost` when no canonical site URL is configured.
+- connect-route local errors to fall back to the actual request origin instead of localhost.
 
-The release pattern after GREEN will therefore be: merge dark-gated code, deliberately enable the GitHub integration only for production provider acceptance, keep it enabled only if the owner/admin canary passes, and leave all hosted repository snapshot/scan worker gates independently default-off until their separate acceptance.
+CI #953 / run `34678149019` proved the RED contract on head `207d5c443027e9301e10cf4f8410c5b91304aa1c`, synthetic merge `15696d0ddc96e3b31ce03c61690c3dae56ee9839`:
+
+- install: PASS,
+- audit: PASS, 0 vulnerabilities,
+- 385 / 387 test files passed,
+- all 1,719 pre-existing tests passed,
+- exactly 6 new release-hardening assertions failed,
+- failures were limited to the intended connect gate, request-origin redirect, callback gate, Add Asset gate, integration-page gate, and repository-import action gate.
+
+No unrelated regression appeared.
+
+## Release-gate GREEN candidate
+
+The missing behavior is now implemented as a narrow release-hardening layer:
+
+- `HOSTED_GITHUB_INTEGRATION_ENABLED` is part of the existing exact-`true` server capability parser and defaults disabled,
+- `/api/integrations/github/connect` refuses provider work while disabled and uses request origin as the no-canonical-site fallback,
+- `/api/integrations/github/callback` refuses OAuth/provider work while disabled and clears transient GitHub cookies through the terminal redirect path,
+- the GitHub integration dashboard presents a truthful disabled state with no Connect action,
+- the Add Asset page omits the GitHub import panel while disabled,
+- the repository-import server action fails closed with bounded `GITHUB_INTEGRATION_DISABLED`,
+- `.env.example`, `docs/ENVIRONMENT.md`, provider setup and release-state documentation now define the dark-gated rollout.
+
+This is a GREEN **candidate only** until the exact docs-inclusive head completes the full CI matrix. No success claim should be inferred before that run finishes.
+
+## Safe release model
+
+Once the exact-head GREEN candidate is fully validated, Phase 10A1 can merge/deploy with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or false. That leaves all GitHub connected-project entry points dark while preserving the production provider-acceptance standard.
+
+After dark deployment:
+
+1. verify the six server-only GitHub App settings through a supported provider/configuration surface without exposing values,
+2. verify provider URLs and read-only permissions,
+3. deliberately set `HOSTED_GITHUB_INTEGRATION_ENABLED=true` for the controlled owner/admin production canary,
+4. perform Connect GitHub -> installation proof -> repository listing -> repository import,
+5. inspect browser/persistence/log surfaces for credential/token/state leakage,
+6. keep the gate enabled only if acceptance remains green; otherwise disable immediately.
+
+The hosted repository snapshot/scan/runtime worker gates remain separate and must stay disabled until their own independent acceptance.
 
 ## Released baseline
 
 Current released `main`: `1151af2dddb76737ee2f0a0d1a802f06a975d318`.
 Current production domain: `scopeforge.dev`.
-The Phase 10C admin/V5/CSP baseline remains authoritative until PR #74 is safely merged and production-verified.
-
-## Provider state
-
-The live GitHub App provider gate is not yet complete.
-
-The required server-only Vercel variables remain:
-
-- `GITHUB_APP_ID`
-- `GITHUB_APP_CLIENT_ID`
-- `GITHUB_APP_CLIENT_SECRET`
-- `GITHUB_APP_PRIVATE_KEY`
-- `GITHUB_APP_SLUG`
-- `GITHUB_APP_STATE_SECRET`
-
-The connected Vercel surface in this session does not expose environment-variable metadata, so configuration presence cannot be asserted from tooling. A READY Phase 10A1 preview proves the app builds with the integration routes, but GitHub App setup/callback is production-bound and therefore needs a real production provider acceptance.
-
-Production currently has no `github_connections` or `github_repository_links` rows, so a live connection/import canary has not yet completed.
-
-Hosted runtime flags remain default-off/unaccepted and must not be enabled by Phase 10A1 release alone.
+The Phase 10C admin/V5/CSP baseline remains authoritative until PR #74 is merged and the resulting production deployment is verified.
 
 ## Remaining release work
 
-1. Prove the complete default-off GitHub integration release gate RED, then implement and fully verify it GREEN.
-2. Merge Phase 10A1 only with `HOSTED_GITHUB_INTEGRATION_ENABLED` still false/absent.
-3. Verify the six server-only GitHub App settings through a supported provider/configuration surface without exposing values.
-4. Verify provider URLs and read-only GitHub App permissions match `PHASE_10A1_GITHUB_APP_SETUP.md`.
-5. Deliberately enable `HOSTED_GITHUB_INTEGRATION_ENABLED=true` for authenticated production acceptance.
-6. Perform Connect GitHub -> installation proof -> repository listing -> repository import acceptance and inspect browser/persistence/log surfaces for token leakage.
-7. Keep the integration enabled only if acceptance remains green; otherwise disable immediately.
-8. Keep repository snapshot/scan worker runtime gates disabled until their independent acceptance.
-9. Reconcile draft PR #76 onto the released Phase 10A1 baseline and rerun the complete Phase 10A2 matrix.
+1. Complete the full exact-head GREEN CI for this docs-inclusive candidate.
+2. Perform a final changed-file/security review against the RED contract.
+3. Merge PR #74 only if the final head is green and the new integration gate remains default-off.
+4. Verify the merged production deployment and confirm the connect edge is dark-gated before any provider activation.
+5. Reconcile draft PR #76 onto the released Phase 10A1 baseline and rerun the complete Phase 10A2 matrix.
+6. Continue Phase 10A2/10A3 operational canaries in release order without enabling worker runtimes prematurely.
 
 Detailed release evidence: `docs/development/PHASE_10A1_RELEASE_STATE.md`.
