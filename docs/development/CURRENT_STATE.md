@@ -153,7 +153,8 @@ Fresh project/org inspection confirms the ScopeForge Supabase organization is on
 
 ### Turnstile enforcement
 
-The released auth UI requires a Turnstile token when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is configured and forwards `captchaToken` directly to Supabase Auth. Production browser diagnostics prove the Turnstile widget/script is active. That does not independently prove Supabase Auth server-side CAPTCHA enforcement; the current tool surface cannot issue the required production Auth POST probe or read hosted Auth CAPTCHA configuration. Treat server-side enforcement verification as still open.
+Verified on 2026-09-12 with a single direct POST to the production Supabase password-token endpoint. A deliberately nonexistent `example.invalid` account and invalid password, without CAPTCHA, returned HTTP 400 with `captcha_failed` and `captcha protection: request disallowed (no captcha_token found)`. No real user credential was used, no account was created and no email was requested. This closes password-sign-in CAPTCHA enforcement verification; successful interactive challenge and other Auth endpoints are not claimed.
+
 
 ### Vercel firewall / rate limiting
 
@@ -177,7 +178,7 @@ Product implementation, schema presence, or CI success does not authorize hosted
 2. Verify the merged Phase 10A1 production deployment/security baseline.
 3. Retarget/reconcile PR #76 onto released `main`, apply only absent reviewed Phase 10A2 migrations, and complete the private provider/worker/runtime canary before Phase 10A2 merge.
 4. Retarget/reconcile PR #77 onto released Phase 10A2/main, apply only absent reviewed Phase 10A3 migrations, configure the webhook secret/endpoint, and complete signed-delivery/replay/lifecycle/coalescing/end-to-end automatic-scan canaries before Phase 10A3 merge.
-5. Independently close Turnstile server-enforcement and Vercel WAF/rate-limit verification when a supported authenticated management or HTTP-probe surface is available.
+5. Turnstile password-enforcement is verified; Vercel WAF/rate-limit verification still needs authenticated configuration access.
 6. Never skip stack order or infer provider/runtime acceptance from CI alone.
 
 ## Production services

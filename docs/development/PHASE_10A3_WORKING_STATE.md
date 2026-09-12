@@ -104,7 +104,7 @@ Production ScopeForge Supabase still stops after the five Phase 10A1 migrations 
 Fresh independent hardening checks on 2026-09-12 also established:
 
 - the ScopeForge Supabase organization is on the `free` plan, while current Supabase documentation places leaked-password protection on Pro and above; the existing advisor warning is therefore plan-gated rather than a missing database migration
-- the released browser auth path visibly uses Turnstile and forwards `captchaToken` to Supabase Auth, but server-side CAPTCHA enforcement still needs an independent hosted Auth configuration read or password-endpoint POST probe
+- production password-sign-in CAPTCHA enforcement is independently verified: a no-token password POST returned HTTP 400 / `captcha_failed`; see `NEXT_STEPS.md` for the exact scope of evidence
 - the current connected Vercel surface does not expose live custom firewall/rate-limit configuration, and the execution container has no authenticated Vercel CLI; custom WAF posture must therefore remain unclaimed until a supported authenticated surface is available
 
 ## Release order
@@ -114,3 +114,15 @@ Fresh independent hardening checks on 2026-09-12 also established:
 3. reconcile Phase 10A3 onto released `main`, apply its reviewed migrations, configure the webhook secret/endpoint, run signed delivery + replay/lifecycle/coalescing/public-private/end-to-end canaries, then merge/release Phase 10A3
 
 This documentation reconciliation changes release evidence/state only. It does not authorize any production schema, provider, webhook, firewall, Auth-plan, or runtime change.
+
+## Follow-up operational verification - 2026-09-12
+
+- `npm run build:cli` and CLI version: exit 0, ScopeForge 0.1.0.
+- Scanner benchmark: 700 files, zero errors, 472 ms wall time against 20,000 ms budget.
+- Dependency-lockfile, IaC and source-AST benchmark matrix: all profiles passed, zero errors.
+- `npm audit --audit-level=info`: exit 0, zero vulnerabilities.
+- Production GitHub rows: zero connections / zero links.
+- Migration history still ends at Phase 10A1 ACL hardening. No later schema was applied.
+- Security Advisor: intentional private scan-intent RLS/no-policy INFO and existing leaked-password WARN only.
+- Password Auth rejects a no-CAPTCHA request before credentials with `captcha_failed`; independent enforcement gap closed.
+- GitHub App, worker and WAF tasks remain blocked by unavailable authenticated configuration/runtime access, not missing user approval.
