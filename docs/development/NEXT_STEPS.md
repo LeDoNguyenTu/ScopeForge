@@ -88,6 +88,10 @@ Remaining independent operational items are not release substitutes:
 - The private GitHub scan-intent RLS/no-policy INFO remains intentional for its service-only boundary.
 - Existing CAPTCHA evidence proves password sign-in rejects a missing CAPTCHA token; it does not claim successful interactive acceptance for every Auth endpoint.
 
+## Resume point
+
+Start with issue #79 plus `CURRENT_STATE.md`, this file, `PHASE_10A3_WORKING_STATE.md`, `PHASE_10A1_GITHUB_APP_SETUP.md`, PR #76 and PR #77. Inspect actual heads first.
+
 ## Boundaries
 
 Preserve the released UI/admin/auth/CSP baseline, workspace authorization, immutable snapshot provenance, public/private execution-class separation, raw-byte webhook HMAC verification before JSON parsing, provider-authoritative repository/default-head truth, exact stale-delivery checks, latest-head coalescing and default-off hosted capabilities.
