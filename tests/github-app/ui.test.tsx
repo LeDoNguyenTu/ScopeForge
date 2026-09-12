@@ -10,11 +10,13 @@ const actionPath = path.join(root, "app/dashboard/integrations/github/actions.ts
 const capabilityPath = path.join(root, "lib/runtime-capabilities/server.ts");
 
 describe("GitHub connected project UI", () => {
-  it("keeps a prominent GitHub import path beside manual asset registration", async () => {
+  it("keeps the GitHub import entry point behind the same default-off server capability", async () => {
     const source = await readFile(newAssetPagePath, "utf8");
     expect(source).toContain("Import from GitHub");
     expect(source).toContain('/dashboard/integrations/github');
     expect(source).toContain("<AssetForm");
+    expect(source).toContain('serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")');
+    expect(source).toContain("githubIntegrationEnabled ?");
   });
 
   it("renders connected and disconnected integration states truthfully", async () => {
@@ -33,6 +35,12 @@ describe("GitHub connected project UI", () => {
     expect(capabilitySource).toContain('"HOSTED_GITHUB_INTEGRATION_ENABLED"');
     expect(pageSource).toContain('serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")');
     expect(pageSource).toMatch(/GitHub integration (?:is )?not enabled/i);
+  });
+
+  it("fails closed in the repository import server action while the integration gate is disabled", async () => {
+    const source = await readFile(actionPath, "utf8");
+    expect(source).toContain('serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")');
+    expect(source).toContain("GITHUB_INTEGRATION_DISABLED");
   });
 
   it("shows repository visibility, default branch and the private scanning limitation", async () => {
