@@ -17,28 +17,30 @@ Phase 10A1 implements the public-repository connected-project core:
 
 Private repository acquisition remains a separate Phase 10A2 execution class. Phase 10A1 never routes private source through the public acquisition worker.
 
-## Current release candidate
+## Final release candidate
 
 PR: #74
 Branch: `feat/phase-10a-github-connected-projects`
 Released base: `1151af2dddb76737ee2f0a0d1a802f06a975d318`
 
-Fresh pre-hardening current-main integration evidence is CI #949 / run `34656537969`, which validated Phase 10A1 head `17831b98dbbf06adf213cd2c8694ecd0d6852b74` as synthetic merge `c53b21f0b28735f3fc3fa59c85414f977346a403` into the released base.
+Pre-hardening current-main integration evidence was CI #949 / run `34656537969`, which validated Phase 10A1 head `17831b98dbbf06adf213cd2c8694ecd0d6852b74` as synthetic merge `c53b21f0b28735f3fc3fa59c85414f977346a403` into the released base.
 
-CI #949 passed:
+The final release-gate behavior was validated by CI #954 / run `34678603273` on exact head `88fcf9312e6c83312dd5461e8d46dab97387d23b`, synthetic merge `73476056d1d04b08a9a43e90a77f4b0c4dbccdfc` into current `main`.
+
+CI #954 passed:
 
 - dependency installation,
 - `npm audit --audit-level=info` with zero vulnerabilities,
-- 387 test files / 1,720 tests,
+- 387 / 387 test files,
+- 1,726 / 1,726 tests,
 - TypeScript typecheck,
-- CLI build/version,
-- scanner benchmark and matrix benchmark,
-- optimized Next.js production build,
+- CLI build/version (`ScopeForge 0.1.0`),
+- scanner benchmark (`scanner-medium-v1`, 700 files, 778 ms wall time against 20 s maximum),
+- dependency-lockfile / IaC / source-AST benchmark matrix within all budgets,
+- optimized Next.js 15.5.24 production build,
 - strict-CSP browser smoke,
-- production V5/Turnstile diagnostic,
-- four-file visual acceptance artifact upload.
-
-A final docs-inclusive exact-head CI is required again after the release-gate hardening described below.
+- production `scopeforge.dev` V5/Turnstile diagnostic,
+- four-file visual acceptance artifact upload, artifact `10293955396`.
 
 ## Production Supabase state - verified
 
@@ -105,7 +107,7 @@ The gate applies to:
 - the Add Asset GitHub import entry point,
 - the repository-import server action.
 
-The connect route also now falls back to the request origin when no canonical site URL is configured, eliminating the Preview-to-localhost redirect defect.
+The connect route also falls back to the request origin when no canonical site URL is configured, eliminating the Preview-to-localhost redirect defect.
 
 ### RED evidence
 
@@ -116,11 +118,17 @@ The result was intentionally RED:
 - dependency install: PASS,
 - audit: PASS, 0 vulnerabilities,
 - 385 / 387 test files passed,
-- 1,719 existing tests passed,
+- all 1,719 pre-existing tests passed,
 - exactly 6 new release-hardening tests failed,
 - failures were limited to: connect fail-closed, request-origin redirect, callback fail-closed, Add Asset gate, integration-page gate, and repository-import action gate.
 
-No unrelated regression appeared. This is the TDD baseline for the dark-gated release correction.
+No unrelated regression appeared.
+
+### GREEN evidence
+
+CI #954 / run `34678603273` validated the implemented release gate on exact head `88fcf9312e6c83312dd5461e8d46dab97387d23b` as synthetic merge `73476056d1d04b08a9a43e90a77f4b0c4dbccdfc` into current `main`.
+
+All six release-hardening assertions turned GREEN while the complete suite and release matrix passed. No unresolved PR review threads remain.
 
 ## GitHub App provider acceptance
 
@@ -135,14 +143,14 @@ Provider requirements remain documented in `PHASE_10A1_GITHUB_APP_SETUP.md`:
 
 The connected Vercel management surface in this session does not expose project environment-variable metadata or an environment mutation API, so the presence/enablement of production GitHub settings cannot be asserted or changed from this chat without guessing.
 
-Production database state still has zero connection/link rows, so the owner/admin provider acceptance has not occurred yet.
+Production database state still has zero connection/link rows, so the owner/admin provider acceptance has not occurred yet. This no longer blocks the dark code release because the new server gate prevents exposure/provider work until deliberately enabled.
 
 ## Safe release sequence
 
-Phase 10A1 no longer requires exposing an unverified integration merely to obtain a production canary. The intended sequence is:
+Phase 10A1 can now release without exposing an unverified integration. The intended sequence is:
 
-1. complete GREEN verification of the default-off integration gate,
-2. merge/deploy Phase 10A1 with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or `false`,
+1. merge/deploy Phase 10A1 with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or `false`,
+2. verify the merged production deployment and confirm the connect edge returns the disabled path before provider work,
 3. verify the six server-only GitHub App values through a supported configuration surface without exposing values,
 4. verify provider URLs and read-only permissions,
 5. set `HOSTED_GITHUB_INTEGRATION_ENABLED=true` deliberately for a controlled owner/admin production canary,
@@ -150,8 +158,6 @@ Phase 10A1 no longer requires exposing an unverified integration merely to obtai
 7. verify no provider token/private key/signed state leaks to browser state, persisted integration rows, redirects or ordinary logs,
 8. keep the integration enabled only if acceptance remains green; otherwise disable immediately,
 9. keep repository snapshot/scan/runtime worker flags disabled until their own independent acceptance.
-
-This permits the code/schema release to merge dark while preserving the provider acceptance standard.
 
 ## Hosted runtime flags
 
