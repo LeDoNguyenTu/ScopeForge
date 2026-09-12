@@ -69,16 +69,18 @@ Fresh CI #949 passed:
 
 A provider-side preview probe on 2026-09-12 found that the Phase 10A1 preview route exists but an unauthenticated `/api/integrations/github/connect` request redirects to `http://localhost:3000/...` when `NEXT_PUBLIC_SITE_URL` is absent in Preview. The callback itself already falls back to the request origin; the connect route did not.
 
-More importantly, the integration page currently exposes the live `Connect GitHub` action immediately after merge even though the real production GitHub App canary cannot be completed safely on Preview because GitHub's setup/callback URL is intentionally fixed to `scopeforge.dev`.
+More importantly, Phase 10A1 currently exposes GitHub entry points immediately after merge even though the real production GitHub App canary cannot be completed safely on Preview because GitHub's setup/callback URL is intentionally fixed to `scopeforge.dev`.
 
-New RED contracts now require:
+The complete RED contract now requires:
 
 - a default-off server capability `HOSTED_GITHUB_INTEGRATION_ENABLED`,
 - connect and callback routes to fail closed before provider/OAuth work while that capability is disabled,
-- the disconnected dashboard to hide the live Connect action while disabled,
+- the disconnected integration dashboard to hide the live Connect action while disabled,
+- the Add Asset page to hide the GitHub import entry point while disabled,
+- the repository-import server action to reject while disabled,
 - local connect-route errors to fall back to the actual request origin instead of `localhost` when no canonical site URL is configured.
 
-The release pattern after GREEN will therefore be: merge dark-gated code, production-verify provider configuration/canary, then deliberately enable the GitHub integration. Hosted snapshot/scan worker gates remain independently default-off.
+The release pattern after GREEN will therefore be: merge dark-gated code, deliberately enable the GitHub integration only for production provider acceptance, keep it enabled only if the owner/admin canary passes, and leave all hosted repository snapshot/scan worker gates independently default-off until their separate acceptance.
 
 ## Released baseline
 
@@ -107,13 +109,13 @@ Hosted runtime flags remain default-off/unaccepted and must not be enabled by Ph
 
 ## Remaining release work
 
-1. Prove the new default-off GitHub integration release gate RED, then implement and fully verify it GREEN.
-2. Merge Phase 10A1 only with the integration gate still disabled.
+1. Prove the complete default-off GitHub integration release gate RED, then implement and fully verify it GREEN.
+2. Merge Phase 10A1 only with `HOSTED_GITHUB_INTEGRATION_ENABLED` still false/absent.
 3. Verify the six server-only GitHub App settings through a supported provider/configuration surface without exposing values.
 4. Verify provider URLs and read-only GitHub App permissions match `PHASE_10A1_GITHUB_APP_SETUP.md`.
-5. Perform authenticated Connect GitHub -> installation proof -> repository listing -> repository import acceptance in production.
-6. Check browser/persistence/log surfaces for provider-token leakage during the canary.
-7. Enable `HOSTED_GITHUB_INTEGRATION_ENABLED=true` only after provider acceptance is green.
+5. Deliberately enable `HOSTED_GITHUB_INTEGRATION_ENABLED=true` for authenticated production acceptance.
+6. Perform Connect GitHub -> installation proof -> repository listing -> repository import acceptance and inspect browser/persistence/log surfaces for token leakage.
+7. Keep the integration enabled only if acceptance remains green; otherwise disable immediately.
 8. Keep repository snapshot/scan worker runtime gates disabled until their independent acceptance.
 9. Reconcile draft PR #76 onto the released Phase 10A1 baseline and rerun the complete Phase 10A2 matrix.
 
