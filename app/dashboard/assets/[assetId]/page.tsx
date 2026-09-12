@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 import ActiveValidationPanel, {
   type ActiveValidationPanelObservation,
 } from "@/components/assets/ActiveValidationPanel";
+import ConnectedProjectScanPanel from "@/components/assets/ConnectedProjectScanPanel";
 import RepositoryImportPanel, {
   type RepositoryImportHistoryItem,
 } from "@/components/assets/RepositoryImportPanel";
@@ -17,10 +18,15 @@ import VerificationPanel from "@/components/assets/VerificationPanel";
 import type { Json } from "@/lib/database.types";
 import { createPhase3ImportRepository } from "@/lib/phase3-import/repository";
 import {
+  loadConnectedProjectScanReadModel,
+  type ConnectedProjectScanReadModel,
+} from "@/lib/project-scans/read-model";
+import {
   loadRepositoryScanReadModel,
   type RepositoryScanHistoryItem,
   type RepositoryScanJobSummary,
 } from "@/lib/repository-scans/read-model";
+import { HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED } from "@/lib/repository-scans/runtime";
 import {
   listRepositorySnapshots,
   type RepositorySnapshotHistoryItem,
@@ -149,12 +155,14 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
   let repositorySnapshotHistory: readonly RepositorySnapshotHistoryItem[] = [];
   let repositoryScanHistory: readonly RepositoryScanHistoryItem[] = [];
   let repositoryScanLatestJob: RepositoryScanJobSummary | null = null;
+  let connectedProjectScan: ConnectedProjectScanReadModel | null = null;
   if (asset.kind === "repository") {
     const importRepository = createPhase3ImportRepository(supabase);
-    const [importRows, snapshotRows, scanReadModel] = await Promise.all([
+    const [importRows, snapshotRows, scanReadModel, projectScanReadModel] = await Promise.all([
       importRepository.listRecentImports(workspace.id, asset.id, 20),
       listRepositorySnapshots(supabase, workspace.id, asset.id, 20),
       loadRepositoryScanReadModel(supabase, workspace.id, asset.id, 10),
+      loadConnectedProjectScanReadModel(supabase, workspace.id, asset.id),
     ]);
     repositoryImportHistory = importRows.map((row) => ({
       id: row.id,
@@ -171,6 +179,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
     repositorySnapshotHistory = snapshotRows;
     repositoryScanHistory = scanReadModel.history;
     repositoryScanLatestJob = scanReadModel.latestJob;
+    connectedProjectScan = projectScanReadModel;
   }
 
   const isVerified = asset.verification_status === "verified";
@@ -224,6 +233,17 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
 
       {asset.kind === "repository" && (
         <>
+          {connectedProjectScan && (
+            <section className="panel verificationSection">
+              <ConnectedProjectScanPanel
+                assetId={asset.id}
+                role={role}
+                project={connectedProjectScan}
+                snapshotRuntimeAvailable={HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED}
+                scanRuntimeAvailable={HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED}
+              />
+            </section>
+          )}
           <section className="panel verificationSection">
             <RepositorySnapshotPanel
               assetId={asset.id}

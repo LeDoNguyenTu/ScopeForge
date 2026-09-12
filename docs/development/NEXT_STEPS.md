@@ -1,93 +1,113 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-10 (Asia/Singapore)
+Last reconciled: 2026-09-11 (Asia/Singapore)
 
-## Completed boundaries
+## Released baseline
 
-Do not recreate these released phases or compatibility gates:
+Current released `main`:
 
-- Phase 7 Community Security Packs v1
-- Phase 8A offline accuracy foundation
-- Phase 8B scanner performance matrix
-- Phase 8C reproducible technical publication
-- Phase 9A authentication-boundary hardening
-- Phase 9B provider/auth hardening code
-- Phase 9C database/RPC defense-in-depth
-- Phase 9D security telemetry/browser hardening
-- Phase 9E incident readiness and release engineering
-- strict nonce-based CSP compatibility and enforcement
-- restoration of the accepted Command Center V5 public and authenticated presentation on top of strict CSP
+`1151af2dddb76737ee2f0a0d1a802f06a975d318`
 
-Current executable production `main`:
+Current production deployment:
 
-`a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`
+`dpl_AueSXj9wWBDMkRTRLAb6x8nsH57z` - READY on `scopeforge.dev`
 
-Current production tree:
+Released boundaries include Phases 1-9E, strict CSP, accepted Command Center V5, and Phase 10C platform administration. Do not regress the V5/CSP/auth/RLS/worker-authority baseline while completing later phases.
 
-`f2a39880347444967f2f2b0e2eb78d63342afbef`
+## Priority 1 - finish Phase 10A1 provider acceptance and release
 
-Exact production deployment:
+Active PR: #74
+Branch: `feat/phase-10a-github-connected-projects`
+Latest executable/schema candidate before documentation reconciliation: `a8959d4b887463b0b28af056932eabd2a75147a3`
+CI #907 / run `34610625305`: SUCCESS
 
-`dpl_3F4rnzhWQ93RoPKqdTe4U96TPSKb`
+Code and production database gates are complete.
 
-Post-merge CI #803 / run `34396470298` passed the full repository validation gate, including the real Chrome CSP/V5 restoration acceptance and screenshot publication. Production is READY on the exact released SHA and fresh requests to `scopeforge.dev` and `/auth/sign-in` return HTTP 200 under the enforced nonce CSP.
+Verified production state:
 
-Detailed evidence: `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
+- all five Phase 10A1 migrations are recorded in ScopeForge production,
+- browser users are SELECT-only on the public GitHub integration tables,
+- `service_role` is reduced to application-required SELECT/INSERT/UPDATE/DELETE privileges,
+- private scan intent has no direct browser/service-role table grant,
+- privileged Phase 10A1 RPCs remain service-role-only,
+- Security Advisor has no Phase 10A1 release-blocking schema issue,
+- CI #907 passed 387 files / 1,720 tests plus typecheck, CLI, benchmarks, build and browser diagnostics.
 
-## Immediate priority - operational truth, not automatic activation
+Remaining release work is now narrowly provider-focused:
 
-There is no unfinished implementation PR and no approved new product phase currently queued.
+1. Verify the six required GitHub App server-only settings through a supported provider/configuration surface without exposing values.
+2. Verify GitHub App homepage, setup URL and callback URL point to `https://scopeforge.dev` and the documented callback path.
+3. Verify GitHub App repository permissions remain Contents read-only and Metadata read-only, with no write permission.
+4. Run an authenticated owner/admin Connect GitHub -> installation proof -> repository listing -> repository import canary.
+5. Confirm no GitHub App private key, OAuth token, installation token, signed state or provider error body appears in browser state, integration rows, redirects or ordinary logs.
+6. Keep hosted worker flags off.
+7. Run final exact-head CI after release-document reconciliation.
+8. Merge PR #74 only after the live provider canary succeeds and the final head remains green.
+9. Verify the merged production deployment, integration routes, V5/admin/auth paths and security headers.
 
-The remaining work is operationally gated. Do not turn these follow-ups into implicit capability activation.
+The connected Vercel surface in the current session does not expose environment-variable metadata, and production currently has zero GitHub connection/repository-link rows. Do not replace the live provider canary with inference from a READY preview.
 
-### 1. Provider verification remains separate
+Detailed evidence: `docs/development/PHASE_10A1_RELEASE_STATE.md`.
 
-Current truth:
+## Priority 2 - reconcile and release Phase 10A2
 
-- production Turnstile provider enforcement: `NOT VERIFIED`
-- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
-- Supabase leaked-password protection: `VERIFIED DISABLED`
-- strict CSP: `ENFORCED`
+PR #76 already contains the private repository acquisition implementation and remains draft/stacked on Phase 10A1.
 
-Provider inspection may continue when a supported surface is available. Enabling or changing provider controls is a separate operational decision and must preserve a tested rollback path.
+Previously validated exact head:
 
-### 2. Hosted runtime enablement remains separately gated
+`6959cea91cbecba9e9e454901d3c57a95bc46edd`
 
-Phase 6 code and release acceptance do not automatically authorize production runtime activation.
+CI #904 / run `34607770399`: SUCCESS with 392 files / 1,731 tests and the complete validation matrix.
 
-Keep these false/absent until their independent operational canary and rollback gates explicitly authorize them:
+After Phase 10A1 safely releases:
+
+1. Reconcile/retarget PR #76 onto the released Phase 10A1/main baseline. Do not force-merge the currently stale stack.
+2. Review the stack reconciliation for migration ordering, GitHub provider boundaries and public/private execution-class isolation.
+3. Re-run the complete Phase 10A2 exact-head matrix after reconciliation.
+4. Read the fresh production migration head and apply only absent reviewed Phase 10A2 forward migrations.
+5. Verify private tables/RPCs, revokes/grants, RLS and Security Advisor.
+6. Verify GitHub App access to a selected private test repository with the intended read-only permissions.
+7. Verify the dedicated private snapshot worker deployment and rollback mechanism.
+8. Enable `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` only in the accepted canary environment.
+9. Run one complete private connected-project canary: project scan request -> private archive lease -> immutable snapshot publication -> exact zero-egress repository scan -> findings.
+10. Verify provider credentials never reach the worker contract and archive capability/private source do not appear in browser state or ordinary logs.
+11. Merge/release Phase 10A2 only after every code, schema, provider and runtime gate is green.
+
+## Priority 3 - independent hosted runtime acceptance
+
+Keep these false/absent until independent operational canary and rollback acceptance explicitly authorizes each capability:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-The current Vercel connector does not expose environment-variable values, so direct fresh inspection of those values is not available through the present tool surface. No environment mutation was performed by the CSP or V5 restoration work.
+A canary must prove the exact worker class, containment, quotas, cancellation/recovery, observability and rollback path before its flag changes in production.
 
-### 3. Branch cleanup remains pending a real delete-ref operation
+## Priority 4 - remaining provider/security follow-ups
 
-A fresh branch audit still shows historical completed `diag/*`, `preview/*`, reconciliation, documentation, feature, CSP, and temporary V5 restoration branches.
+- Supabase leaked-password protection remains disabled; enable only through a supported Auth-management surface and re-verify auth flows.
+- Verify Turnstile production enforcement rather than inferring it from configuration code.
+- Verify any Vercel WAF/rate-limit controls through a supported management surface.
+- Preserve strict nonce CSP and existing browser security headers during all provider changes.
+- Deployment discovery/DAST remains a later connected-project phase after private repository acquisition is stable.
 
-The connected GitHub write surface has search/create/update-ref operations but no genuine branch delete-ref mutation. Do not simulate deletion by moving old branch pointers to `main`.
+## Branch cleanup
 
-When a true delete-ref surface becomes available, delete only branches already proven historical/completed and re-audit `main` afterwards.
+Historical completed diagnostic/preview/reconciliation branches remain. Delete them only when a genuine safe delete-ref operation is available. Never simulate deletion by moving stale refs to `main`.
 
-## UI and security baseline rule
+## Baseline rule
 
-The released production `main` tree is authoritative.
+Any next implementation work must preserve together:
 
-Preserve all of the following together:
-
-- accepted Command Center V5 desktop/mobile public presentation
-- accepted immersive authenticated dashboard presentation
-- strict nonce CSP
-- existing browser security headers
-- Supabase/RLS/RPC authorization boundaries
-- worker/runtime authority separation
-- disabled/unaccepted hosted capability defaults
-
-Do not use stale V4, preview, diagnostic, reconciliation, or temporary restoration branches as implementation bases.
-
-## Future implementation work
-
-A future product phase should begin only when its scope is explicitly defined against current `main`. It must not be inferred from historical branches or from the existence of dormant worker/provider capability.
+- accepted Command Center V5 desktop/mobile presentation,
+- Phase 10C admin console and authority separation,
+- strict nonce CSP,
+- Supabase workspace/RLS/RPC authorization,
+- no browser service-role/provider secrets,
+- public/private repository acquisition class separation,
+- worker/runtime authority separation,
+- disabled/unaccepted hosted capability defaults,
+- immutable snapshot and finding provenance,
+- exact-snapshot recovery without implicit reacquisition.

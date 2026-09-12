@@ -1,5 +1,6 @@
 import { createRepositorySnapshotServerDependencies } from "@/lib/repository-snapshots/server-dependencies";
 import { publishRepositorySnapshotAttempt } from "@/lib/repository-snapshots/service";
+import { continueConnectedProjectScanAfterSnapshot } from "@/lib/project-scans/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
 import {
@@ -34,17 +35,28 @@ export async function POST(request: Request): Promise<Response> {
       throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
     }
 
-    const result = isRepositorySnapshotSuccess(body.terminal)
-      ? await publishRepositorySnapshotAttempt({
-          workerId: worker.workerId,
-          leaseToken: body.leaseToken,
-          terminal: body.terminal,
-        }, createRepositorySnapshotServerDependencies())
-      : await finalizeWorkerAttempt({
-          workerId: worker.workerId,
-          leaseToken: body.leaseToken,
-          terminal: body.terminal,
-        }, dependencies);
+    if (isRepositorySnapshotSuccess(body.terminal)) {
+      const result = await publishRepositorySnapshotAttempt({
+        workerId: worker.workerId,
+        leaseToken: body.leaseToken,
+        terminal: body.terminal,
+      }, createRepositorySnapshotServerDependencies());
+
+      if (result.outcome === "succeeded" && result.snapshotId) {
+        await continueConnectedProjectScanAfterSnapshot({
+          snapshotTaskId: result.taskId,
+          snapshotId: result.snapshotId,
+        });
+      }
+
+      return workerJson({ ok: true, data: result });
+    }
+
+    const result = await finalizeWorkerAttempt({
+      workerId: worker.workerId,
+      leaseToken: body.leaseToken,
+      terminal: body.terminal,
+    }, dependencies);
     return workerJson({ ok: true, data: result });
   } catch (error) {
     return workerRouteError(error, "worker.finalize");
