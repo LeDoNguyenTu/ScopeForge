@@ -119,6 +119,51 @@ describe("GitHub webhook trust boundary", () => {
     );
   });
 
+  it("stops reading an unknown-length body as soon as the byte ceiling is exceeded", async () => {
+    let pulls = 0;
+    let cancellations = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        if (pulls === 1) {
+          controller.enqueue(new Uint8Array(MAX_GITHUB_WEBHOOK_BODY_BYTES));
+          return;
+        }
+        if (pulls === 2) {
+          controller.enqueue(new Uint8Array([0]));
+          return;
+        }
+        throw new Error("Webhook reader consumed beyond the overflow boundary.");
+      },
+      cancel() {
+        cancellations += 1;
+      },
+    }, { highWaterMark: 0 });
+    const headers = new Headers({
+      "content-type": "application/json",
+      "x-github-delivery": deliveryId,
+      "x-github-event": "push",
+      "x-hub-signature-256": `sha256=${"0".repeat(64)}`,
+    });
+    const request = new Request(
+      "https://scopeforge.dev/api/integrations/github/webhook",
+      {
+        method: "POST",
+        headers,
+        body: stream,
+        duplex: "half",
+      } as RequestInit & { duplex: "half" },
+    );
+
+    await expectWebhookError(
+      readGitHubWebhookRequest(request, secret),
+      "GITHUB_WEBHOOK_PAYLOAD_TOO_LARGE",
+      413,
+    );
+    expect(pulls).toBe(2);
+    expect(cancellations).toBe(1);
+  });
+
   it.each([
     ["missing content type", { "content-type": undefined }, "GITHUB_WEBHOOK_HEADERS_INVALID", 400],
     ["non-json content type", { "content-type": "text/plain" }, "GITHUB_WEBHOOK_HEADERS_INVALID", 400],
