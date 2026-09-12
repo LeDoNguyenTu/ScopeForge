@@ -1,55 +1,136 @@
 # Phase 10A3 Working State
 
-## Bounded webhook streaming hardening checkpoint - 2026-09-12
+## Current checkpoint - 2026-09-12
 
-This checkpoint supersedes the older Phase 10A3 implementation status below.
+Phase 10A3 remains implementation-complete but operationally release-gated behind issue #79 and Phase 10A2 acceptance.
 
-- Phase 10A1 remains released as `33d21de652f3c04aa88ebd4f122348803e59b153` with the live GitHub integration release gate disabled pending the provider canary tracked in issue #79.
-- Phase 10A2 PR #76 remains draft. Its current head is `709ef8af4ce4befae12ba910d3bca15599b5cab1`; the latest change is documentation-only branch-cleanup reconciliation.
-- Phase 10A3 PR #77 remains draft and stacked on Phase 10A2.
-- Static security review found one pre-release webhook edge gap: unknown-length request bodies used `request.arrayBuffer()` and therefore could be fully buffered before the application-level 10 MiB actual-body limit rejected them.
-- Issue #78 recorded the required TDD hardening and is now closed as completed.
-- RED checkpoint: tests-only head `5de02284a16e79d03c2f275b990ae793a70687f9`, CI #958 / run `34681195661`. 411 files / 1,895 tests executed and exactly the new bounded-stream regression failed because the old reader consumed beyond the overflow boundary.
-- GREEN implementation: `eb3dc7d35bf334b51b93ebdeb8011277028ae504`. The reader now consumes the request stream incrementally, rejects immediately after accumulated bytes exceed 10 MiB, attempts reader cancellation on overflow/read failure, then assembles the exact accepted bytes for HMAC-SHA256 verification before JSON parsing.
-- GREEN validation: CI #959 / run `34681343582` against synthetic merge `4b5d2d287f6d747c69c769a70d63e1671f4ad3a2` passed. `npm audit` reported zero vulnerabilities; Vitest passed 411 / 411 files and 1,895 / 1,895 tests; typecheck, CLI build/version, scanner benchmark, benchmark matrix, optimized production build, CSP browser smoke and production UI/Turnstile diagnostics all passed. Visual acceptance artifact: `10293699844`.
-- The successful scanner benchmark processed 700 files with zero errors in 880 ms wall time against the 20,000 ms budget. All dependency-lockfile, IaC and source-AST benchmark profiles passed their budgets.
-- Fresh Vercel runtime-error inspection after the hardening found no current production runtime-error cluster in the last hour. The earlier one-off platform-availability error belonged to an older deployment and is not currently reproducing.
-- Static Phase 10A2 private acquisition review did not identify another actionable defect in this pass. The control plane binds authoritative repository/commit identity, the private worker independently validates the exact codeload host/path/commit, and the snapshot parser independently enforces streamed archive bounds.
-- The authoritative branch-cleanup manifest was refreshed on PR #76 so Phase 10A1 is no longer incorrectly retained as active and the current Phase 10A2/10A3 branches are protected from cleanup.
-- No Phase 10A2/10A3 production migration was applied, no webhook was registered, no provider secret was created/exposed, and no hosted worker runtime flag was enabled during this continuation.
-- Remaining operational sequence: resolve issue #79 through a supported authenticated Vercel/GitHub provider configuration surface; complete the Phase 10A1 connection/import canary; complete and release Phase 10A2 private acquisition acceptance; then reconcile/revalidate Phase 10A3 and execute its migration, signed delivery, replay, lifecycle, coalescing, leak-check and end-to-end automatic-scan canaries.
+- Phase 10A1 released main: `33d21de652f3c04aa88ebd4f122348803e59b153`
+- Phase 10A2 PR #76 current head: `709ef8af4ce4befae12ba910d3bca15599b5cab1`
+- Phase 10A3 PR #77 remains draft and stacked on #76
+- latest verified executable Phase 10A3 head: `9c40e89bb9433d8b4ce268302e1a9e5b04f29151`
+- synthetic merge validated by CI: `333711dfa8490fc137999dfb98d25ad9f248c5bd`
+- CI #962 / run `34687506721`: SUCCESS
+- audit: 0 vulnerabilities
+- Vitest: 412 / 412 files, 1,896 / 1,896 tests
+- typecheck: PASS
+- CLI build/version: PASS, `ScopeForge 0.1.0`
+- scanner benchmark: PASS, 700 files, zero errors, 622 ms wall time against 20,000 ms budget
+- dependency-lockfile, IaC and source-AST benchmark matrix: PASS
+- optimized Next.js production build: PASS
+- strict CSP browser acceptance: PASS
+- production ScopeForge/Turnstile diagnostic: PASS
+- visual acceptance artifact: `10296117940`
 
-Documentation-only commits after implementation head `eb3dc7d35bf334b51b93ebdeb8011277028ae504` do not replace CI #959 as the exact executable-tree validation evidence. Any later executable change requires fresh validation.
+No Phase 10A2/10A3 production migration was applied, no production webhook was registered, no provider secret was created/exposed, and no hosted worker runtime flag was enabled during this continuation.
 
-## Webhook reconciliation checkpoint - 2026-09-12
+Documentation-only commits after executable head `9c40e89bb9433d8b4ce268302e1a9e5b04f29151` do not replace CI #962 as exact executable-tree evidence. Any later executable change requires fresh validation.
 
-This checkpoint is historical and is retained for traceability.
+## Hardening #78 - bounded webhook request streaming
 
-- Phase 10A1 is released as `33d21de652f3c04aa88ebd4f122348803e59b153`; Vercel production is READY and live connect/callback probes confirm the integration is disabled.
-- Phase 10A2 PR #76 targeted main at `47b5360cbf2a6b6388d77557cd9fcc14e2d618ff` at this older checkpoint and contained released main with no missing base commits.
-- The Phase 10A3 reconciliation merged that Phase 10A2 head. Environment documentation retained webhook configuration, private archive secrecy, and the separate GitHub integration gate.
-- Local integrated validation at this older checkpoint passed 411 files / 1,894 tests, typecheck and production build with documented CI-only placeholders.
-- No hosted browser/runtime canary or production Phase 10A2/10A3 migration was performed at that checkpoint.
+Issue #78 is closed as completed.
 
-Date: 2026-09-12
-Branch: `feat/phase-10a3-github-webhook-reconciliation`
+### Defect
 
-## TDD / validation history
+Unknown-length webhook requests used `request.arrayBuffer()` before checking actual size. Oversized chunked bodies were rejected eventually, but the application-level 10 MiB ceiling did not itself bound buffering.
 
-- Task 1 RED: CI #914 / run `34631217021`; GREEN: CI #916 / run `34632551953`.
-- Tasks 2-3 RED: CI #918 / run `34637569190`; GREEN: CI #922 / run `34639416412`, exact head `d5a71c0504a6531ea94cf5ebd2477c40b6e741f6`.
-- Task 4 service RED: CI #923 / run `34645026763`; GREEN: CI #925 / run `34646073036`.
-- Task 4 route RED: CI #926 / run `34646601886`; GREEN: CI #927 / run `34649158445`, exact head `c6d6b20a1f654539b2218994c48c8b3d7dac3edf`.
-- Corrected Task 5 RED: CI #929 / run `34649891292`; GREEN: CI #930 / run `34650537947`, exact head `0e5584436bfb72189071c9e681a2ed0ef65e408e`.
-- Task 6 RED: CI #931 / run `34651520973`; first GREEN candidate #933 exposed one replay-normalization failure; final GREEN: CI #935 / run `34652736967`, exact head `d6cb9126191dd2476171ac3ed35835d773a59720`.
-- Task 7 RED: CI #937 / run `34653167208`; GREEN: CI #938 / run `34653612240`, exact head `2a99c0fb91d1b28c309cf145f1367cbffa3410c3`.
-- Release-hardening manual/automatic follow-up RED: CI #940 / run `34654759881`, with all 401 pre-existing files / 1,831 tests green and exactly eight new regression assertions failing.
-- Release-hardening GREEN: CI #947 / run `34655979305`, exact implementation head `94957dc229b96a56f5ce4e392e756358babeac25`.
-- Final docs-inclusive GREEN: CI #948 / run `34656348562`, exact documented head `3cf6dc800eafeb7967b231063afb2e4177acf64f`, synthetic merge `87e11f9e22bb79e6f9810860ed182a85cc868fd2`.
-- Bounded-stream RED: CI #958 / run `34681195661`, exact tests-only head `5de02284a16e79d03c2f275b990ae793a70687f9`.
-- Bounded-stream GREEN: CI #959 / run `34681343582`, exact implementation head `eb3dc7d35bf334b51b93ebdeb8011277028ae504`, synthetic merge `4b5d2d287f6d747c69c769a70d63e1671f4ad3a2`.
+### TDD evidence
 
-## Implemented Phase 10A3 boundaries
+RED:
+
+- tests-only head `5de02284a16e79d03c2f275b990ae793a70687f9`
+- CI #958 / run `34681195661`
+- all pre-existing tests passed and exactly the new overflow-boundary regression failed
+
+GREEN:
+
+- implementation head `eb3dc7d35bf334b51b93ebdeb8011277028ae504`
+- CI #959 / run `34681343582`: SUCCESS
+- 411 / 411 files, 1,895 / 1,895 tests
+- visual artifact `10293699844`
+
+### Correction
+
+The reader now:
+
+- consumes `request.body` incrementally
+- enforces the actual 10 MiB ceiling while reading
+- attempts cancellation on overflow/read failure
+- assembles only accepted bytes
+- preserves exact raw bytes for HMAC-SHA256
+- verifies HMAC before JSON parsing
+- preserves existing 400/401/413 semantics
+
+## Hardening #80 - same-head pending no-lost-enqueue recovery
+
+Issue #80 is closed as completed.
+
+### Defect
+
+`record_github_webhook_push_head` and `enqueue_github_webhook_project_snapshot` intentionally run as separate service RPC transactions.
+
+Before the correction, `record_github_webhook_push_head` treated:
+
+`desired_commit_sha = target_commit_sha AND pending = true`
+
+as a semantic replay before checking whether `private.github_project_scan_intents` actually contained an active intent.
+
+A real race therefore existed:
+
+1. Follow-up reconciliation records provider-authoritative head C and receives `shouldEnqueue=true`.
+2. Before it enqueues, another valid webhook for C records a newer `latest_delivery_id`.
+3. The newer same-head webhook sees `pending=true` and semantic-replays without enqueueing.
+4. The older enqueue correctly fails stale because its delivery id is no longer latest.
+5. State can remain `pending=true` with no active intent/task and no guaranteed trigger to recover the scan.
+
+### TDD evidence
+
+RED:
+
+- tests-only head `d4582236a45d746c6dba47f6810624b50bd1dd50`
+- CI #961 / run `34687272810`
+- synthetic merge `e4776ec80b841c5908fe6855c495dae3f9ccb554`
+- audit: 0 vulnerabilities
+- 411 / 412 test files passed
+- 1,895 / 1,896 tests passed
+- only `webhook-same-head-pending-recovery.test.ts` failed because the required recovery migration did not yet exist
+
+GREEN:
+
+- implementation head `9c40e89bb9433d8b4ce268302e1a9e5b04f29151`
+- synthetic merge `333711dfa8490fc137999dfb98d25ad9f248c5bd`
+- CI #962 / run `34687506721`: SUCCESS
+- 412 / 412 files and 1,896 / 1,896 tests
+- full audit/typecheck/CLI/benchmark/build/browser gates passed
+- visual artifact `10296117940`
+
+### Forward-only correction
+
+Migration:
+
+`supabase/migrations/20260912024000_phase_10a3_same_head_pending_recovery.sql`
+
+The overlay replaces only `public.record_github_webhook_push_head` and preserves:
+
+- input validation
+- service-role-only execution boundary
+- per-link transaction advisory lock
+- authoritative link/connection checks
+- provider archived behavior
+- successful-head semantic replay
+- downstream exact `latest_delivery_id` stale enqueue protection
+- latest-head coalescing for active work
+
+The function now locks the per-link intent before same-head pending replay classification.
+
+- desired SHA matches + pending + active intent -> semantic replay, `shouldEnqueue=false`
+- desired SHA matches + pending + no active intent -> newest delivery becomes recovery owner, `shouldEnqueue=true`
+- older racing enqueue remains stale and fails closed if a newer delivery has replaced `latest_delivery_id`
+
+This removes the stranded `pending=true` / no-task state without weakening replay or stale-delivery controls.
+
+The migration is not applied to production yet. It belongs in the reviewed Phase 10A3 migration set after Phase 10A2 release and provider acceptance.
+
+## Existing Phase 10A3 boundaries
 
 ### Authenticated webhook edge
 
@@ -65,51 +146,58 @@ Branch: `feat/phase-10a3-github-webhook-reconciliation`
 ### Provider-authoritative lifecycle reconciliation
 
 - signed webhook payloads are triggers only; repository/install/default-head truth is re-fetched from GitHub
-- supported push, installation, installation-repositories, and selected repository lifecycle reconciliation
-- default-branch automatic scanning only in Phase 10A3
+- supported push, installation, installation-repositories and selected repository lifecycle reconciliation
+- default-branch automatic scanning only
 - fail-closed handling for installation/access/visibility/default-branch/archive drift
 - repository-scoped installation credentials remain confined to the trusted control plane
 
 ### Latest-head-wins automatic scanning
 
-- rapid pushes coalesce instead of creating unbounded scan fan-out
-- public/private repository acquisition classes and runtime gates remain distinct
-- automatic completion is bound to exact persisted webhook intent + immutable snapshot authority
+- rapid pushes coalesce instead of creating unbounded fan-out
+- public/private acquisition classes and runtime gates remain distinct
+- automatic completion is bound to exact persisted webhook intent and immutable snapshot authority
 - successful watermark advances only from `repository_source_snapshots.resolved_commit_sha`
-- provider head is revalidated before any follow-up enqueue
+- provider head is revalidated before follow-up enqueue
+- same-head pending state is recoverable if no active intent owns the chain
 
-### Manual/automatic no-lost-head release hardening
+### Manual/automatic no-lost-head correction
 
-A webhook arriving while a manual connected-project scan owned the per-link intent could previously be coalesced but remain stranded after the manual scan terminated.
+The prior forward-only migration `20260912023000_phase_10a3_manual_scan_auto_followup.sql` already fixes the independent edge where a webhook coalesced behind a manual connected-project scan could otherwise remain stranded after that manual scan terminated.
 
-The forward-only correction `20260912023000_phase_10a3_manual_scan_auto_followup.sql`:
+It binds settlement by exact persisted repository `scan_task_id`, accepts only trusted terminal task/job pairs, preserves queued/leased/retry work, and schedules at most one provider-authoritative newest-head follow-up.
 
-- binds settlement by exact persisted repository `scan_task_id`
-- accepts only manual intents in `scan_queued`
-- preserves queued, leased, and `retry_wait` tasks
-- accepts only terminal task/job pairs: `completed/succeeded`, `cancelled/cancelled`, or `dead_letter/failed`
-- lets a successful manual scan satisfy the automatic watermark only when its immutable scanned snapshot SHA equals the pending desired SHA
-- otherwise releases only the exact terminal manual chain and schedules at most one provider-authoritative newest-head follow-up
-- invokes settlement after trusted successful publication and trusted failed/cancelled repository-scan finalization
-- exposes the settlement RPC to service role only
+## Validation history - latest hardening sequence
+
+- manual/automatic follow-up RED: CI #940 / run `34654759881`
+- manual/automatic follow-up GREEN: CI #947 / run `34655979305`
+- final prior docs-inclusive GREEN: CI #948 / run `34656348562`
+- bounded-stream RED: CI #958 / run `34681195661`
+- bounded-stream GREEN: CI #959 / run `34681343582`
+- same-head recovery RED: CI #961 / run `34687272810`
+- same-head recovery GREEN: CI #962 / run `34687506721`
+
+Earlier Phase 10A3 task-by-task TDD history remains available in Git history and prior versions of this file.
 
 ## Production safety
 
-No Phase 10A2 or Phase 10A3 migration has been applied to production in this continuation. No production webhook has been registered. No production webhook secret or hosted runtime flag has been changed.
+No Phase 10A2 or Phase 10A3 migration has been applied to production during this continuation. No production webhook has been registered. No production webhook secret or hosted runtime flag has been changed.
 
-The released Phase 10A1 provider integration remains dark-gated pending issue #79. Supplying code/schema or obtaining CI success does not authorize provider or runtime activation.
+The released Phase 10A1 provider integration remains dark-gated pending issue #79. Code/schema presence and CI success do not authorize provider or runtime activation.
 
-Independent hardening checks on 2026-09-12 also established:
+Independent checks also established:
 
-- the ScopeForge Supabase organization is on the `free` plan, while leaked-password protection is plan-gated
-- production password-sign-in CAPTCHA enforcement is independently verified by a no-token request returning HTTP 400 / `captcha_failed`
-- the connected Vercel surface does not expose live custom firewall/rate-limit configuration or production environment management, so custom WAF posture and GitHub provider secrets must remain unclaimed from this session
+- production password-sign-in rejects missing CAPTCHA tokens with HTTP 400 / `captcha_failed`
+- leaked-password protection remains plan-gated on the current Supabase Free organization
+- current connected Vercel access does not expose production environment management or live custom firewall/rate-limit configuration
+- current CI has two non-blocking maintenance warnings: Vite config module-format future compatibility and the Node runtime used by `actions/upload-artifact@v4`
 
 ## Release order
 
-1. Complete the live GitHub App owner/admin connection/import canary tracked in #79 while keeping hosted worker flags disabled.
-2. Apply/canary Phase 10A2 private acquisition in the correct project and dedicated worker environment, then merge/release PR #76.
-3. Reconcile PR #77 onto released Phase 10A2/main and perform fresh exact-candidate validation.
-4. Apply reviewed Phase 10A3 migrations, configure the independent webhook secret/endpoint, run signed-delivery, replay, lifecycle, coalescing, public/private separation, leak-check and end-to-end automatic-scan canaries, then merge/release Phase 10A3.
+1. Complete issue #79 live GitHub App owner/admin connection/import canary while all hosted worker flags remain disabled.
+2. Apply/canary Phase 10A2 private acquisition in the correct Supabase project and dedicated worker environment, then merge/release PR #76.
+3. Reconcile PR #77 onto released Phase 10A2/main and run fresh exact-candidate validation.
+4. Apply only reviewed absent Phase 10A3 migrations, including `20260912024000_phase_10a3_same_head_pending_recovery.sql`.
+5. Configure the independent webhook secret/endpoint and run signed delivery, invalid-signature/oversize, replay, lifecycle, coalescing, same-head recovery, public/private separation, leak-check and full automatic-scan canaries.
+6. Merge/release PR #77 only after operational acceptance is complete.
 
 Never skip stack order or infer operational acceptance from code/CI alone.
