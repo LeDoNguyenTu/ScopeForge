@@ -14,6 +14,10 @@ Align the public `docs/scanner/CI.md` workflow example with the released Node 24
 4. Run exact-branch GREEN validation.
 5. Review the isolated diff and merge only if green.
 
+## RED candidate
+
+The regression guard is committed while `docs/scanner/CI.md` still intentionally contains the stale Node 22 example. The next CI run is expected to fail only on the new published-example assertion.
+
 ## Release isolation
 
 This task is documentation/test maintenance only. It must not alter:
