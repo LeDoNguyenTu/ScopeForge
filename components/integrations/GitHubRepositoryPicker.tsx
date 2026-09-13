@@ -39,8 +39,8 @@ export default function GitHubRepositoryPicker({
 
   if (!repositories.length) {
     return (
-      <div className="emptyState">
-        <span className="emptyIcon"><Github size={23} /></span>
+      <div className="githubRepositoryEmpty">
+        <span className="githubRepositoryEmptyIcon"><Github size={23} /></span>
         <h3>No repositories are available</h3>
         <p>Check the repository access selected for the ScopeForge GitHub App installation, then reconnect if needed.</p>
       </div>
@@ -49,26 +49,32 @@ export default function GitHubRepositoryPicker({
 
   return (
     <>
-      {message ? <p className="formError" role="alert">{message}</p> : null}
-      <div className="assetList">
+      {message ? <p className="formError githubRepositoryError" role="alert">{message}</p> : null}
+      <div className="githubRepositoryList">
         {repositories.map((repository) => (
-          <article className="assetRow" key={repository.id}>
-            <span className="emptyIcon" aria-hidden="true">
-              {repository.isPrivate ? <LockKeyhole size={17} /> : <Unlock size={17} />}
-            </span>
-            <div className="assetMain">
-              <strong>{repository.fullName}</strong>
-              <span>
-                <GitBranch size={13} aria-hidden="true" /> Default branch: {repository.defaultBranch}
+          <article className="githubRepositoryCard" key={repository.id}>
+            <div className="githubRepositoryIdentity">
+              <span className="githubRepositoryIcon" aria-hidden="true">
+                {repository.isPrivate ? <LockKeyhole size={18} /> : <Unlock size={18} />}
               </span>
-              {repository.isPrivate ? (
-                <small>Private repository acquisition requires Phase 10A2. You can connect the project now, but hosted source scanning is not enabled yet.</small>
-              ) : (
-                <small>Public repository. Hosted acquisition still follows the existing runtime capability gate.</small>
-              )}
+              <div>
+                <span className="githubRepositoryVisibility">{repository.isPrivate ? "Private repository" : "Public repository"}</span>
+                <h3>{repository.fullName}</h3>
+                <div className="githubRepositoryMeta">
+                  <span><GitBranch size={13} aria-hidden="true" /> {repository.defaultBranch}</span>
+                  <span>{repository.isPrivate ? "Private" : "Public"}</span>
+                </div>
+              </div>
             </div>
-            <span className="assetKind">{repository.isPrivate ? "Private" : "Public"}</span>
+
+            <p className="githubRepositoryDescription">
+              {repository.isPrivate
+                ? "Private repository acquisition requires Phase 10A2. The project can be connected now while hosted source scanning remains disabled."
+                : "Public repository. Hosted acquisition still follows the existing runtime capability gate."}
+            </p>
+
             <form
+              className="githubRepositoryAction"
               onSubmit={(event) => {
                 event.preventDefault();
                 submitRepository(event.currentTarget, repository.id);
@@ -87,19 +93,24 @@ export default function GitHubRepositoryPicker({
           </article>
         ))}
       </div>
-      <div className="paginationRow">
-        {page > 1 ? (
-          <Link className="secondaryButton compact" href={`/dashboard/integrations/github?page=${page - 1}`}>
-            <ArrowLeft size={15} /> Previous
-          </Link>
-        ) : <span />}
+
+      <nav className="githubRepositoryPagination" aria-label="Repository pagination">
+        <div>
+          {page > 1 ? (
+            <Link className="secondaryButton compact" href={`/dashboard/integrations/github?page=${page - 1}`}>
+              <ArrowLeft size={15} /> Previous
+            </Link>
+          ) : null}
+        </div>
         <span>Page {page}</span>
-        {hasNextPage ? (
-          <Link className="secondaryButton compact" href={`/dashboard/integrations/github?page=${page + 1}`}>
-            Next <ArrowRight size={15} />
-          </Link>
-        ) : <span />}
-      </div>
+        <div>
+          {hasNextPage ? (
+            <Link className="secondaryButton compact" href={`/dashboard/integrations/github?page=${page + 1}`}>
+              Next <ArrowRight size={15} />
+            </Link>
+          ) : null}
+        </div>
+      </nav>
     </>
   );
 }

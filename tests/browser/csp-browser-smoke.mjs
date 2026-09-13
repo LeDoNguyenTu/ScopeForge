@@ -36,6 +36,11 @@ async function navigate(sessionId, path) {
   await waitFor(sessionId, `document readiness for ${path}`, "return document.readyState === 'complete';");
 }
 
+async function setWindowRect(sessionId, width, height) {
+  await webdriver("POST", `/session/${sessionId}/window/rect`, { width, height });
+  await sleep(120);
+}
+
 async function captureScreenshot(sessionId, filename) {
   mkdirSync(screenshotDir, { recursive: true });
   const pngBase64 = await webdriver("GET", `/session/${sessionId}/screenshot`);
@@ -49,6 +54,51 @@ async function browserLogs(sessionId) {
 function assertCleanLogs(logs, route) {
   const failures = logs.filter((entry) => /content security policy|refused to (?:load|execute|apply|connect|frame)|violates the following content security policy directive|hydration failed|hydration error|minified react error|uncaught/i.test(entry.message));
   if (failures.length) throw new Error(`Browser console failures on ${route}:\n${failures.map((entry) => `[${entry.level}] ${entry.message}`).join("\n")}`);
+}
+
+async function assertAdminPreview(sessionId, view, width, height) {
+  await setWindowRect(sessionId, width, height);
+  const route = `/preview/admin?view=${view}`;
+  await navigate(sessionId, route);
+  await waitFor(sessionId, `admin ${view} preview`, "return Boolean(document.querySelector('.adminPreviewShell') && document.querySelector('.platformAdminMain')); ");
+
+  const geometry = await execute(sessionId, `
+    const root=document.documentElement;
+    const body=document.body;
+    const sidebar=document.querySelector('.platformAdminSidebar');
+    const mobileNav=document.querySelector('.platformAdminMobileNav');
+    const mobileCards=document.querySelector('.adminMobileCards');
+    const desktopTable=document.querySelector('.adminDesktopTable');
+    const githubActions=[...document.querySelectorAll('.githubRepositoryAction .primaryButton')];
+    const visible=(element)=>Boolean(element&&getComputedStyle(element).display!=='none'&&element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0);
+    const clipped=[...document.querySelectorAll('button,a,input,textarea')].filter(visible).some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
+    return {
+      innerWidth,
+      scrollWidth:Math.max(root.scrollWidth,body.scrollWidth),
+      sidebarVisible:visible(sidebar),
+      mobileNavVisible:visible(mobileNav),
+      mobileCardsVisible:visible(mobileCards),
+      desktopTableVisible:visible(desktopTable),
+      githubActionCount:githubActions.filter(visible).length,
+      clipped,
+    };
+  `);
+
+  if (!geometry || geometry.scrollWidth > geometry.innerWidth + 1 || geometry.clipped) {
+    throw new Error(`Admin ${view} overflows at ${width}px: ${JSON.stringify(geometry)}`);
+  }
+
+  if (width <= 760) {
+    if (!geometry.mobileNavVisible || geometry.sidebarVisible) throw new Error(`Admin ${view} mobile navigation regressed at ${width}px: ${JSON.stringify(geometry)}`);
+    if (["users", "workspaces", "audit"].includes(view) && (!geometry.mobileCardsVisible || geometry.desktopTableVisible)) throw new Error(`Admin ${view} mobile record composition regressed at ${width}px: ${JSON.stringify(geometry)}`);
+    if (view === "github" && geometry.githubActionCount < 1) throw new Error(`GitHub mobile actions are not visible at ${width}px: ${JSON.stringify(geometry)}`);
+  } else if (!geometry.sidebarVisible || geometry.mobileNavVisible) {
+    throw new Error(`Admin ${view} desktop navigation regressed at ${width}px: ${JSON.stringify(geometry)}`);
+  }
+
+  assertCleanLogs(await browserLogs(sessionId), route);
+  const prefix = width <= 760 ? "admin-mobile" : "admin-desktop";
+  await captureScreenshot(sessionId, `${prefix}-${width}-${view}.png`);
 }
 
 async function main() {
@@ -93,6 +143,17 @@ async function main() {
     assertCleanLogs(await browserLogs(sessionId), "/preview/dashboard");
     await captureScreenshot(sessionId, "dashboard-pre-pr49.png");
 
+    for (const view of ["overview", "users", "workspaces", "audit", "settings", "github"]) {
+      await assertAdminPreview(sessionId, view, 390, 844);
+    }
+    for (const view of ["overview", "github"]) {
+      await assertAdminPreview(sessionId, view, 430, 932);
+    }
+    for (const view of ["overview", "users", "github"]) {
+      await assertAdminPreview(sessionId, view, 1440, 1100);
+    }
+
+    await setWindowRect(sessionId, 1440, 1200);
     for (const path of ["/auth/sign-in", "/auth/sign-up"]) {
       await navigate(sessionId, path);
       await waitFor(sessionId, `${path} form`, "return Boolean(document.querySelector('input[type=\"email\"]') && document.querySelector('input[type=\"password\"]') && document.querySelector('button[type=\"submit\"]')); ");
@@ -106,7 +167,7 @@ async function main() {
     await waitFor(sessionId, "dashboard auth boundary", "return location.pathname.startsWith('/auth/sign-in');", 15000);
     assertCleanLogs(await browserLogs(sessionId), "/dashboard");
 
-    console.log("CSP and pre-PR49 UI browser acceptance passed: old landing/dashboard composition restored while auth, nonce CSP and dashboard boundary remain healthy.");
+    console.log("CSP and responsive UI browser acceptance passed: landing/dashboard composition, admin mobile/desktop layouts, auth, nonce CSP and dashboard boundary remain healthy.");
   } finally {
     await webdriver("DELETE", `/session/${sessionId}`).catch(() => undefined);
   }
