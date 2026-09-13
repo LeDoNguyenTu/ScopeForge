@@ -7,6 +7,7 @@ Last updated: 2026-09-13 (Asia/Singapore)
 This branch backports already-validated maintenance from the Phase 10A3 stack onto current `main` while issue #79's two authenticated production browser canaries are postponed.
 
 Branch: `chore/main-runtime-tooling-alignment`
+PR: #88 - Align main runtime and tooling baseline
 Base: `main` at `15323d760b00d466fd7509519c547a3e6a0b70d9`
 Plan: `docs/superpowers/plans/2026-09-13-main-runtime-tooling-backport.md`
 
@@ -35,3 +36,5 @@ Current production has no member/viewer membership available for the second cana
 Task 1 RED commit: `c5d6c400d3cee6415e0da7e3e41b9b400169a47a`
 
 The new `tests/architecture/node-runtime-alignment.test.ts` intentionally requires Node `>=24 <25` and CI Node 24. Current main has neither, so the next required evidence is a CI run showing this new test fails for the expected reason while the pre-existing suite remains green.
+
+PR #88 is intentionally ready for review so its synchronize events execute the full validation job. The current update exists only to trigger the RED run after an earlier branch housekeeping commit contained `[skip ci]`.
