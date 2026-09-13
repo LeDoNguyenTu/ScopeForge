@@ -1,15 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  Activity,
-  ArrowLeft,
-  LayoutDashboard,
-  ScrollText,
-  Settings,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
+import AdminNavigation from "@/components/platform-admin/AdminNavigation";
 import {
   PlatformAdminAuthorizationError,
   requirePlatformAdmin,
@@ -23,14 +14,6 @@ export const metadata: Metadata = {
   },
 };
 export const dynamic = "force-dynamic";
-
-const navigation = [
-  ["/admin", "Overview", LayoutDashboard],
-  ["/admin/users", "Users", Users],
-  ["/admin/workspaces", "Workspaces", Activity],
-  ["/admin/audit", "Audit", ScrollText],
-  ["/admin/settings", "Settings", Settings],
-] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   let context;
@@ -48,30 +31,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="platformAdminShell">
-      <aside className="platformAdminSidebar">
-        <div className="platformAdminBrand">
-          <span className="platformAdminBrandMark"><ShieldCheck size={20} /></span>
-          <div>
-            <strong>ScopeForge</strong>
-            <span>Platform administration</span>
-          </div>
-        </div>
-
-        <nav className="platformAdminNav" aria-label="Platform administration">
-          {navigation.map(([href, label, Icon]) => (
-            <Link key={href} href={href}><Icon size={17} /> {label}</Link>
-          ))}
-        </nav>
-
-        <div className="platformAdminIdentity">
-          <span>{context.user.email ?? "Platform administrator"}</span>
-          <strong>{context.role === "owner" ? "Platform owner" : "Platform admin"}</strong>
-        </div>
-
-        <Link className="platformAdminBack" href="/dashboard"><ArrowLeft size={16} /> Back to workspace</Link>
-      </aside>
-
-      <main className="platformAdminMain" id="platform-admin-content">
+      <a className="skipLink" href="#platform-admin-content">Skip to admin content</a>
+      <AdminNavigation
+        email={context.user.email ?? "Platform administrator"}
+        role={context.role}
+      />
+      <main className="platformAdminMain" id="platform-admin-content" tabIndex={-1}>
         {children}
       </main>
     </div>
