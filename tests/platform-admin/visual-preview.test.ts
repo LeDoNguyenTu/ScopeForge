@@ -35,7 +35,8 @@ describe("responsive admin visual acceptance fixture", () => {
   it("runs browser acceptance at mobile widths and rejects horizontal overflow", () => {
     const browser = read("tests/browser/csp-browser-smoke.mjs");
     expect(browser).toContain("/preview/admin?view=");
-    expect(browser).toContain("admin-mobile-");
+    expect(browser).toContain('const prefix = width <= 760 ? "admin-mobile" : "admin-desktop"');
+    expect(browser).toContain('`${prefix}-${width}-${view}.png`');
     expect(browser).toContain("scrollWidth");
     expect(browser).toContain("390");
     expect(browser).toContain("430");
