@@ -6,17 +6,19 @@ ScopeForge is designed around a practical security loop:
 
 **Discover -> Validate -> Explain -> Connect -> Prepare -> Fix -> Verify**
 
-The project combines a local/passive repository scanner with a web control plane that will later support authorized runtime security, normalized findings, remediation workflows, and community security knowledge.
+The project combines a local/passive repository scanner with a web control plane for authenticated workspaces, normalized findings, remediation workflows, connected repositories, platform administration, and separately gated hosted/runtime security capabilities.
 
 > Use ScopeForge only on systems and repositories you own or are explicitly authorized to assess.
 
 ## Current status
 
-The Phase 3 code and supply-chain security feature set is implemented. Final completion is gated by the release-readiness process in `docs/scanner/RELEASE_READINESS.md`, including exact-head CI and post-merge `main` verification.
+The local code and supply-chain scanner, Community Security Packs local v1, validation/benchmark methodology, production hardening, strict nonce CSP, authenticated control plane, platform administration, and Phase 10A1 GitHub connected-project core are released.
 
-Phase 3 scanning is local and passive. It does not require a ScopeForge account.
+Local repository scanning remains passive and does not require a ScopeForge account. Hosted acquisition, private repository execution, automatic webhook-driven scanning, and network/runtime worker capabilities remain behind independent authorization, containment, migration, canary, monitoring, and rollback gates. Code or CI completion alone does not authorize those production capabilities.
 
-Phase 7 Community Security Packs v1 is implemented in candidate PR #54 and is pending exact-head acceptance. The v1 design is local-only, explicitly selected, data-only, and limited to the closed `static_literal_v1` matcher. Hosted pack distribution/activation, active rules, executable plugins, and target-repository auto-discovery do not exist.
+The positive production GitHub App owner/admin connection and controlled repository-import flow has been proven. Remaining negative provider canaries and the Phase 10A2/10A3 operational release sequence are tracked in `docs/development/CURRENT_STATE.md`, `docs/development/NEXT_STEPS.md`, and GitHub issue #79.
+
+Community Security Packs v1 is released and intentionally local-only, explicitly selected, data-only, and limited to the closed `static_literal_v1` matcher. Hosted pack distribution/activation, active rules, executable plugins, and target-repository auto-discovery do not exist.
 
 ### Local scanner capabilities
 
@@ -41,7 +43,7 @@ Phase 7 Community Security Packs v1 is implemented in candidate PR #54 and is pe
 - GitHub Code Scanning compatible SARIF generation
 - committed golden-output continuity tests
 - mixed-repository and hostile-input integration coverage
-- deterministic 700-file CI benchmark for catastrophic performance regression detection
+- deterministic CI performance benchmarks for catastrophic regression detection
 
 Detailed limitations are documented in `docs/scanner/LIMITATIONS.md`.
 
@@ -49,8 +51,10 @@ Detailed limitations are documented in `docs/scanner/LIMITATIONS.md`.
 
 Requirements:
 
-- Node.js 22
+- Node.js 24
 - npm
+
+The root package contract is Node `>=24 <25`.
 
 From this repository:
 
@@ -134,7 +138,7 @@ List built-in rules:
 npm run scopeforge -- rules list
 ```
 
-## Security Packs - local v1 candidate
+## Security Packs - local v1
 
 Security Packs are loaded only from explicit local paths. A target repository containing `scopeforge-pack.json` or a `fixtures/` directory cannot activate a pack.
 
@@ -253,9 +257,9 @@ Until a standalone distribution exists, CI users should pin a reviewed ScopeForg
 
 ## Performance evidence
 
-The Phase 3 completion benchmark generates a deterministic 700-file mixed repository and invokes the compiled CLI in-process with OSV disabled.
+The original Phase 3 completion benchmark generates a deterministic 700-file mixed repository and invokes the compiled CLI in-process with OSV disabled. The current release gate also includes a deterministic multi-profile scanner matrix.
 
-Diagnostic CI #311 observed 700 files analyzed, 0 findings, 0 errors, 928 ms wall time, 859 ms scanner duration, and a 22,900,736-byte process RSS delta on a GitHub-hosted Ubuntu 24.04 runner. The CI gate uses a deliberately broad 20-second ceiling only to catch catastrophic regressions.
+Historical diagnostic CI #311 observed 700 files analyzed, 0 findings, 0 errors, 928 ms wall time, 859 ms scanner duration, and a 22,900,736-byte process RSS delta on a GitHub-hosted Ubuntu 24.04 runner. The CI gate uses deliberately broad ceilings to catch catastrophic regressions rather than claim production latency guarantees.
 
 These values are benchmark evidence, not a production performance guarantee. Methodology and caveats are in `docs/scanner/PERFORMANCE.md`.
 
@@ -285,7 +289,10 @@ Browser
   v
 Next.js / Vercel control plane
   +--> Supabase Auth + PostgreSQL
-  +--> authorized hosted/runtime workflows behind separate capability boundaries
+  +--> workspace assets and findings
+  +--> platform administration
+  +--> GitHub connected-project control plane
+  +--> separately gated hosted/runtime workflows
 ```
 
 The local scanner and web control plane are deliberately separated. Local Security Pack selection does not grant hosted, worker, browser, or network authority.
@@ -318,10 +325,11 @@ npm run typecheck
 npm run build:cli
 node .scopeforge-build/packages/cli/index.js version
 npm run benchmark:scanner
+npm run benchmark:matrix
 npm run build
 ```
 
-Current validation evidence is tracked in `docs/development/TEST_STATUS.md` and the active phase release/handover documents.
+Current validation evidence is tracked in `docs/development/CURRENT_STATE.md`, `docs/development/TEST_STATUS.md`, and the active release/handover documents.
 
 ## Project direction
 
@@ -341,7 +349,7 @@ Findings should lead to practical preparation, including what to fix, what relat
 
 ### Community Security Packs
 
-The reviewed local v1 candidate carries versioned static detection metadata, mappings, explainers, remediation guidance, preparedness information, fixtures, validation, and false-positive notes through a closed machine-validated schema. It does not execute arbitrary community JavaScript, provide hosted distribution, or permit active/network-capable pack rules.
+The released local v1 carries versioned static detection metadata, mappings, explainers, remediation guidance, preparedness information, fixtures, validation, and false-positive notes through a closed machine-validated schema. It does not execute arbitrary community JavaScript, provide hosted distribution, or permit active/network-capable pack rules.
 
 ## Roadmap
 
@@ -355,7 +363,7 @@ The reviewed local v1 candidate carries versioned static detection metadata, map
 8. Validation, benchmarks, and public methodology
 9. Production hardening and public release
 
-Detailed phase state and acceptance gates are tracked in `docs/PHASES.md`.
+Detailed phase state and acceptance gates, including post-Phase-9 compatibility and connected-project work, are tracked in `docs/PHASES.md`, `docs/development/CURRENT_STATE.md`, and `docs/development/NEXT_STEPS.md`.
 
 ## Documentation
 
@@ -363,15 +371,15 @@ Start with:
 
 1. `docs/development/SESSION_HANDOFF.md`
 2. `docs/development/CURRENT_STATE.md`
-3. `docs/scanner/CI.md`
-4. `docs/scanner/LIMITATIONS.md`
-5. `docs/scanner/PERFORMANCE.md`
-6. `docs/security-packs/AUTHORING.md`
-7. `docs/security-packs/REVIEWING.md`
+3. `docs/development/NEXT_STEPS.md`
+4. `docs/development/UNFINISHED_WORK.md`
+5. `docs/scanner/CI.md`
+6. `docs/scanner/LIMITATIONS.md`
+7. `docs/scanner/PERFORMANCE.md`
+8. `docs/security-packs/AUTHORING.md`
+9. `docs/security-packs/REVIEWING.md`
 
-Long-term product architecture is in `docs/superpowers/specs/2026-08-24-community-platform-design.md`.
-
-Phase 7 Security Pack architecture and implementation steps are in the active Phase 7 spec/plan under `docs/superpowers/`.
+Long-term product architecture is in `docs/superpowers/specs/2026-08-24-community-platform-design.md`. Historical phase specs/plans remain useful implementation records, but the current-state and next-steps documents are authoritative for resuming active work.
 
 ## Community
 
