@@ -6,9 +6,9 @@ Last reconciled: 2026-09-13 (Asia/Singapore)
 
 Current `main`:
 
-`c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
 
-Latest authoritative main validation:
+Latest authoritative executable validation remains:
 
 - CI #1030 / run `34745795461`: SUCCESS
 - Node 24, audit 0 vulnerabilities
@@ -16,7 +16,7 @@ Latest authoritative main validation:
 - typecheck, CommonJS CLI, scanner benchmark, deterministic benchmark matrix, optimized Next build, strict-CSP browser acceptance, production diagnostic and artifact upload: PASS
 - artifact `10314341432`
 
-`scopeforge.dev` currently responds HTTP 200 with strict nonce CSP and expected security headers. During this reconciliation Vercel had not yet surfaced a production deployment whose Git SHA is the PR #90 merge SHA. PR #90 changes documentation plus an architecture regression test only, so executable application behavior is unchanged.
+PR #92 is documentation-only and is now the current main tip. Vercel production deployment `dpl_wdy769VVk1cqb55nJ65x8qiHrtHa` is READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`, and `scopeforge.dev` responds HTTP 200 with strict nonce CSP and expected security headers.
 
 ScopeForge Supabase: `tdgpibrepzcvdivztkta`.
 
@@ -25,10 +25,11 @@ Recent independent maintenance now released:
 - PR #87 responsive admin/GitHub UI
 - PR #88 Node 24/runtime-tooling alignment
 - PR #90 public CI-guide Node 24 alignment and regression guard
+- PR #92 complete branch-cleanup audit/manifest
 
 ## Priority 1 - issue #79 live negative provider acceptance
 
-Positive provider acceptance is already proven:
+Positive provider acceptance is already proven and issue #79 has been rewritten to state that clearly:
 
 - provider gate active
 - owner/admin GitHub App install/proof completed
@@ -53,6 +54,7 @@ PR #76:
 - branch `feat/phase-10a2-private-repository-acquisition`
 - recorded head `709ef8af4ce4befae12ba910d3bca15599b5cab1`
 - draft/open
+- PR description refreshed on 2026-09-13 to reflect completed positive provider acceptance and schema preflight
 
 Production migration history remains recorded through `20260911143049_phase_10a1_service_role_table_acl_hardening`; Phase 10A2 targets remain intentionally unapplied.
 
@@ -60,6 +62,8 @@ Reviewed migrations waiting behind #79:
 
 - `20260911100000_phase_10a2_private_repository_snapshot.sql`
 - `20260911110000_phase_10a2_private_project_scan_routing.sql`
+
+Read-only schema/transactional preflight for those two migrations is already complete. Required tables, keys, exact function signatures, ACL assumptions, CHECK-constraint compatibility, existing-row compatibility, and absence of the new target objects were verified. Do not repeat that preflight unless #76 or production schema changes materially.
 
 After #79 clears:
 
@@ -78,7 +82,7 @@ If the exact containment canary requires SSH/host control unavailable here, hand
 
 ## Priority 3 - Phase 10A3 GitHub webhook reconciliation
 
-PR #77 remains draft/open.
+PR #77 remains draft/open and its description has been refreshed to remove the stale dark-gated Phase 10A1 wording.
 
 Recorded pre-reconciliation evidence:
 
@@ -111,6 +115,19 @@ Keep false/absent until independently accepted:
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
 CI success, schema presence, UI availability or historical containment evidence does not authorize production worker activation.
+
+## Priority 4 - branch cleanup when delete-ref access exists
+
+PR #92 published the authoritative cleanup manifest after a live audit:
+
+- audit baseline: 60 branches
+- only #76 and #77 backed open PRs
+- 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
+- 56 refs were safe-delete candidates at that audit point
+
+The connected GitHub write surface still has no genuine branch-delete operation. Do not fake deletion by force-moving refs. Re-fetch the branch list immediately before deletion because maintenance branches created after the audit must also be classified.
+
+Use `docs/development/BRANCH_CLEANUP_CANDIDATES.md` as the starting manifest.
 
 ## Safe work while #79 is postponed
 
