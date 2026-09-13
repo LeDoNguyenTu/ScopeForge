@@ -1,0 +1,1 @@
+This short note exists only to keep the TDD validation history explicit: the branch first runs with the regression guard against the intentionally stale Node 22 public CI example, then changes only that example to Node 24 for GREEN validation.
