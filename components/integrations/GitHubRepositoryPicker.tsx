@@ -69,7 +69,7 @@ export default function GitHubRepositoryPicker({
 
             <p className="githubRepositoryDescription">
               {repository.isPrivate
-                ? "Private source acquisition requires Phase 10A2. The project can be connected now while hosted source scanning remains disabled."
+                ? "Private repository acquisition requires Phase 10A2. The project can be connected now while hosted source scanning remains disabled."
                 : "Public repository. Hosted acquisition still follows the existing runtime capability gate."}
             </p>
 
