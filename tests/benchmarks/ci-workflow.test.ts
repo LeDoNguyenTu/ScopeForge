@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 
 describe("Phase 8 CI validation ordering", () => {
   it("runs npm audit before executable validation and keeps the benchmark sequence stable", async () => {
-    const workflow = await readFile(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const workflow = (await readFile(join(process.cwd(), ".github/workflows/ci.yml"), "utf8"))
+      .replace(/\r\n/g, "\n");
     const audit = workflow.indexOf("npm audit --audit-level=info");
     const tests = workflow.indexOf("npm test");
     const historical = workflow.indexOf("npm run benchmark:scanner");
