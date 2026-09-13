@@ -18,4 +18,14 @@ describe("Node runtime alignment", () => {
     expect(workflow).toMatch(/node-version:\s*["']?24["']?/);
     expect(workflow).not.toMatch(/node-version:\s*["']?22["']?/);
   });
+
+  it("keeps the published CI integration example on Node 24", async () => {
+    const ciGuide = await readFile(
+      path.join(root, "docs/scanner/CI.md"),
+      "utf8",
+    );
+
+    expect(ciGuide).toMatch(/node-version:\s*["']?24["']?/);
+    expect(ciGuide).not.toMatch(/node-version:\s*["']?22["']?/);
+  });
 });
