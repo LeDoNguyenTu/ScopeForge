@@ -1,102 +1,134 @@
 # ScopeForge Unfinished Work Queue
 
-Last reconciled: 2026-09-10 (Asia/Singapore)
+Last reconciled: 2026-09-13 (Asia/Singapore)
 
-This is the persistent non-UI resume queue. It records only work that is actually unfinished. Historical implementation branches and old phase checklists are not a source of new work by themselves.
+This is the persistent resume queue for genuinely unfinished work. Historical branches, old phase checklists, and completed acceptance tasks are not a source of new work by themselves.
 
 ## Global rules
 
-- start from current `main`; never use stale feature, reconciliation, preview, diagnostic, or temporary restoration branches as integration bases
-- preserve the accepted Command Center V5 public and authenticated presentation
-- preserve strict nonce CSP and the existing browser security-header baseline
-- preflight before CI; do not use Actions as the first debugging loop
-- do not claim green gates without exact-SHA evidence
-- keep deployed Supabase migrations immutable; corrections are forward-only
-- do not enable hosted worker/runtime capability flags merely because their code exists
+- start from actual current `main`; inspect current PR/issue heads before acting
+- preserve the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, strict nonce CSP, and browser security-header baseline
+- never rewrite deployed Supabase migrations; corrections are forward-only
+- do not claim green gates without exact executable-SHA evidence
+- do not enable hosted worker/runtime capabilities merely because code, migrations, or tests exist
 - do not add generic URL/proxy/browser/arbitrary network authority
-- do not confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
+- never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
+- keep provider credentials/control-plane capability material out of browser state, ordinary logs, worker payloads, repository files, and chat
 - no AI co-author attribution
-- do not infer provider or environment state from repository source
 
 ## Completed - do not recreate
 
-The following previously queued boundaries are released:
+The following boundaries are complete or released and should not be reimplemented from old branches:
 
-- Phase 7 Community Security Packs v1
+- Phase 7 Community Security Packs local v1
 - Phase 8A offline accuracy foundation
 - Phase 8B deterministic scanner performance matrix
 - Phase 8C reproducible technical publication
-- Phase 9A authentication-boundary hardening
-- Phase 9B provider/auth hardening code
-- Phase 9C database/RPC defense-in-depth
-- Phase 9D security telemetry/browser hardening
-- Phase 9E incident readiness and release engineering
-- post-Phase-9 strict CSP compatibility and enforcement
-- restoration of the accepted Command Center V5 presentation on top of strict CSP
+- Phase 9A through 9E production/security hardening scope
+- strict nonce CSP compatibility and enforcement
+- accepted Command Center presentation restoration
+- Phase 6D Tasks 14-16, including real Linux/rootless-Podman containment acceptance
+- Phase 10A1 GitHub connected-project core
+- Phase 10C platform administration
+- PR #87 responsive admin/GitHub control-plane UI
+- Phase 10A3 hardening issues #78, #80, #81, #82, and #85
 
-The latest substantively validated executable release is `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`. Post-merge CI #803 / run `34396470298` passed the full validation gate, including real Chrome CSP/V5 visual acceptance. Later docs-only `main` commits may advance the Git ref without changing the executable application tree.
+Independent main tooling alignment is implemented in PR #88. Exact executable candidate `b987fd9db36173b0a338cce7796ac599ae46e163` passed CI #1026 / run `34744282931` with Node 24.20.0, npm 11.19.0, audit 0, 396/396 test files, 1,743/1,743 tests, typecheck, CommonJS CLI, benchmarks, Next build, responsive/CSP browser acceptance, production diagnostic, and `upload-artifact@v7`. If #88 is already merged when this file is read, use the post-merge main evidence instead.
 
-Detailed release evidence is in `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
+## 1. Issue #79 - remaining live GitHub App negative canaries
 
-## 1. Provider operational verification - separate gate
+Positive owner/admin provider activation and controlled repository import are already proven. Safe metadata, RLS, cookie, redirect, and checked log boundaries have also been reviewed.
 
-Current conservative truth:
+Two live production checks remain and require a browser/session surface able to use controlled authenticated identities:
 
-- production Turnstile provider enforcement: `NOT VERIFIED`
-- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
-- Supabase leaked-password protection: `VERIFIED DISABLED`
-- strict CSP: `ENFORCED`
+1. submit a different valid numeric GitHub installation ID through the authenticated owner/admin callback flow and prove rejection
+2. use an authenticated normal workspace member/viewer and prove Connect GitHub cannot be initiated or completed
 
-Provider inspection is legitimate unfinished operational work when a supported account surface is available. Provider activation or configuration changes are not implied by this queue and require their own reviewed operational plan, rollback path, and verification evidence.
+Regression tests cover these properties, but test evidence is not a substitute for live provider acceptance. Leave issue #79 open until both live checks are independently evidenced. Do not paste provider secrets or weaken authorization to make the canary easier.
 
-Do not describe configuration-gated Turnstile application support as production provider enforcement until the external Cloudflare/Supabase/Vercel state is directly proven.
+## 2. Phase 10A2 - PR #76 private repository acquisition
 
-## 2. Production worker enablement - separate from completed code phases
+PR #76 remains draft/open at recorded head `709ef8af4ce4befae12ba910d3bca15599b5cab1` and must remain behind #79.
 
-### Phase 6B
+Production migration history currently ends at `20260911143049_phase_10a1_service_role_table_acl_hardening`. Phase 10A2 migrations are still unapplied.
 
-Hosted GitHub repository acquisition remains disabled pending a dedicated acquisition-worker/private-artifact operational acceptance, monitoring, rollback, and staged canary gate.
+After #79 clears, execute in this order:
 
-### Phase 6C
+1. re-read actual PR #76 head and current main, then reconcile the stack
+2. run fresh exact-candidate CI
+3. re-read production migration history and apply only absent reviewed Phase 10A2 migrations
+4. verify schema, RLS, grants/revokes, service-role boundaries, and Security Advisor posture
+5. complete private acquisition-worker containment, quotas, cancellation, cleanup, observability, rollback, and staged canary acceptance
+6. prove provider credential use remains control-plane-only
+7. prove private archive lease -> immutable snapshot -> exact zero-egress repository scan -> findings
+8. merge/release #76 only when provider, code, schema, runtime, privacy, and rollback gates all pass
 
-Hosted zero-egress repository scanning remains disabled pending its own execution-boundary operational acceptance for zero egress, read-only boundaries, resource enforcement, cancellation/container termination, monitoring, rollback, and canary evidence.
-
-### Phase 6D
-
-Passive and active runtime worker code and release acceptance are complete. Production enablement remains a separate operational gate for each capability and requires monitoring, rollback, staged canary evidence, and exact environment-state verification.
-
-The operational requirement remains that these four flags stay false/absent until their independent gates authorize them:
+Do not enable these gates ahead of acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
+
+## 3. Phase 10A3 - PR #77 webhook reconciliation
+
+PR #77 remains draft/open and must follow the Phase 10A2 release.
+
+Recorded executable evidence before future reconciliation:
+
+- executable candidate `5f05ed964c8ab43f38a420b1b77317bae630cc1e`
+- prior synthetic merge `d7322502d3b01e583d0ccf4f4cdadf2cf955bc1b`
+- CI #981 / run `34711218370`: SUCCESS
+
+After #76 releases:
+
+1. reconcile #77 onto released main
+2. run fresh exact-candidate validation
+3. re-read production migration history and apply only absent reviewed Phase 10A3 migrations
+4. configure the independent server-only webhook secret/endpoint without exposing it
+5. prove invalid-signature and oversize rejection before JSON processing
+6. prove replay, installation/repository lifecycle, latest-head coalescing, same-head pending recovery, and superseded-head authoritative recovery
+7. prove public/private separation and leak boundaries
+8. prove a full automatic webhook-triggered scan through immutable snapshot publication to findings
+9. merge/release only after all operational checks pass
+
+## 4. Other hosted runtime enablement
+
+Passive and active runtime worker code/release acceptance exists, but production enablement remains independently gated.
+
+Keep these false/absent until their own monitoring, rollback, and staged canary evidence authorizes them:
+
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-The current Vercel connector does not expose environment-variable values, so a fresh direct environment read is not available through the present tool surface. No environment mutation was performed by the CSP or V5 restoration releases.
+Do not use Phase 6D containment evidence, Phase 8 benchmark success, or Phase 10 progress as automatic authorization for production enablement.
 
-Do not use Phase 6D containment evidence, Phase 8 validation success, or the public release as automatic authorization for 6B/6C/6D production enablement.
+## 5. Provider/security operations not yet directly verified
 
-## 3. Branch cleanup
+Where a supported account surface becomes available, separately verify external provider controls that repository source cannot prove, including any still-unverified Cloudflare/Vercel WAF/rate-limit state and Supabase/provider security settings recorded as unknown in the current-state documents.
 
-A fresh branch audit still shows historical completed `diag/*`, `preview/*`, reconciliation, documentation, feature, CSP, and temporary V5 restoration branches.
+Do not silently upgrade `NOT VERIFIED` to enabled/enforced from application code alone.
 
-The connected GitHub write surface does not expose a genuine branch delete-ref operation. Do not force-move or repoint those refs to make them look deleted.
+## 6. Branch cleanup
 
-When a true delete-ref surface becomes available:
+Historical completed `diag/*`, `preview/*`, reconciliation, documentation, feature, CSP, and temporary branches may remain.
+
+When a genuine delete-ref surface is available:
 
 1. re-audit each candidate against current `main`
-2. delete only branches already proven historical/completed
-3. preserve `main`
-4. re-list branches after deletion and record the cleanup result
+2. delete only branches proven historical/completed and not backing an open PR
+3. preserve `main`, #76, #77, and any current maintenance branch until their work is integrated
+4. re-list refs after deletion and document the cleanup result
 
-## 4. Future product work
-
-There is currently no open implementation PR, no open issue, and no approved new product phase in the repository queue.
-
-Do not invent a Phase 10 from historical branches or dormant capability. A new implementation boundary must be explicitly scoped against current `main`, pass the normal design/spec review gate, and preserve V5, CSP, authorization, and runtime safety invariants.
+Never fake deletion by force-moving or repointing refs.
 
 ## UI baseline
 
-The earlier separate V5 UI stream is complete. PR #67 restored and released the accepted V5 presentation on top of the strict CSP baseline.
+PR #87 is the released responsive admin/GitHub UI baseline. Do not create more cosmetic churn without concrete evidence of an actual defect.
 
-Accessibility/responsive work may be proposed as a future scoped change if new evidence identifies a concrete issue, but the old UI branches are not active workstreams.
+If new visual evidence identifies a real issue, preserve mobile no-horizontal-page-scroll, iOS safe-area behavior, minimum touch targets, semantic/accessibility behavior, strict CSP, and authorization boundaries.
+
+## What can be done while #79 is postponed
+
+Safe independent work includes narrowly scoped documentation repair, dependency/runtime/tooling maintenance, regression-test strengthening, architecture/security review, and evidence-based UI bug fixes that do not alter provider authorization, production schema, hosted capability flags, or the #76/#77 release order.
+
+Any such work should stay in an isolated branch/PR and must not be used to claim that #79, Phase 10A2, or Phase 10A3 operational acceptance has passed.
