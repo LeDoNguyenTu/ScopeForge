@@ -5,16 +5,16 @@ Last reconciled: 2026-09-13 (Asia/Singapore)
 ## Released baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- current `main`: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+- current `main`: `80c1d4710b31dab0081d0d8918fcd8ce4091119c`
 - production domain: `https://scopeforge.dev`
-- latest observed Vercel production pointer during this reconciliation: `dpl_8qx6kYPuJpZBzJQZv3rAZebWJZYc`, READY on main SHA `0da6b09ee564c369512e7d02ed913a67418d167b`
+- current Vercel production deployment: `dpl_wdy769VVk1cqb55nJ65x8qiHrtHa`, READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`
 - Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
 - Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
 - ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
 
-`scopeforge.dev` was directly fetched after PR #90 and returned HTTP 200 with strict nonce CSP, HSTS, `nosniff`, frame denial, permissions policy, and referrer policy intact. PR #90 contains documentation plus an architecture regression test only, so the executable application served by the prior production deployment remains equivalent.
+`scopeforge.dev` was directly fetched after PR #92 and returned HTTP 200 with strict nonce CSP, HSTS, `nosniff`, frame denial, permissions policy, and referrer policy intact. PR #92 is documentation-only, so executable application behavior remains the already-validated PR #90/PR #88 baseline.
 
-Released main includes Phase 10A1 GitHub connected-project core, Phase 10C platform administration, strict nonce CSP/security headers, the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, PR #88 Node 24/runtime-tooling alignment, and PR #90 public CI-guide runtime alignment.
+Released main includes Phase 10A1 GitHub connected-project core, Phase 10C platform administration, strict nonce CSP/security headers, the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, PR #88 Node 24/runtime-tooling alignment, PR #90 public CI-guide runtime alignment, and PR #92 branch-cleanup audit documentation.
 
 ## Recent maintenance releases
 
@@ -49,6 +49,23 @@ The public GitHub CI example now uses Node 24 and is permanently guarded against
 
 Detailed evidence: `docs/development/CI_DOC_RUNTIME_ALIGNMENT_WORKING_STATE.md`.
 
+### PR #92 - branch cleanup audit
+
+Merge:
+
+`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
+
+Fresh branch/PR audit before the audit branch itself was created:
+
+- 60 live branches
+- exactly 2 open PR heads: #76 and #77
+- 4 refs retained by policy: `main`, #76, #77, and `demo/portfolio-20260910`
+- 56 refs classified safe to delete through a genuine delete-ref operation
+
+The connected GitHub surface still has no branch-delete operation. Do not simulate deletion by force-moving refs. Re-fetch refs immediately before any future deletion because documentation/maintenance branches created after the audit will also need classification.
+
+Authoritative manifest: `docs/development/BRANCH_CLEANUP_CANDIDATES.md`.
+
 ## Responsive admin/GitHub UI
 
 PR #87 is the released responsive admin/GitHub UI baseline. Do not reopen cosmetic UI work without concrete visual or behavioral evidence. Preserve no whole-page horizontal scrolling on mobile, safe-area handling, touch/accessibility behavior, strict CSP, and existing authorization boundaries.
@@ -65,7 +82,7 @@ The positive production owner/admin canary is proven:
 - expected connect -> callback -> integration -> import flow was observed
 - safe metadata/RLS/cookie/redirect/log boundaries have been reviewed
 
-Issue #79 remains open because two checks still require independent live authenticated production browser canaries:
+Issue #79 now explicitly records that only two independent live authenticated production browser canaries remain:
 
 1. from an authenticated owner/admin callback flow, submit a different valid numeric GitHub installation ID and prove rejection
 2. from an authenticated normal member/viewer session, prove Connect GitHub cannot be initiated or completed
@@ -85,13 +102,15 @@ Phase 10A2 migrations awaiting the gate:
 - `20260911100000_phase_10a2_private_repository_snapshot.sql`
 - `20260911110000_phase_10a2_private_project_scan_routing.sql`
 
+Read-only transactional/schema preflight for both Phase 10A2 migrations is already complete. Required live function signatures, keys, constraints, ACL assumptions, and existing-row compatibility were verified, and the Phase 10A2 target column/FK/index/RPCs are absent as expected. Do not redo that preflight unless PR #76 or production schema changes materially.
+
 ## Phase 10A2
 
 PR #76 (`feat/phase-10a2-private-repository-acquisition`) remains draft/open at recorded head:
 
 `709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
-Main has advanced since that candidate. Do not reconcile or apply migrations merely to make the PR current while #79 remains open.
+Its PR description has been refreshed to reflect the completed positive provider canary and schema preflight. Main has advanced since that candidate. Do not reconcile or apply migrations merely to make the PR current while #79 remains open.
 
 After #79:
 
@@ -117,7 +136,7 @@ Recorded pre-reconciliation evidence:
 - prior synthetic merge: `d7322502d3b01e583d0ccf4f4cdadf2cf955bc1b`
 - CI #981 / run `34711218370`: SUCCESS
 
-After Phase 10A2 release, reconcile #77 onto released main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, and complete invalid-signature/oversize, replay, lifecycle, coalescing, same-head recovery, stale-trigger authoritative-head recovery, leak-boundary, and full automatic-scan acceptance before merge.
+Its PR description has also been refreshed so it no longer incorrectly says Phase 10A1 is dark-gated. After Phase 10A2 release, reconcile #77 onto released main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, and complete invalid-signature/oversize, replay, lifecycle, coalescing, same-head recovery, stale-trigger authoritative-head recovery, leak-boundary, and full automatic-scan acceptance before merge.
 
 ## Runtime gates
 
@@ -141,4 +160,5 @@ Phase 6D Tasks 14-16, including real Oracle Linux/rootless-Podman Task 15 contai
 2. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 3. Do not apply Phase 10A2 migrations or enable private/runtime capability flags before #79 clears.
 4. After #79, release #76 in strict order, then #77.
-5. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized after each milestone.
+5. Branch deletion is separately parked until a genuine delete-ref surface is available; use `BRANCH_CLEANUP_CANDIDATES.md` and re-audit immediately before deletion.
+6. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized after each milestone.
