@@ -1,0 +1,31 @@
+.adminSettingsGrid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 14px; align-items: start; }
+.adminSettingsPrimary { min-width: 0; }
+.adminSettingsSide { min-width: 0; display: grid; gap: 14px; }
+.adminSettingsHeading { display: flex; align-items: flex-start; gap: 11px; }
+.adminSettingsIcon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border: 1px solid rgba(115,239,188,.17); border-radius: 10px; color: var(--accent); background: rgba(115,239,188,.055); }
+.adminSettingsIconRisk { color: #ff9d76; border-color: rgba(255,141,107,.22); background: rgba(255,141,107,.065); }
+.adminSettingsForm { margin-top: 18px; gap: 12px; }
+.adminSettingsGroup { display: grid; gap: 9px; }
+.adminSettingsToggleRow { min-width: 0; padding: 14px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; align-items: center; border: 1px solid var(--line-soft); border-radius: 12px; background: rgba(5,9,14,.34); }
+.adminSettingsToggleRow > div { min-width: 0; }
+.adminSettingsToggleRow strong { display: block; font-size: 12px; }
+.adminSettingsToggleRow p { margin: 5px 0 0; color: var(--muted); font-size: 10.5px; line-height: 1.55; }
+.adminSettingsToggle { align-self: center; padding: 8px 10px; border: 1px solid var(--line-soft); border-radius: 10px; background: rgba(13,20,29,.8); white-space: nowrap; }
+.adminSettingsTextGroup { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.adminSettingsTextGroup label { min-width: 0; }
+.adminSettingsSubmit { padding-top: 4px; display: grid; gap: 8px; }
+.adminSettingsSubmit .adminButton { justify-self: start; }
+.adminDangerPanel { border-color: rgba(255,141,107,.22); background: linear-gradient(145deg, rgba(40,20,18,.35), rgba(16,23,34,.78)); }
+
+@media (max-width: 1050px) {
+  .adminSettingsGrid { grid-template-columns: 1fr; }
+  .adminSettingsSide { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
+@media (max-width: 760px) {
+  .adminSettingsGrid, .adminSettingsSide { grid-template-columns: 1fr; }
+  .adminSettingsToggleRow { grid-template-columns: 1fr; gap: 11px; }
+  .adminSettingsToggle { width: 100%; justify-content: flex-start; white-space: normal; }
+  .adminSettingsTextGroup { grid-template-columns: 1fr; }
+  .adminSettingsSubmit .adminButton { width: 100%; justify-self: stretch; }
+}
