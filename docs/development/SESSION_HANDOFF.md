@@ -1,133 +1,144 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-10 (Asia/Singapore)
+Last refreshed: 2026-09-13 (Asia/Singapore)
 
-Use this as the fastest resume point for current ScopeForge work. Do not resume from historical Phase 9, V4, preview, diagnostic, reconciliation, or temporary restoration branches.
+Use this as the fastest resume point for current ScopeForge work. Read it together with `CURRENT_STATE.md`, `NEXT_STEPS.md`, and `UNFINISHED_WORK.md`. Do not resume from historical preview, diagnostic, restoration, reconciliation, or superseded phase branches.
 
 ## Hard execution rules
 
-- current `main` is the authoritative integration baseline
-- preserve the accepted Command Center UI V5 unless a separate UI change is explicitly authorized
-- preserve the enforced strict nonce CSP and existing browser security headers
-- preflight before CI and reserve substantive Actions for meaningful exact candidates/integration gates
-- never rewrite deployed Supabase migrations
+- treat current `main` as the integration baseline and inspect actual heads before changing anything
+- preserve the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, strict nonce CSP, and browser security headers
+- never rewrite deployed Supabase migrations; corrections are forward-only
 - never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
 - do not add AI co-author attribution
-- do not claim tests, provider state, WAF state, alerts, environment flags, or production enforcement without direct evidence
-- do not enable hosted worker/runtime capability flags merely because implementation and containment evidence exist
-- do not use stale branch state to override newer released code or documentation
+- do not claim CI, provider, schema, environment, runtime, WAF, or production state without direct evidence
+- do not enable hosted worker/runtime flags merely because code, migrations, or containment tests exist
+- keep provider control-plane credentials out of browser state, repository files, ordinary logs, worker payloads, and chat
+- use exact-SHA validation for executable release candidates
 
-## Latest validated executable release
+## Released product baseline
 
-Latest substantively validated executable release:
+Current released main before the independent tooling maintenance PR is:
 
-`a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`
+`f4f76e823718b6571966e731ed5a5a85a67152b3`
 
-Executable release tree:
+That release includes:
 
-`f2a39880347444967f2f2b0e2eb78d63342afbef`
+- Phase 10A1 GitHub connected-project core
+- Phase 10C platform administration
+- strict nonce CSP and security-header baseline
+- accepted Command Center UI
+- PR #87 responsive admin/GitHub control-plane UI
 
-This release is PR #67, `Restore approved V5 UI`, layered directly on the strict CSP merge from PR #66.
+PR #87 release evidence is recorded in `CURRENT_STATE.md`.
 
-Subsequent docs-only `main` commits may advance the repository Git ref without changing executable application behavior. Always branch from the actual current `main`, but use `a84478d...` as the exact executable release evidence point until a newer executable release passes its own gates.
+## Independent main tooling maintenance - PR #88
 
-## Strict CSP release
+PR #88, `Align main runtime and tooling baseline`, is intentionally isolated from the Phase 10A2/10A3 release stack.
 
-PR #66: `Strict CSP compatibility gate`
+Authoritative executable candidate:
 
-- final head: `98ca45e46c83cafcacef4d87971907196724f40f`
-- candidate CI: #794 / run `34382364401`, success
-- candidate Preview: `dpl_697F2soQBLYSQkMsdkMXKtiF3jtd`, READY
-- merge: `191a7ee1c93f179adad51f108d4ad1fade2e78f2`
-- CSP merge production deployment: `dpl_2nNgDZDkMMem67h1drBaVJtMsYpN`, READY
+- branch: `chore/main-runtime-tooling-alignment`
+- executable head: `b987fd9db36173b0a338cce7796ac599ae46e163`
+- exact synthetic merge: `ecc0cd2f77616086d49588c6e69336f8b3dfeed5`
+- CI #1026 / run `34744282931`: SUCCESS
+- Node: `v24.20.0`
+- npm: `11.19.0`
+- audit: 0 vulnerabilities
+- tests: 396/396 files, 1,743/1,743 tests
+- typecheck: PASS
+- CommonJS CLI build/version: PASS, `ScopeForge 0.1.0`
+- scanner benchmark and deterministic matrix: PASS
+- optimized Next.js build: PASS
+- strict-CSP responsive browser acceptance: PASS
+- production UI/Turnstile diagnostic: PASS
+- `actions/upload-artifact@v7`: PASS
+- visual artifact: `10313449144`, 15 PNG files
 
-Production CSP is nonce-based and enforced. It does not rely on permanent production `unsafe-inline` or `unsafe-eval`. The repository CI includes real Chrome browser acceptance for CSP, hydration, navigation, auth, 404, dashboard authorization boundaries, and public V5 WebGL.
+The branch aligns root/CI runtime to Node `>=24 <25`, uses `upload-artifact@v7`, and loads Vitest through `vitest.config.mts` without converting the package or CLI to ESM. The former CommonJS-loaded ESM Vitest warning is absent from CI #1026.
 
-## V5 restoration release
+Documentation-only `[skip ci]` commits after `b987fd9...` do not replace CI #1026 as executable-tree evidence. Before merging, confirm the final PR diff still contains no application behavior, migration, provider, environment, or runtime-flag changes.
 
-PR #67: `Restore approved V5 UI`
+Detailed maintenance record: `MAIN_RUNTIME_TOOLING_BACKPORT_WORKING_STATE.md`.
 
-- frozen candidate: `e66b6fc4b8693deb052fa89ae9d82647d51c3a94`
-- candidate CI: #802 / run `34395508634`, success
-- candidate Preview: `dpl_AoyDGZEcsMZ1BYkqhn33MyugUtTH`, READY, `aliasError=null`
-- corrected screenshot artifact: GitHub Actions artifact `10121486960`
-- merge: `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`
-- post-merge main CI: #803 / run `34396470298`, success
-- production deployment: `dpl_3F4rnzhWQ93RoPKqdTe4U96TPSKb`, READY, `aliasError=null`
+## GitHub App provider acceptance - issue #79
 
-The browser acceptance gate now checks visual geometry rather than DOM presence alone. It verifies the large public V5 desktop composition and the authenticated immersive dashboard, including headline/metric scale, topology geometry, lower evidence-panel layout, and absence of the later SaaS/workspace-shell composition.
+The positive production owner/admin canary has passed:
 
-Both `landing-v5-desktop.png` and `dashboard-v5-desktop.png` from the corrected candidate were inspected before merge.
+- GitHub App connection/install proof completed
+- `LeDoNguyenTu` connection metadata persisted active
+- `LeDoNguyenTu/ScopeForge` imported with active access
+- expected connect -> callback -> integration -> import sequence observed
+- safe metadata/RLS/browser-cookie/log boundaries were separately checked
 
-Fresh production checks after the executable release confirmed:
+Issue #79 remains open only because two independent live authenticated negative canaries still need a suitable production browser/session surface:
 
-- `scopeforge.dev` HTTP 200
-- V5 desktop/mobile markers and both poster assets present
-- enforced nonce CSP present
-- expected HSTS, nosniff, frame-denial, referrer and permissions headers retained
-- `/auth/sign-in` HTTP 200 with the email/password form rendering under CSP
-- no post-release error/fatal Vercel runtime logs in the inspected window
+1. prove a different valid numeric GitHub installation ID is rejected during an authenticated owner/admin callback flow
+2. prove a normal workspace member/viewer cannot initiate or complete Connect GitHub
 
-Detailed record: `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
+Current regression tests cover both authorization properties, but test evidence must not be presented as a live production canary.
 
-## Supabase and provider truth
+Do not create or paste provider secrets merely to complete these checks. If the required browser/account surface is unavailable, leave #79 open and continue only work that does not bypass this release gate.
 
-ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
+## Phase 10A2 - private repository acquisition
 
-Fresh post-release Security Advisor output contains only the known leaked-password-protection warning.
+PR #76 remains draft/open at recorded head:
 
-Current conservative truth:
+`709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
-- Supabase leaked-password protection: `VERIFIED DISABLED`
-- production Turnstile provider enforcement: `NOT VERIFIED`
-- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
-- strict CSP: `ENFORCED`
+PR #87 advanced main, so stack reconciliation will be required after #79 clears. Do not reconcile or merge #76 ahead of the provider gate merely to make the branch green.
 
-Turnstile-compatible application code exists, but the current production sign-in response does not prove external provider enforcement. Do not upgrade that claim without direct provider evidence.
+Production migration history still ends at:
 
-## Hosted runtime flags
+`20260911143049_phase_10a1_service_role_table_acl_hardening`
 
-The current Vercel connector does not expose environment-variable values, so a fresh direct read of the four hosted capability flags is `NOT VERIFIED BY CURRENT CONNECTOR`.
+The reviewed Phase 10A2 migrations remain unapplied:
 
-No Vercel environment mutation or hosted-runtime activation occurred during PR #66 or PR #67. Operational policy remains to keep all four false/absent until independent canary/rollback acceptance authorizes them:
+- `20260911100000_phase_10a2_private_repository_snapshot.sql`
+- `20260911110000_phase_10a2_private_project_scan_routing.sql`
+
+After #79 clears: reconcile #76 -> exact validation -> migration re-read -> apply only absent reviewed migrations -> schema/RLS/grant verification -> private worker containment/quota/cleanup/observability/rollback canary -> immutable private snapshot -> exact zero-egress scan -> findings -> merge/release only if all gates pass.
+
+## Phase 10A3 - GitHub webhook reconciliation
+
+PR #77 remains draft/open.
+
+Recorded pre-reconciliation evidence:
+
+- docs-only head: `ad6eb05c1e004ca905ad68ce3708ae64c35856d2`
+- executable candidate: `5f05ed964c8ab43f38a420b1b77317bae630cc1e`
+- prior synthetic merge: `d7322502d3b01e583d0ccf4f4cdadf2cf955bc1b`
+- CI #981 / run `34711218370`: SUCCESS
+
+Do not release #77 before Phase 10A2. After #76 is released, reconcile #77 onto released main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, then prove invalid-signature/oversize rejection, replay, lifecycle, coalescing/recovery, leak boundaries, and a complete automatic scan before merge.
+
+## Hosted runtime gates
+
+Keep these false/absent until each capability receives its own operational canary and rollback acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-Phase 6D Tasks 14, 15, and 16 are complete. Their acceptance does not authorize production enablement.
+Phase 6D host-level containment acceptance is already complete and must not be repeated. It does not authorize production enablement.
 
-## Current repository queue
+## UI state
 
-At the latest audit:
+PR #87 is released. Its responsive admin/GitHub control-plane work is the current UI baseline.
 
-- open implementation PRs: none
-- open GitHub issues: none
-- Phase 7 through Phase 9E: complete
-- strict CSP gate: complete
-- V5 restoration: complete
-
-Actual unfinished work is operationally gated only:
-
-1. provider verification/activation, with explicit rollback and evidence
-2. Phase 6B/6C/6D hosted runtime operational canaries before any capability enablement
-3. stale branch deletion when a genuine delete-ref operation becomes available
-
-See `docs/development/UNFINISHED_WORK.md` for the persistent queue.
+Do not reopen cosmetic UI work without concrete visual or behavioral evidence. If a new UI defect is found, preserve mobile no-horizontal-page-scroll, safe-area handling, semantic/accessibility behavior, CSP compatibility, and the existing authenticated authorization boundaries.
 
 ## Branch hygiene
 
-Historical completed branches still exist, including `diag/*`, `preview/*`, reconciliation, older phase branches, CSP branches, and temporary V5 restoration branches.
-
-The connected GitHub surface currently lacks a genuine branch delete-ref mutation. Never fake deletion by repointing those refs to `main`.
+Historical completed branches still exist. Delete them only through a genuine delete-ref operation after re-auditing each candidate against current `main`. Never simulate deletion by force-moving/repointing refs.
 
 ## Resume procedure
 
-On the next engineering session:
-
-1. fetch current `main` and read `CURRENT_STATE.md`, `NEXT_STEPS.md`, this file, and `UNFINISHED_WORK.md`
-2. confirm whether a provider/runtime operational gate has been explicitly authorized before changing external state or capability flags
-3. if starting a new product implementation boundary, write/review its design and plan against current `main` before code
-4. preserve exact-SHA candidate, Preview, CI, browser, production, and rollback evidence for any release
-5. keep V5 and strict CSP as coupled non-regression requirements
+1. Fetch current `main`, PR #88, #76, #77, and issue #79 and compare their actual heads with this document.
+2. If PR #88 is still open, finish its review/integration from the exact green executable candidate above. If it is already merged, treat the current main commit and post-merge CI as authoritative.
+3. Keep #79 open until both live negative canaries are independently proven.
+4. Do not apply Phase 10A2 migrations or enable private worker/runtime gates before #79 clears.
+5. After #79, follow the strict #76 then #77 release sequence in `NEXT_STEPS.md`.
+6. Continue independent maintenance/security/documentation work only when it cannot weaken or bypass those gates.
