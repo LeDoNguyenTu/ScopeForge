@@ -6,6 +6,7 @@ import {
   requirePlatformAdmin,
 } from "@/lib/platform-admin/authorization";
 import "./admin.css";
+import "./admin-responsive.css";
 
 export const metadata: Metadata = {
   title: {
