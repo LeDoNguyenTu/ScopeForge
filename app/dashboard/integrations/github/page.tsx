@@ -8,6 +8,7 @@ import {
 } from "@/lib/github-app/repositories";
 import { serverCapabilityEnabled } from "@/lib/runtime-capabilities/server";
 import { getDashboardContext } from "@/lib/workspaces/current";
+import "./github-integration.css";
 
 export const dynamic = "force-dynamic";
 
@@ -29,21 +30,24 @@ export default async function GitHubIntegrationPage({
   if (!serverCapabilityEnabled("HOSTED_GITHUB_INTEGRATION_ENABLED")) {
     return (
       <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
-        <Link className="backLink" href="/dashboard/assets/new"><ArrowLeft size={14} /> Add asset</Link>
-        <section className="pageHeader">
-          <div>
-            <span className="sectionEyebrow">Connected projects</span>
-            <h1>GitHub repositories</h1>
-            <p>GitHub connected projects are released behind a server-side capability gate so provider acceptance can be completed before the integration is exposed.</p>
-          </div>
-        </section>
-        <section className="panel">
-          <div className="emptyState">
-            <span className="emptyIcon"><ShieldCheck size={23} /></span>
-            <h3>GitHub integration is not enabled</h3>
-            <p>The integration remains unavailable until its production GitHub App configuration and owner/admin connection canary have been verified.</p>
-          </div>
-        </section>
+        <div className="githubIntegrationPage">
+          <Link className="backLink githubBackLink" href="/dashboard/assets/new"><ArrowLeft size={14} /> Add asset</Link>
+          <section className="githubIntegrationHeader">
+            <div>
+              <span className="sectionEyebrow">Connected projects</span>
+              <h1>GitHub repositories</h1>
+              <p>GitHub connected projects remain behind a server-side capability gate until provider acceptance is complete.</p>
+            </div>
+          </section>
+          <section className="githubConnectionBanner githubConnectionBannerMuted">
+            <span className="githubConnectionIcon"><ShieldCheck size={20} /></span>
+            <div>
+              <span className="githubConnectionKicker">Provider gate</span>
+              <h2>GitHub integration is not enabled</h2>
+              <p>The integration remains unavailable until its production GitHub App configuration and owner/admin connection canary have been verified.</p>
+            </div>
+          </section>
+        </div>
       </AppShell>
     );
   }
@@ -62,51 +66,73 @@ export default async function GitHubIntegrationPage({
 
   return (
     <AppShell displayName={displayName} workspaceName={workspace.name} role={role}>
-      <Link className="backLink" href="/dashboard/assets/new"><ArrowLeft size={14} /> Add asset</Link>
-      <section className="pageHeader">
-        <div>
-          <span className="sectionEyebrow">Connected projects</span>
-          <h1>GitHub repositories</h1>
-          <p>Authorize ScopeForge through its GitHub App, then import only repositories that the installation confirms you can access.</p>
-        </div>
-        {repositoryPage ? (
-          <span className="statusPill"><ShieldCheck size={14} /> GitHub connected</span>
+      <div className="githubIntegrationPage">
+        <Link className="backLink githubBackLink" href="/dashboard/assets/new"><ArrowLeft size={14} /> Add asset</Link>
+
+        <section className="githubIntegrationHeader">
+          <div>
+            <span className="sectionEyebrow">Connected projects</span>
+            <h1>GitHub repositories</h1>
+            <p>Authorize ScopeForge through its read-only GitHub App, then import only repositories confirmed by the active installation.</p>
+          </div>
+          {repositoryPage ? <span className="statusPill githubConnectedPill"><ShieldCheck size={14} /> Connected</span> : null}
+        </section>
+
+        {params.connected === "1" ? (
+          <div className="githubSuccessNotice" role="status">
+            <ShieldCheck size={16} />
+            <span>GitHub connection verified. Choose a repository to add it as a ScopeForge project.</span>
+          </div>
         ) : null}
-      </section>
 
-      {params.connected === "1" ? (
-        <section className="panel"><p>GitHub connection verified. Choose a repository to add it as a ScopeForge project.</p></section>
-      ) : null}
+        {repositoryPage ? (
+          <>
+            <section className="githubConnectionBanner">
+              <span className="githubConnectionIcon"><Github size={20} /></span>
+              <div>
+                <span className="githubConnectionKicker">Installation state</span>
+                <h2>Repository access verified</h2>
+                <p>ScopeForge is listing repositories from the validated installation. Importing a project does not bypass hosted runtime capability gates.</p>
+              </div>
+              <span className="githubConnectionStatus"><ShieldCheck size={14} /> Read-only</span>
+            </section>
 
-      {repositoryPage ? (
-        <section className="panel assetPanel">
-          <div className="panelTitle">
-            <div><span>Installation repositories</span><h2>Import from GitHub</h2></div>
-          </div>
-          <GitHubRepositoryPicker
-            repositories={repositoryPage.repositories}
-            page={repositoryPage.page}
-            hasNextPage={repositoryPage.hasNextPage}
-          />
-        </section>
-      ) : disconnected ? (
-        <section className="panel">
-          <div className="emptyState">
-            <span className="emptyIcon"><Github size={23} /></span>
-            <h3>Connect GitHub</h3>
-            <p>ScopeForge uses a read-only GitHub App installation. The callback verifies installation ownership before any connection is saved.</p>
-            <Link className="primaryButton compact" href="/api/integrations/github/connect">Connect GitHub</Link>
-          </div>
-        </section>
-      ) : (
-        <section className="panel">
-          <div className="emptyState">
-            <span className="emptyIcon"><ShieldCheck size={23} /></span>
-            <h3>GitHub integration unavailable</h3>
-            <p>{connectionError?.message ?? "The GitHub integration could not be loaded safely."}</p>
-          </div>
-        </section>
-      )}
+            <section className="githubRepositorySection">
+              <div className="githubRepositorySectionHeader">
+                <div>
+                  <span className="sectionEyebrow">Installation repositories</span>
+                  <h2>Import from GitHub</h2>
+                  <p>Select a repository available to the installation. Private source acquisition remains independently gated by Phase 10A2.</p>
+                </div>
+              </div>
+              <GitHubRepositoryPicker
+                repositories={repositoryPage.repositories}
+                page={repositoryPage.page}
+                hasNextPage={repositoryPage.hasNextPage}
+              />
+            </section>
+          </>
+        ) : disconnected ? (
+          <section className="githubConnectionBanner githubConnectionBannerAction">
+            <span className="githubConnectionIcon"><Github size={20} /></span>
+            <div>
+              <span className="githubConnectionKicker">No active installation</span>
+              <h2>Connect GitHub</h2>
+              <p>ScopeForge uses a read-only GitHub App installation. The callback verifies installation ownership before any connection is saved.</p>
+            </div>
+            <Link className="primaryButton compact githubConnectAction" href="/api/integrations/github/connect">Connect GitHub</Link>
+          </section>
+        ) : (
+          <section className="githubConnectionBanner githubConnectionBannerError">
+            <span className="githubConnectionIcon"><ShieldCheck size={20} /></span>
+            <div>
+              <span className="githubConnectionKicker">Provider unavailable</span>
+              <h2>GitHub integration unavailable</h2>
+              <p>{connectionError?.message ?? "The GitHub integration could not be loaded safely."}</p>
+            </div>
+          </section>
+        )}
+      </div>
     </AppShell>
   );
 }

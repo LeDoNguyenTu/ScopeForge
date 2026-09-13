@@ -11,9 +11,11 @@ async function read(relativePath: string): Promise<string> {
 describe("platform admin UI boundary", () => {
   it("protects the admin shell with platform authorization and exposes the required areas", async () => {
     const layout = await read("app/admin/layout.tsx");
+    const navigation = await read("components/platform-admin/AdminNavigation.tsx");
     expect(layout).toContain("requirePlatformAdmin");
+    expect(layout).toContain("AdminNavigation");
     for (const label of ["Overview", "Users", "Workspaces", "Audit", "Settings", "Back to workspace"]) {
-      expect(layout).toContain(label);
+      expect(navigation).toContain(label);
     }
   });
 
@@ -21,6 +23,7 @@ describe("platform admin UI boundary", () => {
     const source = [
       await read("components/platform-admin/UserAdminControls.tsx"),
       await read("components/platform-admin/PlatformSettingsForm.tsx"),
+      await read("components/platform-admin/AdminNavigation.tsx"),
     ].join("\n");
     expect(source).not.toContain("SUPABASE_SECRET_KEY");
     expect(source).not.toContain("createAdminClient");
