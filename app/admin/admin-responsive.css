@@ -1,0 +1,53 @@
+.adminPageHeaderCopy { min-width: 0; }
+.adminPageHeaderActions { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.adminMetricLabel { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.adminMetricIcon { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: var(--accent); border: 1px solid rgba(115,239,188,.16); background: rgba(115,239,188,.055); }
+.adminPanelHeading { margin-bottom: 6px; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.adminPanelHeading h2 { margin: 4px 0 0; }
+.adminPanelKicker { color: var(--muted-2); font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .1em; }
+.adminPanelPrimary { background: linear-gradient(145deg, rgba(18,39,40,.78), rgba(12,18,27,.9)); }
+.adminMobileCards { display: none; }
+.adminHelperText { margin: 13px 2px 0; font-size: 10.5px; line-height: 1.5; }
+.adminPaginationActions { display: inline-flex; gap: 8px; }
+.adminMobileCard { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: linear-gradient(145deg, rgba(16,23,34,.92), rgba(10,15,23,.94)); }
+.adminMobileCardHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.adminMobileCardHeader > div { min-width: 0; }
+.adminMobileCardHeader h2 { margin: 5px 0 4px; font-size: 16px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.adminMobileCardHeader p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.adminMobileCardEyebrow { color: var(--accent); font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
+.adminMobileCardGrid { margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+.adminMobileCardGridSingle { grid-template-columns: 1fr; }
+.adminMobileDatum { min-width: 0; padding: 10px; display: grid; gap: 4px; border: 1px solid var(--line-soft); border-radius: 10px; background: rgba(5,9,14,.38); }
+.adminMobileDatum > span { color: var(--muted-2); font-size: 8.5px; text-transform: uppercase; letter-spacing: .07em; }
+.adminMobileDatum strong, .adminMobileDatum a { min-width: 0; color: var(--text); font-size: 10.5px; font-weight: 620; line-height: 1.45; overflow-wrap: anywhere; }
+.adminMobileDatum small { color: var(--muted-2); font-size: 9px; line-height: 1.4; }
+.adminMobileCode { margin: 13px 0 0; padding-top: 11px; border-top: 1px solid var(--line-soft); }
+.adminMobilePrimaryAction { width: 100%; margin-top: 12px; }
+
+@media (max-width: 760px) {
+  .adminPageHeaderActions { margin-top: 14px; width: 100%; align-items: stretch; }
+  .adminPageHeaderActions > * { max-width: 100%; }
+  .adminMetricCard { min-height: 112px; padding: 15px; }
+  .adminMetricCard strong { font-size: 27px; }
+  .adminPanel { padding: 16px; }
+  .adminPanelHeading { align-items: stretch; flex-direction: column; }
+  .adminPanelHeading .adminButton { width: 100%; }
+  .adminStatusRow { min-height: 0; padding: 10px 11px; align-items: flex-start; }
+  .adminStatusRow span { min-width: 0; line-height: 1.45; }
+  .adminStatusRow strong { text-align: right; overflow-wrap: anywhere; }
+  .adminDesktopTable { display: none; }
+  .adminMobileCards { display: grid; gap: 10px; }
+  .adminMobileCardGrid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .adminPagination { align-items: stretch; flex-direction: column; }
+  .adminPaginationActions { width: 100%; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .adminPaginationActions .adminButton { width: 100%; }
+}
+
+@media (max-width: 430px) {
+  .adminMobileCard { padding: 14px; border-radius: 14px; }
+  .adminMobileCardHeader { gap: 9px; }
+  .adminMobileCardHeader .adminBadge { flex: 0 0 auto; }
+  .adminMobileCardGrid { grid-template-columns: 1fr; }
+  .adminMobileDatum { padding: 9px 10px; }
+  .adminPageHeaderActions .adminBadge { width: 100%; justify-content: center; }
+}
