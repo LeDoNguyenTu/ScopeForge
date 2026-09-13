@@ -16,31 +16,47 @@ export default function PlatformSettingsForm({ settings }: { settings: PlatformS
   const [state, action, pending] = useActionState(updatePlatformSettingsAction, null);
 
   return (
-    <form className="adminForm" action={action}>
-      <label className="adminCheckbox">
-        <input type="checkbox" name="registrationEnabled" defaultChecked={settings.registrationEnabled} />
-        <span>Allow new account registration</span>
-      </label>
-      <p className="adminMuted">When disabled, the sign-up page closes and the database onboarding trigger rejects direct Auth sign-ups as the authoritative boundary.</p>
+    <form className="adminForm adminSettingsForm" action={action}>
+      <div className="adminSettingsGroup">
+        <div className="adminSettingsToggleRow">
+          <div>
+            <strong>Account registration</strong>
+            <p>When disabled, the sign-up page closes and the database onboarding trigger rejects direct Auth sign-ups as the authoritative boundary.</p>
+          </div>
+          <label className="adminCheckbox adminSettingsToggle">
+            <input type="checkbox" name="registrationEnabled" defaultChecked={settings.registrationEnabled} />
+            <span>Allow new accounts</span>
+          </label>
+        </div>
 
-      <label className="adminCheckbox">
-        <input type="checkbox" name="maintenanceMode" defaultChecked={settings.maintenanceMode} />
-        <span>Enable maintenance mode</span>
-      </label>
-      <p className="adminMuted">Ordinary public and dashboard pages are redirected to maintenance. Admin, authentication, API, and internal worker routes remain reachable.</p>
+        <div className="adminSettingsToggleRow">
+          <div>
+            <strong>Maintenance mode</strong>
+            <p>Ordinary public and dashboard pages are redirected to maintenance. Admin, authentication, API, and internal worker routes remain reachable.</p>
+          </div>
+          <label className="adminCheckbox adminSettingsToggle">
+            <input type="checkbox" name="maintenanceMode" defaultChecked={settings.maintenanceMode} />
+            <span>Enable maintenance</span>
+          </label>
+        </div>
+      </div>
 
-      <label>
-        Maintenance message
-        <textarea name="maintenanceMessage" required minLength={1} maxLength={280} defaultValue={settings.maintenanceMessage} />
-      </label>
+      <div className="adminSettingsGroup adminSettingsTextGroup">
+        <label>
+          Maintenance message
+          <textarea name="maintenanceMessage" required minLength={1} maxLength={280} defaultValue={settings.maintenanceMessage} />
+        </label>
 
-      <label>
-        Change reason
-        <textarea name="reason" required minLength={1} maxLength={500} placeholder="Why are these platform settings changing?" />
-      </label>
+        <label>
+          Change reason
+          <textarea name="reason" required minLength={1} maxLength={500} placeholder="Why are these platform settings changing?" />
+        </label>
+      </div>
 
-      <button className="adminButton adminButtonPrimary" disabled={pending} type="submit">{pending ? "Saving..." : "Save platform settings"}</button>
-      <ActionMessage state={state} />
+      <div className="adminSettingsSubmit">
+        <button className="adminButton adminButtonPrimary" disabled={pending} type="submit">{pending ? "Saving..." : "Save platform settings"}</button>
+        <ActionMessage state={state} />
+      </div>
     </form>
   );
 }
