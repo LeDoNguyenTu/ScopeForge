@@ -20,9 +20,9 @@ Use this as the fastest resume point. Read it with `CURRENT_STATE.md`, `NEXT_STE
 
 Current `main`:
 
-`c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
 
-Latest post-merge validation:
+Latest authoritative executable validation remains:
 
 - CI #1030 / run `34745795461`: SUCCESS
 - 396/396 test files, 1,744/1,744 tests
@@ -34,12 +34,17 @@ Recent released maintenance:
 - PR #87 responsive admin/GitHub control-plane UI
 - PR #88 Node 24/runtime-tooling alignment
 - PR #90 public CI workflow example aligned to Node 24 with a permanent regression guard
+- PR #92 branch-cleanup audit and manifest
 
-At the last check, Vercel had not yet surfaced a production deployment whose Git SHA equals the PR #90 merge SHA. The currently served `scopeforge.dev` still returned HTTP 200 with strict nonce CSP and expected security headers. PR #90 contains no executable application change.
+Current Vercel production deployment:
+
+`dpl_wdy769VVk1cqb55nJ65x8qiHrtHa`
+
+It is READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`, aliased to `scopeforge.dev`. Direct production fetch returned HTTP 200 with strict nonce CSP and the expected HSTS, frame-denial, `nosniff`, permissions-policy and referrer-policy headers.
 
 ## GitHub App provider acceptance - issue #79
 
-Positive owner/admin provider acceptance and controlled public repository import are proven.
+Positive owner/admin provider acceptance and controlled public repository import are proven. Issue #79 has been rewritten so the historical unconfigured-provider wording is no longer the active resume state.
 
 Two independent live authenticated negative canaries remain:
 
@@ -56,6 +61,8 @@ PR #76 remains draft/open at recorded head:
 
 `709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
+Its PR description has been refreshed to record the completed positive provider canary and completed read-only migration preflight.
+
 Production migration history remains recorded through:
 
 `20260911143049_phase_10a1_service_role_table_acl_hardening`
@@ -65,13 +72,15 @@ Reviewed Phase 10A2 migrations remain unapplied:
 - `20260911100000_phase_10a2_private_repository_snapshot.sql`
 - `20260911110000_phase_10a2_private_project_scan_routing.sql`
 
-Do not reconcile/apply/activate #76 ahead of #79. After #79 clears: re-read actual #76/current main -> reconcile -> exact validation -> migration re-read -> apply only absent reviewed migrations -> schema/RLS/grant verification -> private worker containment/quota/cleanup/observability/rollback canary -> immutable private snapshot -> exact zero-egress scan -> findings -> merge/release only if every gate passes.
+Do not reconcile/apply/activate #76 ahead of #79. Do not repeat the already-completed schema/transactional preflight unless PR #76 or production schema changes materially.
+
+After #79 clears: re-read actual #76/current main -> reconcile -> exact validation -> migration re-read -> apply only absent reviewed migrations -> schema/RLS/grant verification -> private worker containment/quota/cleanup/observability/rollback canary -> immutable private snapshot -> exact zero-egress scan -> findings -> merge/release only if every gate passes.
 
 If a final host-level containment probe genuinely needs SSH unavailable here, hand off only that probe to Codex/VS Code or another approved SSH environment.
 
 ## Phase 10A3 - GitHub webhook reconciliation
 
-PR #77 remains draft/open.
+PR #77 remains draft/open. Its PR description has been refreshed and no longer says Phase 10A1 is dark-gated.
 
 Recorded pre-reconciliation evidence:
 
@@ -100,7 +109,9 @@ PR #87 remains the responsive admin/GitHub UI baseline. Do not create cosmetic c
 
 ## Branch hygiene
 
-Historical completed branches may remain. Delete them only through a genuine delete-ref operation after re-auditing each candidate against current `main`; never simulate deletion by force-moving refs. Preserve branches backing open PR #76/#77 and any active maintenance PR.
+PR #92 published `docs/development/BRANCH_CLEANUP_CANDIDATES.md` from a live audit. At the audit point there were 60 branches, 4 retain refs and 56 safe-delete refs. Only #76 and #77 were open PR heads.
+
+The connected GitHub mutation surface still has no genuine delete-ref operation. Delete branches only through a real branch-delete surface after re-fetching the complete current ref set. Never simulate deletion by force-moving refs. Maintenance/documentation branches created after the PR #92 audit must also be reclassified before cleanup.
 
 ## Resume procedure
 
@@ -109,5 +120,6 @@ Historical completed branches may remain. Delete them only through a genuine del
 3. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 4. Do not apply Phase 10A2 migrations or enable private/runtime gates before #79 clears.
 5. When #79 clears, follow strict #76 then #77 release order.
-6. Update all resume docs after every completed milestone.
-7. Do not stop after one safe PR if another independent task is actionable.
+6. Branch deletion is separately parked until a genuine delete-ref surface is available.
+7. Update all resume docs after every completed milestone.
+8. Do not stop after one safe PR if another independent task is actionable.
