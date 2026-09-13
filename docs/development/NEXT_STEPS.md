@@ -16,8 +16,9 @@ Preserve together: strict nonce CSP, authenticated workspace/admin boundaries, w
 
 PR #87: `Responsive admin control plane and GitHub UI`
 Branch: `feat/admin-ui-responsive-control-plane`
-Authoritative executable/documented tree: `d4f578ef87b0919bf1978652befdc78b2e49af47`
-Synthetic PR merge tested by CI: `904666d0cfa8a2a2ce24e8c2bb6663c431f513d6`
+Latest executable UI tree: `d4f578ef87b0919bf1978652befdc78b2e49af47`
+Latest docs-only checkpoint before this final verification trigger: `3e24561dfb1a6dcabdc0b5893e08459a882b39d3`
+Synthetic PR merge tested by CI #1017: `904666d0cfa8a2a2ce24e8c2bb6663c431f513d6`
 CI #1017 / run `34730799690`: SUCCESS
 Visual artifact: `10309385932`
 
@@ -36,13 +37,15 @@ CI #1017 passed:
 
 Visual acceptance was manually reviewed from the artifact at 390 px, 430 px and 1440 px. The reviewed states cover Admin Overview, Users, Workspaces, Audit, Settings and GitHub connected projects. The phone layouts use mobile record cards and bottom navigation without the former horizontally scrolling admin strip, and the GitHub repository content stays contained inside responsive cards.
 
-Remaining work for PR #87:
+Final release sequence for PR #87:
 
-1. keep any final evidence/documentation commits docs-only;
-2. update the PR body with CI/artifact evidence;
+1. run exact-head CI after this documentation-only verification-trigger commit;
+2. update the PR body with exact CI/artifact evidence;
 3. final changed-file/release-isolation review;
 4. merge #87 if the final diff remains UI/docs/tests only;
-5. verify the merged production deployment is READY and has no fresh runtime errors.
+5. verify the merged production deployment when Vercel can accept a deployment.
+
+Operational note: Vercel reported `api-deployments-free-per-day` after more than 100 deployments in the current 24-hour window. Do not misclassify that account quota as an application build failure. If the quota still blocks the post-merge deployment, keep production truth explicitly pinned to the last READY deployment until the quota window clears, then perform the production verification before calling the UI release operationally complete.
 
 Do not start unrelated UI expansion after this acceptance. Return directly to issue #79 and Phase 10A release work.
 
