@@ -1,11 +1,33 @@
 # Phase 10A1 GitHub App Provider Setup
 
 Date: 2026-09-10
-Status: required external provider configuration for Phase 10A1
+Last operational reconciliation: 2026-09-13 (Asia/Singapore)
+Status: provider configured and positive owner/admin production canary complete; two negative authorization canaries remain in issue #79
 
 ## Purpose
 
 ScopeForge uses a GitHub App installation plus a short-lived GitHub user authorization only during connection setup. The user authorization proves that the post-install installation ID belongs to a GitHub installation visible to the authorizing user. The user token is discarded after that proof and is never persisted.
+
+This document remains the authoritative provider configuration and security-boundary reference. The setup values below are not a request to reconfigure a working production App unless a verified provider/configuration drift is found.
+
+## Current production acceptance state
+
+Already completed and directly evidenced in production:
+
+- `HOSTED_GITHUB_INTEGRATION_ENABLED=true` is active.
+- The owner/admin Connect GitHub flow completed successfully.
+- The active GitHub connection for account `LeDoNguyenTu` persisted with `repository_selection=selected`.
+- `LeDoNguyenTu/ScopeForge` was listed/imported and persisted as an active repository link on default branch `main`.
+- Unauthenticated connect/callback access remains behind the ScopeForge sign-in boundary.
+- Stored integration rows, redirects, browser-readable state/cookies, and checked logs were reviewed for provider/token leakage; no release-blocking leakage was identified.
+- Phase 10A2/10A3 migrations remain unapplied and hosted repository snapshot/scan worker gates remain independently disabled.
+
+Issue #79 remains open only for these two live authenticated negative canaries:
+
+1. In an authenticated owner/admin callback flow, a different valid GitHub installation ID must be rejected.
+2. An authenticated normal workspace member/viewer must be unable to initiate or complete Connect GitHub.
+
+Do not treat unit/regression tests as a substitute for those live checks, and do not weaken production authorization or mutate an owner account merely to manufacture a passing canary.
 
 ## Required GitHub App settings
 
@@ -32,7 +54,7 @@ This avoids trusting the setup URL's `installation_id` by itself.
 
 Configure these values only in trusted server environments:
 
-- `HOSTED_GITHUB_INTEGRATION_ENABLED` - release gate; leave missing or `false` through deployment, then set exact `true` only for the accepted production canary/rollout.
+- `HOSTED_GITHUB_INTEGRATION_ENABLED` - independent provider release gate. Production is currently accepted at exact `true`; restore it to false immediately if a remaining live canary exposes a release-blocking provider/authorization defect.
 - `GITHUB_APP_ID`
 - `GITHUB_APP_CLIENT_ID`
 - `GITHUB_APP_CLIENT_SECRET`
@@ -83,17 +105,21 @@ The following must never be stored in the integration tables, audit metadata, br
 
 ## Release verification
 
-The safe rollout order is:
+The complete safe rollout checklist is retained below, with the current operational status made explicit:
 
-1. Deploy/merge Phase 10A1 with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or `false`.
-2. Confirm the GitHub App provider settings match this document.
-3. Confirm all six server-only GitHub App values exist in the production deployment without exposing their contents.
-4. Confirm callback URL wildcard matching is disabled unless there is a separately reviewed reason to enable it.
-5. Set `HOSTED_GITHUB_INTEGRATION_ENABLED=true` deliberately for the controlled owner/admin acceptance.
-6. Connect a controlled GitHub account and installation.
-7. Verify repository listing and one repository import using authoritative server-side re-fetch.
-8. Attempt a callback with a different valid numeric installation ID and confirm ScopeForge rejects it.
-9. Confirm no GitHub user or installation token appears in application logs, database tables, redirects, or browser-readable cookies.
-10. Confirm a normal workspace member/viewer cannot start or complete a connection.
-11. Keep the integration enabled only if all provider acceptance checks remain green; otherwise set the gate back to false immediately.
-12. Keep hosted repository snapshot and scan runtime gates disabled until their independent operational acceptance is complete.
+1. **Complete** - Deploy/merge Phase 10A1 with `HOSTED_GITHUB_INTEGRATION_ENABLED` missing or `false`.
+2. **Complete** - Confirm the GitHub App provider settings match this document.
+3. **Complete** - Confirm all six server-only GitHub App values exist in the production deployment without exposing their contents.
+4. **Complete** - Confirm callback URL wildcard matching is disabled unless there is a separately reviewed reason to enable it.
+5. **Complete** - Set `HOSTED_GITHUB_INTEGRATION_ENABLED=true` deliberately for controlled owner/admin acceptance.
+6. **Complete** - Connect a controlled GitHub account and installation.
+7. **Complete** - Verify repository listing and one repository import using authoritative server-side re-fetch.
+8. **Pending issue #79 live canary** - Attempt a callback with a different valid numeric installation ID and confirm ScopeForge rejects it.
+9. **Complete for the checked positive flow** - Confirm no GitHub user or installation token appears in application logs, database integration rows, redirects, or browser-readable cookies/state.
+10. **Pending issue #79 live canary** - Confirm a normal workspace member/viewer cannot start or complete a connection.
+11. Keep the integration enabled only while provider acceptance remains green; if either remaining negative canary reveals a release-blocking defect, restore the provider gate to false immediately before remediation.
+12. Keep hosted repository snapshot and scan runtime gates disabled until their independent Phase 10A2 operational acceptance is complete.
+
+## Resume rule
+
+For current operational state, read issue #79 plus `docs/development/CURRENT_STATE.md` and `docs/development/NEXT_STEPS.md` before repeating any setup step. Historical setup evidence in older comments or working-state documents must not override the current positive-canary evidence.
