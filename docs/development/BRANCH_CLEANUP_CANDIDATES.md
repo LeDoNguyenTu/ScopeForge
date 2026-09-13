@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-13 (Asia/Singapore)
 
-This is the authoritative branch-cleanup manifest for the current repository state. It is intentionally documentation-only and does not authorize rewriting, force-moving, or repointing refs.
+This is the historical branch-cleanup manifest from the 2026-09-13 audit, not a current deletion list. It is intentionally documentation-only and does not authorize rewriting, force-moving, or repointing refs.
 
 ## Audited repository state
 
@@ -16,7 +16,7 @@ Audit baseline:
   - PR #77: `feat/phase-10a3-github-webhook-reconciliation`
 - open-PR page 3 with `per_page=1`: empty
 
-The current connected GitHub mutation surface exposes branch creation/update but no genuine delete-ref operation. Do not simulate branch deletion by force-moving a stale ref to `main` or another commit. Actual deletion must use a real Git ref deletion surface such as GitHub's branch-delete UI/API or a trusted local/remote Git client.
+2026-09-14 reconciliation: authenticated local Git CLI access now supplies a genuine delete-ref mechanism. No branches were deleted. The old connector-only tooling blocker no longer applies. Re-fetch all refs and open PRs, inspect active local worktrees (including branches with unpushed commits), and reclassify every candidate before deletion. Later maintenance/handoff branches are not included in the historical 60-branch count. Never simulate deletion by force-moving refs.
 
 Deleting a branch ref does not delete commits that are already reachable from merged history or another retained branch. The list below classifies refs only.
 

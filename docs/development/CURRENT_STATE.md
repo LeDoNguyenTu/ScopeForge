@@ -1,6 +1,21 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-13 (Asia/Singapore)
+Last reconciled: 2026-09-14 (Asia/Singapore)
+
+## Live reconciliation - 2026-09-14
+
+This section supersedes older current-state wording below. Fetch live refs again before acting.
+
+- Startup checkout was clean but 212 commits behind; it was fast-forwarded from `86d342216cf05d2951fd9ed427d35b6d575e7765` to live main `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` after reading the newly introduced root `AGENTS.md` from the fetched ref. Git remote and authenticated GitHub identity both match `LeDoNguyenTu/ScopeForge` / `LeDoNguyenTu`.
+- PR #96 internal Action pinning is released. Its exact main CI [34777528921](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34777528921) passed on `ec7b00d1f533704100e224bc53f6a6647a3e1a4b`; PR #98 added the startup/account handoff. Older references to PR #90 as the latest validation are historical.
+- PR #97's public example was separately reconciled with live main without rewriting history, then pinned to official commit objects resolved from checkout v7, setup-node v7 and CodeQL v4. Validated candidate: `17c8c41b3ac79c3c7426612ce3bd9aba5c038824`; [CI 34778529251](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34778529251) passed 398 files / 1,746 tests, audit, typecheck, CLI, benchmarks, build, CSP browser acceptance and production diagnostic. PR #97 merged as `39fa4b147d9ecbb12ae60335412bad95fbad91fe`. Its post-merge checks must be read independently; the candidate CI is not post-merge evidence.
+- Startup production: Vercel `dpl_4irNreqdjtrtezYwoVvyp7od5JwM`, READY on main `da719b3ff1204bd2d6589cebb0b3a5dac2e22195`, aliased to `scopeforge.dev`; verified team/project IDs and Node 24.x. The homepage returned 200 with nonce CSP, HSTS, DENY, nosniff, permissions-policy and referrer-policy. This is a timestamped observation, not a claim about later deployments.
+- Supabase project `tdgpibrepzcvdivztkta` was independently verified as ScopeForge / ACTIVE_HEALTHY. Migration history still ends at `20260911143049_phase_10a1_service_role_table_acl_hardening`. No Phase 10A2/10A3 migration was applied and the completed schema compatibility preflight was not repeated.
+- #79 remains open. Owner browser access now exists, but normal Connect GitHub reaches GitHub **Confirm access** and needs owner passkey/MFA before the wrong-installation canary can continue. An actual unrelated installation was identified on GitHub's authenticated App settings page; it has not yet been submitted through a completed callback. Production has two owner memberships and no member/viewer session for the second canary. [Precise blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881).
+- #76 remains draft at `709ef8af4ce4befae12ba910d3bca15599b5cab1`; #77 remains draft at `ad6eb05c1e004ca905ad68ce3708ae64c35856d2`, stacked on #76. Neither was reconciled or released ahead of #79.
+- No provider credentials, hosted gates, webhook, runtime host, production identities or schema were modified. Live runtime environment values were not re-read; prior flag observations remain historical and all unaccepted capabilities must stay disabled.
+- Local Node 24.16.0 focused pin checks, typecheck, CLI build/version and audit (0 vulnerabilities) passed. The Windows full run had 1,712 passed, 33 failed and 1 skipped; symlink privileges, POSIX paths, CRLF-sensitive checks/fixtures and fixture timeouts prevent claiming a local full pass. Linux CI remains necessary. An independent CI-order guard repair normalizes CRLF before asserting command order, with local RED on CRLF and GREEN on both CRLF/LF; it does not weaken any runtime/security check.
+- The authenticated local Git CLI now provides a real delete-ref mechanism. The old connector-only tooling blocker is obsolete, but no branches were deleted. Re-audit all current refs and active local worktrees before any deletion; the historical 60-branch manifest is not a current authorization list.
 
 ## Resume/ref semantics
 
@@ -8,11 +23,11 @@ Always fetch the live `main` ref before acting. Do not treat a SHA embedded in t
 
 Use exact SHAs only for evidence that must remain immutable:
 
-- latest authoritative executable merge validated on `main`: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+- historical executable merge validated on `main` before PR #96/#97: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
 - post-merge CI #1030 / run `34745795461`: SUCCESS
-- latest directly verified production deployment before this documentation update: `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`, READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
+- historical production deployment recorded before PR #96/#97: `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`, READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
 
-Documentation-only merges after the executable validation do not replace CI #1030 as executable-tree evidence. If executable files change, require fresh exact-candidate validation.
+CI #1030 is historical PR #90 evidence. Later CI/workflow/test changes require their own exact-candidate validation; consult the current reconciliation above.
 
 ## Released baseline
 
@@ -22,7 +37,7 @@ Documentation-only merges after the executable validation do not replace CI #103
 - Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
 - ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
 
-`scopeforge.dev` was directly fetched after PR #93 and returned HTTP 200 with strict nonce CSP, HSTS, `nosniff`, frame denial, permissions policy, and referrer policy intact. PR #92, #93, and #94 are documentation-only, so executable application behavior remains the already-validated PR #90/PR #88 baseline.
+`scopeforge.dev` was directly fetched after PR #93 and returned HTTP 200 with strict nonce CSP, HSTS, `nosniff`, frame denial, permissions policy, and referrer policy intact. PR #92, #93, and #94 are documentation-only, and preserve that application behavior. PR #96 subsequently changed the internal CI pins, and PR #97 addresses the published example separately.
 
 Released main includes Phase 10A1 GitHub connected-project core, Phase 10C platform administration, strict nonce CSP/security headers, the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, PR #88 Node 24/runtime-tooling alignment, PR #90 public CI-guide runtime alignment, PR #92 branch-cleanup audit documentation, PR #93 resume-state synchronization, and PR #94 GitHub App setup-state reconciliation.
 
@@ -72,7 +87,7 @@ Fresh branch/PR audit before the audit branch itself was created:
 - 4 refs retained by policy: `main`, #76, #77, and `demo/portfolio-20260910`
 - 56 refs classified safe to delete through a genuine delete-ref operation
 
-The connected GitHub surface still has no branch-delete operation. Do not simulate deletion by force-moving refs. Re-fetch refs immediately before any future deletion because documentation/maintenance branches created after the audit also require classification.
+The local authenticated Git CLI now provides a genuine delete-ref mechanism. No refs were deleted. Preserve active local-worktree branches and do not simulate deletion by force-moving refs. Re-fetch refs immediately before any future deletion because documentation/maintenance branches created after the audit also require classification.
 
 Authoritative manifest: `docs/development/BRANCH_CLEANUP_CANDIDATES.md`.
 
@@ -103,7 +118,7 @@ Issue #79 explicitly records that only two independent live authenticated produc
 1. from an authenticated owner/admin callback flow, submit a different valid numeric GitHub installation ID and prove rejection
 2. from an authenticated normal member/viewer session, prove Connect GitHub cannot be initiated or completed
 
-Regression tests cover these properties, but they are not a substitute for live provider acceptance. Production currently has no known member/viewer identity available for the second canary. Do not weaken authorization, expose provider secrets, or mutate an owner account merely to manufacture a pass.
+Regression tests cover these properties, but they are not a substitute for live provider acceptance. Read-only production verification on 2026-09-14 found two memberships, both owner, and no member/viewer identity for the second canary. Do not weaken authorization, expose provider secrets, or mutate an owner account merely to manufacture a pass.
 
 ## Production Supabase truth
 
@@ -173,9 +188,9 @@ Phase 6D Tasks 14-16, including real Oracle Linux/rootless-Podman Task 15 contai
 ## Immediate resume point
 
 1. Fetch the live `main` ref first; do not use a docs-embedded main SHA as the current tip.
-2. Keep #79 parked until a suitable authenticated production browser/session surface is available for the two remaining negative canaries.
+2. Keep #79 open until owner GitHub confirmation and a legitimate member/viewer session allow both negative canaries to complete.
 3. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 4. Do not apply Phase 10A2 migrations or enable private/runtime capability flags before #79 clears.
 5. After #79, release #76 in strict order, then #77.
-6. Branch deletion is separately parked until a genuine delete-ref surface is available; use `BRANCH_CLEANUP_CANDIDATES.md` and re-audit immediately before deletion.
+6. Branch deletion requires a fresh complete ref and active-local-worktree audit; use `BRANCH_CLEANUP_CANDIDATES.md` and re-audit immediately before deletion.
 7. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized for semantic state, not by chasing every docs-only main SHA.
