@@ -128,7 +128,7 @@ function SettingsPreview() {
     <>
       <AdminPageHeader eyebrow="Site controls" title="Settings" description="Sample platform settings used only to validate responsive form composition." />
       <div className="adminSettingsGrid">
-        <section className="adminPanel adminSettingsPrimary"><div className="adminPanelHeading"><div><span className="adminPanelKicker">Authoritative platform state</span><h2>Platform availability</h2></div></div><PlatformSettingsForm settings={{ registrationEnabled: true, maintenanceMode: false, maintenanceMessage: "ScopeForge is undergoing scheduled maintenance.", updatedAt: "2026-09-13T00:00:00Z", updatedBy: null }} /></section>
+        <section className="adminPanel adminSettingsPrimary"><div className="adminPanelHeading"><div><span className="adminPanelKicker">Authoritative platform state</span><h2>Platform availability</h2></div></div><PlatformSettingsForm settings={{ registrationEnabled: true, maintenanceMode: false, maintenanceMessage: "ScopeForge is undergoing scheduled maintenance.", updatedAt: "2026-09-13T00:00:00Z" }} /></section>
         <aside className="adminSettingsSide"><section className="adminPanel"><span className="adminPanelKicker">External state</span><h2>Provider-owned controls</h2><p>Secrets remain provider-owned and are never displayed here.</p></section><section className="adminPanel adminDangerPanel"><span className="adminPanelKicker">Operational caution</span><h2>Maintenance changes affect every tenant</h2><p>Representative danger-zone treatment.</p></section></aside>
       </div>
     </>
