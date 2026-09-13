@@ -21,7 +21,7 @@ describe("responsive admin records", () => {
   });
 
   it("switches record representations instead of forcing desktop tables on phones", () => {
-    const css = read("app/admin/admin.css");
+    const css = read("app/admin/admin-responsive.css");
     expect(css).toContain(".adminMobileCards { display: none;");
     expect(css).toContain(".adminDesktopTable { display: none;");
     expect(css).toContain(".adminMobileCards { display: grid;");
