@@ -20,16 +20,19 @@ This is the persistent queue for genuinely unfinished work. Historical branches,
 
 `main`:
 
-`c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
 
-Post-merge CI #1030 / run `34745795461`: SUCCESS with 396/396 files and 1,744/1,744 tests plus typecheck, CommonJS CLI, benchmarks, optimized build, strict-CSP browser acceptance, production diagnostic and artifact upload.
+Latest authoritative executable validation remains post-merge CI #1030 / run `34745795461`: SUCCESS with 396/396 files and 1,744/1,744 tests plus typecheck, CommonJS CLI, benchmarks, optimized build, strict-CSP browser acceptance, production diagnostic and artifact upload.
+
+Current production deployment `dpl_wdy769VVk1cqb55nJ65x8qiHrtHa` is READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`; direct `scopeforge.dev` fetch returned HTTP 200 with expected nonce CSP and security headers.
 
 Recent independent maintenance now complete:
 
 - PR #88 Node 24/runtime-tooling alignment
 - PR #90 public CI-guide Node 24 alignment and permanent regression guard
+- PR #92 branch-cleanup audit/manifest
 
-Do not recreate either task from older documents.
+Do not recreate these tasks from older documents.
 
 ## Completed - do not recreate
 
@@ -47,10 +50,13 @@ Do not recreate either task from older documents.
 - Phase 10A3 hardening issues #78, #80, #81, #82 and #85
 - PR #88 runtime/tooling alignment
 - PR #90 published CI runtime documentation alignment
+- PR #92 complete branch audit and cleanup manifest
+- positive owner/admin GitHub App connection/install/import canary
+- read-only Phase 10A2 migration/schema transactional preflight
 
 ## 1. Issue #79 - remaining live GitHub App negative canaries
 
-Positive owner/admin provider activation, controlled repository import and safe metadata/RLS/cookie/redirect/log review are proven.
+Positive owner/admin provider activation, controlled repository import and safe metadata/RLS/cookie/redirect/log review are proven. Issue #79 has been rewritten so these completed checks are not presented as pending work.
 
 Two live production checks still require a suitable authenticated browser/session surface:
 
@@ -65,7 +71,11 @@ PR #76 remains draft/open at recorded head:
 
 `709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
+Its PR description now reflects the completed positive provider canary and the completed schema preflight.
+
 Production migration history remains recorded through `20260911143049_phase_10a1_service_role_table_acl_hardening`; Phase 10A2 migrations remain unapplied.
+
+Do not repeat the same migration compatibility preflight unless PR #76 or production schema changes materially.
 
 After #79 clears:
 
@@ -88,7 +98,7 @@ If the final containment canary requires SSH/host control unavailable here, hand
 
 ## 3. Phase 10A3 - PR #77 webhook reconciliation
 
-PR #77 remains draft/open and must follow Phase 10A2 release.
+PR #77 remains draft/open and must follow Phase 10A2 release. Its PR description has been refreshed and no longer treats Phase 10A1 provider activation as dark-gated.
 
 Recorded executable evidence before future reconciliation:
 
@@ -127,13 +137,20 @@ Do not silently upgrade `NOT VERIFIED` to enabled/enforced from application code
 
 ## 6. Branch cleanup
 
-Historical completed `diag/*`, `preview/*`, reconciliation, documentation, feature, CSP and temporary branches may remain.
+PR #92 published `docs/development/BRANCH_CLEANUP_CANDIDATES.md` from a fresh live audit.
 
-When a genuine delete-ref surface is available:
+Audit-point state:
 
-1. re-audit each candidate against current `main`
-2. delete only branches proven historical/completed and not backing an open PR
-3. preserve `main`, #76, #77 and active maintenance branches until integrated
+- 60 branches
+- exactly 2 open PR heads: #76 and #77
+- 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
+- 56 refs classified safe to delete
+
+The connected GitHub surface has no real delete-ref action. When a genuine delete-ref surface is available:
+
+1. re-fetch the complete branch list because later maintenance/docs branches will have changed the count
+2. preserve `main`, #76, #77, intentional demo refs, and any newly active task/PR branch
+3. delete only refs proven historical/completed and not backing an open PR
 4. re-list refs after deletion and document the result
 
 Never fake deletion by force-moving or repointing refs.
