@@ -6,7 +6,8 @@ This is the persistent queue for genuinely unfinished work. Historical branches,
 
 ## Global rules
 
-- start from actual current `main`; inspect current PR/issue heads before acting
+- fetch actual current `main`; do not infer it from a SHA embedded in this document
+- inspect current PR/issue heads before acting
 - preserve the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, strict nonce CSP and browser security headers
 - never rewrite deployed Supabase migrations; corrections are forward-only
 - do not claim green gates without exact executable-SHA evidence
@@ -16,21 +17,30 @@ This is the persistent queue for genuinely unfinished work. Historical branches,
 - keep provider credentials/control-plane capability material out of browser state, ordinary logs, worker payloads, repository files and chat
 - no AI co-author attribution
 
-## Current main baseline
+## Executable baseline
 
-`main`:
+Latest authoritative executable main evidence:
 
-`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
+- merge `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+- post-merge CI #1030 / run `34745795461`: SUCCESS
+- 396/396 files and 1,744/1,744 tests
+- typecheck, CommonJS CLI, benchmarks, optimized build, strict-CSP browser acceptance, production diagnostic and artifact upload: PASS
 
-Latest authoritative executable validation remains post-merge CI #1030 / run `34745795461`: SUCCESS with 396/396 files and 1,744/1,744 tests plus typecheck, CommonJS CLI, benchmarks, optimized build, strict-CSP browser acceptance, production diagnostic and artifact upload.
+Latest directly verified production evidence before this documentation update:
 
-Current production deployment `dpl_wdy769VVk1cqb55nJ65x8qiHrtHa` is READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`; direct `scopeforge.dev` fetch returned HTTP 200 with expected nonce CSP and security headers.
+- deployment `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`
+- READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
+- `scopeforge.dev` HTTP 200 with expected nonce CSP and security headers
+
+Documentation-only merges may advance live main without changing executable behavior. Fetch the live ref at resume time. Any future executable change requires fresh exact-candidate validation.
 
 Recent independent maintenance now complete:
 
 - PR #88 Node 24/runtime-tooling alignment
 - PR #90 public CI-guide Node 24 alignment and permanent regression guard
 - PR #92 branch-cleanup audit/manifest
+- PR #93 resume-state synchronization
+- PR #94 GitHub App setup-state reconciliation
 
 Do not recreate these tasks from older documents.
 
@@ -51,12 +61,14 @@ Do not recreate these tasks from older documents.
 - PR #88 runtime/tooling alignment
 - PR #90 published CI runtime documentation alignment
 - PR #92 complete branch audit and cleanup manifest
+- PR #93 persistent resume-state synchronization
+- PR #94 GitHub App setup-state reconciliation
 - positive owner/admin GitHub App connection/install/import canary
 - read-only Phase 10A2 migration/schema transactional preflight
 
 ## 1. Issue #79 - remaining live GitHub App negative canaries
 
-Positive owner/admin provider activation, controlled repository import and safe metadata/RLS/cookie/redirect/log review are proven. Issue #79 has been rewritten so these completed checks are not presented as pending work.
+Positive owner/admin provider activation, controlled repository import and safe metadata/RLS/cookie/redirect/log review are proven. Issue #79 and the GitHub App setup guide explicitly mark these checks complete.
 
 Two live production checks still require a suitable authenticated browser/session surface:
 
@@ -71,7 +83,7 @@ PR #76 remains draft/open at recorded head:
 
 `709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
-Its PR description now reflects the completed positive provider canary and the completed schema preflight.
+Its PR description reflects the completed positive provider canary and completed schema preflight.
 
 Production migration history remains recorded through `20260911143049_phase_10a1_service_role_table_acl_hardening`; Phase 10A2 migrations remain unapplied.
 
@@ -79,7 +91,7 @@ Do not repeat the same migration compatibility preflight unless PR #76 or produc
 
 After #79 clears:
 
-1. re-read actual #76 and current main, then reconcile
+1. fetch live main, re-read actual #76, and reconcile
 2. run fresh exact-candidate CI
 3. re-read production migration history and apply only absent reviewed Phase 10A2 migrations
 4. verify schema, RLS, grants/revokes, service-role boundaries and Security Advisor posture
@@ -108,7 +120,7 @@ Recorded executable evidence before future reconciliation:
 
 After #76 releases:
 
-1. reconcile #77 onto released main
+1. reconcile #77 onto released live main
 2. run fresh exact-candidate validation
 3. re-read production migration history and apply only absent reviewed Phase 10A3 migrations
 4. configure the independent server-only webhook secret/endpoint without exposing it
@@ -171,3 +183,5 @@ Safe independent work includes:
 - branch/release hygiene
 
 Any such work must stay isolated from provider authorization, production schema, hosted capability flags and the #76/#77 release order. It must not be used to claim #79, Phase 10A2 or Phase 10A3 operational acceptance.
+
+At each resume, fetch live main first. Update this file for semantic state changes, not merely because a docs-only merge changed the main SHA.

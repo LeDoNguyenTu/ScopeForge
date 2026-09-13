@@ -2,19 +2,29 @@
 
 Last reconciled: 2026-09-13 (Asia/Singapore)
 
+## Resume/ref semantics
+
+Always fetch the live `main` ref before acting. Do not treat a SHA embedded in this file as the repository's current tip, because merging a documentation-only synchronization PR necessarily advances `main` after the file was written.
+
+Use exact SHAs only for evidence that must remain immutable:
+
+- latest authoritative executable merge validated on `main`: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+- post-merge CI #1030 / run `34745795461`: SUCCESS
+- latest directly verified production deployment before this documentation update: `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`, READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
+
+Documentation-only merges after the executable validation do not replace CI #1030 as executable-tree evidence. If executable files change, require fresh exact-candidate validation.
+
 ## Released baseline
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- current `main`: `80c1d4710b31dab0081d0d8918fcd8ce4091119c`
 - production domain: `https://scopeforge.dev`
-- current Vercel production deployment: `dpl_wdy769VVk1cqb55nJ65x8qiHrtHa`, READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`
 - Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
 - Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
 - ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
 
-`scopeforge.dev` was directly fetched after PR #92 and returned HTTP 200 with strict nonce CSP, HSTS, `nosniff`, frame denial, permissions policy, and referrer policy intact. PR #92 is documentation-only, so executable application behavior remains the already-validated PR #90/PR #88 baseline.
+`scopeforge.dev` was directly fetched after PR #93 and returned HTTP 200 with strict nonce CSP, HSTS, `nosniff`, frame denial, permissions policy, and referrer policy intact. PR #92, #93, and #94 are documentation-only, so executable application behavior remains the already-validated PR #90/PR #88 baseline.
 
-Released main includes Phase 10A1 GitHub connected-project core, Phase 10C platform administration, strict nonce CSP/security headers, the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, PR #88 Node 24/runtime-tooling alignment, PR #90 public CI-guide runtime alignment, and PR #92 branch-cleanup audit documentation.
+Released main includes Phase 10A1 GitHub connected-project core, Phase 10C platform administration, strict nonce CSP/security headers, the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, PR #88 Node 24/runtime-tooling alignment, PR #90 public CI-guide runtime alignment, PR #92 branch-cleanup audit documentation, PR #93 resume-state synchronization, and PR #94 GitHub App setup-state reconciliation.
 
 ## Recent maintenance releases
 
@@ -62,9 +72,15 @@ Fresh branch/PR audit before the audit branch itself was created:
 - 4 refs retained by policy: `main`, #76, #77, and `demo/portfolio-20260910`
 - 56 refs classified safe to delete through a genuine delete-ref operation
 
-The connected GitHub surface still has no branch-delete operation. Do not simulate deletion by force-moving refs. Re-fetch refs immediately before any future deletion because documentation/maintenance branches created after the audit will also need classification.
+The connected GitHub surface still has no branch-delete operation. Do not simulate deletion by force-moving refs. Re-fetch refs immediately before any future deletion because documentation/maintenance branches created after the audit also require classification.
 
 Authoritative manifest: `docs/development/BRANCH_CLEANUP_CANDIDATES.md`.
+
+### PR #93 / #94 - operational documentation reconciliation
+
+PR #93 synchronized the four persistent resume files with the verified production/provider state. PR #94 reconciled `PHASE_10A1_GITHUB_APP_SETUP.md` so completed provider activation/import work is no longer presented as pending and only the two issue #79 negative canaries remain outstanding.
+
+Both are documentation-only and do not replace executable CI evidence.
 
 ## Responsive admin/GitHub UI
 
@@ -82,7 +98,7 @@ The positive production owner/admin canary is proven:
 - expected connect -> callback -> integration -> import flow was observed
 - safe metadata/RLS/cookie/redirect/log boundaries have been reviewed
 
-Issue #79 now explicitly records that only two independent live authenticated production browser canaries remain:
+Issue #79 explicitly records that only two independent live authenticated production browser canaries remain:
 
 1. from an authenticated owner/admin callback flow, submit a different valid numeric GitHub installation ID and prove rejection
 2. from an authenticated normal member/viewer session, prove Connect GitHub cannot be initiated or completed
@@ -114,7 +130,7 @@ Its PR description has been refreshed to reflect the completed positive provider
 
 After #79:
 
-1. re-read actual #76 and current main, then reconcile
+1. re-read actual #76 and live current main, then reconcile
 2. run fresh exact-candidate validation
 3. re-read production migration history and apply only absent reviewed Phase 10A2 migrations
 4. verify schema, RLS, grants/revokes and service-role boundaries
@@ -156,9 +172,10 @@ Phase 6D Tasks 14-16, including real Oracle Linux/rootless-Podman Task 15 contai
 
 ## Immediate resume point
 
-1. Keep #79 parked until a suitable authenticated production browser/session surface is available for the two remaining negative canaries.
-2. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
-3. Do not apply Phase 10A2 migrations or enable private/runtime capability flags before #79 clears.
-4. After #79, release #76 in strict order, then #77.
-5. Branch deletion is separately parked until a genuine delete-ref surface is available; use `BRANCH_CLEANUP_CANDIDATES.md` and re-audit immediately before deletion.
-6. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized after each milestone.
+1. Fetch the live `main` ref first; do not use a docs-embedded main SHA as the current tip.
+2. Keep #79 parked until a suitable authenticated production browser/session surface is available for the two remaining negative canaries.
+3. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
+4. Do not apply Phase 10A2 migrations or enable private/runtime capability flags before #79 clears.
+5. After #79, release #76 in strict order, then #77.
+6. Branch deletion is separately parked until a genuine delete-ref surface is available; use `BRANCH_CLEANUP_CANDIDATES.md` and re-audit immediately before deletion.
+7. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized for semantic state, not by chasing every docs-only main SHA.

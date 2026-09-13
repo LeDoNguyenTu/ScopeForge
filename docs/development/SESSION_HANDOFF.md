@@ -6,7 +6,7 @@ Use this as the fastest resume point. Read it with `CURRENT_STATE.md`, `NEXT_STE
 
 ## Hard execution rules
 
-- inspect actual `main`, PR #76, PR #77 and issue #79 heads before changing anything
+- fetch actual live `main`, PR #76, PR #77 and issue #79 before changing anything; do not infer the current main tip from a SHA embedded in a resume document
 - preserve the accepted Command Center UI, PR #87 responsive admin/GitHub UI, strict nonce CSP and browser security headers
 - never rewrite deployed Supabase migrations; corrections are forward-only
 - never confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
@@ -16,35 +16,36 @@ Use this as the fastest resume point. Read it with `CURRENT_STATE.md`, `NEXT_STE
 - keep provider credentials and control-plane capability material out of browser state, repository files, ordinary logs, worker payloads and chat
 - use exact-SHA validation for executable release candidates
 
-## Current main baseline
+## Executable baseline and production evidence
 
-Current `main`:
+Latest authoritative executable validation:
 
-`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
-
-Latest authoritative executable validation remains:
-
+- executable main merge `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
 - CI #1030 / run `34745795461`: SUCCESS
 - 396/396 test files, 1,744/1,744 tests
 - audit 0, typecheck, CommonJS CLI, scanner benchmark/matrix, optimized Next build, strict-CSP browser acceptance, production diagnostic and artifact upload all passed
 - artifact `10314341432`
 
-Recent released maintenance:
+Recent released maintenance/documentation:
 
 - PR #87 responsive admin/GitHub control-plane UI
 - PR #88 Node 24/runtime-tooling alignment
 - PR #90 public CI workflow example aligned to Node 24 with a permanent regression guard
-- PR #92 branch-cleanup audit and manifest
+- PR #92 branch-cleanup audit/manifest
+- PR #93 persistent resume-state synchronization
+- PR #94 GitHub App setup-state reconciliation
 
-Current Vercel production deployment:
+Latest directly verified production deployment before this documentation update:
 
-`dpl_wdy769VVk1cqb55nJ65x8qiHrtHa`
+`dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`
 
-It is READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`, aliased to `scopeforge.dev`. Direct production fetch returned HTTP 200 with strict nonce CSP and the expected HSTS, frame-denial, `nosniff`, permissions-policy and referrer-policy headers.
+It was READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`, aliased to `scopeforge.dev`. Direct production fetch returned HTTP 200 with strict nonce CSP and the expected HSTS, frame-denial, `nosniff`, permissions-policy and referrer-policy headers.
+
+Documentation-only main advances after this record do not invalidate the executable evidence above. Any later executable change requires fresh exact-SHA validation.
 
 ## GitHub App provider acceptance - issue #79
 
-Positive owner/admin provider acceptance and controlled public repository import are proven. Issue #79 has been rewritten so the historical unconfigured-provider wording is no longer the active resume state.
+Positive owner/admin provider acceptance and controlled public repository import are proven. Issue #79 and `PHASE_10A1_GITHUB_APP_SETUP.md` now explicitly distinguish completed activation/import work from remaining live negative checks.
 
 Two independent live authenticated negative canaries remain:
 
@@ -61,7 +62,7 @@ PR #76 remains draft/open at recorded head:
 
 `709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
-Its PR description has been refreshed to record the completed positive provider canary and completed read-only migration preflight.
+Its PR description records the completed positive provider canary and completed read-only migration preflight.
 
 Production migration history remains recorded through:
 
@@ -74,13 +75,13 @@ Reviewed Phase 10A2 migrations remain unapplied:
 
 Do not reconcile/apply/activate #76 ahead of #79. Do not repeat the already-completed schema/transactional preflight unless PR #76 or production schema changes materially.
 
-After #79 clears: re-read actual #76/current main -> reconcile -> exact validation -> migration re-read -> apply only absent reviewed migrations -> schema/RLS/grant verification -> private worker containment/quota/cleanup/observability/rollback canary -> immutable private snapshot -> exact zero-egress scan -> findings -> merge/release only if every gate passes.
+After #79 clears: fetch live main -> re-read actual #76 -> reconcile -> exact validation -> migration re-read -> apply only absent reviewed migrations -> schema/RLS/grant verification -> private worker containment/quota/cleanup/observability/rollback canary -> immutable private snapshot -> exact zero-egress scan -> findings -> merge/release only if every gate passes.
 
 If a final host-level containment probe genuinely needs SSH unavailable here, hand off only that probe to Codex/VS Code or another approved SSH environment.
 
 ## Phase 10A3 - GitHub webhook reconciliation
 
-PR #77 remains draft/open. Its PR description has been refreshed and no longer says Phase 10A1 is dark-gated.
+PR #77 remains draft/open. Its PR description no longer says Phase 10A1 is dark-gated.
 
 Recorded pre-reconciliation evidence:
 
@@ -89,7 +90,7 @@ Recorded pre-reconciliation evidence:
 - prior synthetic merge `d7322502d3b01e583d0ccf4f4cdadf2cf955bc1b`
 - CI #981 / run `34711218370`: SUCCESS
 
-Do not release #77 before #76. After #76 is released, reconcile #77 onto released main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, then prove signature/oversize rejection, replay, lifecycle, coalescing/recovery, public/private separation, leak boundaries and a complete automatic scan before merge.
+Do not release #77 before #76. After #76 is released, reconcile #77 onto released live main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, then prove signature/oversize rejection, replay, lifecycle, coalescing/recovery, public/private separation, leak boundaries and a complete automatic scan before merge.
 
 ## Hosted runtime gates
 
@@ -115,11 +116,12 @@ The connected GitHub mutation surface still has no genuine delete-ref operation.
 
 ## Resume procedure
 
-1. Fetch current main, #76, #77 and #79 and compare actual heads with these docs.
-2. Keep #79 parked until the two live negative canaries can be executed safely.
-3. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
-4. Do not apply Phase 10A2 migrations or enable private/runtime gates before #79 clears.
-5. When #79 clears, follow strict #76 then #77 release order.
-6. Branch deletion is separately parked until a genuine delete-ref surface is available.
-7. Update all resume docs after every completed milestone.
-8. Do not stop after one safe PR if another independent task is actionable.
+1. Fetch live main, #76, #77 and #79 first.
+2. Use exact embedded SHAs only as immutable validation/history evidence, not as a substitute for the live main ref.
+3. Keep #79 parked until the two live negative canaries can be executed safely.
+4. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
+5. Do not apply Phase 10A2 migrations or enable private/runtime gates before #79 clears.
+6. When #79 clears, follow strict #76 then #77 release order.
+7. Branch deletion is separately parked until a genuine delete-ref surface is available.
+8. Update resume docs for semantic state changes, not merely because a docs-only merge advanced main.
+9. Do not stop after one safe PR if another independent task is actionable.

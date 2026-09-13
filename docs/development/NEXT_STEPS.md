@@ -2,34 +2,41 @@
 
 Last reconciled: 2026-09-13 (Asia/Singapore)
 
-## Released baseline
+## Resume/ref rule
 
-Current `main`:
+Fetch the live `main` ref at the start of every session. Do not use a SHA embedded in this file as the current tip because documentation-only merges advance `main` after this text is authored.
 
-`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
+Immutable evidence that remains authoritative until executable files change:
 
-Latest authoritative executable validation remains:
-
+- latest validated executable main merge: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
 - CI #1030 / run `34745795461`: SUCCESS
 - Node 24, audit 0 vulnerabilities
 - 396/396 test files, 1,744/1,744 tests
 - typecheck, CommonJS CLI, scanner benchmark, deterministic benchmark matrix, optimized Next build, strict-CSP browser acceptance, production diagnostic and artifact upload: PASS
 - artifact `10314341432`
 
-PR #92 is documentation-only and is now the current main tip. Vercel production deployment `dpl_wdy769VVk1cqb55nJ65x8qiHrtHa` is READY on exact main SHA `80c1d4710b31dab0081d0d8918fcd8ce4091119c`, and `scopeforge.dev` responds HTTP 200 with strict nonce CSP and expected security headers.
+Latest directly verified production evidence before this documentation update:
+
+- deployment `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`
+- READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
+- `scopeforge.dev` HTTP 200 with strict nonce CSP and expected security headers
+
+Subsequent documentation-only merges do not require new executable CI. Any executable change does.
 
 ScopeForge Supabase: `tdgpibrepzcvdivztkta`.
 
-Recent independent maintenance now released:
+Recent independent maintenance released:
 
 - PR #87 responsive admin/GitHub UI
 - PR #88 Node 24/runtime-tooling alignment
 - PR #90 public CI-guide Node 24 alignment and regression guard
-- PR #92 complete branch-cleanup audit/manifest
+- PR #92 branch-cleanup audit/manifest
+- PR #93 persistent resume-state synchronization
+- PR #94 GitHub App setup-state reconciliation
 
 ## Priority 1 - issue #79 live negative provider acceptance
 
-Positive provider acceptance is already proven and issue #79 has been rewritten to state that clearly:
+Positive provider acceptance is already proven and issue #79 now states that clearly:
 
 - provider gate active
 - owner/admin GitHub App install/proof completed
@@ -67,7 +74,7 @@ Read-only schema/transactional preflight for those two migrations is already com
 
 After #79 clears:
 
-1. re-read actual #76 and current main, then reconcile
+1. fetch live `main`, re-read actual #76, and reconcile
 2. run fresh exact-candidate CI
 3. re-read production migration history and apply only absent reviewed Phase 10A2 migrations
 4. verify private tables/RPCs, ACLs, revokes/grants, RLS and Security Advisor posture
@@ -82,7 +89,7 @@ If the exact containment canary requires SSH/host control unavailable here, hand
 
 ## Priority 3 - Phase 10A3 GitHub webhook reconciliation
 
-PR #77 remains draft/open and its description has been refreshed to remove the stale dark-gated Phase 10A1 wording.
+PR #77 remains draft/open and its description has been refreshed to remove stale dark-gated Phase 10A1 wording.
 
 Recorded pre-reconciliation evidence:
 
@@ -125,7 +132,7 @@ PR #92 published the authoritative cleanup manifest after a live audit:
 - 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
 - 56 refs were safe-delete candidates at that audit point
 
-The connected GitHub write surface still has no genuine branch-delete operation. Do not fake deletion by force-moving refs. Re-fetch the branch list immediately before deletion because maintenance branches created after the audit must also be classified.
+The connected GitHub write surface still has no genuine branch-delete operation. Do not fake deletion by force-moving refs. Re-fetch the complete branch list immediately before deletion because maintenance branches created after the audit must also be classified.
 
 Use `docs/development/BRANCH_CLEANUP_CANDIDATES.md` as the starting manifest.
 
@@ -148,4 +155,4 @@ Phase 6D Tasks 14-16, including the real Oracle Linux/rootless-Podman Task 15 ac
 
 ## Continuation rule
 
-Keep working through safe independent tasks while #79 is parked. Once the required browser surface exists, finish #79 without weakening its live-canary requirements, then proceed #76 -> #77 in strict order. Update the resume documents after every completed milestone.
+Fetch live refs first. Keep working through safe independent tasks while #79 is parked. Once the required browser surface exists, finish #79 without weakening its live-canary requirements, then proceed #76 -> #77 in strict order. Keep the resume documents synchronized semantically, but do not chase each documentation-only main SHA.
