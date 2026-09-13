@@ -7,6 +7,7 @@ import {
 } from "@/lib/platform-admin/authorization";
 import "./admin.css";
 import "./admin-responsive.css";
+import "./admin-settings.css";
 
 export const metadata: Metadata = {
   title: {
