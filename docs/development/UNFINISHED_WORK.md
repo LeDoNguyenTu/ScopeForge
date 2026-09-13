@@ -1,8 +1,18 @@
 # ScopeForge Unfinished Work Queue
 
-Last reconciled: 2026-09-13 (Asia/Singapore)
+Last reconciled: 2026-09-14 (Asia/Singapore)
 
 This is the persistent queue for genuinely unfinished work. Historical branches, old phase checklists and completed acceptance tasks are not new work by themselves.
+
+## Live reconciliation - 2026-09-14
+
+See `CURRENT_STATE.md` for the complete startup, provider and validation evidence. This summary supersedes older latest-state wording below; always fetch live refs.
+
+- PR #96 internal Action pins and PR #98 startup/account instructions are released. PR #97 public Action pins are now merged as `39fa4b147d9ecbb12ae60335412bad95fbad91fe`; exact candidate `17c8c41b3ac79c3c7426612ce3bd9aba5c038824` passed [CI 34778529251](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34778529251), 398 files / 1,746 tests and every build/benchmark/browser step. Read post-merge checks separately.
+- Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
+- #79 remains open: owner Chrome access now exists, but the normal connection flow requires GitHub passkey/MFA confirmation; the wrong-installation canary has not completed. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
+- Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`ad6eb05c1e004ca905ad68ce3708ae64c35856d2`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
+- The independent Windows CI-order guard fix normalizes CRLF without relaxing ordering assertions. Local RED/GREEN was verified with CRLF and LF. The broader Windows suite is not green; Linux exact-candidate CI is required. The local Git CLI supports genuine ref deletion, but no branches were deleted; re-audit active local worktrees as well as remote PR heads first.
 
 ## Global rules
 
@@ -19,14 +29,14 @@ This is the persistent queue for genuinely unfinished work. Historical branches,
 
 ## Executable baseline
 
-Latest authoritative executable main evidence:
+Historical executable main evidence before PR #96/#97:
 
 - merge `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
 - post-merge CI #1030 / run `34745795461`: SUCCESS
 - 396/396 files and 1,744/1,744 tests
 - typecheck, CommonJS CLI, benchmarks, optimized build, strict-CSP browser acceptance, production diagnostic and artifact upload: PASS
 
-Latest directly verified production evidence before this documentation update:
+Historical production evidence recorded before PR #96/#97:
 
 - deployment `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`
 - READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
@@ -158,7 +168,7 @@ Audit-point state:
 - 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
 - 56 refs classified safe to delete
 
-The connected GitHub surface has no real delete-ref action. When a genuine delete-ref surface is available:
+The authenticated local Git CLI now provides a real ref-delete mechanism. No branches were deleted. Before any cleanup:
 
 1. re-fetch the complete branch list because later maintenance/docs branches will have changed the count
 2. preserve `main`, #76, #77, intentional demo refs, and any newly active task/PR branch

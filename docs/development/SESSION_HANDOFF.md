@@ -1,8 +1,18 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-13 (Asia/Singapore)
+Last refreshed: 2026-09-14 (Asia/Singapore)
 
-Use this as the fastest resume point. Read it with `CURRENT_STATE.md`, `NEXT_STEPS.md`, and `UNFINISHED_WORK.md`. Do not resume from historical preview, diagnostic, restoration, reconciliation, or superseded phase branches.
+Use this as the fastest resume point with CURRENT_STATE.md, NEXT_STEPS.md and UNFINISHED_WORK.md. Do not resume from historical preview, diagnostic, restoration or superseded branches.
+
+## Live reconciliation - 2026-09-14
+
+See `CURRENT_STATE.md` for the complete startup, provider and validation evidence. This summary supersedes older latest-state wording below; always fetch live refs.
+
+- PR #96 internal Action pins and PR #98 startup/account instructions are released. PR #97 public Action pins are now merged as `39fa4b147d9ecbb12ae60335412bad95fbad91fe`; exact candidate `17c8c41b3ac79c3c7426612ce3bd9aba5c038824` passed [CI 34778529251](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34778529251), 398 files / 1,746 tests and every build/benchmark/browser step. Read post-merge checks separately.
+- Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
+- #79 remains open: owner Chrome access now exists, but the normal connection flow requires GitHub passkey/MFA confirmation; the wrong-installation canary has not completed. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
+- Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`ad6eb05c1e004ca905ad68ce3708ae64c35856d2`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
+- The independent Windows CI-order guard fix normalizes CRLF without relaxing ordering assertions. Local RED/GREEN was verified with CRLF and LF. The broader Windows suite is not green; Linux exact-candidate CI is required. The local Git CLI supports genuine ref deletion, but no branches were deleted; re-audit active local worktrees as well as remote PR heads first.
 
 ## Hard execution rules
 
@@ -18,7 +28,7 @@ Use this as the fastest resume point. Read it with `CURRENT_STATE.md`, `NEXT_STE
 
 ## Executable baseline and production evidence
 
-Latest authoritative executable validation:
+Historical executable validation before PR #96/#97:
 
 - executable main merge `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
 - CI #1030 / run `34745795461`: SUCCESS
@@ -35,7 +45,7 @@ Recent released maintenance/documentation:
 - PR #93 persistent resume-state synchronization
 - PR #94 GitHub App setup-state reconciliation
 
-Latest directly verified production deployment before this documentation update:
+Historical production deployment recorded before PR #96/#97:
 
 `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`
 
@@ -52,7 +62,7 @@ Two independent live authenticated negative canaries remain:
 1. a different valid numeric installation ID must be rejected in an authenticated owner/admin callback flow
 2. a normal workspace member/viewer must be unable to initiate or complete Connect GitHub
 
-The available connector surface cannot run those production browser sessions. Production currently has no known member/viewer identity available for the second canary. Regression tests exist, but they must not be represented as live provider acceptance.
+An authenticated owner Chrome session is now available, but the normal Connect GitHub flow stops at GitHub Confirm access (passkey/MFA). Production still has only owner memberships and no member/viewer identity for the second canary. Regression tests exist, but they must not be represented as live provider acceptance.
 
 Keep #79 open. Do not expose provider secrets, weaken authorization, mutate an owner role, or bypass the gate to make the canaries easier.
 
@@ -112,7 +122,7 @@ PR #87 remains the responsive admin/GitHub UI baseline. Do not create cosmetic c
 
 PR #92 published `docs/development/BRANCH_CLEANUP_CANDIDATES.md` from a live audit. At the audit point there were 60 branches, 4 retain refs and 56 safe-delete refs. Only #76 and #77 were open PR heads.
 
-The connected GitHub mutation surface still has no genuine delete-ref operation. Delete branches only through a real branch-delete surface after re-fetching the complete current ref set. Never simulate deletion by force-moving refs. Maintenance/documentation branches created after the PR #92 audit must also be reclassified before cleanup.
+The local authenticated Git CLI now provides a genuine delete-ref mechanism. No branches were deleted. Re-fetch the complete ref set and preserve active local-worktree branches before cleanup. Never simulate deletion by force-moving refs. Maintenance/documentation branches created after the PR #92 audit must also be reclassified before cleanup.
 
 ## Resume procedure
 
@@ -122,6 +132,6 @@ The connected GitHub mutation surface still has no genuine delete-ref operation.
 4. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 5. Do not apply Phase 10A2 migrations or enable private/runtime gates before #79 clears.
 6. When #79 clears, follow strict #76 then #77 release order.
-7. Branch deletion is separately parked until a genuine delete-ref surface is available.
+7. Branch deletion requires a fresh complete ref and active-local-worktree audit.
 8. Update resume docs for semantic state changes, not merely because a docs-only merge advanced main.
 9. Do not stop after one safe PR if another independent task is actionable.

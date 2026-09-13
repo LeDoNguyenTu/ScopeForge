@@ -1,21 +1,31 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-13 (Asia/Singapore)
+Last reconciled: 2026-09-14 (Asia/Singapore)
+
+## Live reconciliation - 2026-09-14
+
+See `CURRENT_STATE.md` for the complete startup, provider and validation evidence. This summary supersedes older latest-state wording below; always fetch live refs.
+
+- PR #96 internal Action pins and PR #98 startup/account instructions are released. PR #97 public Action pins are now merged as `39fa4b147d9ecbb12ae60335412bad95fbad91fe`; exact candidate `17c8c41b3ac79c3c7426612ce3bd9aba5c038824` passed [CI 34778529251](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34778529251), 398 files / 1,746 tests and every build/benchmark/browser step. Read post-merge checks separately.
+- Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
+- #79 remains open: owner Chrome access now exists, but the normal connection flow requires GitHub passkey/MFA confirmation; the wrong-installation canary has not completed. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
+- Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`ad6eb05c1e004ca905ad68ce3708ae64c35856d2`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
+- The independent Windows CI-order guard fix normalizes CRLF without relaxing ordering assertions. Local RED/GREEN was verified with CRLF and LF. The broader Windows suite is not green; Linux exact-candidate CI is required. The local Git CLI supports genuine ref deletion, but no branches were deleted; re-audit active local worktrees as well as remote PR heads first.
 
 ## Resume/ref rule
 
 Fetch the live `main` ref at the start of every session. Do not use a SHA embedded in this file as the current tip because documentation-only merges advance `main` after this text is authored.
 
-Immutable evidence that remains authoritative until executable files change:
+Historical executable evidence before PR #96/#97 (see the current reconciliation above):
 
-- latest validated executable main merge: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+- historical validated executable main merge: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
 - CI #1030 / run `34745795461`: SUCCESS
 - Node 24, audit 0 vulnerabilities
 - 396/396 test files, 1,744/1,744 tests
 - typecheck, CommonJS CLI, scanner benchmark, deterministic benchmark matrix, optimized Next build, strict-CSP browser acceptance, production diagnostic and artifact upload: PASS
 - artifact `10314341432`
 
-Latest directly verified production evidence before this documentation update:
+Historical production evidence recorded before PR #96/#97:
 
 - deployment `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`
 - READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
@@ -50,7 +60,7 @@ Still required as live authenticated production canaries:
 1. authenticated owner/admin callback with a different valid numeric installation ID must be rejected
 2. authenticated normal member/viewer must be unable to initiate or complete Connect GitHub
 
-Current connector access cannot run those two browser sessions. Production also has no known member/viewer identity available for the second canary. Keep #79 open. Do not substitute unit/regression evidence, weaken authorization, expose secrets, or mutate an owner account to manufacture a pass.
+An authenticated owner Chrome session is available, but the normal Connect GitHub flow reaches GitHub Confirm access and requires owner passkey/MFA. Read-only production verification found only two owner memberships and no member/viewer identity for the second canary. Keep #79 open. Do not substitute unit/regression evidence, weaken authorization, expose secrets, or mutate an owner account to manufacture a pass.
 
 Keep all repository snapshot/scan worker runtime flags false/absent while #79 remains open.
 
@@ -123,7 +133,7 @@ Keep false/absent until independently accepted:
 
 CI success, schema presence, UI availability or historical containment evidence does not authorize production worker activation.
 
-## Priority 4 - branch cleanup when delete-ref access exists
+## Priority 4 - branch cleanup after a fresh active-work audit
 
 PR #92 published the authoritative cleanup manifest after a live audit:
 
@@ -132,7 +142,7 @@ PR #92 published the authoritative cleanup manifest after a live audit:
 - 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
 - 56 refs were safe-delete candidates at that audit point
 
-The connected GitHub write surface still has no genuine branch-delete operation. Do not fake deletion by force-moving refs. Re-fetch the complete branch list immediately before deletion because maintenance branches created after the audit must also be classified.
+The authenticated local Git CLI provides a genuine ref-delete mechanism, so the old connector-only tooling blocker is obsolete. No branches were deleted in this session; preserve active PR and local-worktree refs, and do not fake deletion by force-moving refs. Re-fetch the complete branch list immediately before deletion because maintenance branches created after the audit must also be classified.
 
 Use `docs/development/BRANCH_CLEANUP_CANDIDATES.md` as the starting manifest.
 
@@ -155,4 +165,4 @@ Phase 6D Tasks 14-16, including the real Oracle Linux/rootless-Podman Task 15 ac
 
 ## Continuation rule
 
-Fetch live refs first. Keep working through safe independent tasks while #79 is parked. Once the required browser surface exists, finish #79 without weakening its live-canary requirements, then proceed #76 -> #77 in strict order. Keep the resume documents synchronized semantically, but do not chase each documentation-only main SHA.
+Fetch live refs first. Keep working through safe independent tasks while #79 is parked. Once owner GitHub confirmation and a legitimate member/viewer session are available, finish #79 without weakening its live-canary requirements, then proceed #76 -> #77 in strict order. Keep the resume documents synchronized semantically, but do not chase each documentation-only main SHA.
