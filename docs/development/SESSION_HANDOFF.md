@@ -16,50 +16,36 @@ Use this as the fastest resume point for current ScopeForge work. Read it togeth
 - keep provider control-plane credentials out of browser state, repository files, ordinary logs, worker payloads, and chat
 - use exact-SHA validation for executable release candidates
 
-## Released product baseline
+## Current released baseline
 
-Current released main before the independent tooling maintenance PR is:
+Current released main:
 
-`f4f76e823718b6571966e731ed5a5a85a67152b3`
+`e12bbbe51515fc3d738428737ecd6281f2a2a3c8`
 
-That release includes:
+Current production deployment:
+
+`dpl_6ZcxVWhvudce8AzaQGxg3ufzmwx7` - READY
+
+Released main includes:
 
 - Phase 10A1 GitHub connected-project core
 - Phase 10C platform administration
 - strict nonce CSP and security-header baseline
 - accepted Command Center UI
 - PR #87 responsive admin/GitHub control-plane UI
+- PR #88 Node 24/runtime-tooling alignment
 
-PR #87 release evidence is recorded in `CURRENT_STATE.md`.
+PR #88 final release evidence:
 
-## Independent main tooling maintenance - PR #88
+- squash merge `e12bbbe51515fc3d738428737ecd6281f2a2a3c8`
+- post-merge CI #1027 / run `34744753785`: SUCCESS
+- install, audit, tests, typecheck, CommonJS CLI, both benchmark stages, optimized Next build, CSP browser acceptance, production diagnostic, and artifact upload all passed
+- post-merge artifact `10313589714`
+- exact production deployment READY in `sin1`, `aliasError=null`
+- `scopeforge.dev` HTTP 200 with strict nonce CSP and expected security headers
+- no fresh error/fatal runtime entries for the exact production deployment in the checked window
 
-PR #88, `Align main runtime and tooling baseline`, is intentionally isolated from the Phase 10A2/10A3 release stack.
-
-Authoritative executable candidate:
-
-- branch: `chore/main-runtime-tooling-alignment`
-- executable head: `b987fd9db36173b0a338cce7796ac599ae46e163`
-- exact synthetic merge: `ecc0cd2f77616086d49588c6e69336f8b3dfeed5`
-- CI #1026 / run `34744282931`: SUCCESS
-- Node: `v24.20.0`
-- npm: `11.19.0`
-- audit: 0 vulnerabilities
-- tests: 396/396 files, 1,743/1,743 tests
-- typecheck: PASS
-- CommonJS CLI build/version: PASS, `ScopeForge 0.1.0`
-- scanner benchmark and deterministic matrix: PASS
-- optimized Next.js build: PASS
-- strict-CSP responsive browser acceptance: PASS
-- production UI/Turnstile diagnostic: PASS
-- `actions/upload-artifact@v7`: PASS
-- visual artifact: `10313449144`, 15 PNG files
-
-The branch aligns root/CI runtime to Node `>=24 <25`, uses `upload-artifact@v7`, and loads Vitest through `vitest.config.mts` without converting the package or CLI to ESM. The former CommonJS-loaded ESM Vitest warning is absent from CI #1026.
-
-Documentation-only `[skip ci]` commits after `b987fd9...` do not replace CI #1026 as executable-tree evidence. Before merging, confirm the final PR diff still contains no application behavior, migration, provider, environment, or runtime-flag changes.
-
-Detailed maintenance record: `MAIN_RUNTIME_TOOLING_BACKPORT_WORKING_STATE.md`.
+Detailed evidence is in `CURRENT_STATE.md` and `MAIN_RUNTIME_TOOLING_BACKPORT_WORKING_STATE.md`.
 
 ## GitHub App provider acceptance - issue #79
 
@@ -76,9 +62,9 @@ Issue #79 remains open only because two independent live authenticated negative 
 1. prove a different valid numeric GitHub installation ID is rejected during an authenticated owner/admin callback flow
 2. prove a normal workspace member/viewer cannot initiate or complete Connect GitHub
 
-Current regression tests cover both authorization properties, but test evidence must not be presented as a live production canary.
+Regression tests cover both authorization properties, but test evidence must not be presented as a live production canary.
 
-Do not create or paste provider secrets merely to complete these checks. If the required browser/account surface is unavailable, leave #79 open and continue only work that does not bypass this release gate.
+Do not create or paste provider secrets, weaken authorization, or mutate production gates merely to complete these checks. If the required browser/account surface is unavailable, leave #79 open and continue only independent work that cannot bypass it.
 
 ## Phase 10A2 - private repository acquisition
 
@@ -86,7 +72,7 @@ PR #76 remains draft/open at recorded head:
 
 `709ef8af4ce4befae12ba910d3bca15599b5cab1`
 
-PR #87 advanced main, so stack reconciliation will be required after #79 clears. Do not reconcile or merge #76 ahead of the provider gate merely to make the branch green.
+Main has advanced through PR #87 and #88, so stack reconciliation will be required after #79 clears. Do not reconcile or merge #76 ahead of the provider gate merely to make the branch green.
 
 Production migration history still ends at:
 
@@ -97,7 +83,7 @@ The reviewed Phase 10A2 migrations remain unapplied:
 - `20260911100000_phase_10a2_private_repository_snapshot.sql`
 - `20260911110000_phase_10a2_private_project_scan_routing.sql`
 
-After #79 clears: reconcile #76 -> exact validation -> migration re-read -> apply only absent reviewed migrations -> schema/RLS/grant verification -> private worker containment/quota/cleanup/observability/rollback canary -> immutable private snapshot -> exact zero-egress scan -> findings -> merge/release only if all gates pass.
+After #79 clears: re-read actual #76/current main -> reconcile -> exact validation -> migration re-read -> apply only absent reviewed migrations -> schema/RLS/grant verification -> private worker containment/quota/cleanup/observability/rollback canary -> immutable private snapshot -> exact zero-egress scan -> findings -> merge/release only if all gates pass.
 
 ## Phase 10A3 - GitHub webhook reconciliation
 
@@ -126,9 +112,9 @@ Phase 6D host-level containment acceptance is already complete and must not be r
 
 ## UI state
 
-PR #87 is released. Its responsive admin/GitHub control-plane work is the current UI baseline.
+PR #87 is released and remains the responsive admin/GitHub UI baseline.
 
-Do not reopen cosmetic UI work without concrete visual or behavioral evidence. If a new UI defect is found, preserve mobile no-horizontal-page-scroll, safe-area handling, semantic/accessibility behavior, CSP compatibility, and the existing authenticated authorization boundaries.
+Do not reopen cosmetic UI work without concrete visual or behavioral evidence. If a real defect is found, preserve mobile no-horizontal-page-scroll, safe-area handling, semantic/accessibility behavior, CSP compatibility, and the existing authenticated authorization boundaries.
 
 ## Branch hygiene
 
@@ -136,9 +122,9 @@ Historical completed branches still exist. Delete them only through a genuine de
 
 ## Resume procedure
 
-1. Fetch current `main`, PR #88, #76, #77, and issue #79 and compare their actual heads with this document.
-2. If PR #88 is still open, finish its review/integration from the exact green executable candidate above. If it is already merged, treat the current main commit and post-merge CI as authoritative.
-3. Keep #79 open until both live negative canaries are independently proven.
+1. Fetch current `main`, PR #76, PR #77, and issue #79 and compare actual heads with this document.
+2. Keep #79 open until both live negative canaries are independently proven.
+3. While #79 is postponed, continue only isolated maintenance/security/documentation/evidence-based UI work that cannot weaken or bypass the provider gate.
 4. Do not apply Phase 10A2 migrations or enable private worker/runtime gates before #79 clears.
 5. After #79, follow the strict #76 then #77 release sequence in `NEXT_STEPS.md`.
-6. Continue independent maintenance/security/documentation work only when it cannot weaken or bypass those gates.
+6. Continue with the next documented ScopeForge task rather than stopping after one PR.
