@@ -8,7 +8,7 @@ async function filesUnder(relative: string): Promise<string[]> {
   const directory = path.join(root, relative);
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(entries.map(async (entry) => {
-    const child = path.join(relative, entry.name);
+    const child = path.join(relative, entry.name).split(path.sep).join("/");
     if (entry.isDirectory()) return filesUnder(child);
     return /\.(?:ts|tsx|mts|cts|js|mjs|cjs)$/.test(entry.name) ? [child] : [];
   }));

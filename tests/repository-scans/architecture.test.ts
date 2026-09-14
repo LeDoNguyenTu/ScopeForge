@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 
+async function normalizedSource(file: string): Promise<string> {
+  return (await readFile(file, "utf8")).replace(/\r\n/g, "\n");
+}
+
 async function sourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(path.resolve(root, directory), { withFileTypes: true });
   const files: string[] = [];
@@ -17,14 +21,14 @@ async function sourceFiles(directory: string): Promise<string[]> {
 
 async function joined(directory: string): Promise<string> {
   const files = await sourceFiles(directory);
-  return (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
+  return (await Promise.all(files.map(normalizedSource))).join("\n");
 }
 
 describe("Phase 6C authority architecture", () => {
   it("keeps the trusted snapshot stager outside acquisition and R2 PUT authority", async () => {
     const source = [
-      await readFile(path.resolve(root, "packages/worker-supervisor/repository-scan-download.ts"), "utf8"),
-      await readFile(path.resolve(root, "packages/worker-supervisor/repository-scan-stager.ts"), "utf8"),
+      await normalizedSource(path.resolve(root, "packages/worker-supervisor/repository-scan-download.ts")),
+      await normalizedSource(path.resolve(root, "packages/worker-supervisor/repository-scan-stager.ts")),
     ].join("\n");
     expect(source).not.toMatch(/repository-acquisition|createAttemptUpload|createPresignedR2PutUrl|method:\s*["']PUT["']/);
     expect(source).not.toMatch(/github\.com|api\.github\.com|codeload\.github\.com/);
@@ -43,16 +47,16 @@ describe("Phase 6C authority architecture", () => {
   });
 
   it("keeps foundation execution outside scanner, GitHub, R2, and sandbox authority", async () => {
-    const source = await readFile(path.resolve(root, "packages/worker-supervisor/foundation-probe.ts"), "utf8");
+    const source = await normalizedSource(path.resolve(root, "packages/worker-supervisor/foundation-probe.ts"));
     expect(source).not.toMatch(/scanner-|github|r2-|worker-sandbox|podman|repository-snapshot/);
   });
 
   it("keeps Phase 6C product enablement behind a shared default-off server capability", async () => {
     const [panel, action, runtime, capabilities] = await Promise.all([
-      readFile(path.resolve(root, "components/assets/RepositoryScanPanel.tsx"), "utf8"),
-      readFile(path.resolve(root, "app/dashboard/assets/[assetId]/scan-actions.ts"), "utf8"),
-      readFile(path.resolve(root, "lib/repository-scans/runtime.ts"), "utf8"),
-      readFile(path.resolve(root, "lib/runtime-capabilities/server.ts"), "utf8"),
+      normalizedSource(path.resolve(root, "components/assets/RepositoryScanPanel.tsx")),
+      normalizedSource(path.resolve(root, "app/dashboard/assets/[assetId]/scan-actions.ts")),
+      normalizedSource(path.resolve(root, "lib/repository-scans/runtime.ts")),
+      normalizedSource(path.resolve(root, "lib/runtime-capabilities/server.ts")),
     ]);
     expect(panel).toContain("Runtime unavailable");
     expect(panel).toContain("disabled");

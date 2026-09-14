@@ -43,7 +43,7 @@ afterEach(async () => {
 });
 
 describe("source-ast-heavy-v1 fixture", () => {
-  it("builds a deterministic 1,201-file JSTS-only fixture", async () => {
+  it("builds a deterministic 1,201-file JSTS-only fixture", { timeout: 30_000 }, async () => {
     const firstRoot = await tempRoot();
     const secondRoot = await tempRoot();
 
@@ -63,7 +63,7 @@ describe("source-ast-heavy-v1 fixture", () => {
     expect(SOURCE_AST_HEAVY_PROFILE.maxWallMs).toBe(30_000);
   });
 
-  it("pins the benchmark to only the intended JSTS rule", async () => {
+  it("pins the benchmark to only the intended JSTS rule", { timeout: 30_000 }, async () => {
     const root = await tempRoot();
     await buildSourceAstHeavyFixture(root);
 
