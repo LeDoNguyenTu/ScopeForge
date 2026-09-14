@@ -12,7 +12,7 @@ This section supersedes older current-state wording below. Fetch live refs again
 - Startup production: Vercel `dpl_4irNreqdjtrtezYwoVvyp7od5JwM`, READY on main `da719b3ff1204bd2d6589cebb0b3a5dac2e22195`, aliased to `scopeforge.dev`; verified team/project IDs and Node 24.x. The homepage returned 200 with nonce CSP, HSTS, DENY, nosniff, permissions-policy and referrer-policy. This is a timestamped observation, not a claim about later deployments.
 - Supabase project `tdgpibrepzcvdivztkta` was independently verified as ScopeForge / ACTIVE_HEALTHY. Migration history still ends at `20260911143049_phase_10a1_service_role_table_acl_hardening`. No Phase 10A2/10A3 migration was applied and the completed schema compatibility preflight was not repeated.
 - #79 remains open. Owner browser access and GitHub passkey/MFA confirmation now work, and the authenticated GitHub App settings show the intended read-only permission model. The existing production connection redirects a new Connect GitHub attempt to its installed-App settings, so no unrelated installation has been submitted through a fresh signed ScopeForge callback. Production has two owner memberships and no member/viewer session for the second canary. [Precise blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881).
-- #76 remains draft at `709ef8af4ce4befae12ba910d3bca15599b5cab1`; #77 remains draft at `7e2c8ef3dc9354eb5545867e91567960a692079f`, stacked on #76. Neither was reconciled onto `main` or released ahead of #79.
+- #76 remains draft at `709ef8af4ce4befae12ba910d3bca15599b5cab1`; #77 remains draft at `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76. Neither was reconciled onto `main` or released ahead of #79.
 - A complete static security diff review of exact PR #76 head `709ef8af4ce4befae12ba910d3bca15599b5cab1` found no reportable source-level security issue. The review and its operational limitations are recorded in [PR #76 comment 5659605414](https://github.com/LeDoNguyenTu/ScopeForge/pull/76#issuecomment-5659605414). This does not clear provider, schema, runtime, privacy, rollback, or end-to-end release acceptance.
 - No provider credentials, hosted gates, webhook, runtime host, production identities or schema were modified. Live runtime environment values were not re-read; prior flag observations remain historical and all unaccepted capabilities must stay disabled.
 - PR #102 merged the general Windows portability fixes as `70e014495c0c5355c60d39f96dc961c0eb3e846e`; exact post-merge [CI 34810194348](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34810194348) passed. PR #103 makes the remaining symlink cases depend on a real host capability probe and splits combined tests so unrelated assertions still run. On Node 24.16.0, its focused run passed 51 tests with 16 capability skips; typecheck passed; the full Windows run passed 394 files / 1,724 tests with 4 files / 24 tests skipped and no failures. Linux CI remains necessary and must execute the symlink, POSIX and rootless-Podman coverage unavailable on this host.
@@ -163,13 +163,15 @@ PR #77 (`feat/phase-10a3-github-webhook-reconciliation`) remains draft/open.
 
 Current pre-reconciliation evidence:
 
-- executable head: `7e2c8ef3dc9354eb5545867e91567960a692079f`
-- terminal-watermark fix candidate: `dfc4e4e0dad4c705f0ff7ef82183ed5247aa1fe8`
-- validated synthetic merge: `31f8a741c884907704f11e25eabb2fdbf343f116`
-- identical validated/current tree: `d7dd1422664edf78b78be76afa36bc40aadc6c6b`
-- PR #104 / CI run `34868229377`: SUCCESS, 415 files / 1,901 tests, audit/type/build/benchmark/browser checks passed
+- executable head: `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
+- delivery-retention fix candidate: `d21641123659191eb50c126fe2f972eed73e44d4`
+- validated synthetic merge: `865dfe1443ae2995f73cdca6ea93dc8c1ea9c90f`
+- identical validated/current tree: `3f222059811008ed973d4e30b47550776cef7d6d`
+- PR #106 / CI run `34869590260`: SUCCESS, 415 files / 1,901 tests, audit/type/build/benchmark/browser checks passed; Vercel preview READY
 
 The exact-head security review found that snapshot publication advanced `successful_commit_sha` while the repository scan was only queued. PR #104 corrected this with forward migration `20260915010000_phase_10a3_terminal_scan_watermark.sql`: only exact terminal repository-scan success advances the watermark; retry-wait retains ownership; failure/cancellation do not advance success; and newer desired heads keep the single provider-revalidated follow-up. The migration remains unapplied.
+
+PR #106 bounds the authenticated-delivery replay ledger to a rolling seven-day window through forward migration `20260915020000_phase_10a3_webhook_delivery_retention.sql`. Cleanup and admission remain service-role-only and transactional. Seven days retains a safety margin beyond GitHub's documented three-day manual-redelivery availability. The migration remains unapplied.
 
 After Phase 10A2 release, reconcile #77 onto released main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, and complete invalid-signature/oversize, replay, lifecycle, coalescing, terminal success/failure, same-head recovery, stale-trigger authoritative-head recovery, leak-boundary, and full automatic-scan acceptance before merge.
 

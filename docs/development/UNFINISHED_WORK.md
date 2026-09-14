@@ -11,7 +11,7 @@ See `CURRENT_STATE.md` for the complete startup, provider and validation evidenc
 - PR #96 internal Action pins and PR #98 startup/account instructions are released. PR #97 public Action pins are now merged as `39fa4b147d9ecbb12ae60335412bad95fbad91fe`; exact candidate `17c8c41b3ac79c3c7426612ce3bd9aba5c038824` passed [CI 34778529251](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34778529251), 398 files / 1,746 tests and every build/benchmark/browser step. Read post-merge checks separately.
 - Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
 - #79 remains open: owner Chrome access and GitHub confirmation work, but the existing production connection redirects a new Connect GitHub attempt to installed-App settings before ScopeForge can receive a fresh signed callback carrying an unrelated installation ID. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
-- Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`7e2c8ef3dc9354eb5545867e91567960a692079f`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
+- Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`d9466f40e38e84e2fc694396c5947aa0f95a2d5d`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
 - Exact-head static security review of PR #76 found no reportable source issue; [the review comment](https://github.com/LeDoNguyenTu/ScopeForge/pull/76#issuecomment-5659605414) preserves the cleanup/retention and exact production acceptance questions. It does not clear the release gates.
 - PR #102's Windows portability work is merged with green post-merge Linux CI. PR #103 adds a real symlink-capability probe; its local focused tests, typecheck and full Windows suite pass (394 files / 1,724 tests, with unavailable symlink/POSIX/Podman cases skipped). Branch cleanup deleted 62 historical refs and reduced the verified pre-PR-#103 remote set from 68 to six, preserving every open-PR, intentional, and active-worktree ref.
 
@@ -68,7 +68,7 @@ Do not recreate these tasks from older documents.
 - Phase 10A1 GitHub connected-project core
 - Phase 10C platform administration
 - PR #87 responsive admin/GitHub control-plane UI
-- Phase 10A3 hardening issues #78, #80, #81, #82 and #85, plus terminal-watermark correction PR #104
+- Phase 10A3 hardening issues #78, #80, #81, #82 and #85, terminal-watermark correction PR #104, and delivery-retention correction PR #106
 - PR #88 runtime/tooling alignment
 - PR #90 published CI runtime documentation alignment
 - PR #92 complete branch audit and cleanup manifest
@@ -125,19 +125,21 @@ PR #77 remains draft/open and must follow Phase 10A2 release. Its PR description
 
 Current executable evidence before future reconciliation:
 
-- executable head `7e2c8ef3dc9354eb5545867e91567960a692079f`
-- terminal-watermark fix candidate `dfc4e4e0dad4c705f0ff7ef82183ed5247aa1fe8`
-- validated synthetic merge `31f8a741c884907704f11e25eabb2fdbf343f116`
-- identical validated/current tree `d7dd1422664edf78b78be76afa36bc40aadc6c6b`
-- PR #104 / CI run `34868229377`: SUCCESS, 415 files / 1,901 tests
+- executable head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
+- delivery-retention fix candidate `d21641123659191eb50c126fe2f972eed73e44d4`
+- validated synthetic merge `865dfe1443ae2995f73cdca6ea93dc8c1ea9c90f`
+- identical validated/current tree `3f222059811008ed973d4e30b47550776cef7d6d`
+- PR #106 / CI run `34869590260`: SUCCESS, 415 files / 1,901 tests; Vercel preview READY
 
 PR #104 corrected a medium workflow-integrity defect: immutable snapshot acquisition no longer advances `successful_commit_sha` before the exact repository scan and findings publication succeed. Forward migration `20260915010000_phase_10a3_terminal_scan_watermark.sql` is unapplied and belongs in the eventual Phase 10A3 migration review/canary.
+
+PR #106 added forward migration `20260915020000_phase_10a3_webhook_delivery_retention.sql`, which bounds authenticated delivery rows to seven days during service-role admission. It is unapplied and belongs in the eventual Phase 10A3 migration review/canary.
 
 After #76 releases:
 
 1. reconcile #77 onto released live main
 2. run fresh exact-candidate validation
-3. re-read production migration history and apply only absent reviewed Phase 10A3 migrations, including the terminal-watermark forward correction
+3. re-read production migration history and apply only absent reviewed Phase 10A3 migrations, including the terminal-watermark and webhook-delivery-retention forward corrections
 4. configure the independent server-only webhook secret/endpoint without exposing it
 5. prove invalid-signature and oversize rejection before JSON processing
 6. prove replay, installation/repository lifecycle, latest-head coalescing, terminal success/failure settlement, same-head pending recovery and stale-trigger authoritative-head recovery
