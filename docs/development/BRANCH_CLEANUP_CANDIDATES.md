@@ -16,9 +16,18 @@ Audit baseline:
   - PR #77: `feat/phase-10a3-github-webhook-reconciliation`
 - open-PR page 3 with `per_page=1`: empty
 
-2026-09-14 reconciliation: a fresh audit found 68 remote branches. The authenticated local Git CLI deleted 31 refs whose live tips exactly matched merged PR heads and were not attached to local worktrees. A post-delete fetch returned 37 branches. The two open PR heads, intentional/demo state, active local-worktree refs, and 31 ambiguous historical refs were retained. Never simulate deletion by force-moving refs.
+2026-09-14 reconciliation: a fresh audit found 68 remote branches. The authenticated local Git CLI deleted 62 historical refs in three evidence tiers: 31 exact merged-PR heads, 20 additional tips reachable from retained refs, and 11 diagnostic/superseded/temporary/explicitly closed refs confirmed against the prior manifest and live PR history. No open-PR or active-worktree ref was deleted.
 
-The historical lists below explain the original audit but are no longer an executable deletion manifest. Before any further deletion, re-read live refs, open PRs and worktrees and reconcile the retained historical branch individually.
+A post-delete fetch returned exactly six branches:
+
+- `main`
+- `feat/phase-10a2-private-repository-acquisition` (open PR #76)
+- `feat/phase-10a3-github-webhook-reconciliation` (open PR #77)
+- `demo/portfolio-20260910` (intentional demo state)
+- `design/phase-7-security-packs-v1` (active local worktree)
+- `preview/command-center-v5-reference-rebuild` (active local worktree with local commits beyond the remote tip)
+
+Three additional active local worktree branches have no remote ref and were untouched. The historical lists below explain the original audit only; they are no longer an executable deletion manifest. Never simulate deletion by force-moving refs.
 
 Deleting a branch ref does not delete commits that are already reachable from merged history or another retained branch. The list below classifies refs only.
 
