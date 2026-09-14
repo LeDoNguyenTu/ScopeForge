@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 
-const webdriverBase = "http://127.0.0.1:9515";
+const webdriverBase = process.env.SCOPEFORGE_WEBDRIVER_BASE_URL || "http://127.0.0.1:9515";
 const appBase = process.env.SCOPEFORGE_PRODUCTION_BASE_URL || "https://scopeforge.dev";
 const screenshotDir = process.env.SCOPEFORGE_BROWSER_SCREENSHOT_DIR || ".artifacts/ui-acceptance";
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
