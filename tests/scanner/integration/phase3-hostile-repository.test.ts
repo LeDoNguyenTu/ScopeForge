@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import { runCli } from "@/packages/cli/run-cli";
 import { SCAN_EXIT } from "@/packages/scanner-core/policy/exit-codes";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 
 const tempPaths: string[] = [];
 const SOURCE_SENTINEL = "HOSTILE_SOURCE_SENTINEL_9c41";
@@ -88,7 +89,7 @@ afterEach(async () => {
   await Promise.all(tempPaths.splice(0).map((path) => rm(path, { recursive: true, force: true })));
 });
 
-describe("Phase 3 hostile repository completion contract", () => {
+describe.skipIf(!symlinkTestsSupported)("Phase 3 hostile repository completion contract", () => {
   it("never executes target content, follows symlinks, performs default network access, or reports malformed coverage as clean", async () => {
     const root = await tempDir("scopeforge-hostile-");
     const outside = await tempDir("scopeforge-hostile-outside-");

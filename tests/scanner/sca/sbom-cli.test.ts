@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { runCli } from "@/packages/cli/run-cli";
 import { SCAN_EXIT } from "@/packages/scanner-core/policy/exit-codes";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 
 const tempPaths: string[] = [];
 
@@ -81,7 +82,7 @@ describe("CycloneDX SBOM CLI", () => {
     ]);
   });
 
-  it("refuses to write an SBOM through a symlink", async () => {
+  it.skipIf(!symlinkTestsSupported)("refuses to write an SBOM through a symlink", async () => {
     const root = await dependencyRoot("scopeforge-sbom-cli-symlink-");
     const outside = await mkdtemp(join(tmpdir(), "scopeforge-sbom-cli-outside-"));
     tempPaths.push(outside);

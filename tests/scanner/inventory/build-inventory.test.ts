@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { buildRepositoryInventory } from "@/packages/scanner-core/inventory/build-inventory";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 
 const tempPaths: string[] = [];
 
@@ -20,9 +21,8 @@ afterEach(async () => {
 });
 
 describe("buildRepositoryInventory", () => {
-  it("excludes generated paths and root ignore patterns without following symlinks", async () => {
+  it("excludes generated paths and root ignore patterns", async () => {
     const root = await makeTempDir("scopeforge-inventory-");
-    const outside = await makeTempDir("scopeforge-outside-");
 
     await mkdir(join(root, "src"), { recursive: true });
     await mkdir(join(root, "node_modules", "pkg"), { recursive: true });
@@ -36,8 +36,6 @@ describe("buildRepositoryInventory", () => {
     await writeFile(join(root, "certificate.pem"), "placeholder\n");
     await writeFile(join(root, ".scopeforgeignore"), "ignored/**\n*.pem\n");
     await writeFile(join(root, ".gitignore"), "gitignored/**\n");
-    await writeFile(join(outside, "outside.txt"), "do not follow\n");
-    await symlink(join(outside, "outside.txt"), join(root, "external-link.txt"));
 
     const inventory = await buildRepositoryInventory(root);
     const paths = inventory.entries.map((entry) => entry.path);
@@ -47,11 +45,22 @@ describe("buildRepositoryInventory", () => {
     expect(paths).not.toContain("ignored/secret.txt");
     expect(paths).not.toContain("gitignored/cache.txt");
     expect(paths).not.toContain("certificate.pem");
-    expect(paths).not.toContain("external-link.txt");
     expect(inventory.summary.skippedByReason.default_exclude).toBeGreaterThan(0);
     expect(inventory.summary.skippedByReason.scopeforgeignore).toBeGreaterThan(0);
     expect(inventory.summary.skippedByReason.gitignore).toBeGreaterThan(0);
-    expect(inventory.summary.skippedByReason.symlink).toBeGreaterThan(0);
+  });
+
+  it.skipIf(!symlinkTestsSupported)("does not follow symlinks", async () => {
+    const root = await makeTempDir("scopeforge-inventory-symlink-");
+    const outside = await makeTempDir("scopeforge-outside-");
+
+    await writeFile(join(root, "regular.txt"), "include\n");
+    await writeFile(join(outside, "outside.txt"), "do not follow\n");
+    await symlink(join(outside, "outside.txt"), join(root, "external-link.txt"));
+
+    const inventory = await buildRepositoryInventory(root);
+    expect(inventory.entries.map((entry) => entry.path)).toEqual(["regular.txt"]);
+    expect(inventory.summary.skippedByReason.symlink).toBe(1);
   });
 
   it("supports double-star patterns across zero or more directories", async () => {
@@ -96,18 +105,14 @@ describe("buildRepositoryInventory", () => {
 
   it("stops traversing once the file-count budget is exhausted", async () => {
     const root = await makeTempDir("scopeforge-file-limit-");
-    const outside = await makeTempDir("scopeforge-file-limit-outside-");
 
     await writeFile(join(root, "a.txt"), "a");
     await writeFile(join(root, "b.txt"), "b");
     await writeFile(join(root, "c.txt"), "c");
-    await writeFile(join(outside, "outside.txt"), "outside");
-    await symlink(join(outside, "outside.txt"), join(root, "z-link.txt"));
 
     const inventory = await buildRepositoryInventory(root, { maxFiles: 1 });
 
     expect(inventory.entries.map((entry) => entry.path)).toEqual(["a.txt"]);
     expect(inventory.summary.skippedByReason.file_limit).toBe(1);
-    expect(inventory.summary.skippedByReason.symlink).toBe(0);
   });
 });
