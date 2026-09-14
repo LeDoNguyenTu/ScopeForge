@@ -34,6 +34,15 @@ describe("Phase 10A2 private repository acquisition architecture", () => {
     expect(source).toContain("privateArchiveLease");
   });
 
+  it("re-authorizes private source authority against the claimed workspace and asset", async () => {
+    const source = await read("lib/worker-control/server-dependencies.ts");
+    expect(source).toContain('.eq("workspace_id", claim.workspaceId)');
+    expect(source).toContain('.eq("asset_id", claim.assetId)');
+    expect(source).toContain("link.owner_login !== claim.owner");
+    expect(source).toContain("link.repository_name !== claim.repository");
+    expect(source).toContain("link.html_url !== claim.canonicalRepositoryUrl");
+  });
+
   it("keeps worker claim body-free and authenticated", async () => {
     const source = await read("app/api/internal/workers/claim/route.ts");
     expect(source).toContain("assertNoWorkerRequestBody(request)");
