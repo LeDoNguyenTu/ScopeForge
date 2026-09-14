@@ -251,7 +251,7 @@ Expected: migration/type overlay missing.
 
 - [ ] **Step 4: Create private tables and provenance columns**
 
-`github_webhook_deliveries` stores only bounded event/action/installation/repository/SHA/result/timestamps. `github_repository_auto_scan_state` stores workspace/link/repository, desired SHA, successful SHA, latest delivery, `pending`, `provider_archived`, bounded outcome, timestamps.
+`github_webhook_deliveries` stores only bounded event/action/installation/repository/SHA/result/timestamps. Forward migration `20260915020000_phase_10a3_webhook_delivery_retention.sql` prunes delivery rows after seven days during admission, preserving more than GitHub's three-day manual-redelivery window without indefinite metadata growth. `github_repository_auto_scan_state` stores workspace/link/repository, desired SHA, successful SHA, latest delivery, `pending`, `provider_archived`, bounded outcome, timestamps.
 
 Use checks for event/action/error lengths and `^[a-f0-9]{40}$` SHAs. Add one-to-one FK from auto state to repository link and unique delivery UUID PK.
 

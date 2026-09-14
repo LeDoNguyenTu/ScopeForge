@@ -271,7 +271,7 @@ Lifecycle events reconcile by stable numeric identity:
 
 ### Delivery replay and desired-head coalescing
 
-`private.github_webhook_deliveries` provides delivery UUID replay protection. `private.github_repository_auto_scan_state` stores only bounded per-link reconciliation watermarks/state.
+`private.github_webhook_deliveries` provides delivery UUID replay protection with a seven-day rolling retention window. This exceeds GitHub's three-day manual-redelivery window while preventing indefinite metadata growth. `private.github_repository_auto_scan_state` stores only bounded per-link reconciliation watermarks/state.
 
 For default-branch pushes, the control plane resolves the current authoritative provider head and records it as the desired SHA. Rapid pushes do not create parallel unbounded scan chains. The per-link state/locking contract coalesces changes to the newest accepted desired head.
 
