@@ -253,14 +253,23 @@ function parseClaim(value: unknown): WorkerPersistenceClaimResult {
   if (!OBJECT_KEY_PATTERN.test(artifactObjectKey)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
   const identity = parseCanonicalRepositoryIdentity(value.input);
   if (executionClass === "repository_snapshot_github_private_v1") {
-    if (!hasExactKeys(value.input, ["kind", "owner", "repository", "canonicalRepositoryUrl", "githubRepositoryLinkId"])
-        || value.input.kind !== "repository_snapshot_github_private") {
+    if (!hasExactKeys(value.input, [
+      "kind",
+      "workspaceId",
+      "assetId",
+      "owner",
+      "repository",
+      "canonicalRepositoryUrl",
+      "githubRepositoryLinkId",
+    ]) || value.input.kind !== "repository_snapshot_github_private") {
       throw new WorkerControlError("WORKER_CONTROL_FAILED");
     }
     return Object.freeze({
       ...common, executionClass, artifactObjectKey,
       input: Object.freeze({
         kind: "repository_snapshot_github_private" as const,
+        workspaceId: requiredUuid(value.input.workspaceId),
+        assetId: requiredUuid(value.input.assetId),
         ...identity,
         githubRepositoryLinkId: requiredUuid(value.input.githubRepositoryLinkId),
       }),
