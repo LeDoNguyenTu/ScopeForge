@@ -18,7 +18,7 @@ Audit baseline:
 
 2026-09-14 reconciliation: a fresh audit found 68 remote branches. The authenticated local Git CLI deleted 62 historical refs in three evidence tiers: 31 exact merged-PR heads, 20 additional tips reachable from retained refs, and 11 diagnostic/superseded/temporary/explicitly closed refs confirmed against the prior manifest and live PR history. No open-PR or active-worktree ref was deleted.
 
-A post-delete fetch returned exactly six branches:
+A post-delete fetch initially returned six branches:
 
 - `main`
 - `feat/phase-10a2-private-repository-acquisition` (open PR #76)
@@ -28,6 +28,17 @@ A post-delete fetch returned exactly six branches:
 - `preview/command-center-v5-reference-rebuild` (active local worktree with local commits beyond the remote tip)
 
 Three additional active local worktree branches have no remote ref and were untouched. The historical lists below explain the original audit only; they are no longer an executable deletion manifest. Never simulate deletion by force-moving refs.
+
+## Final cleanup - 2026-09-15
+
+A new live audit found only PR #76 and PR #77 open. All four auxiliary worktrees were clean. Their branches were proven merged, commit-contained by a merged PR, explicitly superseded, or historical preview-only according to this manifest. The cleanup removed:
+
+- remote `design/phase-7-security-packs-v1`
+- remote `preview/command-center-v5-reference-rebuild`
+- four auxiliary worktrees
+- ten finished local branches
+
+The verified final state is exactly four remote branches (`main`, #76, #77 and `demo/portfolio-20260910`), one local branch (`main`) and one worktree. The ideal branch set below is now the actual branch set.
 
 Deleting a branch ref does not delete commits that are already reachable from merged history or another retained branch. The list below classifies refs only.
 

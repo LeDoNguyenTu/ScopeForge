@@ -13,7 +13,7 @@ See `CURRENT_STATE.md` for the complete startup, provider and validation evidenc
 - #79 remains open: owner Chrome access and GitHub confirmation work, but the existing production connection redirects a new Connect GitHub attempt to installed-App settings before ScopeForge can receive a fresh signed callback carrying an unrelated installation ID. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
 - Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`d9466f40e38e84e2fc694396c5947aa0f95a2d5d`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
 - Exact-head static security review of PR #76 found no reportable source issue; [the review comment](https://github.com/LeDoNguyenTu/ScopeForge/pull/76#issuecomment-5659605414) preserves the cleanup/retention and exact production acceptance questions. It does not clear the release gates.
-- PR #102's Windows portability work is merged with green post-merge Linux CI. PR #103 adds a real symlink-capability probe; its local focused tests, typecheck and full Windows suite pass (394 files / 1,724 tests, with unavailable symlink/POSIX/Podman cases skipped). Branch cleanup deleted 62 historical refs and reduced the verified pre-PR-#103 remote set from 68 to six, preserving every open-PR, intentional, and active-worktree ref.
+- PR #102's Windows portability work is merged with green post-merge Linux CI. PR #103 adds a real symlink-capability probe; its local focused tests, typecheck and full Windows suite pass (394 files / 1,724 tests, with unavailable symlink/POSIX/Podman cases skipped). Final branch cleanup is complete: exactly four remote refs remain (`main`, #76, #77 and the demo branch), with only local `main` and its worktree.
 
 ## Global rules
 
@@ -164,7 +164,7 @@ When supported account surfaces become available, separately verify external con
 
 Do not silently upgrade `NOT VERIFIED` to enabled/enforced from application code alone.
 
-## 6. Branch cleanup
+## 6. Branch cleanup - complete
 
 PR #92 published `docs/development/BRANCH_CLEANUP_CANDIDATES.md` from a fresh live audit.
 
@@ -175,11 +175,11 @@ Audit-point state:
 - 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
 - 56 refs classified safe to delete
 
-The authenticated local Git CLI deleted 62 historical refs after a fresh audit. The verified post-delete count is six. Before any future cleanup:
+The authenticated local Git CLI first deleted 62 historical refs after a fresh audit. On 2026-09-15, a second audit removed four clean completed worktrees, ten finished local branches, and the final two historical remote refs. The verified remote count is four and the local checkout has only `main`. Before any future cleanup:
 
 1. re-fetch the complete branch list and active worktrees
 2. preserve `main`, #76, #77, intentional/demo refs, every active worktree ref, and any newly active task/PR branch
-3. preserve the current six-ref set unless later state provides a reviewed reason to change it
+3. preserve the current four-ref set unless later state provides a reviewed reason to change it
 4. re-list refs after deletion and document the result
 
 Never fake deletion by force-moving or repointing refs.

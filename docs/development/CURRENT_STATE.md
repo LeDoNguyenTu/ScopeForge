@@ -16,7 +16,7 @@ This section supersedes older current-state wording below. Fetch live refs again
 - A complete static security diff review of exact PR #76 head `709ef8af4ce4befae12ba910d3bca15599b5cab1` found no reportable source-level security issue. The review and its operational limitations are recorded in [PR #76 comment 5659605414](https://github.com/LeDoNguyenTu/ScopeForge/pull/76#issuecomment-5659605414). This does not clear provider, schema, runtime, privacy, rollback, or end-to-end release acceptance.
 - No provider credentials, hosted gates, webhook, runtime host, production identities or schema were modified. Live runtime environment values were not re-read; prior flag observations remain historical and all unaccepted capabilities must stay disabled.
 - PR #102 merged the general Windows portability fixes as `70e014495c0c5355c60d39f96dc961c0eb3e846e`; exact post-merge [CI 34810194348](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34810194348) passed. PR #103 makes the remaining symlink cases depend on a real host capability probe and splits combined tests so unrelated assertions still run. On Node 24.16.0, its focused run passed 51 tests with 16 capability skips; typecheck passed; the full Windows run passed 394 files / 1,724 tests with 4 files / 24 tests skipped and no failures. Linux CI remains necessary and must execute the symlink, POSIX and rootless-Podman coverage unavailable on this host.
-- Branch cleanup deleted 62 historical remote refs after a live 68-branch audit. Thirty-one exact tips matched merged PR heads; twenty more were commit-reachable from retained refs; the final eleven matched the prior manifest's diagnostic, superseded, temporary, or explicitly closed categories. A post-delete fetch returned six branches: `main`, #76, #77, the intentional demo branch, and two branches attached to active local worktrees.
+- Branch cleanup first deleted 62 historical remote refs after a live 68-branch audit. On 2026-09-15 a fresh open-PR, ancestry, supersession and clean-worktree audit removed the final two historical remote refs, four completed auxiliary worktrees and ten finished local branches. The verified repository now has exactly four remote branches (`main`, #76, #77 and the intentional demo branch), one local branch (`main`) and one worktree.
 
 ## Resume/ref semantics
 
@@ -88,7 +88,7 @@ Fresh branch/PR audit before the audit branch itself was created:
 - 4 refs retained by policy: `main`, #76, #77, and `demo/portfolio-20260910`
 - 56 refs classified safe to delete through a genuine delete-ref operation
 
-The authenticated local Git CLI deleted 62 historical refs after a fresh 68-branch/open-PR/worktree audit. A post-delete fetch returned the intended six remote refs. The two non-PR development refs remain because they are attached to active local worktrees; three additional active local worktree branches currently have no remote ref. Never simulate deletion by force-moving refs.
+The authenticated local Git CLI deleted 62 historical refs after a fresh 68-branch/open-PR/worktree audit. A later 2026-09-15 audit confirmed that the remaining auxiliary worktrees were clean and their branches were merged, superseded, or explicitly historical. It removed those four worktrees, ten finished local branches, and remote `design/phase-7-security-packs-v1` plus `preview/command-center-v5-reference-rebuild`. The final remote set is exactly `main`, #76, #77 and `demo/portfolio-20260910`; the only local branch/worktree is `main`. Never simulate deletion by force-moving refs.
 
 Authoritative manifest: `docs/development/BRANCH_CLEANUP_CANDIDATES.md`.
 
@@ -198,5 +198,5 @@ Phase 6D Tasks 14-16, including real Oracle Linux/rootless-Podman Task 15 contai
 3. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 4. Do not apply Phase 10A2 migrations or enable private/runtime capability flags before #79 clears.
 5. After #79, release #76 in strict order, then #77.
-6. Preserve the six verified remote refs. Re-audit open PRs and active local worktrees before any future cleanup.
+6. Preserve the four verified remote refs. Re-audit open PRs and active local worktrees before any future cleanup.
 7. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized for semantic state, not by chasing every docs-only main SHA.
