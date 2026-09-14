@@ -167,7 +167,7 @@ Issue #82 is closed. The current architecture remains a modular monolith with st
 - strict signature/header/content-type validation
 - declared and incrementally enforced 10 MiB payload ceiling
 - unknown-length-body cancellation on overflow/read failure
-- `X-GitHub-Delivery` replay protection
+- `X-GitHub-Delivery` replay protection with seven-day rolling metadata retention, exceeding GitHub's three-day manual-redelivery window
 - bounded stored delivery/event metadata only; no raw payload/signature/credential/source persistence
 
 ### Provider-authoritative lifecycle reconciliation

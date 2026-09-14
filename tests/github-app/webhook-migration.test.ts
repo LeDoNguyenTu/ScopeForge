@@ -9,6 +9,9 @@ const migrationPath = path.resolve(
 const repositoryIdentityOverlayPath = path.resolve(
   "supabase/migrations/20260912021000_phase_10a3_repository_asset_identity_reconciliation.sql",
 );
+const deliveryRetentionOverlayPath = path.resolve(
+  "supabase/migrations/20260915020000_phase_10a3_webhook_delivery_retention.sql",
+);
 
 async function migrationSource(): Promise<string> {
   return existsSync(migrationPath) ? readFile(migrationPath, "utf8") : "";
@@ -17,6 +20,12 @@ async function migrationSource(): Promise<string> {
 async function repositoryIdentityOverlaySource(): Promise<string> {
   return existsSync(repositoryIdentityOverlayPath)
     ? readFile(repositoryIdentityOverlayPath, "utf8")
+    : "";
+}
+
+async function deliveryRetentionOverlaySource(): Promise<string> {
+  return existsSync(deliveryRetentionOverlayPath)
+    ? readFile(deliveryRetentionOverlayPath, "utf8")
     : "";
 }
 
@@ -124,5 +133,21 @@ describe("Phase 10A3 GitHub webhook reconciliation migration", () => {
     expect(segment).toMatch(/update public\.assets set canonical_target = target_html_url, updated_at = now\(\) where id = asset_record\.id and workspace_id = connection_record\.workspace_id/);
     expect(segment).toMatch(/revoke all on function public\.reconcile_github_webhook_repository_state\([^;]+\) from public, anon, authenticated, service_role/);
     expect(segment).toMatch(/grant execute on function public\.reconcile_github_webhook_repository_state\([^;]+\) to service_role/);
+  });
+
+  it("bounds replay rows while retaining more than GitHub's redelivery window", async () => {
+    const sql = (await deliveryRetentionOverlaySource()).replace(/\s+/g, " ");
+    const start = sql.indexOf("create or replace function public.admit_github_webhook_delivery");
+    const segment = sql.slice(start);
+
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(segment).toContain("delete from private.github_webhook_deliveries");
+    expect(segment).toContain("received_at < now() - interval '7 days'");
+    expect(segment.indexOf("delete from private.github_webhook_deliveries"))
+      .toBeLessThan(segment.indexOf("insert into private.github_webhook_deliveries"));
+    expect(segment).toContain("security definer");
+    expect(segment).toContain("set search_path = ''");
+    expect(segment).toMatch(/revoke all on function public\.admit_github_webhook_delivery\([^;]+\) from public, anon, authenticated, service_role/);
+    expect(segment).toMatch(/grant execute on function public\.admit_github_webhook_delivery\([^;]+\) to service_role/);
   });
 });
