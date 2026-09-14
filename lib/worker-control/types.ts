@@ -107,6 +107,8 @@ export interface PrivateRepositorySnapshotWorkerPersistenceClaim {
   artifactObjectKey: string;
   input: {
     kind: "repository_snapshot_github_private";
+    workspaceId: string;
+    assetId: string;
     owner: string;
     repository: string;
     canonicalRepositoryUrl: string;
