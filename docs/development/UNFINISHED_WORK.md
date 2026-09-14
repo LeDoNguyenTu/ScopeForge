@@ -1,5 +1,9 @@
 # ScopeForge Unfinished Work Queue
 
+## Latest continuation checkpoint - 2026-09-15
+
+See [PHONE_SESSION_HANDOFF.md](PHONE_SESSION_HANDOFF.md). PR #109's existing dependency implementation passed exact-head CI, but release remains pending: GitHub rejected a normal merge under its main-branch policy. Do not use an administrator override or modify rules to force release. The two #79 negative production canaries remain unfinished; #76 and #77 remain draft and ordered behind them. Browser/provider state was not freshly verified here. Preserve the active dependency/handoff branches in addition to the historical four-ref set. The phone handoff and synchronized entry points are documentation-only changes.
+
 Last reconciled: 2026-09-15 (Asia/Singapore)
 
 This is the persistent queue for genuinely unfinished work. Historical branches, old phase checklists and completed acceptance tasks are not new work by themselves.

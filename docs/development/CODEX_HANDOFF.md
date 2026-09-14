@@ -1,5 +1,9 @@
 # ScopeForge Codex handoff
 
+## Latest continuation checkpoint - 2026-09-15
+
+Read [PHONE_SESSION_HANDOFF.md](PHONE_SESSION_HANDOFF.md) for the phone-ready prompt and verified continuation state. PR #97 is complete; the older preparation-time priority below is historical. PR #109 is now the active dependency-maintenance candidate, with passing exact-head CI but a normal merge rejected by the main-branch policy. Do not bypass that policy. Issue #79 still gates #76 then #77. This session changed documentation only and did not reverify production providers. Preserve the active dependency and handoff branches in addition to the earlier four-ref baseline.
+
 Prepared: 2026-09-14, Asia/Singapore
 
 This is the entry point for handing ScopeForge back to Codex after a period of work in other ChatGPT sessions/tools.

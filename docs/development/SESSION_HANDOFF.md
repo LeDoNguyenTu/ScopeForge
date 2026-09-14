@@ -1,5 +1,9 @@
 # ScopeForge Session Handoff
 
+## Latest continuation checkpoint - 2026-09-15
+
+Use [PHONE_SESSION_HANDOFF.md](PHONE_SESSION_HANDOFF.md) for the copy-paste phone prompt, exact refs, checked CI, publication caveat and next actions. PR #109 is implemented and validated (398 files / 1,748 tests) but its normal merge was rejected by GitHub's main-branch policy; no override or release occurred. #79 remains open, with #76 then #77 gated behind it. This session prepared documentation only and did not inspect live browser/provider state. Preserve `chore/refresh-compatible-dependencies` and `docs/mobile-session-handoff-20260915`; the earlier four-remote-ref baseline is historical. Save checkpoints proactively because remaining usage quota is not visible to the assistant.
+
 Last refreshed: 2026-09-15 (Asia/Singapore)
 
 Use this as the fastest resume point with CURRENT_STATE.md, NEXT_STEPS.md and UNFINISHED_WORK.md. Do not resume from historical preview, diagnostic, restoration or superseded branches.
