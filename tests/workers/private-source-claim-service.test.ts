@@ -36,6 +36,7 @@ function privateRepositoryClaim() {
 }
 
 describe("private repository worker claim composition", () => {
+  // The source broker must reauthorize the exact workspace/asset binding before minting provider authority.
   it("brokers an attempt-bound private archive lease and strips control-plane identifiers", async () => {
     const claim = privateRepositoryClaim();
     const heartbeat = vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: LEASE_EXPIRES_AT }));
