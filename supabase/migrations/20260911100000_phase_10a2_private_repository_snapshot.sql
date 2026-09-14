@@ -448,6 +448,8 @@ begin
     'artifactObjectKey', artifact_object_key,
     'input', jsonb_build_object(
       'kind', 'repository_snapshot_github_private',
+      'workspaceId', task_record.workspace_id,
+      'assetId', task_record.asset_id,
       'owner', repository_task.owner_name,
       'repository', repository_task.repository_name,
       'canonicalRepositoryUrl', repository_task.canonical_repository_url,

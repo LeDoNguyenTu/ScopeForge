@@ -32,6 +32,8 @@ export type {
 } from "./repository";
 
 export interface PrivateRepositorySourceLeaseRequest {
+  workspaceId: string;
+  assetId: string;
   githubRepositoryLinkId: string;
   owner: string;
   repository: string;
@@ -297,6 +299,8 @@ async function composeClaim(
       throw new WorkerControlError("WORKER_JOB_STATE_CONFLICT");
     }
     const privateArchiveLease = await dependencies.privateRepositorySourceLease({
+      workspaceId: claim.input.workspaceId,
+      assetId: claim.input.assetId,
       githubRepositoryLinkId: claim.input.githubRepositoryLinkId,
       owner: claim.input.owner,
       repository: claim.input.repository,

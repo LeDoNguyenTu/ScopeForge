@@ -36,6 +36,13 @@ describe("Phase 10A2 private repository snapshot persistence migration", () => {
     expect(sql).toContain("'repository_snapshot_github_private'");
   });
 
+  it("returns the claimed workspace and asset identity for control-plane reauthorization", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    const normalizedSql = sql.replace(/\s+/g, " ");
+    expect(normalizedSql).toContain("'workspaceId', task_record.workspace_id");
+    expect(normalizedSql).toContain("'assetId', task_record.asset_id");
+  });
+
   it("derives private immutable-snapshot provenance from the trusted execution class", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toContain("create or replace function public.finalize_repository_snapshot_worker_attempt");
