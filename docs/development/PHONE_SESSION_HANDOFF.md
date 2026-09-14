@@ -2,6 +2,19 @@
 
 Checkpoint: 2026-09-15, Asia/Singapore. Re-fetch live state before acting.
 
+## Latest implementation checkpoint
+
+This section supersedes the earlier session observations below.
+
+- Added ten authorization regression cases in [PR #110](https://github.com/LeDoNguyenTu/ScopeForge/pull/110), branch `test/github-connection-reauthorization-20260915`, exact head `39e14307756d1bc47209209307e18c14c38c725e`.
+- Coverage: member/viewer initiation; owner privileges revoked before either callback stage; same-user cross-workspace state rejection; forbidden connect creates no state cookie; forbidden callback clears both secure cookies. Provider exchange and persistence must not run after authorization denial.
+- Production implementation already satisfies these guards; no production code or provider configuration changed. These regression tests do not replace live issue #79 acceptance.
+- Fresh local validation on Node 24.16.0: focused tests 25 passed; full Windows suite 394 files / 1,734 tests passed, with 4 files / 24 host-capability tests skipped; typecheck and diff checks passed.
+- Exact-head Linux [CI 34883501804](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34883501804) completed successfully: 398 files / 1,758 tests passed, audit zero vulnerabilities, typecheck, CLI build/version, both benchmarks, Next build, CSP browser smoke, production UI diagnostic and screenshot upload all passed. Vercel preview check passed. These are candidate checks, not proof of a production release.
+- Fresh production browser read: Brian's workspace / Owner, Connected, Repository access verified, read-only installation and the expected public repository. No member/viewer session was supplied and neither negative canary completed.
+- GitHub UI independently confirms #109 has all checks passing but says "Cannot update this protected ref." The only enabled path requires the explicit "bypass rules" checkbox. A one-time administrator merge of #109 only was requested from the user; no answer or authorization has yet been received. Do not infer approval from elapsed time or a generic request to continue. Rules remain unchanged.
+- Preserve the new #110 branch alongside every previously active branch. Both #109 and #110 remain unmerged at this checkpoint; #110 also reports `mergeStateStatus: BLOCKED`. Approval was requested only for #109, not #110.
+
 ## Start a new ChatGPT session
 
 Paste this prompt, together with this file's GitHub link:
@@ -10,6 +23,8 @@ Paste this prompt, together with this file's GitHub link:
 Continue ScopeForge from the linked PHONE_SESSION_HANDOFF.md. Read root AGENTS.md and the six startup documents in its prescribed order, then reconcile live GitHub state. Repository: LeDoNguyenTu/ScopeForge; expected GitHub account: LeDoNguyenTu. Use Node 24.
 
 At the checkpoint, PR #109's compatible dependency refresh was fully validated but a normal merge was rejected by the main-branch policy. Do not use --admin, change rules, or treat the PR as released. Inspect the live restriction and use an authorized release path only.
+
+PR #110 adds ten callback authorization regression cases at head 39e14307756d1bc47209209307e18c14c38c725e. Local tests/typecheck passed; inspect exact-head CI 34883501804 and live review state before any release. Check whether the user has explicitly approved the one-time #109 administrator merge requested in the prior session; approval for #109 does not cover other PRs or changing repository rules.
 
 Issue #79 still requires two real authenticated production negative canaries: reject an unrelated valid installation ID in the normal owner/admin callback flow, and reject Connect GitHub for a legitimate member/viewer. Do not fabricate auth/database state or downgrade an owner. After #79 passes, follow PR #76 then PR #77 with their separate schema/runtime/privacy/rollback acceptance. Keep unaccepted hosted runtime capabilities off.
 

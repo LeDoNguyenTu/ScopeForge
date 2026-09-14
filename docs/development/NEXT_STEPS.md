@@ -2,6 +2,8 @@
 
 ## Latest continuation checkpoint - 2026-09-15
 
+Continuation added regression PR #110 at `39e14307756d1bc47209209307e18c14c38c725e`: ten callback authorization cases, focused 25 tests and full Windows 1,734 tests passed, typecheck passed. Read the phone handoff for exact CI completion and remaining approval/session prerequisites. #110 does not clear #79.
+
 Start with [PHONE_SESSION_HANDOFF.md](PHONE_SESSION_HANDOFF.md) and re-fetch live state. PR #109's dependency refresh passed exact-head CI, but its normal merge is blocked by the main-branch policy. Resolve the authorized release path without an administrator override or ruleset change, then verify post-merge CI/production. #79's two real negative authorization canaries still gate #76 then #77. Keep unaccepted capabilities off and preserve all active dependency/handoff branches. Older four-ref counts and PR #97 priority wording are historical.
 
 Last reconciled: 2026-09-15 (Asia/Singapore)

@@ -2,6 +2,8 @@
 
 ## Latest continuation checkpoint - 2026-09-15
 
+Continuation added regression PR #110 at `39e14307756d1bc47209209307e18c14c38c725e`: ten callback authorization cases, focused 25 tests and full Windows 1,734 tests passed, typecheck passed. Read the phone handoff for exact CI completion and remaining approval/session prerequisites. #110 does not clear #79.
+
 This checkpoint supersedes older current-state wording below. [PHONE_SESSION_HANDOFF.md](PHONE_SESSION_HANDOFF.md) records live main `5cd055b0575e41450844f81425956716d2d3f37c`, open PR #109 at `74152ca469b75d5ccacc42db713d34b04ab2d4bd`, its passing CI (398 files / 1,748 tests), and GitHub's rejection of a normal merge under the main-branch policy. #109 is not released. #79 remains open and #76/#77 remain draft. Production providers were not reverified or changed. Preserve the dependency and documentation handoff branches; the four-ref cleanup count below is historical.
 
 Last reconciled: 2026-09-15 (Asia/Singapore)

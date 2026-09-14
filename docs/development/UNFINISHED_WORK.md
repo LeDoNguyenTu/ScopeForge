@@ -2,6 +2,8 @@
 
 ## Latest continuation checkpoint - 2026-09-15
 
+Continuation added regression PR #110 at `39e14307756d1bc47209209307e18c14c38c725e`: ten callback authorization cases, focused 25 tests and full Windows 1,734 tests passed, typecheck passed. Read the phone handoff for exact CI completion and remaining approval/session prerequisites. #110 does not clear #79.
+
 See [PHONE_SESSION_HANDOFF.md](PHONE_SESSION_HANDOFF.md). PR #109's existing dependency implementation passed exact-head CI, but release remains pending: GitHub rejected a normal merge under its main-branch policy. Do not use an administrator override or modify rules to force release. The two #79 negative production canaries remain unfinished; #76 and #77 remain draft and ordered behind them. Browser/provider state was not freshly verified here. Preserve the active dependency/handoff branches in addition to the historical four-ref set. The phone handoff and synchronized entry points are documentation-only changes.
 
 Last reconciled: 2026-09-15 (Asia/Singapore)
