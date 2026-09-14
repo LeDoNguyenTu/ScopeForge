@@ -116,7 +116,8 @@ function fixedResult(): ScanResult {
 }
 
 async function golden(name: string): Promise<string> {
-  return readFile(join(process.cwd(), "tests", "fixtures", "scanner", "golden", name), "utf8");
+  return (await readFile(join(process.cwd(), "tests", "fixtures", "scanner", "golden", name), "utf8"))
+    .replace(/\r\n/g, "\n");
 }
 
 describe("Phase 3 golden output continuity", () => {

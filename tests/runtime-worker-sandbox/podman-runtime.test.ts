@@ -25,7 +25,7 @@ function startOptions(exec: ReturnType<typeof vi.fn>) {
   return call?.[2] as { timeoutMs: number; maxOutputBytes: number };
 }
 
-describe("Phase 6D Podman runtime limits", () => {
+describe.skipIf(process.platform === "win32")("Phase 6D Podman runtime limits", () => {
   it("caps passive attach time and output at the passive contract boundary", async () => {
     const controlled = driver();
     const sandbox = createRuntimeWorkerSandbox({ driver: controlled });
