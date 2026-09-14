@@ -13,7 +13,7 @@ See `CURRENT_STATE.md` for the complete startup, provider and validation evidenc
 - #79 remains open: owner Chrome access and GitHub confirmation work, but the existing production connection redirects a new Connect GitHub attempt to installed-App settings before ScopeForge can receive a fresh signed callback carrying an unrelated installation ID. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
 - Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`d9466f40e38e84e2fc694396c5947aa0f95a2d5d`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
 - Exact-head static security review of PR #76 found no reportable source issue; [the review comment](https://github.com/LeDoNguyenTu/ScopeForge/pull/76#issuecomment-5659605414) preserves the cleanup/retention and exact production acceptance questions. It does not clear the release gates.
-- PR #102's Windows portability work is merged with green post-merge Linux CI. PR #103 adds a real symlink-capability probe; its local focused tests, typecheck and full Windows suite pass (394 files / 1,724 tests, with unavailable symlink/POSIX/Podman cases skipped). A fresh branch audit deleted 62 historical refs and retained all open-PR, intentional, and active-worktree refs; six pre-PR-#103 remote branches remained.
+- PR #102's Windows portability work is merged with green post-merge Linux CI. PR #103 adds a real symlink-capability probe; its local focused tests, typecheck and full Windows suite pass (394 files / 1,724 tests, with unavailable symlink/POSIX/Podman cases skipped). Final branch cleanup is complete: exactly four remote refs remain (`main`, #76, #77 and the demo branch), with only local `main` and its worktree.
 
 ## Hard execution rules
 
@@ -128,7 +128,7 @@ PR #87 remains the responsive admin/GitHub UI baseline. Do not create cosmetic c
 
 PR #92 published `docs/development/BRANCH_CLEANUP_CANDIDATES.md` from a live audit. At the audit point there were 60 branches, 4 retain refs and 56 safe-delete refs. Only #76 and #77 were open PR heads.
 
-The local authenticated Git CLI deleted 62 historical refs after checking all 68 branches, open PRs, commit reachability, the prior cleanup manifest, and active local worktrees. A post-delete fetch returned six refs: `main`, #76, #77, the demo branch, and two active-worktree branches. Three other active local worktree branches have no remote ref and were untouched.
+The local authenticated Git CLI first deleted 62 historical refs after checking all 68 branches, open PRs, commit reachability, the prior cleanup manifest, and active local worktrees. On 2026-09-15, a new audit confirmed the auxiliary worktrees were clean and their branches were merged, superseded, or explicitly historical. It removed four worktrees, ten finished local branches, and the final two historical remote refs. The repository now has exactly four remote refs (`main`, #76, #77 and the demo branch), one local branch and one worktree.
 
 ## Resume procedure
 
@@ -138,6 +138,6 @@ The local authenticated Git CLI deleted 62 historical refs after checking all 68
 4. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 5. Do not apply Phase 10A2 migrations or enable private/runtime gates before #79 clears.
 6. When #79 clears, follow strict #76 then #77 release order.
-7. Preserve the six verified remote refs and re-audit before any future branch cleanup.
+7. Preserve the four verified remote refs and re-audit before any future branch cleanup.
 8. Update resume docs for semantic state changes, not merely because a docs-only merge advanced main.
 9. Do not stop after one safe PR if another independent task is actionable.
