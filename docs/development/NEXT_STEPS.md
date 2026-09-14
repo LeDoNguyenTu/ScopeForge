@@ -10,7 +10,7 @@ See `CURRENT_STATE.md` for the complete startup, provider and validation evidenc
 - Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
 - #79 remains open: owner Chrome access now exists, but the normal connection flow requires GitHub passkey/MFA confirmation; the wrong-installation canary has not completed. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
 - Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`ad6eb05c1e004ca905ad68ce3708ae64c35856d2`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
-- The independent Windows CI-order guard fix normalizes CRLF without relaxing ordering assertions. Local RED/GREEN was verified with CRLF and LF. The broader Windows suite is not green; Linux exact-candidate CI is required. The local Git CLI supports genuine ref deletion, but no branches were deleted; re-audit active local worktrees as well as remote PR heads first.
+- The Windows CI-order guard now normalizes CRLF without relaxing ordering assertions. Local RED/GREEN was verified with CRLF and LF; exact candidate and post-merge Linux CI passed. Branch cleanup deleted 31 exact merged-PR head refs, reducing the verified remote set from 68 to 37; active worktrees and 31 ambiguous historical refs were retained.
 
 ## Resume/ref rule
 
@@ -142,7 +142,7 @@ PR #92 published the authoritative cleanup manifest after a live audit:
 - 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
 - 56 refs were safe-delete candidates at that audit point
 
-The authenticated local Git CLI provides a genuine ref-delete mechanism, so the old connector-only tooling blocker is obsolete. No branches were deleted in this session; preserve active PR and local-worktree refs, and do not fake deletion by force-moving refs. Re-fetch the complete branch list immediately before deletion because maintenance branches created after the audit must also be classified.
+The authenticated local Git CLI deleted 31 refs whose live tips exactly matched merged PR heads and were not attached to a local worktree. The post-delete count is 37. Preserve the two open PR heads, intentional demo state, active local-worktree refs, and the 31 historical refs that did not have an exact merged-head proof. Re-fetch and reclassify before any further deletion.
 
 Use `docs/development/BRANCH_CLEANUP_CANDIDATES.md` as the starting manifest.
 

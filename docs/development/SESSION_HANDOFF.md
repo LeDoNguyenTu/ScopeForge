@@ -12,7 +12,7 @@ See `CURRENT_STATE.md` for the complete startup, provider and validation evidenc
 - Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
 - #79 remains open: owner Chrome access now exists, but the normal connection flow requires GitHub passkey/MFA confirmation; the wrong-installation canary has not completed. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
 - Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`ad6eb05c1e004ca905ad68ce3708ae64c35856d2`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
-- The independent Windows CI-order guard fix normalizes CRLF without relaxing ordering assertions. Local RED/GREEN was verified with CRLF and LF. The broader Windows suite is not green; Linux exact-candidate CI is required. The local Git CLI supports genuine ref deletion, but no branches were deleted; re-audit active local worktrees as well as remote PR heads first.
+- The Windows CI-order guard normalizes CRLF without relaxing ordering assertions. Local RED/GREEN and exact candidate/post-merge Linux CI passed. A fresh branch audit deleted 31 exact merged-PR head refs and retained all open-PR, intentional, local-worktree, and ambiguous historical refs; 37 remote branches remain.
 
 ## Hard execution rules
 
@@ -122,7 +122,7 @@ PR #87 remains the responsive admin/GitHub UI baseline. Do not create cosmetic c
 
 PR #92 published `docs/development/BRANCH_CLEANUP_CANDIDATES.md` from a live audit. At the audit point there were 60 branches, 4 retain refs and 56 safe-delete refs. Only #76 and #77 were open PR heads.
 
-The local authenticated Git CLI now provides a genuine delete-ref mechanism. No branches were deleted. Re-fetch the complete ref set and preserve active local-worktree branches before cleanup. Never simulate deletion by force-moving refs. Maintenance/documentation branches created after the PR #92 audit must also be reclassified before cleanup.
+The local authenticated Git CLI deleted 31 exact merged-PR head refs after checking all 68 branches, open PRs and active local worktrees. A post-delete fetch returned 37 refs. The retained set includes the two open PR heads, intentional/demo refs, active worktree branches, and 31 ambiguous historical refs. Re-audit before any further cleanup.
 
 ## Resume procedure
 
@@ -132,6 +132,6 @@ The local authenticated Git CLI now provides a genuine delete-ref mechanism. No 
 4. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 5. Do not apply Phase 10A2 migrations or enable private/runtime gates before #79 clears.
 6. When #79 clears, follow strict #76 then #77 release order.
-7. Branch deletion requires a fresh complete ref and active-local-worktree audit.
+7. Further branch deletion requires deeper reconciliation of the 31 ambiguous historical refs and a fresh active-worktree audit.
 8. Update resume docs for semantic state changes, not merely because a docs-only merge advanced main.
 9. Do not stop after one safe PR if another independent task is actionable.

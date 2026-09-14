@@ -12,7 +12,7 @@ See `CURRENT_STATE.md` for the complete startup, provider and validation evidenc
 - Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
 - #79 remains open: owner Chrome access now exists, but the normal connection flow requires GitHub passkey/MFA confirmation; the wrong-installation canary has not completed. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
 - Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`ad6eb05c1e004ca905ad68ce3708ae64c35856d2`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
-- The independent Windows CI-order guard fix normalizes CRLF without relaxing ordering assertions. Local RED/GREEN was verified with CRLF and LF. The broader Windows suite is not green; Linux exact-candidate CI is required. The local Git CLI supports genuine ref deletion, but no branches were deleted; re-audit active local worktrees as well as remote PR heads first.
+- The Windows CI-order guard now normalizes CRLF without relaxing ordering assertions. Local RED/GREEN and exact candidate/post-merge Linux CI passed. Branch cleanup deleted 31 exact merged-PR head refs, reducing the remote branch set from 68 to 37; active and ambiguous refs were retained.
 
 ## Global rules
 
@@ -168,11 +168,11 @@ Audit-point state:
 - 4 retain refs: `main`, #76, #77, `demo/portfolio-20260910`
 - 56 refs classified safe to delete
 
-The authenticated local Git CLI now provides a real ref-delete mechanism. No branches were deleted. Before any cleanup:
+The authenticated local Git CLI deleted 31 exact merged-PR head refs after a fresh audit. The verified post-delete count is 37. Before any further cleanup:
 
-1. re-fetch the complete branch list because later maintenance/docs branches will have changed the count
-2. preserve `main`, #76, #77, intentional demo refs, and any newly active task/PR branch
-3. delete only refs proven historical/completed and not backing an open PR
+1. re-fetch the complete branch list and active worktrees
+2. preserve `main`, #76, #77, intentional/demo refs, every active worktree ref, and any newly active task/PR branch
+3. reconcile the 31 ambiguous historical refs individually; delete only refs with equivalent exact preservation evidence
 4. re-list refs after deletion and document the result
 
 Never fake deletion by force-moving or repointing refs.
