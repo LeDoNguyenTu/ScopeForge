@@ -87,6 +87,7 @@ jobs:
         env:
           SCOPEFORGE_PRODUCTION_BASE_URL: https://scopeforge.dev
           SCOPEFORGE_BROWSER_SCREENSHOT_DIR: .artifacts/ui-acceptance
+          SCOPEFORGE_WEBDRIVER_BASE_URL: http://127.0.0.1:9516
         run: |
           set -euo pipefail
           command -v google-chrome
@@ -103,11 +104,11 @@ jobs:
           }
           trap cleanup EXIT
 
-          chromedriver --port=9515 --allowed-ips= > /tmp/scopeforge-production-chromedriver.log 2>&1 &
+          chromedriver --port=9516 --allowed-ips= > /tmp/scopeforge-production-chromedriver.log 2>&1 &
           echo $! > /tmp/scopeforge-production-chromedriver.pid
 
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:9515/status > /dev/null; then
+            if curl --fail --silent http://127.0.0.1:9516/status > /dev/null; then
               break
             fi
             if [ "$attempt" -eq 30 ]; then
