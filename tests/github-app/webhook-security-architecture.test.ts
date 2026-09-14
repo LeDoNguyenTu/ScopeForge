@@ -62,16 +62,16 @@ describe("Phase 10A3 webhook security architecture", () => {
     }
   });
 
-  it("keeps webhook and completion RPC authority service-role-only", async () => {
+  it("keeps webhook and terminal-scan settlement RPC authority service-role-only", async () => {
     const base = await source("supabase/migrations/20260912020000_phase_10a3_github_webhook_reconciliation.sql");
-    const completion = await source("supabase/migrations/20260912022000_phase_10a3_completion_reconciliation.sql");
+    const completion = await source("supabase/migrations/20260915010000_phase_10a3_terminal_scan_watermark.sql");
     const sql = `${base}\n${completion}`.replace(/\s+/g, " ");
 
     for (const fn of [
       "admit_github_webhook_delivery",
       "record_github_webhook_push_head",
       "enqueue_github_webhook_project_snapshot",
-      "complete_github_webhook_project_scan",
+      "settle_github_webhook_project_scan_terminal",
     ]) {
       expect(sql).toMatch(new RegExp(`revoke all on function public\\.${fn}\\([^;]+\\) from public, anon, authenticated, service_role`));
       expect(sql).toMatch(new RegExp(`grant execute on function public\\.${fn}\\([^;]+\\) to service_role`));

@@ -75,6 +75,7 @@ export type AutomaticProjectScanReconciliationResult =
         | "PROVIDER_STATE_CHANGED"
         | "PROVIDER_UNAVAILABLE"
         | "COALESCED"
+        | "SCAN_FAILED"
         | "ENQUEUE_DEFERRED";
     }
   | {

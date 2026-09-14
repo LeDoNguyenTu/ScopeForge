@@ -49,10 +49,19 @@ type ManualTerminalSettlement =
   | { matched: true; replayed: false; followUpRequired: false }
   | AutomaticFollowUpContext;
 
+type AutomaticTerminalSettlement =
+  | {
+      matched: true;
+      replayed: false;
+      followUpRequired: false;
+      terminalSucceeded: boolean;
+      successfulCommitSha: string | null;
+    }
+  | (AutomaticFollowUpContext & { terminalSucceeded: boolean });
+
 export interface AutomaticProjectScanReconciliationDependencies {
-  completeAutomaticProjectScan(input: {
-    snapshotTaskId: string;
-    snapshotId: string;
+  settleAutomaticProjectScanTerminal(input: {
+    scanTaskId: string;
   }): Promise<unknown>;
   settleManualProjectScanTerminal(input: {
     scanTaskId: string;
@@ -154,58 +163,36 @@ function parseFollowUpContext(
   };
 }
 
-function parseCompletion(value: unknown): AutomaticProjectScanCompletionContext | null {
+function parseAutomaticTerminalSettlement(value: unknown): AutomaticTerminalSettlement | null {
   const row = objectValue(value);
   if (!row) return null;
   if (row.matched === false) return null;
-  if (row.matched !== true || row.replayed !== false || typeof row.followUpRequired !== "boolean") {
-    throw new Error("AUTOMATIC_PROJECT_SCAN_COMPLETION_INVALID");
+  if (
+    row.matched !== true || row.replayed !== false
+    || typeof row.followUpRequired !== "boolean"
+    || typeof row.terminalSucceeded !== "boolean"
+  ) {
+    throw new Error("AUTOMATIC_PROJECT_SCAN_TERMINAL_INVALID");
   }
 
   if (row.followUpRequired) {
-    return parseFollowUpContext(row, true) as AutomaticProjectScanCompletionContext;
+    return {
+      ...parseFollowUpContext(row, false),
+      terminalSucceeded: row.terminalSucceeded,
+    };
   }
 
-  const successfulCommitSha = commitSha(row.successfulCommitSha);
-  if (!successfulCommitSha) throw new Error("AUTOMATIC_PROJECT_SCAN_COMPLETION_INVALID");
-
-  const workspaceId = uuid(row.workspaceId);
-  const linkId = uuid(row.linkId);
-  const installationId = positiveInteger(row.installationId);
-  const repositoryId = positiveInteger(row.repositoryId);
-  const latestDeliveryId = uuid(row.latestDeliveryId);
-  const defaultBranch = boundedString(row.defaultBranch, 255);
-  const htmlUrl = boundedString(row.htmlUrl, 512);
-  const desiredCommitSha = row.desiredCommitSha === null ? null : commitSha(row.desiredCommitSha);
-  const accessStatus = row.accessStatus;
-  if (
-    !workspaceId || !linkId || !installationId || !repositoryId || !latestDeliveryId
-    || !defaultBranch || !htmlUrl
-    || (row.desiredCommitSha !== null && !desiredCommitSha)
-    || typeof row.isPrivate !== "boolean"
-    || typeof row.autoScanEnabled !== "boolean"
-    || typeof row.providerArchived !== "boolean"
-    || (accessStatus !== "active" && accessStatus !== "inaccessible" && accessStatus !== "removed")
-  ) {
-    throw new Error("AUTOMATIC_PROJECT_SCAN_COMPLETION_INVALID");
+  const successfulCommitSha = row.successfulCommitSha === null
+    ? null
+    : commitSha(row.successfulCommitSha);
+  if (row.successfulCommitSha !== null && !successfulCommitSha) {
+    throw new Error("AUTOMATIC_PROJECT_SCAN_TERMINAL_INVALID");
   }
-
   return {
     matched: true,
     replayed: false,
     followUpRequired: false,
-    workspaceId,
-    linkId,
-    installationId,
-    repositoryId,
-    latestDeliveryId,
-    defaultBranch,
-    isPrivate: row.isPrivate,
-    htmlUrl,
-    accessStatus,
-    autoScanEnabled: row.autoScanEnabled,
-    providerArchived: row.providerArchived,
-    desiredCommitSha,
+    terminalSucceeded: row.terminalSucceeded,
     successfulCommitSha,
   };
 }
@@ -256,12 +243,11 @@ function parseAutomaticSnapshotEnqueue(value: unknown): AutomaticSnapshotEnqueue
 function createDefaultDependencies(): AutomaticProjectScanReconciliationDependencies {
   const admin = createAdminClient<Phase10a3Database>();
   return {
-    completeAutomaticProjectScan: async (input) => {
-      const { data, error } = await admin.rpc("complete_github_webhook_project_scan", {
-        target_snapshot_task_id: input.snapshotTaskId,
-        target_snapshot_id: input.snapshotId,
+    settleAutomaticProjectScanTerminal: async (input) => {
+      const { data, error } = await admin.rpc("settle_github_webhook_project_scan_terminal", {
+        target_scan_task_id: input.scanTaskId,
       });
-      if (error) throw new Error("AUTOMATIC_PROJECT_SCAN_COMPLETION_FAILED");
+      if (error) throw new Error("AUTOMATIC_PROJECT_SCAN_TERMINAL_FAILED");
       return data;
     },
     settleManualProjectScanTerminal: async (input) => {
@@ -405,29 +391,6 @@ async function scheduleAutomaticFollowUp(
   };
 }
 
-export async function reconcileAutomaticProjectScanAfterSnapshot(
-  input: { snapshotTaskId: string; snapshotId: string },
-  dependencies?: AutomaticProjectScanReconciliationDependencies,
-): Promise<AutomaticProjectScanReconciliationResult> {
-  if (!UUID_PATTERN.test(input.snapshotTaskId) || !UUID_PATTERN.test(input.snapshotId)) {
-    return { status: "ignored" };
-  }
-
-  const deps = dependencies ?? createDefaultDependencies();
-  let completion: AutomaticProjectScanCompletionContext | null;
-  try {
-    completion = parseCompletion(await deps.completeAutomaticProjectScan(input));
-  } catch {
-    return { status: "pending", code: "ENQUEUE_DEFERRED" };
-  }
-  if (!completion) return { status: "ignored" };
-
-  if (!completion.followUpRequired) {
-    return { status: "completed", successfulCommitSha: completion.successfulCommitSha };
-  }
-  return scheduleAutomaticFollowUp(completion as AutomaticFollowUpContext, deps);
-}
-
 export async function reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal(
   input: { scanTaskId: string },
   dependencies?: AutomaticProjectScanReconciliationDependencies,
@@ -435,6 +398,28 @@ export async function reconcilePendingAutomaticProjectScanAfterRepositoryScanTer
   if (!UUID_PATTERN.test(input.scanTaskId)) return { status: "ignored" };
 
   const deps = dependencies ?? createDefaultDependencies();
+  let automaticSettlement: AutomaticTerminalSettlement | null;
+  try {
+    automaticSettlement = parseAutomaticTerminalSettlement(
+      await deps.settleAutomaticProjectScanTerminal({ scanTaskId: input.scanTaskId }),
+    );
+  } catch {
+    return { status: "pending", code: "ENQUEUE_DEFERRED" };
+  }
+
+  if (automaticSettlement) {
+    if (automaticSettlement.followUpRequired) {
+      return scheduleAutomaticFollowUp(automaticSettlement, deps);
+    }
+    if (!automaticSettlement.terminalSucceeded || !automaticSettlement.successfulCommitSha) {
+      return { status: "pending", code: "SCAN_FAILED" };
+    }
+    return {
+      status: "completed",
+      successfulCommitSha: automaticSettlement.successfulCommitSha,
+    };
+  }
+
   let settlement: ManualTerminalSettlement | null;
   try {
     settlement = parseManualTerminalSettlement(
