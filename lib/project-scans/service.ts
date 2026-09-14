@@ -508,7 +508,6 @@ export async function resumeConnectedProjectScan(
 }
 
 export {
-  reconcileAutomaticProjectScanAfterSnapshot,
   reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
 } from "./automatic-reconciliation";
 export type { AutomaticProjectScanReconciliationDependencies } from "./automatic-reconciliation";

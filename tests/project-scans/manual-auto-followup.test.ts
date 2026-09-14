@@ -50,6 +50,7 @@ function repository(overrides: Record<string, unknown> = {}) {
 
 function dependencies(overrides: Record<string, unknown> = {}) {
   return {
+    settleAutomaticProjectScanTerminal: vi.fn(async () => ({ matched: false, replayed: true })),
     settleManualProjectScanTerminal: vi.fn(async () => terminalContext()),
     getConfig: vi.fn(() => ({
       appId: "123",

@@ -285,16 +285,16 @@ System-triggered automatic scans do not invent a browser session and do not trea
 
 ### Immutable completion authority and no-lost-head follow-up
 
-Automatic completion never advances a successful watermark from a worker-supplied or webhook-supplied SHA. The completion RPC binds:
+Automatic completion never advances a successful watermark from a worker-supplied or webhook-supplied SHA. The terminal-scan settlement RPC binds:
 
 - the exact webhook-triggered project intent,
-- the exact snapshot worker task,
+- the exact repository-scan worker task and scan job in a trusted terminal state,
 - the exact immutable snapshot row,
 - `repository_source_snapshots.resolved_commit_sha`.
 
-Only that persisted immutable snapshot SHA may advance `successful_commit_sha`.
+Only a successfully completed repository scan may advance `successful_commit_sha` to that persisted immutable snapshot SHA. Failed, cancelled and retrying scans never advance the watermark.
 
-After successful snapshot publication and exact-snapshot scan continuation is established, trusted server reconciliation compares the successful immutable SHA with the desired watermark. If the provider default head advanced while the earlier chain was active, the control plane revalidates the current head again and schedules at most one follow-up against the newest accepted head. Replay of the same completion cannot advance the watermark twice.
+After the exact-snapshot repository scan reaches a trusted terminal state, server reconciliation compares the scanned immutable SHA with the desired watermark. If the provider default head advanced while the earlier chain was active, the control plane revalidates the current head again and schedules at most one follow-up against the newest accepted head. A failed same-head scan releases its intent without immediately looping, so a later delivery can retry it. Replay of the same terminal settlement cannot advance the watermark twice.
 
 ### Browser boundary
 

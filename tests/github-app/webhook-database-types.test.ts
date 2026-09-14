@@ -17,7 +17,8 @@ const webhookRpcs = [
   "record_github_webhook_delivery_result",
   "reconcile_github_webhook_connection_state",
   "reconcile_github_webhook_repository_state",
-  "complete_github_webhook_project_scan",
+  "settle_github_webhook_project_scan_terminal",
+  "settle_manual_connected_project_scan_terminal",
 ] as const;
 
 describe("Phase 10A3 database type overlay", () => {

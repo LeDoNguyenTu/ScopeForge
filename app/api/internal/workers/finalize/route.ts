@@ -1,6 +1,5 @@
 import {
   continueConnectedProjectScanAfterSnapshot,
-  reconcileAutomaticProjectScanAfterSnapshot,
   reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
 } from "@/lib/project-scans/service";
 import { createRepositorySnapshotServerDependencies } from "@/lib/repository-snapshots/server-dependencies";
@@ -70,16 +69,10 @@ export async function POST(request: Request): Promise<Response> {
         : await publishRepositorySnapshotAttempt(snapshotInput, snapshotDependencies);
 
       if (result.outcome === "succeeded" && result.snapshotId) {
-        const continuation = await continueConnectedProjectScanAfterSnapshot({
+        await continueConnectedProjectScanAfterSnapshot({
           snapshotTaskId: result.taskId,
           snapshotId: result.snapshotId,
         });
-        if (continuation.status === "scan_queued") {
-          await reconcileAutomaticProjectScanAfterSnapshot({
-            snapshotTaskId: result.taskId,
-            snapshotId: result.snapshotId,
-          });
-        }
       }
 
       return workerJson({ ok: true, data: result });

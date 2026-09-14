@@ -73,10 +73,9 @@ export type Phase10a3Functions = Phase10a2Database["public"]["Functions"] & {
     };
     Returns: Json;
   };
-  complete_github_webhook_project_scan: {
+  settle_github_webhook_project_scan_terminal: {
     Args: {
-      target_snapshot_task_id: string;
-      target_snapshot_id: string;
+      target_scan_task_id: string;
     };
     Returns: Json;
   };

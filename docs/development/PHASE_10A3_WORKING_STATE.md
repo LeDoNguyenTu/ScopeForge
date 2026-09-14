@@ -184,8 +184,8 @@ Issue #82 is closed. The current architecture remains a modular monolith with st
 
 - rapid pushes coalesce instead of creating unbounded fan-out
 - public/private acquisition classes and runtime gates remain distinct
-- automatic completion is bound to exact persisted webhook intent and immutable snapshot authority
-- successful watermark advances only from `repository_source_snapshots.resolved_commit_sha`
+- automatic completion is bound to the exact persisted webhook intent, terminal repository-scan task/job and immutable snapshot authority
+- successful watermark advances only after repository-scan success and only from `repository_source_snapshots.resolved_commit_sha`
 - provider head is revalidated before follow-up enqueue
 - same-head pending state is recoverable if no active intent owns the chain
 - stale signed payloads can recover the provider-authoritative newest head without scanning the stale payload SHA
@@ -193,6 +193,10 @@ Issue #82 is closed. The current architecture remains a modular monolith with st
 ### Manual/automatic no-lost-head correction
 
 Migration `20260912023000_phase_10a3_manual_scan_auto_followup.sql` handles the independent edge where a webhook coalesces behind a manual connected-project scan. It binds settlement to exact persisted repository `scan_task_id`, accepts only trusted terminal task/job pairs, preserves queued/leased/retry work and schedules at most one provider-authoritative newest-head follow-up.
+
+### Terminal-scan watermark correction
+
+Forward migration `20260915010000_phase_10a3_terminal_scan_watermark.sql` replaces snapshot-time completion with exact repository-scan terminal settlement. Snapshot publication only queues the zero-egress repository scan. The success watermark advances after the corresponding scan task/job succeeds; failure and cancellation do not advance it, `retry_wait` retains the active intent, and failed same-head work can be retried by a later delivery without an immediate retry loop.
 
 ## Validation history - latest hardening sequence
 

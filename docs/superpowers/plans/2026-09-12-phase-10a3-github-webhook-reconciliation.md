@@ -4,7 +4,7 @@
 
 **Goal:** Add authenticated GitHub App webhook reconciliation so connected repositories continuously scan the newest authoritative default-branch head without weakening the Phase 10A1/10A2 credential, runtime, or public/private worker boundaries.
 
-**Architecture:** A public Next.js webhook route verifies HMAC-SHA256 over the untouched raw body, then delegates to a provider-aware reconciliation service. Forward-only service-role RPCs provide replay protection, per-link desired-head coalescing, lifecycle state reconciliation, and system-triggered snapshot enqueue. Existing public/private snapshot workers and the exact-snapshot zero-egress scanner remain unchanged; a narrow completion hook advances the successful SHA watermark and schedules at most one follow-up when the provider head advanced during an active scan.
+**Architecture:** A public Next.js webhook route verifies HMAC-SHA256 over the untouched raw body, then delegates to a provider-aware reconciliation service. Forward-only service-role RPCs provide replay protection, per-link desired-head coalescing, lifecycle state reconciliation, and system-triggered snapshot enqueue. Existing public/private snapshot workers and the exact-snapshot zero-egress scanner remain unchanged; a terminal repository-scan hook advances the successful SHA watermark and schedules at most one follow-up when the provider head advanced during an active scan.
 
 **Tech Stack:** Next.js App Router, TypeScript, Node `crypto`, Supabase/PostgreSQL, GitHub App REST API, Vitest, existing ScopeForge worker/snapshot/scan contracts.
 
@@ -216,7 +216,7 @@ git commit -m "feat: add authoritative GitHub reconciliation reads [skip ci]"
   - `record_github_webhook_delivery_result(...) -> jsonb`
   - `reconcile_github_webhook_connection_state(...) -> jsonb`
   - `reconcile_github_webhook_repository_state(...) -> jsonb`
-  - `complete_github_webhook_project_scan(...) -> jsonb`
+  - `settle_github_webhook_project_scan_terminal(...) -> jsonb`
 
 - [ ] **Step 1: Write RED migration security tests**
 
@@ -267,7 +267,7 @@ Preserve existing cooldown/daily/active-task limits. Replayed same desired SHA r
 
 - [ ] **Step 7: Add lifecycle and completion RPCs**
 
-`reconcile_github_webhook_connection_state` handles `active|suspended|removed` and marks links accordingly. `reconcile_github_webhook_repository_state` atomically updates verified safe repository/link/asset metadata and archive/access state by stable repository ID. `complete_github_webhook_project_scan` binds exact intent/snapshot resolved SHA, advances successful SHA only for matching webhook-triggered intent, and returns `{ followUpRequired, desiredCommitSha }` under lock.
+`reconcile_github_webhook_connection_state` handles `active|suspended|removed` and marks links accordingly. `reconcile_github_webhook_repository_state` atomically updates verified safe repository/link/asset metadata and archive/access state by stable repository ID. `settle_github_webhook_project_scan_terminal` binds the exact intent, repository-scan task/job and immutable snapshot, advances successful SHA only for a matching successfully completed webhook-triggered scan, and returns `{ followUpRequired, desiredCommitSha }` under lock.
 
 - [ ] **Step 8: Add Phase 10A3 type overlay**
 
@@ -425,16 +425,16 @@ git commit -m "feat: reconcile GitHub installation lifecycle [skip ci]"
 - Modify: `tests/project-scans/finalize-continuation.test.ts`
 
 **Interfaces:**
-- Consumes: exact snapshot publication result and Task 3 `complete_github_webhook_project_scan` RPC.
+- Consumes: exact terminal repository-scan result and `settle_github_webhook_project_scan_terminal` RPC.
 - Produces:
-  - `reconcileAutomaticProjectScanAfterSnapshot({ snapshotTaskId, snapshotId }): Promise<...>`
+  - terminal reconciliation through `reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({ scanTaskId }): Promise<...>`
   - exactly one follow-up enqueue when successful immutable SHA differs from desired watermark.
 
 - [ ] **Step 1: Write RED completion tests**
 
 Pin:
 - manual intents are ignored by auto completion
-- exact webhook intent + matching resolved snapshot SHA advances successful SHA
+- exact webhook intent + matching successful terminal scan + resolved snapshot SHA advances successful SHA
 - equal desired/successful SHA clears pending and enqueues nothing
 - advanced desired SHA returns one follow-up requirement
 - replayed finalization is idempotent
