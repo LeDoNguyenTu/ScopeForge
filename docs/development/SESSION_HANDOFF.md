@@ -1,17 +1,17 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-14 (Asia/Singapore)
+Last refreshed: 2026-09-15 (Asia/Singapore)
 
 Use this as the fastest resume point with CURRENT_STATE.md, NEXT_STEPS.md and UNFINISHED_WORK.md. Do not resume from historical preview, diagnostic, restoration or superseded branches.
 
-## Live reconciliation - 2026-09-14
+## Live reconciliation - 2026-09-15
 
 See `CURRENT_STATE.md` for the complete startup, provider and validation evidence. This summary supersedes older latest-state wording below; always fetch live refs.
 
 - PR #96 internal Action pins and PR #98 startup/account instructions are released. PR #97 public Action pins are now merged as `39fa4b147d9ecbb12ae60335412bad95fbad91fe`; exact candidate `17c8c41b3ac79c3c7426612ce3bd9aba5c038824` passed [CI 34778529251](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34778529251), 398 files / 1,746 tests and every build/benchmark/browser step. Read post-merge checks separately.
 - Startup Vercel production was READY on `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` with the correct team/project/domain and Node 24.x. Direct production HTTP/security-header checks passed. Migration history in verified ScopeForge Supabase still stops at `20260911143049_phase_10a1_service_role_table_acl_hardening`.
 - #79 remains open: owner Chrome access and GitHub confirmation work, but the existing production connection redirects a new Connect GitHub attempt to installed-App settings before ScopeForge can receive a fresh signed callback carrying an unrelated installation ID. Production has only two owner memberships and no member/viewer identity for the second canary. [Blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881). Positive import was not repeated.
-- Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`ad6eb05c1e004ca905ad68ce3708ae64c35856d2`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
+- Release order remains #79 -> draft #76 (`709ef8af4ce4befae12ba910d3bca15599b5cab1`) -> draft #77 (`7e2c8ef3dc9354eb5545867e91567960a692079f`). No schema, hosted gate, provider credential, webhook or host change occurred; runtime environment values were not re-read.
 - Exact-head static security review of PR #76 found no reportable source issue; [the review comment](https://github.com/LeDoNguyenTu/ScopeForge/pull/76#issuecomment-5659605414) preserves the cleanup/retention and exact production acceptance questions. It does not clear the release gates.
 - PR #102's Windows portability work is merged with green post-merge Linux CI. PR #103 adds a real symlink-capability probe; its local focused tests, typecheck and full Windows suite pass (394 files / 1,724 tests, with unavailable symlink/POSIX/Podman cases skipped). A fresh branch audit deleted 62 historical refs and retained all open-PR, intentional, and active-worktree refs; six pre-PR-#103 remote branches remained.
 
@@ -94,14 +94,17 @@ If a final host-level containment probe genuinely needs SSH unavailable here, ha
 
 PR #77 remains draft/open. Its PR description no longer says Phase 10A1 is dark-gated.
 
-Recorded pre-reconciliation evidence:
+Current pre-reconciliation evidence:
 
-- docs-only head `ad6eb05c1e004ca905ad68ce3708ae64c35856d2`
-- executable candidate `5f05ed964c8ab43f38a420b1b77317bae630cc1e`
-- prior synthetic merge `d7322502d3b01e583d0ccf4f4cdadf2cf955bc1b`
-- CI #981 / run `34711218370`: SUCCESS
+- executable head `7e2c8ef3dc9354eb5545867e91567960a692079f`
+- terminal-watermark fix candidate `dfc4e4e0dad4c705f0ff7ef82183ed5247aa1fe8`
+- validated synthetic merge `31f8a741c884907704f11e25eabb2fdbf343f116`
+- identical validated/current tree `d7dd1422664edf78b78be76afa36bc40aadc6c6b`
+- PR #104 / CI run `34868229377`: SUCCESS, 415 files / 1,901 tests
 
-Do not release #77 before #76. After #76 is released, reconcile #77 onto released live main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, then prove signature/oversize rejection, replay, lifecycle, coalescing/recovery, public/private separation, leak boundaries and a complete automatic scan before merge.
+Exact-head review found one medium workflow-integrity defect: snapshot completion advanced the successful SHA before repository-scan findings completed. PR #104 fixed it with forward migration `20260915010000_phase_10a3_terminal_scan_watermark.sql` and terminal task/job settlement. The migration is reviewed/validated only and remains unapplied.
+
+Do not release #77 before #76. After #76 is released, reconcile #77 onto released live main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, then prove signature/oversize rejection, replay, lifecycle, terminal success/failure, coalescing/recovery, public/private separation, leak boundaries and a complete automatic scan before merge.
 
 ## Hosted runtime gates
 
