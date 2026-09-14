@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { loadValidationCorpus } from "@/packages/validation-accuracy";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 import {
   addRepositoryHardLink,
   addRepositorySymlink,
@@ -61,7 +62,7 @@ describe("validation corpus parser security regressions", () => {
     });
   });
 
-  it("rejects a symlinked corpus root", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects a symlinked corpus root", async () => {
     const root = await writeCorpus([
       { directory: "cases/case-a", manifest: vulnerableCase("case-a") },
     ]);
@@ -73,7 +74,7 @@ describe("validation corpus parser security regressions", () => {
     });
   });
 
-  it("rejects symlinked repository files", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects symlinked repository files", async () => {
     const root = await writeCorpus([
       { directory: "cases/case-a", manifest: vulnerableCase("case-a") },
     ]);
@@ -110,7 +111,7 @@ describe("validation corpus parser security regressions", () => {
     });
   });
 
-  it("rejects case directories that escape the canonical corpus root", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects case directories that escape the canonical corpus root", async () => {
     const root = await validationRoot();
     const outside = await validationRoot();
     await mkdir(join(outside, "repository/src"), { recursive: true });

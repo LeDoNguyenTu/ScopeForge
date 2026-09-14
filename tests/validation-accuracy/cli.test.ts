@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { runValidationAccuracyCli } from "@/packages/validation-accuracy";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 import { vulnerableCase, writeCorpus } from "./task1-helpers";
 
 function io() {
@@ -80,7 +81,7 @@ describe("validation accuracy developer runner", () => {
     await expect(access(same)).rejects.toThrow();
   });
 
-  it("rejects a symlink output without following it", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects a symlink output without following it", async () => {
     const corpus = await oneCaseCorpus();
     const out = await outputRoot();
     const target = join(out, "target.json");
