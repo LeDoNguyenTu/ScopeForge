@@ -15,7 +15,7 @@ This section supersedes older current-state wording below. Fetch live refs again
 - #76 remains draft at `709ef8af4ce4befae12ba910d3bca15599b5cab1`; #77 remains draft at `ad6eb05c1e004ca905ad68ce3708ae64c35856d2`, stacked on #76. Neither was reconciled or released ahead of #79.
 - No provider credentials, hosted gates, webhook, runtime host, production identities or schema were modified. Live runtime environment values were not re-read; prior flag observations remain historical and all unaccepted capabilities must stay disabled.
 - Local Node 24.16.0 focused pin checks, typecheck, CLI build/version and audit (0 vulnerabilities) passed. The Windows full run had 1,712 passed, 33 failed and 1 skipped; symlink privileges, POSIX paths, CRLF-sensitive checks/fixtures and fixture timeouts prevent claiming a local full pass. Linux CI remains necessary. An independent CI-order guard repair normalizes CRLF before asserting command order, with local RED on CRLF and GREEN on both CRLF/LF; it does not weaken any runtime/security check.
-- Branch cleanup deleted 31 remote refs whose live tips exactly matched merged PR heads and were not attached to an active local worktree. The verified remote count fell from 68 to 37. The remaining refs include the two open Phase 10 PRs, intentional/demo state, active local-worktree branches, and 31 historical refs that need deeper reconciliation; none of those was deleted.
+- Branch cleanup deleted 62 historical remote refs after a live 68-branch audit. Thirty-one exact tips matched merged PR heads; twenty more were commit-reachable from retained refs; the final eleven matched the prior manifest's diagnostic, superseded, temporary, or explicitly closed categories. A post-delete fetch returned six branches: `main`, #76, #77, the intentional demo branch, and two branches attached to active local worktrees.
 
 ## Resume/ref semantics
 
@@ -87,7 +87,7 @@ Fresh branch/PR audit before the audit branch itself was created:
 - 4 refs retained by policy: `main`, #76, #77, and `demo/portfolio-20260910`
 - 56 refs classified safe to delete through a genuine delete-ref operation
 
-The authenticated local Git CLI deleted 31 exact merged-PR head refs after a fresh 68-branch/open-PR/worktree audit. The post-delete fetch returned 37 branches. Active local-worktree refs and 31 ambiguous historical refs were retained. Preserve those refs until their worktree/historical relationship is resolved; never simulate deletion by force-moving refs.
+The authenticated local Git CLI deleted 62 historical refs after a fresh 68-branch/open-PR/worktree audit. A post-delete fetch returned the intended six remote refs. The two non-PR development refs remain because they are attached to active local worktrees; three additional active local worktree branches currently have no remote ref. Never simulate deletion by force-moving refs.
 
 Authoritative manifest: `docs/development/BRANCH_CLEANUP_CANDIDATES.md`.
 
@@ -192,5 +192,5 @@ Phase 6D Tasks 14-16, including real Oracle Linux/rootless-Podman Task 15 contai
 3. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
 4. Do not apply Phase 10A2 migrations or enable private/runtime capability flags before #79 clears.
 5. After #79, release #76 in strict order, then #77.
-6. Further branch deletion requires a fresh complete ref and active-local-worktree audit; 31 ambiguous historical refs remain intentionally retained.
+6. Preserve the six verified remote refs. Re-audit open PRs and active local worktrees before any future cleanup.
 7. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized for semantic state, not by chasing every docs-only main SHA.
