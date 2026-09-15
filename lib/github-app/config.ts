@@ -20,6 +20,7 @@ export function getGitHubAppConfig(
   const privateKey = required(env, "GITHUB_APP_PRIVATE_KEY").replace(/\\n/g, "\n");
   const slug = required(env, "GITHUB_APP_SLUG");
   const stateSecret = required(env, "GITHUB_APP_STATE_SECRET");
+  const webhookSecret = required(env, "GITHUB_APP_WEBHOOK_SECRET");
 
   if (!APP_ID_PATTERN.test(appId)) throw new Error("GITHUB_APP_ID is invalid.");
   if (clientId.length < 8 || clientId.length > 128) throw new Error("GITHUB_APP_CLIENT_ID is invalid.");
@@ -27,6 +28,15 @@ export function getGitHubAppConfig(
   if (privateKey.length < 32 || privateKey.length > 16384) throw new Error("GITHUB_APP_PRIVATE_KEY is invalid.");
   if (!SLUG_PATTERN.test(slug)) throw new Error("GITHUB_APP_SLUG is invalid.");
   if (stateSecret.length < 32 || stateSecret.length > 512) throw new Error("GITHUB_APP_STATE_SECRET is invalid.");
+  if (webhookSecret.length < 32 || webhookSecret.length > 512) throw new Error("GITHUB_APP_WEBHOOK_SECRET is invalid.");
 
-  return Object.freeze({ appId, clientId, clientSecret, privateKey, slug, stateSecret });
+  return Object.freeze({
+    appId,
+    clientId,
+    clientSecret,
+    privateKey,
+    slug,
+    stateSecret,
+    webhookSecret,
+  });
 }

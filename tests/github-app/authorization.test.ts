@@ -20,6 +20,7 @@ const CONFIG: GitHubAppConfig = {
   privateKey: "-----BEGIN PRIVATE KEY-----\ntest-only-not-used-in-these-tests\n-----END PRIVATE KEY-----",
   slug: "scopeforge-dev",
   stateSecret: STATE_SECRET,
+  webhookSecret: "webhook-secret-0123456789abcdef0123456789",
 };
 
 function installation(id = 9001): GitHubInstallationSummary {

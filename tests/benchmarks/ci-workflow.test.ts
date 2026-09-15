@@ -18,4 +18,11 @@ describe("Phase 8 CI validation ordering", () => {
     expect(matrix).toBeGreaterThan(historical);
     expect(build).toBeGreaterThan(matrix);
   });
+
+  it("uploads visual acceptance artifacts with the Node 24 upload-artifact major", async () => {
+    const workflow = await readFile(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+
+    expect(workflow).toContain("uses: actions/upload-artifact@v7");
+    expect(workflow).not.toContain("uses: actions/upload-artifact@v4");
+  });
 });

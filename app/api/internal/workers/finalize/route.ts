@@ -1,9 +1,12 @@
+import {
+  continueConnectedProjectScanAfterSnapshot,
+  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
+} from "@/lib/project-scans/service";
 import { createRepositorySnapshotServerDependencies } from "@/lib/repository-snapshots/server-dependencies";
 import {
   publishPrivateRepositorySnapshotAttempt,
   publishRepositorySnapshotAttempt,
 } from "@/lib/repository-snapshots/service";
-import { continueConnectedProjectScanAfterSnapshot } from "@/lib/project-scans/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
 import {
@@ -35,6 +38,11 @@ function repositorySnapshotSuccessKind(value: unknown): RepositorySnapshotSucces
 function isPrivateRepositorySnapshotTerminal(value: unknown): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   return (value as Record<string, unknown>).executionClass === "repository_snapshot_github_private_v1";
+}
+
+function isRepositoryScanTerminal(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  return (value as Record<string, unknown>).executionClass === "phase3_repository_scan_no_egress_v1";
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -70,6 +78,7 @@ export async function POST(request: Request): Promise<Response> {
       return workerJson({ ok: true, data: result });
     }
 
+    const repositoryScanTerminal = isRepositoryScanTerminal(body.terminal);
     const result = isPrivateRepositorySnapshotTerminal(body.terminal)
       ? await finalizePrivateRepositorySnapshotFailureAttempt({
           workerId: worker.workerId,
@@ -81,6 +90,13 @@ export async function POST(request: Request): Promise<Response> {
           leaseToken: body.leaseToken,
           terminal: body.terminal,
         }, dependencies);
+
+    if (repositoryScanTerminal) {
+      await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
+        scanTaskId: result.taskId,
+      });
+    }
+
     return workerJson({ ok: true, data: result });
   } catch (error) {
     return workerRouteError(error, "worker.finalize");

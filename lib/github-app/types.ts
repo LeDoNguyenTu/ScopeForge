@@ -5,6 +5,7 @@ export interface GitHubAppConfig {
   privateKey: string;
   slug: string;
   stateSecret: string;
+  webhookSecret: string;
 }
 
 export interface GitHubConnectionState {
@@ -41,6 +42,7 @@ export interface GitHubRepositorySummary {
   fullName: string;
   defaultBranch: string;
   isPrivate: boolean;
+  isArchived: boolean;
   htmlUrl: string;
 }
 
