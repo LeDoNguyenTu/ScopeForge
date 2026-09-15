@@ -56,6 +56,8 @@ The allowed-path control streams a real seven-byte temporary fixture through a m
 
 ### Fresh issue #79 recheck after PR #116
 
+**2026-09-16 update:** The user completed GitHub confirmation. The authenticated installation page now opens successfully as `LeDoNguyenTu`, showing read-only code/metadata permissions and only `LeDoNguyenTu/ScopeForge` selected. A fresh navigation through ScopeForge's normal `/api/integrations/github/connect` still redirects to existing installation settings with Save disabled; no fresh ScopeForge callback or unrelated-installation rejection was observed. Do not ask the user to repeat the completed authentication unless GitHub explicitly requests it again. A focused check for the fresh signed installation redirect in browser history found no usable entry; no state or credentials were exposed. The intended legitimate member/viewer account and role are still awaiting user identification. Neither negative canary has passed.
+
 On 2026-09-15, the user requested autonomous resolution of the blocker. Live repository state still has only draft #76/#77 and open #79. The Chrome `Meoooo` profile successfully rendered the authenticated production dashboard and GitHub integration as workspace **Owner**, with the existing connected repository visible.
 
 Read-only queries against independently verified ScopeForge project `tdgpibrepzcvdivztkta` found exactly two Auth users and exactly two workspace memberships, both `owner`. There is no existing `member` or `viewer` membership to use for the required live lower-privilege canary. No identity or membership was created, downgraded, or altered.
@@ -64,7 +66,7 @@ Navigating the normal `/api/integrations/github/connect` entry point reached Git
 
 Required user input before dependent acceptance can continue:
 
-1. Complete GitHub's passkey/authenticator confirmation in the open Chrome tab. This restores access to the next provider screen; it is not by itself evidence that the unrelated-installation canary passes.
+1. **Completed on 2026-09-16:** GitHub's passkey/authenticator confirmation. It restores access to provider settings; the existing-installation redirect still prevents the observed normal flow from reaching a fresh callback.
 2. Identify an actual intended collaborator/member account for legitimate workspace onboarding, or supply an already authenticated legitimate member/viewer session if one is established later. No member invitation/management flow was found in the current application during this inspection, so a new signup alone (which creates its own owner workspace) is not sufficient evidence of the required lower-privilege role. Review a real onboarding path once the intended identity/workspace is known; do not manufacture a role solely to pass the canary.
 
 Both negative canaries remain unproven. Continue the normal signed owner flow after confirmation, and inspect its next state without assuming the existing-installation redirect obstacle has disappeared. Keep #76/#77 unreleased and all unaccepted runtime gates off.
