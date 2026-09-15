@@ -1,14 +1,14 @@
 # ScopeForge Codex handoff
 
-Prepared: 2026-09-14, Asia/Singapore
+Prepared: 2026-09-15, Asia/Singapore
 
-This is the entry point for handing ScopeForge back to Codex after a period of work in other ChatGPT sessions/tools.
+This is the primary handoff for resuming ScopeForge in Codex. It supersedes older Codex resume instructions where they conflict.
 
-The core rule is simple: **synchronize first, then continue**. This document records a preparation-time snapshot, not a permanent assertion that the recorded SHAs and PR states are still current.
+The core rule is: **synchronize live state first, then continue from the exact active candidate.** Do not trust an embedded SHA until you confirm it still matches GitHub.
 
-## 1. Mandatory live synchronization
+## 1. Mandatory startup
 
-At the start of every Codex session:
+At the start of the Codex session:
 
 ```bash
 git remote -v
@@ -21,120 +21,299 @@ git rev-parse origin/main
 
 Then inspect live GitHub state for:
 
-- current `main`
-- all open pull requests, not only the historically important ones
-- issue #79 and any newer release blockers
-- current CI/check state for each active candidate
-- recent merged PRs that may have changed assumptions in the handoff docs
+- `main`
+- PR #116
+- issue #79
+- PR #76
+- PR #77
+- any newer open PRs/issues created after this handoff
+- exact CI/check state for the active candidate
 
-Do not start by checking out a SHA copied from this file. Resolve live refs first.
+Read in this order:
 
-Read, in order:
+1. root `AGENTS.md`
+2. `docs/development/CODEX_HANDOFF.md`
+3. `docs/development/LATEST_SESSION.md`
+4. `docs/development/ACCOUNT_CONTEXT_CHECKLIST.md`
+5. `docs/development/CURRENT_STATE.md`
+6. `docs/development/NEXT_STEPS.md`
+7. `docs/development/SESSION_HANDOFF.md`
+8. `docs/development/UNFINISHED_WORK.md`
+9. `docs/development/PHASE_10A2_WORKING_STATE.md`
+10. live PR/issue bodies, comments, diffs, checks, and review state
 
-1. `AGENTS.md`
-2. this file
-3. `docs/development/ACCOUNT_CONTEXT_CHECKLIST.md`
-4. `docs/development/CURRENT_STATE.md`
-5. `docs/development/NEXT_STEPS.md`
-6. `docs/development/SESSION_HANDOFF.md`
-7. `docs/development/UNFINISHED_WORK.md`
-8. the live bodies, comments, diffs, checks, and review state of every active PR/issue involved in the next task
+If a document conflicts with live repository/provider evidence, live evidence wins. Repair stale documentation when the difference matters to future sessions.
 
-If documentation conflicts with live repository/provider evidence, live evidence wins. Repair the documentation as part of the task when the difference is semantic and useful for the next session.
+## 2. Current repository snapshot
 
-## 2. Preparation-time repository snapshot
-
-At handoff preparation time:
+Live state reconciled immediately before this handoff:
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- live `main`: `ec7b00d1f533704100e224bc53f6a6647a3e1a4b`
-- latest merged change at that tip: PR #96, immutable pinning for ScopeForge's own first-party GitHub Actions
-- accepted runtime baseline: Node 24
+- executable `main` baseline before these documentation-only commits: `b2dfde44399195f560064d99c8df50e790d56e5e`
+- production domain: `https://scopeforge.dev`
+- Vercel team: `itsbrian` / `team_WEcf1g1YcD6vYU8LD5jVUOKF`
+- Vercel project: `scopeforge` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
+- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
+- wrong/different Supabase, Brian Job Command Center: `xwsergbpvkcsugexssmc`
+- Node runtime baseline: Node 24
 
-Older resume documents correctly say not to use their embedded SHA as the current tip. Keep that rule.
+Documentation-only commits may advance `main` after the executable baseline above. Fetch live refs before acting.
 
-### Active PR #97 requires immediate reconciliation
+## 3. Immediate work item - PR #116
 
-At preparation time PR #97, **Harden published CI example action pins**, is open:
+PR #116 is the first Codex task.
 
-- branch: `chore/public-ci-action-pinning`
-- recorded head: `bbfc99e849e28c40dd3228daeae6cf0da77446c6`
-- it was created from the pre-PR-#96 main base
-- it contains the RED regression test for the public CI guide only
-- Vercel preview is READY
-- GitHub CI #1034 / run `34777499920` is failing exactly at `tests/architecture/public-ci-action-pinning.test.ts`
-- the run passed the other 1,744 tests before stopping on that one expected RED guard
+Title: `Recheck repository upload capability expiry before PUT`
 
-The failing guard proves that `docs/scanner/CI.md` still uses movable action tags such as `actions/checkout@v7`, `actions/setup-node@v7`, and `github/codeql-action/upload-sarif@v4`.
+Current branch at handoff:
 
-**First Codex maintenance action:** re-read live PR #97 and live `main`, then reconcile the branch onto current main and complete the planned GREEN phase. Pin the public CI guide's first-party actions to verified immutable 40-character commits while retaining readable major-version comments. Resolve those commits from the official action repositories/current major tags instead of inventing values. Run focused tests first, then the appropriate full validation. Merge/close/supersede #97 only according to its actual live state and evidence.
+- branch: `fix/repository-upload-expiry-toctou-20260915`
+- head: `65ff37a2d3de2fae76951313f73ba626dba91985`
+- base: `main`
+- production code changed so far: **no**
+- current diff: test-only
 
-Do not confuse PR #97 with PR #96. PR #96 hardened ScopeForge's own workflow. PR #97 is the independent public documentation example and guard.
+### Root cause under investigation
 
-## 3. Primary unfinished release queue after maintenance reconciliation
+Shared repository snapshot uploader:
 
-After the live maintenance queue is clean, the known release sequence is:
+`packages/repository-snapshot-network/upload.ts`
 
-### A. Issue #79 - remaining GitHub App negative production canaries
+Current behavior validates `RepositorySnapshotUploadDescriptor.expiresAt` before awaiting filesystem `stat()`. There is no second expiry check immediately before `httpsRequest()` starts the signed R2 PUT.
 
-The positive owner/admin provider connection and repository import canary is already complete. Do not redo or misrepresent it as pending.
+Potential TOCTOU sequence:
 
-Two live authenticated production checks remained at handoff time:
+1. signed upload descriptor is valid
+2. `assertUploadDescriptor()` passes
+3. code awaits `stat(artifactPath)`
+4. descriptor expires during that async gap
+5. current code can still proceed toward the HTTPS PUT
 
-1. while authenticated as owner/admin, attempt the normal callback/continuation path with a different valid numeric GitHub installation ID and prove ScopeForge rejects it as not belonging to the authorized connection/workspace
-2. while authenticated as a normal workspace member/viewer, prove Connect GitHub cannot be initiated or completed
+The intended security requirement is fail-closed authorization at time of use: if the signed upload capability expires before the PUT starts, no network request should begin.
 
-These must use the real application authorization path. Unit tests are not a substitute. Do not weaken authorization, fabricate database state, downgrade an owner solely to create the test, or expose provider secrets.
+### TDD status - no valid RED yet
 
-If a suitable browser/member identity is unavailable, keep #79 open and continue only independent safe work. If either canary reveals a defect, keep Phase 10A2 runtime gates off and remediate before proceeding.
+The regression file is:
 
-### B. Phase 10A2 - PR #76 private repository acquisition
+`tests/repository-snapshots/upload-expiry.test.ts`
 
-PR #76 is gated behind #79. At the previous reconciliation its branch was `feat/phase-10a2-private-repository-acquisition`, with historical recorded head `709ef8af4ce4befae12ba910d3bca15599b5cab1`. Fetch the actual live head instead of assuming this remains current.
+It advances the mocked clock from before expiry to after expiry across the async `stat()` boundary and expects:
 
-Reviewed Phase 10A2 migrations waiting behind the gate were:
+- rejection with `Repository snapshot upload authorization is expired.`
+- `stat()` called once
+- HTTPS request not called
 
-- `20260911100000_phase_10a2_private_repository_snapshot.sql`
-- `20260911110000_phase_10a2_private_project_scan_routing.sql`
+Two CI attempts failed in the test harness before the assertion executed. **Neither is valid RED evidence.**
 
-Read-only migration/schema compatibility preflight had already passed. Do not repeat the same preflight unless PR #76 or production schema changed materially.
+#### Attempt 1
 
-After #79 is genuinely cleared:
+- test-only head before harness repair: `e8faa986411d41c526f4238654dc50cd892b7cb7`
+- CI run: `34943411866`
+- audit: 0 vulnerabilities
+- existing suite reached 398 passing files / 1,759 passing tests
+- failure: the full replacement mock for `node:fs/promises` omitted required/default exports
 
-1. fetch live main and re-read/reconcile actual PR #76
-2. run exact-candidate validation
-3. re-read production migration history
-4. apply only absent reviewed migrations to **ScopeForge Supabase `tdgpibrepzcvdivztkta`**
-5. verify schema, RLS, grants/revokes, service-role boundaries, and Supabase security posture
-6. verify the selected private repository remains available to the GitHub App under intended read-only permissions
-7. complete private acquisition worker containment, quotas, cancellation/cleanup, observability, and rollback acceptance
-8. prove private archive lease -> immutable snapshot -> exact zero-egress repository scan -> findings
-9. prove provider credentials remain control-plane-only and private source/capability material does not leak to browser state or ordinary logs
-10. merge/release only when provider, code, schema, runtime, privacy, and rollback gates are all green
-11. verify production after release
+This run proves only that the test harness was invalid.
 
-If only a host-level containment probe requires SSH, hand off only that exact probe to the approved host environment. Historical Phase 6D Task 15 Linux acceptance is complete and must not be rerun as generic setup work.
+#### Attempt 2
 
-### C. Phase 10A3 - PR #77 GitHub webhook reconciliation
+- current head: `65ff37a2d3de2fae76951313f73ba626dba91985`
+- CI run: `34943713195`
+- audit: 0 vulnerabilities
+- existing suite again reached 398 passing files / 1,759 passing tests
+- `node:fs/promises` was converted to a partial mock successfully
+- failure moved to the `node:https` mock because it still replaces the module and omits required/default exports
 
-PR #77 must follow released Phase 10A2. Do not merge it first.
+This run also does not count as RED.
 
-After #76 releases:
+### Exact Codex resume step for PR #116
 
-1. fetch/reconcile the actual PR #77 head onto released main
+Do this before any production code change:
+
+1. fetch live `main` and PR #116
+2. inspect `tests/repository-snapshots/upload-expiry.test.ts`
+3. preserve the current partial `node:fs/promises` mock
+4. convert `node:https` to a partial mock using `importOriginal`, preserving all real exports and overriding only `request`
+5. run the focused test if practical
+6. push the test-harness-only candidate
+7. require CI to reach the actual regression assertion
+
+A **valid RED** must fail because current product code attempts or reaches the network request after expiry, or otherwise fails the explicit expiry expectation. Module-loading, mock-shape, TypeScript, or unrelated failures are not valid RED.
+
+Only after valid RED:
+
+1. make the smallest fail-closed production change
+2. expected minimal shape: recheck descriptor expiry after `stat()` and immediately before starting the HTTPS PUT, while preserving existing URL/method/policy validation and error wording
+3. do not redesign the upload layer unless evidence requires it
+4. run focused GREEN
+5. run full validation on the exact candidate
+6. merge PR #116 to `main` only if the exact candidate is genuinely green
+
+Expected validation after GREEN:
+
+- `npm audit --audit-level=info`
+- full `npm test`
+- `npm run typecheck`
+- CLI build/version
+- scanner benchmark
+- benchmark matrix
+- optimized Next build
+- CSP/responsive browser acceptance
+- production `scopeforge.dev` diagnostic
+- Vercel status
+- exact PR merge candidate verification
+
+PR #116 is shared infrastructure on `main`. It is intentionally independent from draft Phase 10A2. PR #76 should inherit the released fix later through its post-#79 reconciliation.
+
+## 4. Work completed immediately before handoff
+
+### PR #115 - private archive stream cleanup
+
+PR #115 was completed and merged **only into the draft Phase 10A2 branch**, not into `main`.
+
+Root cause:
+
+- private executor calls `openArchive()` before creating its local scratch directory
+- if `openArchive()` succeeds but scratch setup fails, parsing never begins
+- parser cleanup therefore never owns the already-open private response stream
+- the executor could return failure without destroying that response
+
+Fix:
+
+- retain the opened response at executor scope
+- on execution failure, destroy it if a lower layer has not already destroyed it
+- preserve successful behavior, parser cleanup, cancellation semantics, failure mapping, provider authorization, schema, and runtime gates
+
+TDD evidence:
+
+- RED run: `34942092028`
+- RED result: 401/402 test files and 1,790/1,791 tests passed, with the sole new failure proving `destroy()` was called 0 times
+- GREEN head: `209af3ab174742e31c1011ac428bc50048e30698`
+- exact GREEN merge candidate: `6bec7471c1fb9376fe7943ab1617eb7d619f9b2a`
+- GREEN CI run: `34942497310`
+- GREEN result: 402/402 test files and 1,791/1,791 tests passed
+- audit: 0 vulnerabilities
+- typecheck, CLI, benchmarks, optimized build, CSP browser acceptance, production diagnostic, artifact upload, and Vercel passed
+- artifact: `10385602800`
+- merge into #76 branch: `778b5bf2abff4678bb1c4fce7f378fe5f179cb9b`
+
+Do not redo PR #115 unless new evidence shows a regression.
+
+### Phase 10A2 working-state documentation
+
+`docs/development/PHASE_10A2_WORKING_STATE.md` was updated after #115.
+
+PR #76 body was also refreshed so its current security-hardening history includes:
+
+- PR #113 - trusted claim workspace/asset binding
+- PR #114 - broker authority expiry recheck
+- PR #115 - private archive stream cleanup
+
+Historical validation on these isolated hardening PRs is useful branch evidence, but it is **not** final Phase 10A2 release proof after future reconciliation with `main`.
+
+## 5. Hard release blocker - issue #79
+
+Issue #79 remains OPEN.
+
+Positive production provider acceptance is already complete and must not be repeated as pending:
+
+- `HOSTED_GITHUB_INTEGRATION_ENABLED=true` is active
+- owner/admin Connect GitHub succeeded
+- active GitHub connection for `LeDoNguyenTu` persisted
+- `LeDoNguyenTu/ScopeForge` listing/import succeeded
+- unauthenticated connect/callback remains behind sign-in
+- provider/log/integration-row/browser-readable leakage review found no release-blocking token/secret exposure
+
+Exactly two live authenticated negative production browser canaries remain:
+
+1. authenticated owner/admin normal signed flow with a **different valid GitHub installation ID**, proving rejection because the installation does not belong to the authorized connection/workspace
+2. authenticated legitimate normal workspace member/viewer, proving that role cannot initiate or complete Connect GitHub
+
+Known blocker conditions:
+
+- production currently has no legitimate member/viewer identity suitable for the second canary
+- the existing GitHub App installation can redirect a new Connect attempt into installed-App settings, making the first canary difficult to exercise through a fresh normal signed flow
+
+Never satisfy #79 by:
+
+- fabricating a membership
+- downgrading an owner solely for testing
+- forging callback state
+- bypassing authorization
+- editing production database state to manufacture acceptance
+- substituting unit/CI tests for the required browser canary
+
+If either live canary exposes a defect, keep Phase 10A2 gates off and remediate before release work continues.
+
+## 6. Phase 10A2 - PR #76
+
+Current live state at handoff:
+
+- PR: #76 `Phase 10A2 private repository acquisition`
+- state: open, draft
+- branch: `feat/phase-10a2-private-repository-acquisition`
+- head: `b09e03258329251361cf8d515458e0ff7d708e2c`
+- latest executable hardening merge before docs: `778b5bf2abff4678bb1c4fce7f378fe5f179cb9b`
+
+Do **not** merge #76 while #79 remains open.
+
+Do **not** reconcile #76 onto current `main` merely to make it current while #79 remains open. The existing plan is to reconcile once after #79 clears and then run fresh exact-candidate validation.
+
+Production Phase 10A2 migrations remain unapplied:
+
+- `supabase/migrations/20260911100000_phase_10a2_private_repository_snapshot.sql`
+- `supabase/migrations/20260911110000_phase_10a2_private_project_scan_routing.sql`
+
+Important migration note:
+
+- older read-only compatibility preflight passed
+- PR #113 later changed the first migration's private worker claim body so it returns authoritative `workspaceId` and `assetId` for trusted control-plane reauthorization
+- therefore the exact current migration must be re-reviewed before production apply
+- do not treat the older preflight alone as authorization to apply the changed migration
+
+After #79 genuinely clears:
+
+1. fetch live `main`, #76, and production migration history
+2. reconcile #76 onto current/released `main`, preserving #113/#114/#115 and all mainline security fixes, including PR #116 if released
+3. run fresh exact-candidate validation
+4. re-review the changed Phase 10A2 migration
+5. apply only absent reviewed Phase 10A2 migrations to ScopeForge Supabase `tdgpibrepzcvdivztkta`
+6. verify schema, ACLs, RLS/private-table privileges, function bodies, and Supabase Security Advisor results
+7. keep private snapshot/scan runtime gates off until dedicated private worker acceptance
+8. complete containment, quotas, scratch/output ceilings, cancellation/cleanup, observability, rollback, and credential-boundary checks
+9. prove private archive lease -> immutable snapshot -> exact zero-egress scan -> findings end to end
+10. prove GitHub credentials remain control-plane-only
+11. merge/release only after provider, schema, runtime, privacy, rollback, and production verification all pass
+
+Historical Phase 6D Task 15 Linux/rootless-Podman acceptance is complete. Do not repeat it as generic setup work.
+
+## 7. Phase 10A3 - PR #77
+
+Current live state at handoff:
+
+- PR: #77 `Phase 10A3 GitHub webhook reconciliation`
+- state: open, draft
+- branch: `feat/phase-10a3-github-webhook-reconciliation`
+- current head observed: `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
+- PR body contains older embedded executable SHAs, so always trust live head/checks over those historical references
+- base remains the Phase 10A2 branch
+
+Do not merge or release #77 before #76 releases.
+
+After Phase 10A2 release:
+
+1. reconcile live #77 onto the released Phase 10A2/main baseline
 2. run fresh exact-candidate validation
-3. re-read migration history and apply only reviewed absent Phase 10A3 migrations
-4. configure the independent server-only webhook secret/endpoint without exposing the secret
-5. prove invalid-signature and oversize rejection before JSON processing
-6. prove replay protection, installation/repository lifecycle handling, latest-head coalescing, same-head pending recovery, and stale-trigger authoritative-head recovery
-7. prove public/private separation and leak boundaries
-8. prove a complete automatic webhook-triggered immutable-snapshot scan through findings
-9. merge/release only after all operational checks pass
-10. verify production
+3. apply only reviewed absent Phase 10A3 migrations
+4. configure independent server-only webhook secret/endpoint
+5. prove raw-body HMAC verification, invalid-signature rejection, oversize rejection, replay handling, install/repository lifecycle handling, latest-head coalescing, same-head pending recovery, stale-trigger authoritative-head recovery, public/private separation, leak checks, and a complete automatic scan
+6. merge/release only after operational acceptance
 
-## 4. Hosted runtime gates
+Do not reuse old CI as release proof if executable code changes during reconciliation.
 
-Keep these false/absent until the exact capability has its own staged operational and rollback acceptance:
+## 8. Runtime gates and production safety
+
+Keep these false/absent until their exact capability has staged operational and rollback acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
@@ -142,86 +321,84 @@ Keep these false/absent until the exact capability has its own staged operationa
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-`HOSTED_GITHUB_INTEGRATION_ENABLED` is separate. Its positive provider canary was already proven. Re-read live provider state before changing it.
+`HOSTED_GITHUB_INTEGRATION_ENABLED` is separate and is already active after the positive provider canary.
 
-Code presence, a successful build, schema presence, or historical containment evidence does not by itself authorize a runtime gate.
+Do not infer runtime acceptance from code presence, schema presence, historical containment evidence, unit tests, or successful builds.
 
-## 5. Safe independent work while #79 is blocked
+No Phase 10A2/10A3 production migration, webhook secret, production membership, provider authorization rule, or private worker runtime gate was changed during the latest work.
 
-Do not sit idle if #79 cannot be completed safely. Continue only work that cannot bypass or weaken the provider gate, for example:
+## 9. External account checks before writes
 
-- documentation/handoff repair
-- dependency/runtime/tooling maintenance
-- TDD regression strengthening
-- architecture/security review
-- evidence-based UI defect fixes
-- release/branch hygiene
+Verify exact non-secret target identity before any provider mutation.
 
-Keep such work isolated. Do not use an unrelated green PR as evidence that provider, Phase 10A2, Phase 10A3, or worker operational acceptance passed.
+### GitHub
 
-## 6. Branch cleanup
+- repository: `LeDoNguyenTu/ScopeForge`
+- expected owner identity: `LeDoNguyenTu`
 
-`docs/development/BRANCH_CLEANUP_CANDIDATES.md` records the previous full audit. The prior audit classified many historical refs as safe-delete candidates, while retaining `main`, the live Phase 10 PR heads, and intentional demo state.
+### Supabase
 
-Before deleting anything:
+- ScopeForge: `tdgpibrepzcvdivztkta`
+- never confuse with Job Command Center: `xwsergbpvkcsugexssmc`
 
-- re-fetch the complete current branch list
-- classify every branch created since the old audit
-- preserve any branch backing an open PR or active task
-- use a real delete-ref operation only
-- never simulate branch deletion by force-moving a ref
-- re-list refs afterward and update the cleanup record
+### Vercel
 
-## 7. External account synchronization
+- team: `itsbrian`
+- team ID: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
+- project: `scopeforge`
+- project ID: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
+- domain: `scopeforge.dev`
 
-Read `docs/development/ACCOUNT_CONTEXT_CHECKLIST.md` before using external providers.
+### Cloudflare
 
-Known correct non-secret identifiers at handoff time:
+Verify the account containing:
 
-- GitHub repository owner: `LeDoNguyenTu`
-- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
-- **not ScopeForge:** Brian Job Command Center Supabase `xwsergbpvkcsugexssmc`
-- Vercel team: `itsbrian` / `team_WEcf1g1YcD6vYU8LD5jVUOKF`
-- Vercel project: `scopeforge` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
-- production domain: `scopeforge.dev`
-- Cloudflare should be authoritative DNS, with Vercel app records DNS-only under the documented architecture
-- Cloudflare Turnstile and private R2 are separate provider resources that must be verified in the correct Cloudflare account before writes
-- historical worker acceptance used Oracle Cloud in Singapore; verify tenancy/compartment/host before any new host mutation
+- authoritative `scopeforge.dev` DNS zone
+- ScopeForge Turnstile resource
+- production R2 account/bucket matching server-side configuration
 
-A context mismatch is a stop condition for external writes. Do not use a secret value as proof of account identity and do not paste secrets into Codex.
+Do not use secret values as identity proof and do not paste them into Codex, issues, PRs, docs, logs, or browser-readable state.
 
-## 8. Validation and evidence discipline
+### Oracle Cloud / worker host
 
-For executable changes, prefer this progression:
+Historical worker acceptance used Oracle Cloud in Singapore. Verify tenancy, compartment, region, and host before any new host mutation. Do not rerun historical acceptance without a source/runtime change that actually requires it.
 
-1. focused regression test or reproducer
-2. focused affected test group
-3. `npm test`
-4. `npm run typecheck`
-5. relevant CLI/build/benchmark checks
-6. `npm run build`
-7. browser/security acceptance if affected
-8. exact candidate CI and production verification when releasing
+A provider-account mismatch is a stop condition for external writes.
 
-Use the repository's current scripts and workflow as the source of truth. Do not copy a stale command list if package scripts have changed.
+## 10. Engineering rules for Codex
 
-For documentation-only changes, run affected guards/tests where available. `[skip ci]` may be used only when repository policy and the change type genuinely allow it. Never use `[skip ci]` to conceal an executable change from validation.
+- inspect before editing
+- use TDD for bug fixes/features where applicable
+- require a real failing regression, not a broken test harness
+- keep changes scoped
+- do not expose secrets
+- do not rewrite deployed Supabase migrations
+- preserve RLS and service-role boundaries
+- preserve strict nonce CSP/security headers
+- preserve zero-egress/containment boundaries
+- do not add AI co-author attribution
+- avoid force-push unless explicitly required and approved
+- do not delete branches backing open PRs
+- do not enable production runtime gates merely because code is green
+- do not weaken authorization to unblock a test
+- require fresh exact-candidate validation after reconciliation
+- update persistent documentation after meaningful state changes
 
-## 9. Documentation persistence rule
+## 11. Recommended Codex continuation order
 
-When a task changes meaningful project state, update the appropriate persistent files before ending the session:
+1. **Finish PR #116 TDD correctly**
+   - repair `node:https` partial mock
+   - obtain valid RED
+   - implement minimal expiry recheck
+   - obtain full GREEN
+   - review and merge to `main`
+2. Re-fetch live refs and update docs if #116 advances `main`.
+3. Check whether legitimate conditions now exist to perform the two issue #79 live canaries.
+4. If #79 is still blocked, continue only independent safe maintenance/security work.
+5. When #79 clears, execute Phase 10A2 release sequence for #76.
+6. Only after #76 releases, reconcile and release #77.
 
-- `CURRENT_STATE.md` for released/current truth
-- `NEXT_STEPS.md` for ordered continuation
-- `SESSION_HANDOFF.md` for fastest resume context
-- `UNFINISHED_WORK.md` for genuinely pending work
-- this file only when the Codex-specific synchronization or account handoff process changes
-
-Do not churn every embedded SHA after a docs-only merge. Preserve immutable evidence separately from the instruction to fetch live refs.
-
-## 10. Copy-paste prompt for Codex
-
-Use the prompt below when starting a fresh Codex session. Codex must still read the repository files instead of treating the prompt as a replacement for them.
+## 12. Copy-paste prompt for Codex
 
 ```text
 Continue my ScopeForge project autonomously from the actual current repository state.
@@ -229,65 +406,66 @@ Continue my ScopeForge project autonomously from the actual current repository s
 Repository:
 https://github.com/LeDoNguyenTu/ScopeForge
 
-You have not been the primary implementation agent for a while, so your first task is reconciliation, not coding from remembered context.
+Start with reconciliation, not remembered context.
 
 MANDATORY STARTUP
 
-1. Open the current ScopeForge checkout and read the root AGENTS.md.
+1. Read root AGENTS.md.
 2. Verify the remote is LeDoNguyenTu/ScopeForge.
-3. Run git status, fetch all remotes with prune, resolve live origin/main, inspect the current branch/worktree, and inspect all open PRs/issues and their exact current heads/checks.
-4. Read these files in order:
+3. Run git status, fetch --all --prune, resolve live origin/main, current branch/worktree, all open PRs/issues, and exact current checks.
+4. Read in order:
    - docs/development/CODEX_HANDOFF.md
+   - docs/development/LATEST_SESSION.md
    - docs/development/ACCOUNT_CONTEXT_CHECKLIST.md
    - docs/development/CURRENT_STATE.md
    - docs/development/NEXT_STEPS.md
    - docs/development/SESSION_HANDOFF.md
    - docs/development/UNFINISHED_WORK.md
-5. Compare those documents to live GitHub state. Live state wins. Do not blindly resume from any historical SHA or branch name embedded in a document.
-6. Before any external provider write, verify the non-secret target identity against ACCOUNT_CONTEXT_CHECKLIST.md. In particular, ScopeForge Supabase is tdgpibrepzcvdivztkta and must never be confused with Brian Job Command Center xwsergbpvkcsugexssmc.
+   - docs/development/PHASE_10A2_WORKING_STATE.md
+5. Compare docs with live GitHub state. Live state wins.
+6. Before any external-provider write, verify the non-secret target identity. ScopeForge Supabase is tdgpibrepzcvdivztkta. Never confuse it with Brian Job Command Center xwsergbpvkcsugexssmc.
 
-CURRENT HANDOFF PRIORITIES
+FIRST TASK: PR #116
 
-At the time the handoff was prepared, main was ec7b00d1f533704100e224bc53f6a6647a3e1a4b, but you MUST fetch the current main before acting.
+Resume PR #116, Recheck repository upload capability expiry before PUT.
 
-First reconcile every currently open maintenance PR. In particular, PR #97 was in its intentional RED TDD phase: its new public-CI action-pinning guard failed because docs/scanner/CI.md still used movable @vN GitHub Action tags. Re-read the live PR and main, reconcile it onto current main, complete the minimal GREEN change using verified immutable official action commits, run validation, and merge/close/supersede it only according to current evidence.
+At handoff time:
+- branch: fix/repository-upload-expiry-toctou-20260915
+- head: 65ff37a2d3de2fae76951313f73ba626dba91985
+- production code has NOT been changed
+- current work is test-only
 
-Then continue the primary unfinished queue from live state:
-- issue #79 remaining GitHub App negative production authorization canaries
-- Phase 10A2 PR #76 private repository acquisition, only after #79 clears
-- Phase 10A3 PR #77 webhook reconciliation, only after Phase 10A2 releases
+The suspected bug is in packages/repository-snapshot-network/upload.ts: the signed R2 descriptor expiry is checked before awaiting stat(), but not rechecked immediately before the HTTPS PUT starts.
 
-Do not repeat work already marked complete just because you see an old branch or plan. Phase 6D Task 15 real Linux/rootless-Podman acceptance is complete. Positive GitHub App owner/admin connection/import acceptance is also complete.
+The intended regression is tests/repository-snapshots/upload-expiry.test.ts.
 
-SECURITY AND RELEASE RULES
+Important: no valid RED exists yet. CI 34943411866 failed because the node:fs/promises mock replaced required exports. CI 34943713195 then failed because node:https still replaces required exports. Do not count either as TDD RED.
 
-- Never expose or commit secrets, provider private keys, OAuth/install tokens, Supabase secret/service-role keys, R2 keys, worker credentials, presigned private URLs, or environment dumps.
-- Never rewrite deployed Supabase migrations. Use forward-only migrations.
-- Preserve RLS, provider authorization, strict nonce CSP, security headers, zero-egress/containment boundaries, responsive UI acceptance, and the accepted Command Center presentation.
-- Keep hosted repository/private scan and active/passive runtime flags false/absent until their own operational acceptance and rollback gates pass.
-- Do not weaken authorization or fabricate production state to force a canary through.
-- Use exact-SHA/evidence-based validation before claiming a release is green.
-- Use TDD for fixes/features where appropriate.
-- Do not add AI co-author attribution.
-- Do not force-push, delete branches, change DNS, rotate credentials, apply production migrations, enable gated production capabilities, or mutate production identities merely to unblock yourself. Perform high-impact operations only when they are the required reviewed step of the current approved release task and the target account is proven correct.
+First convert node:https to a partial mock that preserves the real module and overrides only request. Keep production code unchanged. Run focused test/CI until the test reaches the actual behavior assertion. Accept RED only if current product behavior fails the expiry-at-time-of-use requirement. Then implement the smallest fail-closed fix, expected to be a second expiry check after stat() and immediately before starting the PUT. Run full exact-candidate validation and merge only when genuinely green.
 
-ACCOUNT TARGETS TO VERIFY
+PRIMARY RELEASE QUEUE AFTER PR #116
 
-- GitHub repo: LeDoNguyenTu/ScopeForge
-- GitHub identity expected for owner work: LeDoNguyenTu
-- Supabase ScopeForge: tdgpibrepzcvdivztkta
-- Wrong/different Supabase: xwsergbpvkcsugexssmc (Brian Job Command Center)
-- Vercel team: itsbrian, team_WEcf1g1YcD6vYU8LD5jVUOKF
-- Vercel project: scopeforge, prj_r7X4rdsjvwzp2tvuSA4D39gpITb8
-- domain: scopeforge.dev
-- Cloudflare: verify the account containing the scopeforge.dev DNS zone, ScopeForge Turnstile resource, and the R2 account/bucket matching production configuration before any write
-- Oracle Cloud: verify tenancy/compartment/region/host before any host-level worker operation
+- issue #79: two remaining live authenticated GitHub App negative canaries
+- PR #76 Phase 10A2 private repository acquisition, only after #79 clears
+- PR #77 Phase 10A3 webhook reconciliation, only after #76 releases
 
-AUTONOMY
+Do not repeat completed work:
+- positive owner/admin GitHub App connection/import canary is complete
+- Phase 6D Task 15 Linux/rootless-Podman acceptance is complete
+- PR #113, #114, #115 hardening is already integrated into #76
 
-Handle normal engineering decisions yourself. You are authorized to inspect code/history, create scoped branches, edit code/docs/tests, commit, push, create/update PRs, review failures, and merge changes when the exact candidate is genuinely safe and validated. Do not stop after one small safe task if the next independent task is actionable.
+SECURITY/RELEASE RULES
 
-If the release queue is blocked by a browser/account condition you cannot safely satisfy, document the exact blocker and continue other independent safe work. Do not bypass the gate.
+- never expose secrets or private provider credentials
+- never fabricate production membership/state to pass #79
+- never rewrite deployed migrations
+- keep private/repository worker gates off until their own operational acceptance
+- do not merge #76 while #79 is open
+- do not merge #77 before #76 releases
+- require fresh exact-candidate validation after reconciliation
+- use TDD and require genuine RED evidence
+- do not add AI co-author attribution
+- document meaningful state changes before finishing
 
-Before finishing a session, update the persistent handoff/state docs for any meaningful state change and leave the repository in a clean, explainable state with exact branch/PR/check evidence.
+Handle normal engineering decisions autonomously. Continue safe independent work if #79 remains legitimately blocked, but never bypass the release gate.
 ```
