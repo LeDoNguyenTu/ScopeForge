@@ -1,34 +1,29 @@
 # Phase 10A2 Private Repository Acquisition Working State
 
-## Continuation checkpoint - 2026-09-12
+## Current checkpoint - 2026-09-15
 
-This checkpoint supersedes the older release status below.
-
-- PR #74 merged as `33d21de652f3c04aa88ebd4f122348803e59b153` after final CI run `34678875883` succeeded (387 files, 1,726 tests, audit 0, typecheck, builds, benchmarks and browser acceptance).
-- Vercel production deployment `dpl_BFbUfBRQKCbMgHViMhsXX5kvfTYk` is READY for that merge.
-- Fresh production GET probes confirmed both GitHub connect and callback return HTTP 307 to `https://scopeforge.dev/dashboard/integrations/github?error=disabled`. Callback clears both transient cookies with Secure, HttpOnly and SameSite=Lax attributes.
-- GitHub provider configuration and authenticated connection/import acceptance remain unverified. No integration or worker runtime flag was enabled.
-- PR #76 now targets `main`. This reconciliation merges released main into Phase 10A2, retaining the Phase 10C admin console, GitHub release gate and private acquisition capability. The sole conflict in `docs/ENVIRONMENT.md` was resolved by retaining both the release-gate instructions and private archive lease secrecy rule.
-- Local integrated validation: `npm test` passed 402 files / 1,787 tests; `npm run typecheck` exited 0; `git diff --check` passed.
-- PR #76 remains draft. Provider/worker containment and private end-to-end canaries remain required before release. Phase 10A2/10A3 production migrations were not applied in this continuation.
-- Next: propagate this reconciliation into PR #77, validate the combined candidate, then complete provider configuration and runtime acceptance in order. Earlier CI records below describe historical candidates only.
-
-
-Last reconciled: 2026-09-11 (Asia/Singapore)
-
-## Scope
-
-Phase 10A2 extends the Phase 10A1 connected-project flow to private GitHub repositories without widening the existing public acquisition class.
-
-Target product flow:
-
-`connected private GitHub repository -> Scan project -> exact private snapshot -> existing zero-egress repository scan -> findings`
+Phase 10A2 private repository acquisition is implemented but intentionally remains a draft release candidate behind the live GitHub provider acceptance gate in issue #79.
 
 Active PR: #76
 
 Active branch: `feat/phase-10a2-private-repository-acquisition`
 
-The PR remains stacked on `feat/phase-10a-github-connected-projects` until Phase 10A1 is safely released. It must not be merged to `main` ahead of Phase 10A1.
+Current release order:
+
+`#79 live negative provider canaries -> Phase 10A2 schema/runtime acceptance -> merge/release #76 -> reconcile and accept Phase 10A3 PR #77`
+
+Do not reconcile #76 onto current `main` merely to make the branch current while #79 remains open. When #79 clears, fetch live refs, reconcile once, preserve all accepted hardening, and run a fresh exact-candidate validation before any production action.
+
+## Provider gate status
+
+Phase 10A1 GitHub provider activation has already completed its positive owner/admin production canary. Production has an active GitHub connection for `LeDoNguyenTu`, repository listing/import succeeded for `LeDoNguyenTu/ScopeForge`, and unauthenticated connect/callback requests remain behind the sign-in boundary.
+
+Issue #79 now has exactly two remaining live authenticated negative canaries:
+
+1. As an authorized owner/admin, exercise the normal signed application flow with a different valid GitHub installation ID and prove ScopeForge rejects it as not belonging to the authorized connection/workspace.
+2. As a legitimate normal workspace member/viewer, attempt Connect GitHub and prove that role cannot initiate or complete provider connection.
+
+Current production state does not provide a legitimate member/viewer session, and the existing installed GitHub App redirects a new Connect attempt into installed-App settings. Do not fabricate membership, forge callback state, downgrade an owner solely for testing, bypass authorization, or substitute unit/CI evidence for these browser canaries.
 
 ## Implemented architecture
 
@@ -36,128 +31,139 @@ Phase 10A2 introduces the distinct execution class:
 
 `repository_snapshot_github_private_v1`
 
-The existing `repository_snapshot_github_public_v1` path remains fail-closed to public repositories. Public acquisition continues to require GitHub metadata with `private === false`.
+The existing `repository_snapshot_github_public_v1` path remains fail-closed to public repositories. Public acquisition still requires GitHub metadata with `private === false`.
 
-Private acquisition uses a separate runtime capability:
+Private acquisition uses the separate runtime capability:
 
 `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 
-Like the other hosted capability flags, it is disabled unless the environment value is explicitly `true`.
+The capability remains disabled unless the environment value is explicitly `true`. Production private snapshot and repository-scan worker gates remain off.
 
-## Credential boundary
+Target flow:
 
-Long-lived GitHub App material and installation access tokens remain control-plane-only.
+`connected private GitHub repository -> exact private archive lease -> immutable snapshot -> existing zero-egress repository scan -> findings`
 
-The worker contract does not contain a GitHub installation token, Authorization header, GitHub App private key, OAuth credential or client secret.
+## Credential and authorization boundary
 
-After the authenticated worker claims the exact private snapshot task, trusted control-plane code revalidates the linked GitHub repository and resolves a temporary GitHub archive redirect. The worker receives only an attempt-bound `github_private_archive_lease_v1` capability containing bounded repository identity, immutable commit SHA, temporary codeload URL and expiry.
+Long-lived GitHub App material and installation access tokens remain control-plane-only. The worker contract contains no installation token, Authorization header, GitHub App private key, OAuth credential, client secret, workspace ID, asset ID, or connection identity.
 
-The private worker executor does not call `api.github.com` and cannot mint or refresh provider credentials.
+The trusted private worker claim now retains authoritative `workspaceId` and `assetId` only across the control-plane claim path. Before provider authority is minted, the broker reauthorizes the repository link against:
+
+- link ID,
+- workspace ID,
+- asset ID,
+- owner,
+- repository name,
+- canonical repository URL,
+- active GitHub connection scoped to that workspace.
+
+Those control-plane identifiers are stripped before the worker-facing contract.
+
+The source broker also rechecks time-bounded authority after asynchronous provider operations. It fails closed if the worker lease, task deadline, or installation authority expires before the temporary codeload capability can safely be released.
+
+The worker receives only an attempt-bounded `github_private_archive_lease_v1` containing bounded repository identity, immutable commit SHA, temporary exact codeload URL, and expiry.
 
 ## Network and execution boundary
 
-The private snapshot worker may read only the exact validated `codeload.github.com` archive capability supplied for the claimed attempt and may write only through the existing attempt-scoped repository snapshot artifact upload descriptor.
+The private snapshot worker may read only the exact validated `codeload.github.com` archive capability supplied for its claimed attempt and may write only through the existing attempt-scoped repository snapshot artifact upload descriptor.
 
-Repository source remains hostile data. The private worker does not execute repository code, package managers, install hooks, Git hooks, Dockerfiles, workflows, submodules, Git LFS commands or project binaries.
+The worker-side network boundary validates the canonical GitHub repository identity, exact owner/repository, immutable commit SHA, exact codeload path, lease expiry, pinned GitHub transport, no redirects, and compressed-byte ceiling.
 
-The produced archive is normalized through the same bounded repository snapshot parser/bundle pipeline used by public acquisition.
+Repository source remains hostile data. The private worker does not execute repository code, package managers, install hooks, Git hooks, Dockerfiles, workflows, submodules, Git LFS commands, or project binaries.
+
+The resulting archive is normalized through the bounded repository snapshot parser/bundle pipeline used by public acquisition.
 
 ## Connected-project orchestration
 
-A private connected-project scan performs fresh GitHub provider revalidation before enqueueing.
+A private connected-project scan performs fresh GitHub provider revalidation before enqueueing. Visibility remains part of stored and provider-revalidated identity, so a public/private change fails closed instead of silently switching acquisition classes.
 
-Visibility is part of the stored and provider-revalidated repository identity. A public/private visibility change fails closed as a repository identity mismatch rather than silently switching acquisition classes.
+When the private runtime gate is disabled, the project remains connected but no private acquisition task is queued. When enabled after acceptance, the control plane uses the dedicated private connected-project enqueue RPC and never falls back to the public snapshot enqueue RPC.
 
-When the private runtime gate is disabled, the project remains connected but no private acquisition task is queued.
+Successful private snapshot publication enters the existing connected-project continuation path. Continuation is bound to the exact published `snapshotTaskId` and `snapshotId`, and recovery reuses that immutable snapshot instead of reacquiring source.
 
-When enabled, the control plane uses a dedicated private connected-project enqueue RPC that atomically creates the private snapshot task and records the project scan intent. It never falls back to the public snapshot enqueue RPC.
+## Database authority and production schema state
 
-Successful private snapshot publication is recognized by the authenticated worker finalize route and enters the existing connected-project continuation path.
+Phase 10A2 uses forward migrations. The two reviewed Phase 10A2 migrations remain unapplied to production ScopeForge Supabase project `tdgpibrepzcvdivztkta`:
 
-The continuation remains bound to the exact published `snapshotTaskId` and `snapshotId`. The repository scanner consumes that exact immutable snapshot. Recovery for `waiting_scan_runtime`, `retry_pending` and replayed `scan_queued` state reuses the published snapshot instead of reacquiring source.
+- `supabase/migrations/20260911100000_phase_10a2_private_repository_snapshot.sql`
+- `supabase/migrations/20260911110000_phase_10a2_private_project_scan_routing.sql`
 
-## Worker supervisor integration
+An earlier read-only production preflight verified required tables, keys, function signatures, CHECK-constraint compatibility, ACL assumptions, live-row compatibility, and absence of the Phase 10A2 targets.
 
-The shared worker supervisor now recognizes the private repository execution class without widening the legacy public executor contract.
+PR #113 later changed the first migration's private worker claim body to return authoritative `workspaceId` and `assetId` for trusted control-plane reauthorization. Therefore the exact current migration must be re-reviewed before production apply. Do not treat the older preflight as sufficient authorization to apply it.
 
-Private tasks are dispatched only to the dedicated private repository snapshot executor. Successful terminal output is validated against a closed private terminal schema and additionally bound by the supervisor to the claimed canonical repository URL, default branch and immutable commit SHA before trusted finalization.
+Privileged orchestration RPCs remain `SECURITY DEFINER` with pinned search paths and explicit `service_role` execution grants. Browser roles do not receive direct authority over private snapshot tasks or continuation persistence.
 
-The generic finalizer cannot publish a successful private snapshot. Success must pass through the repository snapshot publication service, including server-observed artifact size verification. Private failure and cancellation use the dedicated budget-aware failure path.
+## Latest security hardening
 
-## Database authority
+### PR #113 - private claim workspace/asset binding
 
-Phase 10A2 uses forward migrations. Already-applied Phase 10A1 migrations are not rewritten.
+Root cause:
 
-Privileged orchestration RPCs remain `SECURITY DEFINER` with pinned search paths and explicit execute grants only to `service_role`. Browser roles do not receive direct authority over private snapshot task or scan-continuation persistence.
+- SQL correctly bound the private repository link to the task workspace and asset;
+- the trusted persistence claim dropped that binding;
+- the source broker later re-read the link only by link ID before minting provider authority.
 
-The Phase 10A2 database TypeScript overlay composes the Phase 10A1 connected-project surface with the Phase 6D worker-control RPC surface and the Phase 10A2 private repository RPCs.
+Fix:
+
+- carry `workspaceId` and `assetId` through the trusted private persistence claim;
+- validate both identifiers;
+- reauthorize the repository link and GitHub connection against the claimed workspace/asset and immutable repository identity;
+- keep those identifiers out of the worker-facing contract.
+
+TDD evidence:
+
+- RED run `34894877712`: 399 test files passed and exactly 3 new assertions failed at the missing SQL claim fields, parser binding, and lease composition boundary.
+- GREEN run `34895910726`: 402/402 test files, 1,789/1,789 tests, audit 0 vulnerabilities, typecheck, CLI build/version, scanner and matrix benchmarks, optimized Next build, CSP browser acceptance, production UI diagnostic, and artifact upload passed.
+- PR #113 merged only into #76 as `d3d24258299a8b9d72211a91f49e5b26a10d5563`.
+
+### PR #114 - broker authority expiry recheck
+
+Root cause:
+
+The private source broker captured its clock once before asynchronous GitHub provider calls. A worker lease or task deadline could expire while those calls were in flight, allowing a temporary signed codeload capability to cross the control-plane boundary after authority had expired.
+
+Fix:
+
+- keep the initial pre-mint expiry rejection;
+- recheck bounded authority after installation-token minting;
+- recheck again after immutable commit resolution and before requesting the archive redirect;
+- recheck and recompute final expiry immediately before returning the worker-facing capability.
+
+TDD evidence before integration:
+
+- RED run `34939622538`: audit passed, 401/402 test files and 1,789/1,790 tests passed, with exactly the new timing regression failing because the expired capability was returned.
+- GREEN run `34939960701`: 402/402 test files and 1,790/1,790 tests passed; audit 0 vulnerabilities; typecheck; CLI build/version; scanner and matrix benchmarks; optimized Next build; CSP browser acceptance; production UI/Turnstile diagnostic; and artifact upload passed.
+- GREEN merge candidate: `1b78a68dfd3f8b9ae6b39d344dfd09508528efe0`.
+- UI acceptance artifact ID: `10385275455`.
+- A later no-content head commit changed only commit history, not the code tree. Its fresh exact-candidate CI must be green before PR #114 is merged into #76. Do not reuse the earlier candidate as final merge proof.
 
 ## Permanent architecture guards
 
-`tests/repository-snapshots/private-acquisition-architecture.test.ts` pins the following boundaries:
+The private acquisition test suite pins these boundaries:
 
-- provider credentials are absent from worker contracts, private execution and snapshot publication,
-- the public GitHub acquirer still rejects private metadata,
-- the private executor cannot call the GitHub API control plane,
-- worker claim remains request-body-free and authenticated,
-- hosted repository capability flags remain default-off unless explicitly `true`,
-- new Phase 10A2 orchestration RPCs have explicit service-role ACLs.
+- provider credentials remain absent from worker contracts and execution;
+- the public GitHub acquirer remains fail-closed to private repositories;
+- the private executor cannot call the GitHub API control plane;
+- worker claim remains authenticated and request-body-free;
+- hosted repository capability flags remain default-off unless explicitly `true`;
+- privileged Phase 10A2 RPCs remain service-role only;
+- private claim workspace/asset identity remains control-plane-only;
+- private source capability cannot be released after its trusted authority expires.
 
-`tests/workers/private-supervisor-integration.test.ts` additionally pins private dispatcher routing and successful private terminal acceptance through the shared supervisor.
+## Release gates after issue #79 clears
 
-## Validation evidence
-
-Exact executable candidate:
-
-`3b1957871103885ac4fd26e3d3ff91f5d4a5a24f`
-
-GitHub Actions CI #897 / run `34606962246`: SUCCESS.
-
-That exact executable candidate passed:
-
-- dependency installation,
-- `npm audit --audit-level=info` with 0 vulnerabilities,
-- 392 Vitest files and 1,731 tests,
-- `npm run typecheck`,
-- `npm run build:cli`,
-- CLI version execution,
-- scanner benchmark,
-- matrix benchmark,
-- production Next.js build,
-- strict CSP browser smoke,
-- production V5/Turnstile diagnostic,
-- UI artifact upload step.
-
-The Phase 10A2 changed-file security review also completed without an identified release-blocking code defect. The review covered provider credential leakage, archive-capability persistence/logging boundaries, arbitrary egress, public/private class separation, cross-workspace/task binding, lease expiry/retry handling, privileged RPC ACLs, exact-snapshot continuation and runtime-gate bypass.
-
-Any executable change after the candidate above invalidates that executable evidence and requires a fresh complete validation run.
-
-## Production/provider gate
-
-The successful repository validation does not itself authorize the production private worker runtime or make PR #76 releasable.
-
-Before production activation:
-
-1. Safely release Phase 10A1 and reconcile PR #76 onto that released baseline.
-2. Re-run the complete Phase 10A2 validation matrix after stack reconciliation.
-3. Read the exact ScopeForge Supabase production migration head through a supported management surface.
-4. Apply only the reviewed forward Phase 10A2 migrations that are absent.
-5. Verify function ACLs, RLS/private-table privileges and Security Advisor.
-6. Verify the GitHub App installation has only the intended read-only repository permissions and can access the selected private repository.
-7. Verify the dedicated private worker deployment and rollback procedure.
-8. Enable `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` only for the accepted canary environment.
-9. Run a private repository canary from GitHub connection through exact snapshot publication and zero-egress repository scan.
-10. Confirm no token, source archive URL or private source content appears in browser state or ordinary application logs.
-11. Roll back the flag immediately if identity, credential, network, publication or containment invariants fail.
-
-## Known operational blockers
-
-The latest work has not established a fresh supported Supabase production management session, so production migration state must not be inferred from repository files alone.
-
-Phase 10A1 remains unreleased and therefore PR #76 must remain stacked and non-releasable even with green Phase 10A2 executable validation.
-
-Vercel preview failures observed on this line of work have included Hobby-plan build-rate/quota conditions. Those external quota failures must not be misclassified as application build failures. The repository-defined production build and browser diagnostics passed on CI #897.
+1. Fetch actual current `main`, #76 head, and production migration history.
+2. Reconcile #76 onto current/released `main`, preserving PR #113 and PR #114 hardening and main's CI WebDriver isolation fix.
+3. Run fresh exact-candidate validation after reconciliation. Historical branch CI is not release proof.
+4. Re-review the exact changed Phase 10A2 migration and apply only absent reviewed migrations to `tdgpibrepzcvdivztkta`.
+5. Verify schema, ACLs, RLS/private-table privileges, function bodies, and Security Advisor results.
+6. Keep hosted private snapshot/scan runtime gates off until the dedicated private worker is independently accepted.
+7. Complete containment, quotas, scratch/output ceilings, cleanup, observability, rollback, and credential-boundary checks.
+8. Prove private archive lease -> immutable snapshot -> exact zero-egress scan -> findings end-to-end.
+9. Merge/release #76 only after provider, schema, runtime, privacy, and rollback acceptance all pass.
+10. Only then reconcile PR #77 onto the released Phase 10A2/main baseline and run fresh Phase 10A3 validation.
 
 ## Release rule
 
-Keep PR #76 stacked/draft or otherwise non-releasable until Phase 10A1 is safely released, PR #76 is reconciled and revalidated against that released baseline, and the production schema/provider/private-worker canary gates are all satisfied.
+PR #76 stays draft and non-releasable while issue #79 remains open. No Phase 10A2/10A3 production migration, webhook secret, production membership, provider authorization rule, or private-worker runtime gate may be changed merely to satisfy the remaining canaries.
