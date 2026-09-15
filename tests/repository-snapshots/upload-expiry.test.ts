@@ -9,9 +9,13 @@ vi.mock("node:https", () => ({
   request: requestMock,
 }));
 
-vi.mock("node:fs/promises", () => ({
-  stat: statMock,
-}));
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return {
+    ...actual,
+    stat: statMock,
+  };
+});
 
 import { uploadRepositorySnapshotArtifact } from "@/packages/repository-snapshot-network/upload";
 
