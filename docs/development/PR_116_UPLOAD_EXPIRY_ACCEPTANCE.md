@@ -4,7 +4,7 @@ Reconciled: 2026-09-15, Asia/Singapore.
 
 ## Current checkpoint
 
-PR #116 implements the shared uploader expiry fix on `fix/repository-upload-expiry-toctou-20260915`. Implementation commit: `73034b5dcc261bbe8447583ea51054dd1e6226df`. Its exact merge candidate passed all CI and Vercel gates. This handoff-only update still requires fresh final-head CI before merge; inspect the live PR checks and merge state rather than treating this pre-merge checkpoint as a completed release.
+PR #116 is merged to main as `a956e4b305a25d1e074e7b4bc2120a87b48d5050` (2026-09-15 09:23:44 UTC). Implementation commit: `73034b5dcc261bbe8447583ea51054dd1e6226df`. Final PR head `542d79cadb1be4f1793cadc8eeaf405a56fca3a2` passed all CI and Vercel gates before the exact-head-guarded merge. Post-merge CI and production verification also passed. This final record is documentation-only; fetch live refs because it advances main without changing the validated executable tree.
 
 The checkout was clean before switching from the historical #110 branch. GitHub identity was verified as `LeDoNguyenTu`; origin is `LeDoNguyenTu/ScopeForge`. Fetched main `a8ea7803a8804449ab4fec493a860bac7eb3c562` was merged into #116 without rewriting history. Its changes were documentation-only.
 
@@ -42,6 +42,15 @@ The allowed-path control streams a real seven-byte temporary fixture through a m
 - Browser artifact: `10389422455`, `v5-ui-acceptance-5658f5395f5e7f4075076519234d2a56c8caa806`. Preview dashboard/admin coverage uses fixtures; the public production diagnostic does not establish authenticated #79 canary acceptance.
 - Actual artifact screenshots were inspected for the 390px GitHub preview, production landing, and production sign-in. The Turnstile widget is present; this does not prove a challenge was completed or an authenticated session was accepted.
 - Vercel preview `dpl_GJ7meUuzwUyyyMQHiqitdfF6m3U8`: READY on that exact implementation head, verified against team `team_WEcf1g1YcD6vYU8LD5jVUOKF`, project `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`, Node 24.x.
+
+## Final candidate and release evidence
+
+- [Final-head CI 34951902373](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34951902373): SUCCESS, exact merge candidate `b9943ea00ced4590e9a436f29206dad18418489a`, all 399 files / 1,762 tests and all audit/type/CLI/benchmark/build/browser/production-diagnostic gates passed. Artifact: `10389403515`.
+- Final-head Vercel deployment `dpl_KUEFd18bcMWqTeAs6Ei5doEMsNnr`: READY on `542d79cadb1be4f1793cadc8eeaf405a56fca3a2` in the verified ScopeForge team/project.
+- The actual merge tree is identical to the validated final PR head. Local main was fast-forwarded and verified at `0/0` relative to origin/main after merge.
+- [Post-merge main CI 34952330303](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34952330303): SUCCESS on `a956e4b305a25d1e074e7b4bc2120a87b48d5050`, all 399 files / 1,762 tests and every audit/type/CLI/benchmark/build/browser/production-diagnostic step passed. Artifact: `10388999994`.
+- Production deployment `dpl_EjfAStxpz7kMv3i73if2iSdxURVm`: READY on merge `a956e4b305a25d1e074e7b4bc2120a87b48d5050`, aliased to `scopeforge.dev` in the verified ScopeForge team/project.
+- Direct post-deployment HTTP checks: `/`, `/resources`, and `/auth/sign-in` returned 200; unauthenticated `/dashboard` redirected to `/auth/sign-in`. All checked responses retained nonce/strict-dynamic CSP, HSTS, frame denial, and `nosniff`.
 
 ## Phase 10 continuation
 
