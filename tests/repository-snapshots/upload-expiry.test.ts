@@ -5,14 +5,20 @@ const { requestMock, statMock } = vi.hoisted(() => ({
   statMock: vi.fn(),
 }));
 
-vi.mock("node:https", () => ({
-  request: requestMock,
-}));
+vi.mock("node:https", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:https")>();
+  return {
+    ...actual,
+    default: { ...actual, request: requestMock },
+    request: requestMock,
+  };
+});
 
 vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs/promises")>();
   return {
     ...actual,
+    default: { ...actual, stat: statMock },
     stat: statMock,
   };
 });
@@ -26,14 +32,13 @@ afterEach(() => {
 });
 
 describe("repository snapshot upload authorization", () => {
-  it("rechecks descriptor expiry after async artifact stat before starting the PUT", async () => {
+  it.each([2_000, 3_000])("rechecks descriptor expiry after async artifact stat before starting the PUT at %i", async (afterStatMs) => {
     const expiryMs = 2_000;
-    vi.spyOn(Date, "now")
-      .mockReturnValueOnce(1_000)
-      .mockReturnValue(3_000);
-    statMock.mockResolvedValue({
-      isFile: () => true,
-      size: 7,
+    let nowMs = 1_000;
+    vi.spyOn(Date, "now").mockImplementation(() => nowMs);
+    statMock.mockImplementation(async () => {
+      nowMs = afterStatMs;
+      return { isFile: () => true, size: 7 };
     });
     requestMock.mockImplementation(() => {
       throw new Error("NETWORK_SHOULD_NOT_START");
