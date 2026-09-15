@@ -62,7 +62,7 @@ describe("auth redirect routes", () => {
     );
   });
 
-  it("preserves existing callback failure redirects", async () => {
+  it("shows bounded callback failure guidance", async () => {
     mocks.exchangeCodeForSession.mockResolvedValue({ error: new Error("bad code") });
     const { GET } = await import("@/app/auth/callback/route");
     const response = await GET(new Request("https://scopeforge.dev/auth/callback?code=bad"));
@@ -70,7 +70,7 @@ describe("auth redirect routes", () => {
     expect(response.headers.get("location")).toBe("https://scopeforge.dev/auth/result?status=invalid");
   });
 
-  it("preserves existing confirmation failure redirects", async () => {
+  it("shows bounded confirmation failure guidance", async () => {
     mocks.verifyOtp.mockResolvedValue({ error: new Error("bad token") });
     const { GET } = await import("@/app/auth/confirm/route");
     const response = await GET(new Request(
@@ -101,6 +101,8 @@ describe("auth redirect routes", () => {
     const { GET } = await import("@/app/auth/confirm/route");
     const response = await GET(new Request("https://scopeforge.dev/auth/confirm?token_hash=secret&type=email"));
     expect(response.headers.get("location")).toBe("https://scopeforge.dev/auth/result?status=expired");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
   });
 
   it("rejects unsupported confirmation types before calling Supabase", async () => {
