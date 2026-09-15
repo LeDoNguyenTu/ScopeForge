@@ -130,13 +130,16 @@ Fix:
 - recheck again after immutable commit resolution and before requesting the archive redirect;
 - recheck and recompute final expiry immediately before returning the worker-facing capability.
 
-TDD evidence before integration:
+TDD evidence and integration:
 
 - RED run `34939622538`: audit passed, 401/402 test files and 1,789/1,790 tests passed, with exactly the new timing regression failing because the expired capability was returned.
-- GREEN run `34939960701`: 402/402 test files and 1,790/1,790 tests passed; audit 0 vulnerabilities; typecheck; CLI build/version; scanner and matrix benchmarks; optimized Next build; CSP browser acceptance; production UI/Turnstile diagnostic; and artifact upload passed.
-- GREEN merge candidate: `1b78a68dfd3f8b9ae6b39d344dfd09508528efe0`.
-- UI acceptance artifact ID: `10385275455`.
-- A later no-content head commit changed only commit history, not the code tree. Its fresh exact-candidate CI must be green before PR #114 is merged into #76. Do not reuse the earlier candidate as final merge proof.
+- Initial GREEN run `34939960701`: 402/402 test files and 1,790/1,790 tests passed; audit 0 vulnerabilities; typecheck; CLI build/version; scanner and matrix benchmarks; optimized Next build; CSP browser acceptance; production UI/Turnstile diagnostic; and artifact upload passed.
+- After the base documentation changed, the branch was reconciled without force-pushing and validated again instead of reusing stale SHA evidence.
+- Final exact merge candidate `cf0d1011c9ce7bcfd76ae3d8fad5eebd50f54825` was checked out by CI run `34940910372`.
+- Final run passed 402/402 test files and 1,790/1,790 tests, audit 0 vulnerabilities, typecheck, CLI build/version, scanner and matrix benchmarks, optimized Next build, CSP browser acceptance, production UI/Turnstile diagnostic, and artifact upload.
+- Vercel deployment on final head `ce669e555669a1d28a544193d36e66afabbfd21d` completed successfully.
+- Final UI acceptance artifact ID: `10385003353`.
+- PR #114 merged only into #76 as `8df73ee4cec8b9433c53195ed6f01f6e92c7cd00`.
 
 ## Permanent architecture guards
 
