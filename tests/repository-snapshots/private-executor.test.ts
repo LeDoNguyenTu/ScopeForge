@@ -119,6 +119,38 @@ describe("Phase 10A2 private repository snapshot executor", () => {
     expect(serialized).not.toContain("artifactUpload");
   });
 
+  it("destroys the opened private archive stream when scratch setup fails", async () => {
+    const archive = Readable.from([Buffer.from("archive")]);
+    const destroy = vi.spyOn(archive, "destroy");
+    const deps = dependencies({
+      source: {
+        openArchive: vi.fn(async () => ({
+          response: archive,
+          contentType: "application/x-gzip",
+          contentLength: 7,
+        })),
+      },
+      createWorkDirectory: vi.fn(async () => {
+        throw new Error("scratch setup failed");
+      }),
+    });
+
+    const result = await createPrivateRepositorySnapshotExecutor(deps).execute(
+      contract,
+      new AbortController().signal,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "failed",
+      failureCode: "REPOSITORY_UNAVAILABLE",
+      result: null,
+    });
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(deps.parseArchive).not.toHaveBeenCalled();
+    expect(deps.writeBundle).not.toHaveBeenCalled();
+    expect(deps.upload).not.toHaveBeenCalled();
+  });
+
   it("maps codeload redirect/network failures to the closed repository network code", async () => {
     const deps = dependencies({
       source: {
