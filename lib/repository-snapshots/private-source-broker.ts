@@ -241,6 +241,20 @@ function boundedLeaseExpiry(
   )).toISOString();
 }
 
+function currentBoundedLeaseExpiry(
+  dependencies: PrivateRepositorySourceBrokerDependencies,
+  installationTokenExpiresAt: string,
+  absoluteDeadlineAt: string,
+  workerLeaseExpiresAt: string,
+): string {
+  return boundedLeaseExpiry(
+    nowFrom(dependencies),
+    installationTokenExpiresAt,
+    absoluteDeadlineAt,
+    workerLeaseExpiresAt,
+  );
+}
+
 async function providerCall<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
@@ -257,7 +271,7 @@ export async function createPrivateRepositorySourceLease(
   input: PrivateRepositorySourceClaim,
   dependencies: PrivateRepositorySourceBrokerDependencies,
 ): Promise<GitHubPrivateArchiveLease> {
-  const now = nowFrom(dependencies);
+  const initialNow = nowFrom(dependencies);
   const installationId = positiveSafeInteger(input.installationId, "installation identifier");
   const repositoryId = positiveSafeInteger(input.repositoryId, "identifier");
   const owner = repositorySegment(input.owner, "owner");
@@ -270,8 +284,8 @@ export async function createPrivateRepositorySourceLease(
   const deadline = timestamp(input.absoluteDeadlineAt, "task deadline");
   const workerLeaseExpiry = timestamp(input.leaseExpiresAt, "worker lease expiry");
   if (
-    deadline - now.getTime() < MIN_REMAINING_AUTHORITY_MS
-    || workerLeaseExpiry - now.getTime() < MIN_REMAINING_AUTHORITY_MS
+    deadline - initialNow.getTime() < MIN_REMAINING_AUTHORITY_MS
+    || workerLeaseExpiry - initialNow.getTime() < MIN_REMAINING_AUTHORITY_MS
   ) {
     throw failure("PRIVATE_REPOSITORY_SOURCE_AUTHORITY_EXPIRED", "Private repository source authority is expired.");
   }
@@ -286,8 +300,8 @@ export async function createPrivateRepositorySourceLease(
     dependencies.config,
     { repositoryId },
   ));
-  const expiresAt = boundedLeaseExpiry(
-    now,
+  currentBoundedLeaseExpiry(
+    dependencies,
     installationToken.expiresAt,
     input.absoluteDeadlineAt,
     input.leaseExpiresAt,
@@ -310,6 +324,13 @@ export async function createPrivateRepositorySourceLease(
     repositoryName,
     repository.defaultBranch,
   )));
+  currentBoundedLeaseExpiry(
+    dependencies,
+    installationToken.expiresAt,
+    input.absoluteDeadlineAt,
+    input.leaseExpiresAt,
+  );
+
   const archiveUrl = validateArchiveUrl(
     await providerCall(() => readArchiveRedirect(
       installationToken.token,
@@ -320,6 +341,12 @@ export async function createPrivateRepositorySourceLease(
     owner,
     repositoryName,
     resolvedCommitSha,
+  );
+  const expiresAt = currentBoundedLeaseExpiry(
+    dependencies,
+    installationToken.expiresAt,
+    input.absoluteDeadlineAt,
+    input.leaseExpiresAt,
   );
 
   return Object.freeze({
