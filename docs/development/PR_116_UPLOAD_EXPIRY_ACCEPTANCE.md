@@ -54,6 +54,21 @@ The allowed-path control streams a real seven-byte temporary fixture through a m
 
 ## Phase 10 continuation
 
+### Fresh issue #79 recheck after PR #116
+
+On 2026-09-15, the user requested autonomous resolution of the blocker. Live repository state still has only draft #76/#77 and open #79. The Chrome `Meoooo` profile successfully rendered the authenticated production dashboard and GitHub integration as workspace **Owner**, with the existing connected repository visible.
+
+Read-only queries against independently verified ScopeForge project `tdgpibrepzcvdivztkta` found exactly two Auth users and exactly two workspace memberships, both `owner`. There is no existing `member` or `viewer` membership to use for the required live lower-privilege canary. No identity or membership was created, downgraded, or altered.
+
+Navigating the normal `/api/integrations/github/connect` entry point reached GitHub's existing installation settings behind **Confirm access**, signed in as `LeDoNguyenTu`. The passkey button was invoked and GitHub displayed **Waiting for input from browser interaction**. The tab was marked for user handoff. No signed state, authorization code, cookie, or credential was copied into the record.
+
+Required user input before dependent acceptance can continue:
+
+1. Complete GitHub's passkey/authenticator confirmation in the open Chrome tab. This restores access to the next provider screen; it is not by itself evidence that the unrelated-installation canary passes.
+2. Identify an actual intended collaborator/member account for legitimate workspace onboarding, or supply an already authenticated legitimate member/viewer session if one is established later. No member invitation/management flow was found in the current application during this inspection, so a new signup alone (which creates its own owner workspace) is not sufficient evidence of the required lower-privilege role. Review a real onboarding path once the intended identity/workspace is known; do not manufacture a role solely to pass the canary.
+
+Both negative canaries remain unproven. Continue the normal signed owner flow after confirmation, and inspect its next state without assuming the existing-installation redirect obstacle has disappeared. Keep #76/#77 unreleased and all unaccepted runtime gates off.
+
 Issue #79 is still open. Its two real authenticated negative canaries remain required: an unrelated valid installation ID through the normal owner/admin signed flow, and Connect GitHub denial for a legitimate member/viewer. No new production membership or authenticated-canary evidence was obtained in this session.
 
 Live draft heads at reconciliation:
