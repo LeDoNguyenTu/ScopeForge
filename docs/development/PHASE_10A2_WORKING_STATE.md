@@ -69,6 +69,8 @@ The private snapshot worker may read only the exact validated `codeload.github.c
 
 The worker-side network boundary validates the canonical GitHub repository identity, exact owner/repository, immutable commit SHA, exact codeload path, lease expiry, pinned GitHub transport, no redirects, and compressed-byte ceiling.
 
+If a private archive response has already been opened and execution fails before the parser takes ownership, the executor now destroys the response itself. If a lower layer has already destroyed the stream, the executor leaves it alone. This closes the pre-parser socket/source-transfer cleanup gap without changing the normal success path.
+
 Repository source remains hostile data. The private worker does not execute repository code, package managers, install hooks, Git hooks, Dockerfiles, workflows, submodules, Git LFS commands, or project binaries.
 
 The resulting archive is normalized through the bounded repository snapshot parser/bundle pipeline used by public acquisition.
@@ -141,6 +143,29 @@ TDD evidence and integration:
 - Final UI acceptance artifact ID: `10385003353`.
 - PR #114 merged only into #76 as `8df73ee4cec8b9433c53195ed6f01f6e92c7cd00`.
 
+### PR #115 - private archive stream cleanup
+
+Root cause:
+
+The private snapshot executor opened the brokered codeload response before creating its local scratch directory. If scratch setup failed before parsing began, the parser never acquired cleanup ownership and the already-open private response could remain undestroyed.
+
+Fix:
+
+- retain the opened private archive response at the executor boundary;
+- on execution failure, destroy it if a lower layer has not already destroyed it;
+- keep existing parser cleanup, cancellation semantics, failure-code mapping, provenance, provider authorization, schema, and runtime-gate behavior unchanged.
+
+TDD evidence and integration:
+
+- RED run `34942092028`: audit 0 vulnerabilities, 401/402 test files and 1,790/1,791 tests passed, with exactly one failure proving `destroy()` was not called after scratch setup failed.
+- GREEN CI run `34942497310` checked out exact PR merge candidate `6bec7471c1fb9376fe7943ab1617eb7d619f9b2a`.
+- GREEN passed 402/402 test files and 1,791/1,791 tests, audit 0 vulnerabilities, typecheck, CLI build/version, scanner and matrix benchmarks, optimized Next build, CSP browser acceptance, production `scopeforge.dev` UI/Turnstile diagnostic, and artifact upload.
+- Vercel passed on head `209af3ab174742e31c1011ac428bc50048e30698`.
+- UI acceptance artifact ID: `10385602800`.
+- PR #115 merged only into #76 as `778b5bf2abff4678bb1c4fce7f378fe5f179cb9b`.
+
+These branch-only validation runs are integration evidence for the isolated hardening. They are not Phase 10A2 release proof. #76 remains intentionally behind current `main` while #79 is open, so release still requires reconciliation with current `main` and fresh exact-candidate validation afterward.
+
 ## Permanent architecture guards
 
 The private acquisition test suite pins these boundaries:
@@ -152,12 +177,13 @@ The private acquisition test suite pins these boundaries:
 - hosted repository capability flags remain default-off unless explicitly `true`;
 - privileged Phase 10A2 RPCs remain service-role only;
 - private claim workspace/asset identity remains control-plane-only;
-- private source capability cannot be released after its trusted authority expires.
+- private source capability cannot be released after its trusted authority expires;
+- an opened private archive stream is closed on executor failure even when parsing never begins.
 
 ## Release gates after issue #79 clears
 
 1. Fetch actual current `main`, #76 head, and production migration history.
-2. Reconcile #76 onto current/released `main`, preserving PR #113 and PR #114 hardening and main's CI WebDriver isolation fix.
+2. Reconcile #76 onto current/released `main`, preserving PR #113, PR #114, and PR #115 hardening plus main's CI WebDriver isolation fix.
 3. Run fresh exact-candidate validation after reconciliation. Historical branch CI is not release proof.
 4. Re-review the exact changed Phase 10A2 migration and apply only absent reviewed migrations to `tdgpibrepzcvdivztkta`.
 5. Verify schema, ACLs, RLS/private-table privileges, function bodies, and Security Advisor results.
