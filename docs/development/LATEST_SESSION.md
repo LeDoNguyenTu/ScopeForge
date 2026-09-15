@@ -1,5 +1,13 @@
 # ScopeForge Latest Session Reconciliation
 
+## Authoritative PR #116 continuation - 2026-09-15
+
+Read [PR #116 upload expiry acceptance](PR_116_UPLOAD_EXPIRY_ACCEPTANCE.md) for the current implementation, genuine RED evidence, validation checkpoint, and ordered continuation. It supersedes all older status and immediate-task instructions below, including the former instruction to repair the HTTPS mock before implementation. Fetch live refs and checks before release decisions.
+
+The Phase 10A2 working-state file exists on the fetched #76 branch, not on main; the acceptance record gives the exact read command. Issue #79 remains the release gate before #76, then #77. Historical production observations below are not new verification of memberships, schema, or runtime flags.
+
+## Historical handoff snapshot
+
 Last reconciled: 2026-09-15, Asia/Singapore
 
 Read this immediately after root `AGENTS.md` and `docs/development/CODEX_HANDOFF.md` when resuming work. This file records the latest implementation session and supersedes older status wording where it conflicts. Always fetch live refs before acting.
