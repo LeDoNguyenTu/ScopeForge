@@ -27,6 +27,16 @@ Server-only variables:
 
 Never prefix a server-only value with `NEXT_PUBLIC_`. Never expose a Supabase secret key, GitHub App secret/private key/state secret, GitHub OAuth or installation token, R2 credential, Turnstile secret, worker credential, presigned artifact URL, or environment dump to browser code or logs.
 
+## Supabase email confirmation URLs
+
+For ScopeForge project `tdgpibrepzcvdivztkta`, configure Auth URL Configuration separately from Vercel environment variables:
+
+- Site URL: `https://scopeforge.dev`
+- Exact allowed redirect: `https://scopeforge.dev/auth/callback`
+- Signup passes the current application origin plus `/auth/callback` explicitly. Add any deliberately authorized non-production origins individually; do not allow broad production wildcards.
+
+The standard Supabase confirmation email template is supported. Successful PKCE callbacks show `/auth/result`; expired provider fragments are mapped to bounded guidance and removed from the address bar. `/auth/confirm` also supports token-hash templates if custom email delivery is configured later. Changing Site URL does not repair links already sent with localhost redirects. Users whose email is already confirmed can sign in normally.
+
 ## GitHub connected-project release gate
 
 `HOSTED_GITHUB_INTEGRATION_ENABLED` is intentionally independent from GitHub App credential presence. Configuring provider credentials must not expose the integration by itself.

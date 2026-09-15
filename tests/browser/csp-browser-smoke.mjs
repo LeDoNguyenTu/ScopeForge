@@ -160,6 +160,22 @@ async function main() {
       assertCleanLogs(await browserLogs(sessionId), path);
     }
 
+    for (const width of [390, 1440]) {
+      await setWindowRect(sessionId, width, 1000);
+      for (const [status, heading] of [["invalid", "We could not confirm this link"], ["expired", "This link has expired or was already used"], ["error", "Confirmation is temporarily unavailable"]]) {
+        const path = `/auth/result?status=${status}`;
+        await navigate(sessionId, path);
+        await waitFor(sessionId, `confirmation ${status}`, `return document.querySelector('h1')?.textContent === ${JSON.stringify(heading)};`);
+        const safe = await execute(sessionId, "return document.documentElement.scrollWidth <= innerWidth + 1 && !document.querySelector('input[type=password]') && Boolean(document.querySelector('a[href=\"/auth/sign-in\"]')); ");
+        if (!safe) throw new Error(`Confirmation result layout failed at ${width}px`);
+        assertCleanLogs(await browserLogs(sessionId), path);
+        await captureScreenshot(sessionId, `auth-result-${status}-${width}.png`);
+      }
+    }
+    await navigate(sessionId, "/auth/callback#error=access_denied&error_code=otp_expired&error_description=PRIVATE_DETAIL");
+    await waitFor(sessionId, "provider expiry fragment cleanup", "return document.querySelector('h1')?.textContent === 'This link has expired or was already used' && !location.hash && !document.body.textContent.includes('PRIVATE_DETAIL');");
+    assertCleanLogs(await browserLogs(sessionId), "/auth/callback");
+
     await navigate(sessionId, "/__scopeforge_csp_browser_404__");
     await waitFor(sessionId, "application 404", "return Boolean(document.querySelector('.scopeForgeNotFound')); ");
 
