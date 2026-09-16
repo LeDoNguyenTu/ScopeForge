@@ -4,34 +4,17 @@ Last reconciled: 2026-09-16, Asia/Singapore
 
 Always fetch live `main`, #79, #76, #77, open PRs, and branch refs before starting. Live state wins.
 
-## Priority 1 - finish issue #79 through real product flows
+## Priority 1 - issue #79 complete
 
-Positive owner/admin GitHub App acceptance is complete. PR #118 is released and provides a legitimate normal-member path.
+Both negative production canaries passed on 2026-09-16. The normal member was denied Connect GitHub, and a fresh owner-signed flow rejected a different real installation ID with `?error=installation`. The original repository connection remained verified. Issue #79 is closed.
 
-The legitimate member canary passed on 2026-09-16: `214nsa@gmail.com` selected Brian's workspace as `Member`, and the GitHub integration page denied access with `Workspace owner or admin access is required.` and no Connect GitHub control.
-
-One production browser canary remains:
-
-1. owner/admin normal signed flow with a different valid GitHub installation ID must be rejected as unauthorized for the active connection/workspace
-
-Required constraints:
-
-- use the normal authenticated application flow
-- do not forge callback state
-- do not fabricate membership or identity
-- do not directly mutate an owner role merely for testing
-- do not weaken authorization
-- do not substitute unit/CI evidence
-
-If either live canary exposes a defect, remediate it before Phase 10A2 release work.
-
-## Priority 2 - Phase 10A2 PR #76 after #79 clears
+## Priority 2 - Phase 10A2 PR #76
 
 Current executable/security-hardening merge after PR #120:
 
 `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 
-Do not reconcile #76 early while #79 is open. Once #79 genuinely clears:
+#79 is closed. Proceed in this order:
 
 1. fetch current `main`, #76, production migration history, and exact runtime/config state
 2. reconcile #76 once onto the current released mainline, preserving #113/#114/#115/#119/#120 and released mainline fixes
@@ -70,7 +53,7 @@ After Phase 10A2 release:
 7. merge/release only after all operational gates pass
 8. verify production after merge
 
-## Safe work while #79 is externally blocked
+## Independent maintenance boundary
 
 Safe independent work includes:
 
@@ -81,7 +64,7 @@ Safe independent work includes:
 - architecture/security review
 - branch/release hygiene after fresh live verification
 
-Any independent fix must use genuine RED, minimal GREEN, and exact-candidate validation. It must not be used as evidence that #79 or either Phase 10 release gate passed.
+Any independent fix must use genuine RED, minimal GREEN, and exact-candidate validation. It must not be used as evidence that either Phase 10 operational gate passed.
 
 ## Runtime gates that stay off until accepted
 

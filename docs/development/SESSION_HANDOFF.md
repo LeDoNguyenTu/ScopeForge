@@ -8,9 +8,9 @@ Use this with `CODEX_HANDOFF.md`, `CURRENT_STATE.md`, `NEXT_STEPS.md`, and `UNFI
 
 Before this documentation commit:
 
-- live `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
-- issue #79: OPEN
-- PR #76: OPEN/DRAFT, documentation head `368dee1`, executable hardening merge `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+- live `main`: `bc6d50d5ffee782dc8aa48c8ec82c94d3fc82bd3`
+- issue #79: CLOSED after both live negative authorization canaries passed
+- PR #76: OPEN/DRAFT, documentation head `3439fd9095b65ddcd7e4d8bd3943ffed1766d7c6`, executable hardening merge `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - PR #77: OPEN/DRAFT, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
 - open PR pagination showed no third open PR after #120 merged
 - Phase 10A2 and Phase 10A3 production migrations remained unapplied
@@ -61,21 +61,11 @@ Minimal fix: use the existing drain-on-abort path so finalization waits for the 
 - positive owner/admin GitHub App canary is complete
 - Phase 6D real Linux/rootless-Podman acceptance is complete
 
-## Issue #79 blocker
+## Issue #79 acceptance complete
 
-PR #118 created the legitimate collaborator path used for the normal-member test. The old statement that production lacks any legitimate member/viewer path is stale.
+Both live negative canaries passed on 2026-09-16. The legitimate member was denied Connect GitHub. The owner/admin flow used a fresh signed state and a different real installation ID; GitHub authorization completed and ScopeForge rejected it at `?error=installation`. A clean reload still rendered `Connected`, `Repository access verified`, and `LeDoNguyenTu/ScopeForge`.
 
-Completed through the normal authenticated production browser flow on 2026-09-16:
-
-- `214nsa@gmail.com` selected Brian's workspace and rendered as `Member`
-- the GitHub integration page rendered `GitHub integration unavailable` / `Workspace owner or admin access is required.`
-- no Connect GitHub control was available
-
-Still required through the normal authenticated production browser flow:
-
-1. different valid GitHub installation ID rejected for authorized owner/admin flow
-
-No state was fabricated for the completed member canary. The owner/admin wrong-valid-installation canary still needs the real owner session and a different valid GitHub installation ID.
+The GitHub App's **Redirect on update** setting is enabled so existing-installation updates return to the configured Setup URL. No signed state, OAuth code, token, secret, or private key was recorded. Issue #79 is closed.
 
 ## Unsafe actions deliberately not taken
 
@@ -93,11 +83,11 @@ No state was fabricated for the completed member canary. The owner/admin wrong-v
 1. Read root `AGENTS.md`.
 2. Fetch/prune and inspect current worktree/status.
 3. Resolve live `origin/main`.
-4. Inspect issue #79, PR #76, PR #77, all newer/open PRs/issues, exact heads and checks.
+4. Inspect PR #76, PR #77, all newer/open PRs/issues, exact heads and checks.
 5. Compare against persistent docs. Live state wins.
-6. If a suitable authenticated owner/admin browser surface and different valid installation ID exist, finish the remaining #79 canary without synthetic state.
-7. If #79 remains blocked, continue only isolated safe TDD/security/tooling work.
-8. Once #79 clears, reconcile #76 exactly once to current released main, fresh-validate, then proceed through schema/runtime/private-flow acceptance.
+6. Reconcile #76 exactly once to current released main and fresh-validate the exact candidate.
+7. Re-review and apply only absent reviewed Phase 10A2 migrations to `tdgpibrepzcvdivztkta`.
+8. Keep runtime gates off until private-worker containment, rollback, privacy, and end-to-end acceptance pass.
 9. Release #76 only when all gates pass.
 10. Reconcile/release #77 only after #76.
 

@@ -1,8 +1,8 @@
 # Phase 10A1 GitHub App Provider Setup
 
 Date: 2026-09-10
-Last operational reconciliation: 2026-09-13 (Asia/Singapore)
-Status: provider configured and positive owner/admin production canary complete; two negative authorization canaries remain in issue #79
+Last operational reconciliation: 2026-09-16 (Asia/Singapore)
+Status: provider configured; positive and both negative production authorization canaries complete; issue #79 closed
 
 ## Purpose
 
@@ -22,10 +22,7 @@ Already completed and directly evidenced in production:
 - Stored integration rows, redirects, browser-readable state/cookies, and checked logs were reviewed for provider/token leakage; no release-blocking leakage was identified.
 - Phase 10A2/10A3 migrations remain unapplied and hosted repository snapshot/scan worker gates remain independently disabled.
 
-Issue #79 remains open only for these two live authenticated negative canaries:
-
-1. In an authenticated owner/admin callback flow, a different valid GitHub installation ID must be rejected.
-2. An authenticated normal workspace member/viewer must be unable to initiate or complete Connect GitHub.
+Issue #79 closed on 2026-09-16 after both live authenticated negative canaries passed: normal-member Connect GitHub denial and owner/admin rejection of a different real installation ID. The original connection remained verified after the rejection.
 
 Do not treat unit/regression tests as a substitute for those live checks, and do not weaken production authorization or mutate an owner account merely to manufacture a passing canary.
 
@@ -35,6 +32,7 @@ Use these provider settings for the Phase 10A1 production integration:
 
 - GitHub App homepage: `https://scopeforge.dev`
 - Setup URL: `https://scopeforge.dev/api/integrations/github/callback`
+- Redirect on update: enabled, so changes to an existing installation return to the Setup URL
 - Callback URL: `https://scopeforge.dev/api/integrations/github/callback`
 - Request user authorization (OAuth) during installation: **disabled**
 - Webhook: not required for Phase 10A1. Continuous push/install reconciliation is Phase 10A3 and adds a separate webhook secret and event review.
@@ -114,12 +112,12 @@ The complete safe rollout checklist is retained below, with the current operatio
 5. **Complete** - Set `HOSTED_GITHUB_INTEGRATION_ENABLED=true` deliberately for controlled owner/admin acceptance.
 6. **Complete** - Connect a controlled GitHub account and installation.
 7. **Complete** - Verify repository listing and one repository import using authoritative server-side re-fetch.
-8. **Pending issue #79 live canary** - Attempt a callback with a different valid numeric installation ID and confirm ScopeForge rejects it.
+8. **Complete** - A fresh signed owner flow rejected a different real installation ID with `error=installation`.
 9. **Complete for the checked positive flow** - Confirm no GitHub user or installation token appears in application logs, database integration rows, redirects, or browser-readable cookies/state.
-10. **Pending issue #79 live canary** - Confirm a normal workspace member/viewer cannot start or complete a connection.
-11. Keep the integration enabled only while provider acceptance remains green; if either remaining negative canary reveals a release-blocking defect, restore the provider gate to false immediately before remediation.
+10. **Complete** - A normal member of Brian's workspace was denied and saw no Connect GitHub control.
+11. Keep the integration enabled only while provider acceptance remains green; if a future production canary reveals a release-blocking defect, restore the provider gate to false immediately before remediation.
 12. Keep hosted repository snapshot and scan runtime gates disabled until their independent Phase 10A2 operational acceptance is complete.
 
 ## Resume rule
 
-For current operational state, read issue #79 plus `docs/development/CURRENT_STATE.md` and `docs/development/NEXT_STEPS.md` before repeating any setup step. Historical setup evidence in older comments or working-state documents must not override the current positive-canary evidence.
+For current operational state, read the closed issue #79 plus `docs/development/CURRENT_STATE.md` and `docs/development/NEXT_STEPS.md` before repeating any setup step. Historical setup evidence in older comments or working-state documents must not override the completed live canaries.

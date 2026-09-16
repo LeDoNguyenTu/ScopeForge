@@ -6,12 +6,12 @@ Live state wins over this document. Fetch refs/checks before acting.
 
 ## Session objective
 
-Resume after the latest Codex work without repeating completed implementation, preserve issue #79 and the Phase 10 release boundaries, and continue only safe independently reviewable work while #79 remains open.
+Resume after the latest Codex work without repeating completed implementation, finish issue #79 through real production flows, and preserve the Phase 10 release boundaries.
 
 ## Live state at session start
 
 - `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
-- issue #79: OPEN with one authenticated production browser canary outstanding
+- issue #79: OPEN with one authenticated production browser canary outstanding at session start; CLOSED during this session
 - PR #76: OPEN, draft, initial observed head `b09e03258329251361cf8d515458e0ff7d708e2c`
 - PR #77: OPEN, draft, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
 - PR #116/#117/#118 were already merged/released
@@ -91,14 +91,14 @@ After #120:
 
 - PR #119: CLOSED/MERGED
 - PR #120: CLOSED/MERGED
-- PR #76: OPEN/DRAFT, documentation head `368dee1`, executable hardening merge `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+- PR #76: OPEN/DRAFT, documentation head `3439fd9095b65ddcd7e4d8bd3943ffed1766d7c6`, executable hardening merge `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - PR #77: OPEN/DRAFT, still stacked and unreleased
 - `main`: unchanged before the documentation commit
-- issue #79: still OPEN
+- issue #79: CLOSED after both live negative authorization canaries passed
 
-The release sequence therefore has not advanced operationally.
+The provider prerequisite has advanced; Phase 10A2 schema and runtime acceptance have not.
 
-## Issue #79 exact remaining work
+## Issue #79 acceptance complete
 
 Positive owner/admin provider acceptance is already complete. The legitimate member denial canary passed on 2026-09-16:
 
@@ -107,13 +107,9 @@ Positive owner/admin provider acceptance is already complete. The legitimate mem
 - the GitHub integration page rendered `GitHub integration unavailable` and `Workspace owner or admin access is required.`
 - no Connect GitHub control was available
 
-Exactly one live production check remains:
+The owner/admin negative canary also passed on 2026-09-16. A fresh signed production flow continued with a different real installation ID, completed GitHub authorization, and ScopeForge rejected it at `?error=installation`. A clean reload still showed `Connected`, `Repository access verified`, and `LeDoNguyenTu/ScopeForge`.
 
-1. authorized owner/admin normal signed flow with a different valid GitHub installation ID must reject it as unauthorized for the connection/workspace
-
-Do not use forged state, fabricated identities, direct role mutation, owner downgrade, weakened authorization, or CI as a substitute.
-
-The completed member check used the normal authenticated product flow without fabricated state. The owner/admin check still requires the real owner session and a different valid GitHub installation ID.
+The GitHub App's **Redirect on update** setting is enabled so existing-installation updates return to the configured Setup URL. No signed state, OAuth code, token, provider secret, or private key was recorded. Issue #79 is closed.
 
 ## Production actions deliberately not taken
 
@@ -132,10 +128,8 @@ Live GitHub returned 21 branches, while the previous cleanup document claimed fo
 ## Next exact resume point
 
 1. fetch live state
-2. finish the remaining #79 owner/admin wrong-valid-installation check through the real authenticated browser flow when the required owner session and installation ID are available
-3. once #79 clears, reconcile #76 exactly once onto current main and run fresh exact-candidate validation
-4. only then review/apply absent Phase 10A2 migrations and perform dedicated private-worker operational acceptance
+2. reconcile #76 exactly once onto current main and run fresh exact-candidate validation
+3. review and apply only absent Phase 10A2 migrations to `tdgpibrepzcvdivztkta`
+4. keep runtime gates off until dedicated private-worker operational acceptance passes
 5. release #76 only after all gates pass
 6. reconcile and accept #77 only after #76 releases
-
-If #79 remains externally blocked, continue isolated TDD/security maintenance only. Do not advance production Phase 10 state.

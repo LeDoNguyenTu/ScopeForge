@@ -4,23 +4,9 @@ Last reconciled: 2026-09-16, Asia/Singapore
 
 This file lists genuinely unfinished work only. Fetch live refs before acting.
 
-## 1. Issue #79 - one authenticated production browser canary
+## 1. Issue #79 - completed release prerequisite
 
-Positive owner/admin GitHub App activation/import is complete. PR #118 collaborator controls are released and a legitimate normal-member path now exists.
-
-Completed on 2026-09-16 through the normal production product flow:
-
-- `214nsa@gmail.com` selected Brian's workspace with the rendered `Member` role
-- the GitHub integration page denied access with `Workspace owner or admin access is required.`
-- no Connect GitHub control was available
-
-Still unfinished:
-
-1. authorized owner/admin normal signed flow with a different valid GitHub installation ID must be rejected as not belonging to the authorized connection/workspace
-
-Do not satisfy either check with forged callback state, fabricated membership, direct role mutation, owner downgrade, weakened authorization, or CI/unit tests.
-
-If a real canary exposes a defect, remediate before Phase 10A2 release work.
+Both live negative authorization canaries passed on 2026-09-16. A normal member was denied Connect GitHub, and a fresh owner-signed flow rejected a different real installation ID with `?error=installation`. The original `LeDoNguyenTu/ScopeForge` connection remained verified. Issue #79 is closed and is no longer unfinished work.
 
 ## 2. Phase 10A2 - PR #76 private repository acquisition
 
@@ -47,7 +33,7 @@ PR #120 is complete and must not be recreated:
 - merged into #76 as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - completed all-file Phase 10A2 security diff review recorded one reportable issue, remediated by this PR
 
-After #79 clears:
+With #79 closed:
 
 1. fetch live main/#76 and production migration history
 2. reconcile once onto current released main
@@ -94,7 +80,7 @@ No deletion was performed in the latest continuation. Before cleanup:
 
 Known merged source branches from the latest work: `fix/repository-scan-download-expiry-20260916` for PR #119 and `fix/private-supervisor-abort-drain-20260916` for PR #120.
 
-## 5. Safe independent work while #79 is blocked
+## 5. Independent maintenance
 
 Allowed:
 

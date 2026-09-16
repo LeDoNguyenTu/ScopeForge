@@ -7,10 +7,10 @@ Fetch live refs before acting. This document records semantic state, not a promi
 ## Repository and release queue
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- pre-documentation live `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
-- issue #79: OPEN
+- pre-documentation live `main`: `bc6d50d5ffee782dc8aa48c8ec82c94d3fc82bd3`
+- issue #79: CLOSED after both live negative authorization canaries passed
 - PR #76: OPEN/DRAFT, Phase 10A2 private repository acquisition
-- current Phase 10A2 documentation head: `368dee1` (fetch the full live SHA)
+- current Phase 10A2 documentation head: `3439fd9095b65ddcd7e4d8bd3943ffed1766d7c6`
 - current executable/security-hardening merge on #76 after PR #120: `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - PR #77: OPEN/DRAFT, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
 - strict release order: `#79 -> #76 -> #77`
@@ -30,20 +30,15 @@ Positive GitHub App owner/admin acceptance is complete:
 
 PR #118 workspace collaborator controls are released and deployed. The legitimate collaborator is a member of Brian's workspace while owning a separate workspace. This supplied the normal-member path used for the completed #79 authorization canary without fabricating database state.
 
-## Issue #79 remaining acceptance
+## Issue #79 acceptance complete
 
-The normal-member production check passed on 2026-09-16:
+Both negative production checks passed on 2026-09-16:
 
-- `214nsa@gmail.com` selected Brian's workspace through the workspace selector
-- the active workspace role rendered as `Member`
-- the GitHub integration page rendered `GitHub integration unavailable` and `Workspace owner or admin access is required.`
-- no Connect GitHub control was available
+- `214nsa@gmail.com` selected Brian's workspace as `Member`; the GitHub integration page denied access and showed no Connect GitHub control.
+- a fresh owner-signed flow with a different real installation ID completed GitHub authorization and was rejected by ScopeForge at `?error=installation`.
+- the original connection remained intact and still listed `LeDoNguyenTu/ScopeForge` after a clean reload.
 
-Exactly one authenticated production browser check remains:
-
-1. owner/admin normal signed flow with a different valid GitHub installation ID must be rejected because it does not belong to the authorized connection/workspace
-
-Do not substitute unit tests, forged callback state, fabricated membership, direct role mutation, or an owner downgrade.
+The GitHub App's **Redirect on update** setting is enabled. Existing-installation updates return to the configured ScopeForge Setup URL. Issue #79 is closed.
 
 ## Phase 10A2 state
 
@@ -82,7 +77,7 @@ The Phase 10A2 migrations remain intentionally unapplied:
 
 PR #113 changed the first migration's private worker claim body. Re-review the exact current migration before any production apply.
 
-Do not reconcile #76 merely to catch up with docs/main while #79 remains open. Reconcile once after #79 clears, then require fresh exact-candidate validation.
+Reconcile #76 once onto current main, then require fresh exact-candidate validation before schema or runtime acceptance.
 
 ## Runtime gates
 
@@ -128,4 +123,4 @@ The historical cleanup manifest said the repository had four remote refs. A fres
 
 ## Immediate resume point
 
-Finish the remaining #79 owner/admin wrong-valid-installation canary through the normal authenticated product flow when the owner session and different valid installation ID are available. If not, continue only isolated security/regression/tooling work. Never use independent maintenance to infer #79, Phase 10A2, or Phase 10A3 operational acceptance.
+Issue #79 is closed. Reconcile PR #76 once onto current main, run fresh exact-candidate validation, re-review the exact migrations, and proceed through controlled Phase 10A2 schema and private-worker acceptance. Runtime gates remain off until their own acceptance passes.
