@@ -2,16 +2,22 @@
 
 Last reconciled: 2026-09-16, Asia/Singapore
 
+## PRIORITY 0 — do this first when host access is available
+
+Read `docs/development/CODEX_PRIORITY_0_HOST_ACCEPTANCE.md` first. The Phase 10A2 Linux worker/private-repository acceptance is the first task Codex must attempt in any session that has an authorized OCI/SSH terminal. Do not spend that host-capable session redoing issue #79, schema deployment, existing Phase 10A2 hardening, or the canary fixture unless fresh evidence proves a regression.
+
+If host access is still unavailable, preserve this Priority 0 blocker and continue only safe independent repo-side work that does not weaken, bypass, or falsely satisfy the release gate.
+
 Live provider/repository state always wins. Read `AGENTS.md`, fetch/prune, inspect `main`, PR #76, PR #77, CI, deployments, production migration history, and the actual worktree before changing code.
 
-## Exact state before this documentation commit
+## Exact state before this documentation refresh
 
 - `main`: `1b23dc8e5aa4c130d7ff6174cbf9444879b88bae`
-- Phase 10A2 PR #76 executable candidate: `4ef285473402336b4488af4e1c2b4b1ea28d5eb7`
+- Phase 10A2 tested executable candidate: `4ef285473402336b4488af4e1c2b4b1ea28d5eb7`
+- current PR #76 documentation head immediately before this Priority 0 refresh: `32baceebc0f505b17ef2db48c04fef5602e26467`
 - #76 is deliberately DRAFT until worker/runtime/private-flow acceptance passes
-- #76 is 159 commits ahead / 0 behind current main at the recorded checkpoint
-- exact-candidate CI: run `35102938452`, success
-- exact-candidate Vercel preview: `dpl_Cgt5cBd5guXKvVEfRDJS8fEXKENE`, READY
+- exact executable-candidate CI: run `35102938452`, success
+- executable-candidate Vercel preview: `dpl_Cgt5cBd5guXKvVEfRDJS8fEXKENE`, READY
 - issue #79: CLOSED; both real authenticated negative GitHub authorization canaries passed
 - PR #77: OPEN/DRAFT at `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, still blocked behind #76
 
@@ -33,8 +39,8 @@ Live verification confirmed:
 - private worker/orchestration tables are not directly writable by `anon`, `authenticated`, or `service_role`
 - public worker registration/enqueue wrappers are service-role-only
 - private claim/finalize internals are not browser/service-role callable directly
-- current Phase 10A2 worker count: 0
-- current Phase 10A2 queued task count: 0
+- current Phase 10A2 worker count at last production inspection: 0
+- current Phase 10A2 queued task count at last production inspection: 0
 
 Security Advisor did not expose a new Phase 10A2 privilege bypass. The authenticated SECURITY DEFINER warnings are the intentional PR #118 collaborator RPCs; their function bodies authenticate `auth.uid()` and require workspace owner/admin membership. Leaked-password protection remains an account-level advisory, not a Phase 10A2 migration defect. Performance advisor findings are INFO-level and are not a release reason to mutate the green security candidate.
 
@@ -60,27 +66,28 @@ Historical worker host:
 - SSH user: `ubuntu`
 - historical access: OCI Cloud Shell using the owner's private key
 - historical host: Ubuntu 24.04, rootless Podman/cgroup v2 accepted during Phase 6D
-- current public port 22 check from this ChatGPT session: connection refused
-- this session does not possess the private SSH key and must not place it in Git/chat/Vercel/Supabase
+- current public port 22 check from the latest ChatGPT session: connection refused
+- the ChatGPT session did not possess the private SSH key and must not place it in Git/chat/Vercel/Supabase
 
 A connected authorized terminal/remote-host surface is required to finish host deployment. Do not register fake workers, mint credentials with nowhere safe to deliver them, weaken runtime gates, or claim acceptance from historical Phase 6D evidence alone.
 
 ## Exact next actions once host access exists
 
-1. fetch exact PR #76 candidate and confirm no newer executable change supersedes `4ef28547...`
-2. install/verify Node 24, rootless Podman, cgroup v2, dedicated `scopeforge-worker` account, systemd delegation, disk/memory/PID prerequisites
-3. build `npm ci && npm run build:workers`
-4. deploy `scopeforge-worker.cjs` and the scanner entry under `/opt/scopeforge/current`
-5. build scanner image from the pinned Containerfile and record immutable local image digest
-6. generate two worker secrets on the host; store only in root-owned mode-0600 host env files
-7. register only credential hashes via `register_private_repository_snapshot_worker_node` and `register_repository_scan_worker_node`
-8. start workers with all repository runtime gates still disabled and verify authenticated idle claims/heartbeats
-9. add `LeDoNguyenTu/scopeforge-private-canary` to the ScopeForge GitHub App installation's selected repository set through the legitimate owner/admin flow
-10. enable only the Phase 10A2 repository gates for a bounded canary window
-11. prove private archive lease -> immutable snapshot -> zero-egress scan -> expected CWE-78 finding
-12. verify cancellation, cleanup, quotas, provenance, privacy-reduced logs, credential isolation, rollback
-13. merge/release #76 only after every check passes; otherwise restore gates false and keep #76 draft
-14. only after #76 production verification, reconcile/fresh-validate #77
+1. read `CODEX_PRIORITY_0_HOST_ACCEPTANCE.md`
+2. fetch exact PR #76 candidate and confirm no newer executable change supersedes `4ef28547...`
+3. install/verify Node 24, rootless Podman, cgroup v2, dedicated `scopeforge-worker` account, systemd delegation, disk/memory/PID prerequisites
+4. build `npm ci && npm run build:workers`
+5. deploy `scopeforge-worker.cjs` and the scanner entry under `/opt/scopeforge/current`
+6. build scanner image from the pinned Containerfile and record immutable local image digest
+7. generate two worker secrets on the host; store only in root-owned mode-0600 host env files
+8. register only credential hashes via `register_private_repository_snapshot_worker_node` and `register_repository_scan_worker_node`
+9. start workers with all repository runtime gates still disabled and verify authenticated idle claims/heartbeats
+10. add `LeDoNguyenTu/scopeforge-private-canary` to the ScopeForge GitHub App installation's selected repository set through the legitimate owner/admin flow
+11. enable only the Phase 10A2 repository gates for a bounded canary window
+12. prove private archive lease -> immutable snapshot -> zero-egress scan -> expected CWE-78 finding
+13. verify cancellation, cleanup, quotas, provenance, privacy-reduced logs, credential isolation, rollback
+14. merge/release #76 only after every check passes; otherwise restore gates false and keep #76 draft
+15. only after #76 production verification, reconcile/fresh-validate #77
 
 ## Completed work not to repeat
 
