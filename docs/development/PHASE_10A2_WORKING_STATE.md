@@ -22,10 +22,16 @@ Do not reconcile #76 to current `main` merely to make it current while #79 remai
 
 Positive owner/admin GitHub App acceptance is complete. PR #118 workspace collaborator controls are also released and a legitimate collaborator now exists as a member of Brian's workspace while owning a separate workspace.
 
-Exactly two production browser canaries remain in issue #79:
+The legitimate normal-member production canary passed on 2026-09-16:
+
+- authenticated `214nsa@gmail.com` selected Brian's workspace
+- the active role rendered as `Member`
+- the GitHub integration route rendered `GitHub integration unavailable` and `Workspace owner or admin access is required.`
+- no Connect GitHub control was available
+
+Exactly one production browser canary remains in issue #79:
 
 1. authorized owner/admin normal signed flow with a different valid GitHub installation ID must reject it as not belonging to the authorized connection/workspace
-2. legitimate normal member/viewer must select Brian's workspace and be unable to initiate or complete Connect GitHub
 
 Do not fabricate membership, forge callback state, downgrade an owner, directly mutate production role state for the test, weaken authorization, or substitute CI/unit coverage.
 
