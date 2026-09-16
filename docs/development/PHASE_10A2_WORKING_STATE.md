@@ -1,5 +1,20 @@
 # Phase 10A2 Private Repository Acquisition Working State
 
+## Live candidate and acceptance evidence (2026-09-17)
+
+- PR #76 executable head: `2a612c4daa3e552ac4ba48f1f05f77bdf46e52bb`
+- worker/scanner artifact candidate: `aace5fb954539460b940467fd85994d45dd7af65`
+- production-target Vercel deployment: `dpl_21qMnEpBWxaatm95b9yu8Pg7uxJF`, READY and promoted to `scopeforge.dev`
+- exact local validation: 422/426 test files passed with 4 skipped; 1,854/1,878 tests passed with 24 skipped; audit/typecheck/CLI/workers/benchmarks/Next build passed
+- host: Oracle `168.107.81.228`, Node 24.16.0, rootless Podman, cgroup v2, dedicated worker account
+- scanner image: `localhost/scopeforge-scanner@sha256:07be9bee8d3a0803a107042de8ea3ca2ab41b5496aa28e21d9ea0e42bcdc76ce`
+- host-only scanner canary: expected `jsts/command-injection` / CWE-78, one finding, zero scanner errors
+- private snapshot worker: `96823db9-b35f-4bde-a857-0b9b97d761de`
+- repository scan worker: `e12db837-8e21-4dde-af92-984431fe3a89`
+- both services active with runtime gates off; credentials remain root-owned mode-0600 on host
+
+Provider authorization is the immediate gate. The installation edit form has both repositories selected locally, but Save has not been submitted. Do not claim provider access until the saved settings page and provider API behavior verify it.
+
 Last reconciled: 2026-09-16, Asia/Singapore
 
 Phase 10A2 implementation is code-complete enough for release acceptance but remains deliberately unreleased. PR #76 must stay draft until dedicated worker/runtime/private-flow acceptance succeeds.

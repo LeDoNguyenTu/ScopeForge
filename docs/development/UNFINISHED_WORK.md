@@ -1,5 +1,20 @@
 # ScopeForge Unfinished Work
 
+## Live 2026-09-17 release blocker
+
+Host access, worker installation, credential registration, gates-off idle operation, exact local validation, production-target deployment, and isolated zero-egress scanner acceptance are complete.
+
+The immediate remaining action is to save the prepared GitHub App selected-repository change adding `LeDoNguyenTu/scopeforge-private-canary`. After explicit action-time UI confirmation:
+
+1. save and verify provider-side access
+2. enable only the three Phase 10A2 repository gates for a bounded window and redeploy
+3. import/connect the canary through the real application flow
+4. prove private archive acquisition, immutable snapshot publication, automatic zero-egress scan, expected CWE-78 finding, cancellation/lease recovery/cleanup/provenance/privacy/rollback
+5. restore gates false immediately on any failure
+6. mark PR #76 ready only after the full canary passes, obtain exact-head CI, merge, and verify production
+
+PR #123 is complete and merged into draft PR #77. PR #77 still must not release before PR #76.
+
 Last reconciled: 2026-09-16, Asia/Singapore
 
 ## Release-blocking work

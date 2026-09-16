@@ -1,5 +1,15 @@
 # ScopeForge Codex handoff
 
+## Immediate resume point (2026-09-17)
+
+PR #76 is still draft. Current executable head is `2a612c4daa3e552ac4ba48f1f05f77bdf46e52bb`. Production-target deployment `dpl_21qMnEpBWxaatm95b9yu8Pg7uxJF` is READY and currently serves `scopeforge.dev` with repository gates false/absent.
+
+The Linux workers are installed and active. Worker/scanner artifact candidate is `aace5fb954539460b940467fd85994d45dd7af65`; scanner image digest is `sha256:07be9bee8d3a0803a107042de8ea3ca2ab41b5496aa28e21d9ea0e42bcdc76ce`. Registered worker IDs are `96823db9-b35f-4bde-a857-0b9b97d761de` and `e12db837-8e21-4dde-af92-984431fe3a89`. Never rotate or expose their host-only credentials during continuation.
+
+The next UI action is already prepared: GitHub installation `161253400` has a local unsaved selection containing both `LeDoNguyenTu/ScopeForge` and `LeDoNguyenTu/scopeforge-private-canary`. Browser-control policy requires explicit action-time confirmation immediately before clicking Save because this edits cloud repository permissions. After confirmation, save once and verify two repositories remain selected.
+
+Then perform the bounded three-gate Phase 10A2 canary, keep rollback ready, and obtain exact-head CI only after full operational acceptance. PR #123 is already green and merged into draft PR #77; #77 remains blocked behind #76. PR #124 is a reviewed docs-only Phase 11 plan whose own design preserves Phase 10 ordering; do not start its runtime/persistence work before the Phase 10 release sequence clears.
+
 Last reconciled: 2026-09-16, Asia/Singapore
 
 ## PRIORITY 0 — do this first when host access is available
