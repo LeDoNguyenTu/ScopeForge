@@ -28,14 +28,20 @@ Positive GitHub App owner/admin acceptance is complete:
 - unauthenticated connect/callback remains behind sign-in
 - prior provider/log/integration/browser-readable leakage review found no release-blocking token/secret exposure
 
-PR #118 workspace collaborator controls are released and deployed. A legitimate collaborator now exists as a member of Brian's workspace while owning a separate workspace. This supplies the normal-member path needed for the remaining #79 authorization canary without fabricating database state.
+PR #118 workspace collaborator controls are released and deployed. The legitimate collaborator is a member of Brian's workspace while owning a separate workspace. This supplied the normal-member path used for the completed #79 authorization canary without fabricating database state.
 
 ## Issue #79 remaining acceptance
 
-Exactly two authenticated production browser checks remain:
+The normal-member production check passed on 2026-09-16:
+
+- `214nsa@gmail.com` selected Brian's workspace through the workspace selector
+- the active workspace role rendered as `Member`
+- the GitHub integration page rendered `GitHub integration unavailable` and `Workspace owner or admin access is required.`
+- no Connect GitHub control was available
+
+Exactly one authenticated production browser check remains:
 
 1. owner/admin normal signed flow with a different valid GitHub installation ID must be rejected because it does not belong to the authorized connection/workspace
-2. legitimate normal member/viewer must select Brian's workspace and be unable to initiate or complete Connect GitHub
 
 Do not substitute unit tests, forged callback state, fabricated membership, direct role mutation, or an owner downgrade.
 
@@ -122,4 +128,4 @@ The historical cleanup manifest said the repository had four remote refs. A fres
 
 ## Immediate resume point
 
-Finish the two #79 browser canaries through normal authenticated product flows if a suitable browser/session surface is available. If not, continue only isolated security/regression/tooling work. Never use independent maintenance to infer #79, Phase 10A2, or Phase 10A3 operational acceptance.
+Finish the remaining #79 owner/admin wrong-valid-installation canary through the normal authenticated product flow when the owner session and different valid installation ID are available. If not, continue only isolated security/regression/tooling work. Never use independent maintenance to infer #79, Phase 10A2, or Phase 10A3 operational acceptance.

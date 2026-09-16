@@ -11,7 +11,7 @@ Resume after the latest Codex work without repeating completed implementation, p
 ## Live state at session start
 
 - `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
-- issue #79: OPEN with two authenticated production browser canaries outstanding
+- issue #79: OPEN with one authenticated production browser canary outstanding
 - PR #76: OPEN, draft, initial observed head `b09e03258329251361cf8d515458e0ff7d708e2c`
 - PR #77: OPEN, draft, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
 - PR #116/#117/#118 were already merged/released
@@ -100,14 +100,20 @@ The release sequence therefore has not advanced operationally.
 
 ## Issue #79 exact remaining work
 
-Positive owner/admin provider acceptance is already complete. Exactly these live production checks remain:
+Positive owner/admin provider acceptance is already complete. The legitimate member denial canary passed on 2026-09-16:
+
+- authenticated `214nsa@gmail.com` selected Brian's workspace
+- the dashboard rendered the active role as `Member`
+- the GitHub integration page rendered `GitHub integration unavailable` and `Workspace owner or admin access is required.`
+- no Connect GitHub control was available
+
+Exactly one live production check remains:
 
 1. authorized owner/admin normal signed flow with a different valid GitHub installation ID must reject it as unauthorized for the connection/workspace
-2. legitimate normal member/viewer must select Brian's workspace and be unable to initiate or complete Connect GitHub
 
 Do not use forged state, fabricated identities, direct role mutation, owner downgrade, weakened authorization, or CI as a substitute.
 
-This session could not execute those checks because no usable authenticated browser automation surface was available in the current normal-chat tool set.
+The completed member check used the normal authenticated product flow without fabricated state. The owner/admin check still requires the real owner session and a different valid GitHub installation ID.
 
 ## Production actions deliberately not taken
 
@@ -126,7 +132,7 @@ Live GitHub returned 21 branches, while the previous cleanup document claimed fo
 ## Next exact resume point
 
 1. fetch live state
-2. finish #79 through real authenticated browser flows when a suitable surface exists
+2. finish the remaining #79 owner/admin wrong-valid-installation check through the real authenticated browser flow when the required owner session and installation ID are available
 3. once #79 clears, reconcile #76 exactly once onto current main and run fresh exact-candidate validation
 4. only then review/apply absent Phase 10A2 migrations and perform dedicated private-worker operational acceptance
 5. release #76 only after all gates pass

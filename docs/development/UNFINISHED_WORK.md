@@ -4,14 +4,19 @@ Last reconciled: 2026-09-16, Asia/Singapore
 
 This file lists genuinely unfinished work only. Fetch live refs before acting.
 
-## 1. Issue #79 - two authenticated production browser canaries
+## 1. Issue #79 - one authenticated production browser canary
 
 Positive owner/admin GitHub App activation/import is complete. PR #118 collaborator controls are released and a legitimate normal-member path now exists.
+
+Completed on 2026-09-16 through the normal production product flow:
+
+- `214nsa@gmail.com` selected Brian's workspace with the rendered `Member` role
+- the GitHub integration page denied access with `Workspace owner or admin access is required.`
+- no Connect GitHub control was available
 
 Still unfinished:
 
 1. authorized owner/admin normal signed flow with a different valid GitHub installation ID must be rejected as not belonging to the authorized connection/workspace
-2. legitimate normal member/viewer must select Brian's workspace and be unable to initiate or complete Connect GitHub
 
 Do not satisfy either check with forged callback state, fabricated membership, direct role mutation, owner downgrade, weakened authorization, or CI/unit tests.
 

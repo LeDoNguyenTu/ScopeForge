@@ -73,20 +73,26 @@ Do not redo PR #120 unless new evidence shows a regression.
 
 Positive GitHub App owner/admin acceptance is complete. PR #118 is also released and created a legitimate collaborator path: the designated collaborator is a member of Brian's workspace and owner of a separate workspace.
 
-Exactly two authenticated production browser canaries remain:
+The legitimate normal-member production canary completed on 2026-09-16 through the normal product UI:
+
+- authenticated `214nsa@gmail.com` selected `Brian's workspace`
+- the dashboard identified the active role as `Member`
+- `/dashboard/integrations/github` rendered `GitHub integration unavailable` and `Workspace owner or admin access is required.`
+- no Connect GitHub control was available
+
+Exactly one authenticated production browser canary remains:
 
 1. authorized owner/admin normal signed flow with a different valid GitHub installation ID must be rejected because the installation does not belong to the authorized connection/workspace
-2. the legitimate normal member/viewer must select Brian's workspace and be unable to initiate or complete Connect GitHub
 
-Do not satisfy #79 with forged callback state, fabricated membership, direct production role mutation, owner downgrade, weakened authorization, or unit/CI evidence. If either real canary finds a defect, remediate before Phase 10A2 release work.
+Do not satisfy the remaining #79 canary with forged callback state, fabricated membership, direct production role mutation, owner downgrade, weakened authorization, or unit/CI evidence. If the real canary finds a defect, remediate before Phase 10A2 release work.
 
-This continuation did not have a usable authenticated browser automation surface for those production flows, so #79 remains open.
+The member canary passed with direct authenticated production browser evidence. #79 remains open only for the owner/admin wrong-valid-installation rejection.
 
 ## Strict release order
 
 Preserve this sequence unless live evidence proves it has legitimately advanced:
 
-1. finish the two #79 browser canaries
+1. finish the remaining #79 owner/admin wrong-valid-installation browser canary
 2. reconcile PR #76 once onto the then-current released `main`
 3. run fresh exact-candidate Phase 10A2 validation
 4. re-review and apply only absent reviewed Phase 10A2 migrations
@@ -150,8 +156,8 @@ Never use secret values as identity proof and never paste secrets into repositor
 ## Exact next resume point
 
 1. Fetch live `main`, #79, #76, #77, open PR list, and branch list.
-2. Confirm #79 still has exactly the two browser canaries above.
-3. If a normal authenticated browser surface is available, execute those canaries through normal product flows without fabricating state.
+2. Confirm #79 still has exactly the one owner/admin browser canary above.
+3. If a normal authenticated owner/admin browser surface and a different valid GitHub installation ID are available, execute that canary through the normal product flow without fabricating state.
 4. If #79 is still externally blocked, continue only isolated regression/security/tooling work. Do not advance schema or runtime gates.
 5. Any new fix must use genuine TDD RED, minimal GREEN, and exact-candidate verification.
 6. Update persistent docs and PR bodies again after meaningful state changes.

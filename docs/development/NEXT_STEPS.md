@@ -8,10 +8,11 @@ Always fetch live `main`, #79, #76, #77, open PRs, and branch refs before starti
 
 Positive owner/admin GitHub App acceptance is complete. PR #118 is released and provides a legitimate normal-member path.
 
-Two production browser canaries remain:
+The legitimate member canary passed on 2026-09-16: `214nsa@gmail.com` selected Brian's workspace as `Member`, and the GitHub integration page denied access with `Workspace owner or admin access is required.` and no Connect GitHub control.
+
+One production browser canary remains:
 
 1. owner/admin normal signed flow with a different valid GitHub installation ID must be rejected as unauthorized for the active connection/workspace
-2. legitimate normal member/viewer must select Brian's workspace and be unable to initiate or complete Connect GitHub
 
 Required constraints:
 

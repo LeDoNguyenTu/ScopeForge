@@ -63,14 +63,19 @@ Minimal fix: use the existing drain-on-abort path so finalization waits for the 
 
 ## Issue #79 blocker
 
-PR #118 created the legitimate collaborator path needed for the normal-member test. The old statement that production lacks any legitimate member/viewer path is stale.
+PR #118 created the legitimate collaborator path used for the normal-member test. The old statement that production lacks any legitimate member/viewer path is stale.
 
-Still required through normal authenticated production browser flows:
+Completed through the normal authenticated production browser flow on 2026-09-16:
+
+- `214nsa@gmail.com` selected Brian's workspace and rendered as `Member`
+- the GitHub integration page rendered `GitHub integration unavailable` / `Workspace owner or admin access is required.`
+- no Connect GitHub control was available
+
+Still required through the normal authenticated production browser flow:
 
 1. different valid GitHub installation ID rejected for authorized owner/admin flow
-2. legitimate normal member/viewer selecting Brian's workspace cannot initiate or complete Connect GitHub
 
-This normal-chat session had no usable authenticated browser automation surface for these external identity flows. No state was fabricated to work around that limitation.
+No state was fabricated for the completed member canary. The owner/admin wrong-valid-installation canary still needs the real owner session and a different valid GitHub installation ID.
 
 ## Unsafe actions deliberately not taken
 
@@ -90,7 +95,7 @@ This normal-chat session had no usable authenticated browser automation surface 
 3. Resolve live `origin/main`.
 4. Inspect issue #79, PR #76, PR #77, all newer/open PRs/issues, exact heads and checks.
 5. Compare against persistent docs. Live state wins.
-6. If a suitable authenticated browser/session surface exists, finish both #79 canaries without synthetic state.
+6. If a suitable authenticated owner/admin browser surface and different valid installation ID exist, finish the remaining #79 canary without synthetic state.
 7. If #79 remains blocked, continue only isolated safe TDD/security/tooling work.
 8. Once #79 clears, reconcile #76 exactly once to current released main, fresh-validate, then proceed through schema/runtime/private-flow acceptance.
 9. Release #76 only when all gates pass.
