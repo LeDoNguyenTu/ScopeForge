@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { copyFile, rm } from "node:fs/promises";
 import { build } from "esbuild";
 
 const outdir = ".scopeforge-worker-build";
@@ -12,7 +12,6 @@ const shared = {
   minify: false,
   logLevel: "warning",
   tsconfig: "tsconfig.json",
-  packages: "external",
 };
 await build({
   ...shared,
@@ -22,5 +21,17 @@ await build({
 await build({
   ...shared,
   entryPoints: ["packages/hosted-scanner-runner/container-entry.ts"],
-  outfile: `${outdir}/hosted-scanner-entry.js`,
+  outfile: `${outdir}/lib/hosted-scanner-entry.js`,
+  external: [
+    "performance",
+    "ajv",
+    "ajv-formats",
+    "ajv-formats-draft2019",
+    "libxmljs2",
+    "xmlbuilder2",
+  ],
 });
+await copyFile(
+  "node_modules/@cdktf/hcl2json/main.wasm.gz",
+  `${outdir}/main.wasm.gz`,
+);

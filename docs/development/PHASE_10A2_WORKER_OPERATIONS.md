@@ -14,7 +14,8 @@ npm run build:workers
 The untracked `.scopeforge-worker-build/` directory contains:
 
 - `scopeforge-worker.cjs` - the long-running broker client and supervisor process
-- `hosted-scanner-entry.js` - the fixed entrypoint for the zero-egress scanner image
+- `lib/hosted-scanner-entry.js` - the fixed entrypoint for the zero-egress scanner image
+- `main.wasm.gz` - the pinned HCL parser runtime asset required by the scanner entrypoint
 
 The build uses the repository-pinned `esbuild` version and targets Node 24. The worker bundle validates every broker response before the supervisor consumes it. It accepts only an exact HTTPS control-plane origin, canonical worker identity, 64-character credential, fixed execution class, fixed execution budget, bounded JSON response, and class-specific task input.
 
@@ -43,7 +44,7 @@ The scan worker receives only a temporary attempt-scoped R2 GET. The scanner con
 
 ## Scanner image
 
-After `npm ci --omit=dev`, stage `hosted-scanner-entry.js`, production `node_modules`, and `deploy/worker/Containerfile.scanner` in a private host build directory. The container source pins the accepted Node 24.16.0 base by registry digest. Build locally as the worker account, inspect the resulting digest, and set only the immutable result digest in the scan worker environment.
+Stage `lib/hosted-scanner-entry.js`, `main.wasm.gz`, and `deploy/worker/Containerfile.scanner` in a private host build directory. The scanner bundle contains its JavaScript dependencies. Its `lib/` location preserves the HCL parser's expected path to the separate WASM asset one directory above it. The container source pins the accepted Node 24.16.0 base by registry digest. Build locally as the worker account, inspect the resulting digest, and set only the immutable result digest in the scan worker environment.
 
 Do not publish this operational image to a public registry. Do not use a mutable tag in the worker environment.
 
