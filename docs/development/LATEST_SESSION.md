@@ -10,7 +10,7 @@ Resume after the latest Codex work without repeating completed implementation, p
 
 ## Live state at session start
 
-- `main`: `c94748ba70079f28f9c6a84615ca4f5e96c0a395`
+- `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
 - issue #79: OPEN with two authenticated production browser canaries outstanding
 - PR #76: OPEN, draft, initial observed head `b09e03258329251361cf8d515458e0ff7d708e2c`
 - PR #77: OPEN, draft, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
@@ -69,12 +69,29 @@ PR #119 merged only into PR #76's branch as:
 
 No production schema, provider state, user identity, runtime flag, webhook, or Phase 10A3 state changed.
 
+## Full Phase 10A2 security diff and TDD - PR #120
+
+The review covered all 34 source files changed between Phase 10A2's merge base `33d21de652f3c04aa88ebd4f122348803e59b153` and pre-fix head `d485d435b7b62132ea088dbe16caae7c1a7038ca`. One reportable issue was found: a medium-severity, high-confidence CWE-664 resource-lifetime defect in private snapshot cancellation.
+
+`repository_snapshot_github_private_v1` used the supervisor's detachable abort wrapper. A deadline, cancellation request, or lost lease could publish a terminal result while the private executor was still reading, processing, or uploading repository data.
+
+- test-only RED head: `a88ab371628f3262f881243f117818f67fdddda4`
+- Linux RED CI: `35067132487`, failed at the intended assertion because trusted finalization ran before the held-open executor settled
+- exact GREEN head: `05b7959e61902d2916b4ba4e1166421b599d9f67`
+- focused local suite: 14 passed; local typecheck passed
+- exact-head GREEN CI: `35067478620`, including audit, full tests, typecheck, CLI build/version, both benchmarks, Next build, CSP browser smoke, production diagnostic, and artifact handling
+- exact-head Vercel deployment passed
+- merge into #76: `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+
+The minimal change routes private snapshot execution through the existing drain-on-abort path. No production schema, provider state, identity, runtime flag, or Phase 10A3 state changed.
+
 ## Post-merge reconciliation
 
-After #119:
+After #120:
 
 - PR #119: CLOSED/MERGED
-- PR #76: OPEN/DRAFT, executable hardening merge `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- PR #120: CLOSED/MERGED
+- PR #76: OPEN/DRAFT, documentation head `368dee1`, executable hardening merge `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - PR #77: OPEN/DRAFT, still stacked and unreleased
 - `main`: unchanged before the documentation commit
 - issue #79: still OPEN
@@ -104,7 +121,7 @@ This session could not execute those checks because no usable authenticated brow
 
 ## Branch hygiene finding
 
-Live GitHub returned 21 branches, while the previous cleanup document claimed four. The old cleanup state is therefore stale. No deletion was attempted from the stale manifest. The merged #119 source branch remains present and is a future cleanup candidate only after a fresh branch/open-PR/reachability/worktree audit.
+Live GitHub returned 21 branches, while the previous cleanup document claimed four. The old cleanup state is therefore stale. No deletion was attempted from the stale manifest. The merged #119 and #120 source branches remain future cleanup candidates only after a fresh branch/open-PR/reachability/worktree audit.
 
 ## Next exact resume point
 

@@ -19,11 +19,11 @@ If a real canary exposes a defect, remediate before Phase 10A2 release work.
 
 ## 2. Phase 10A2 - PR #76 private repository acquisition
 
-PR #76 remains open/draft. Latest executable/security-hardening merge after PR #119:
+PR #76 remains open/draft. Latest executable/security-hardening merge after PR #120:
 
-`79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+`2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 
-Integrated maintenance now includes #113, #114, #115, and #119.
+Integrated maintenance now includes #113, #114, #115, #119, and #120.
 
 PR #119 is complete and must not be recreated:
 
@@ -32,6 +32,15 @@ PR #119 is complete and must not be recreated:
 - GREEN head `9658a652f1e5416475489f9971da13409e5319d9`
 - GREEN CI `35054754370`
 - merged into #76 as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+
+PR #120 is complete and must not be recreated:
+
+- RED head `a88ab371628f3262f881243f117818f67fdddda4`
+- Linux RED CI `35067132487`
+- GREEN head `05b7959e61902d2916b4ba4e1166421b599d9f67`
+- GREEN CI `35067478620`; exact-head Vercel passed
+- merged into #76 as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+- completed all-file Phase 10A2 security diff review recorded one reportable issue, remediated by this PR
 
 After #79 clears:
 
@@ -78,7 +87,7 @@ No deletion was performed in the latest continuation. Before cleanup:
 - preserve main, #76, #77, the portfolio demo branch, active tasks, and active worktrees
 - re-list refs after any deletion
 
-Known merged source branch from the latest work: `fix/repository-scan-download-expiry-20260916` for PR #119.
+Known merged source branches from the latest work: `fix/repository-scan-download-expiry-20260916` for PR #119 and `fix/private-supervisor-abort-drain-20260916` for PR #120.
 
 ## 5. Safe independent work while #79 is blocked
 
@@ -112,5 +121,6 @@ Not allowed as a workaround:
 - PR #117 signup confirmation repair
 - PR #118 collaborator controls
 - PR #119 repository-scan download expiry fix
+- PR #120 private snapshot cancellation/finalization ordering fix
 - positive owner/admin GitHub provider canary
 - Phase 6D real Linux/rootless-Podman acceptance

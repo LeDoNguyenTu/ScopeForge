@@ -7,14 +7,15 @@ Fetch live refs before acting. This document records semantic state, not a promi
 ## Repository and release queue
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- pre-documentation live `main`: `c94748ba70079f28f9c6a84615ca4f5e96c0a395`
+- pre-documentation live `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
 - issue #79: OPEN
 - PR #76: OPEN/DRAFT, Phase 10A2 private repository acquisition
-- current executable/security-hardening merge on #76 after PR #119: `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- current Phase 10A2 documentation head: `368dee1` (fetch the full live SHA)
+- current executable/security-hardening merge on #76 after PR #120: `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - PR #77: OPEN/DRAFT, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
 - strict release order: `#79 -> #76 -> #77`
 
-The only open PRs observed after PR #119 merged were #76 and #77. Verify again at resume time.
+The only open PRs observed after PR #120 merged were #76 and #77. Verify again at resume time.
 
 ## Production/provider state
 
@@ -48,6 +49,7 @@ Integrated security hardening includes:
 - #114 broker authority expiry rechecks
 - #115 private archive stream cleanup
 - #119 expired repository-scan download fail-closed enforcement
+- #120 private snapshot abort drain before trusted finalization
 
 PR #119 evidence:
 
@@ -56,6 +58,16 @@ PR #119 evidence:
 - GREEN head `9658a652f1e5416475489f9971da13409e5319d9`
 - GREEN CI `35054754370`
 - merged into #76 only as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+
+PR #120 evidence:
+
+- RED head `a88ab371628f3262f881243f117818f67fdddda4`
+- RED CI `35067132487`
+- GREEN head `05b7959e61902d2916b4ba4e1166421b599d9f67`
+- GREEN CI `35067478620`
+- exact-head Vercel deployment passed
+- merged into #76 only as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+- all 34 Phase 10A2 source files were included in the completed security diff review; the one reportable finding was remediated by #120
 
 The Phase 10A2 migrations remain intentionally unapplied:
 
@@ -104,6 +116,7 @@ The historical cleanup manifest said the repository had four remote refs. A fres
 - PR #117 signup confirmation repair
 - PR #118 collaborator controls and forward migration
 - PR #119 repository-scan download expiry enforcement
+- PR #120 private snapshot cancellation/finalization ordering fix
 - positive owner/admin GitHub provider canary
 - Phase 6D real Linux/rootless-Podman acceptance
 

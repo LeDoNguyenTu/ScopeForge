@@ -15,17 +15,19 @@ This file is the primary resume point. Live GitHub/provider state always wins ov
 
 ## Reconciled live state before this documentation commit
 
-- `main`: `c94748ba70079f28f9c6a84615ca4f5e96c0a395`
+- `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
 - issue #79: OPEN
 - PR #76: OPEN, draft, Phase 10A2 branch
-- PR #76 executable/security-hardening merge head after PR #119: `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- PR #76 current documentation head: `368dee1` (fetch the full live SHA)
+- PR #76 executable/security-hardening merge head after PR #120: `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - PR #77: OPEN, draft, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
 - PR #119: merged only into #76 as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- PR #120: merged only into #76 as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - production domain: `https://scopeforge.dev`
 - ScopeForge Supabase: `tdgpibrepzcvdivztkta`
 - never confuse it with Job Command Center Supabase `xwsergbpvkcsugexssmc`
 
-This handoff commit is documentation-only and will advance `main`; fetch the live tip instead of assuming `c94748b...` remains current.
+This handoff commit is documentation-only and will advance `main`; fetch the live tip instead of assuming `fe4dd20...` remains current.
 
 ## Work completed in this continuation - PR #119
 
@@ -47,6 +49,25 @@ TDD evidence:
 Minimal fix: reject a non-finite or elapsed `expiresAt` synchronously before the first R2 request. No production schema, provider state, runtime gate, secret, membership, or Phase 10A3 state changed.
 
 Do not redo PR #119 unless new evidence shows a regression.
+
+## Work completed in this continuation - PR #120
+
+A full security diff review of the 34 Phase 10A2 source files found one medium-severity, high-confidence CWE-664 resource-lifetime defect. Private snapshot execution used the supervisor's detachable abort wrapper, so a deadline, cancellation request, or lost lease could finalize the attempt while private repository processing or upload work was still running.
+
+TDD and exact-candidate evidence:
+
+- test-only RED head: `a88ab371628f3262f881243f117818f67fdddda4`
+- Linux RED CI: `35067132487`; the intended assertion proved trusted finalization ran before the held-open private executor settled
+- exact GREEN head: `05b7959e61902d2916b4ba4e1166421b599d9f67`
+- GREEN CI: `35067478620`
+- local focused suite: 14 passed; local typecheck passed
+- CI passed audit, full tests, typecheck, CLI build/version, both benchmarks, Next build, CSP browser smoke, production V5/Turnstile diagnostic, and artifact handling
+- exact-head Vercel deployment passed
+- PR #120 merged into the Phase 10A2 branch only as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+
+Minimal fix: private snapshot execution now uses the existing drain-on-abort path for resource-owning execution classes. Trusted finalization waits until the executor settles and releases its process/source/scratch/upload lifetime. No migration, runtime gate, provider authorization, membership, or production state changed.
+
+Do not redo PR #120 unless new evidence shows a regression.
 
 ## Hard release gate - issue #79
 
@@ -104,6 +125,7 @@ Keep these runtime gates false/absent until their own acceptance authorizes them
 - PR #114 broker authority expiry recheck is integrated into #76
 - PR #115 private archive stream cleanup is integrated into #76
 - PR #119 expired repository-scan download fail-closed check is integrated into #76
+- PR #120 private snapshot abort drain/finalization ordering is integrated into #76
 - positive owner/admin GitHub provider connect/import canary is complete
 - Phase 6D real Linux/rootless-Podman containment acceptance is complete
 
@@ -111,7 +133,7 @@ Keep these runtime gates false/absent until their own acceptance authorizes them
 
 The old branch-cleanup docs claimed only four remote refs. Live GitHub on 2026-09-16 instead returned 21 branches, including several recent merged maintenance branches and Phase 10A2 temporary refs. That old four-ref statement is stale.
 
-Do not delete from the historical manifest blindly. Re-fetch all branches, all open PRs, reachability, and worktrees before deletion. `fix/repository-scan-download-expiry-20260916` is a known merged source branch for #119, but no branch deletion was performed in this continuation.
+Do not delete from the historical manifest blindly. Re-fetch all branches, all open PRs, reachability, and worktrees before deletion. `fix/repository-scan-download-expiry-20260916` and `fix/private-supervisor-abort-drain-20260916` are known merged source branches for #119 and #120, but no branch deletion was performed in this continuation.
 
 ## External account safety
 

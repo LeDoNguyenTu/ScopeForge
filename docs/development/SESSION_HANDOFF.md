@@ -8,11 +8,11 @@ Use this with `CODEX_HANDOFF.md`, `CURRENT_STATE.md`, `NEXT_STEPS.md`, and `UNFI
 
 Before this documentation commit:
 
-- live `main`: `c94748ba70079f28f9c6a84615ca4f5e96c0a395`
+- live `main`: `fe4dd20d7b777ee3f6f4c28b80ead4834438ed88`
 - issue #79: OPEN
-- PR #76: OPEN/DRAFT, executable hardening merge `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- PR #76: OPEN/DRAFT, documentation head `368dee1`, executable hardening merge `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 - PR #77: OPEN/DRAFT, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
-- open PR pagination showed no third open PR after #119 merged
+- open PR pagination showed no third open PR after #120 merged
 - Phase 10A2 and Phase 10A3 production migrations remained unapplied
 - private repository snapshot/scan runtime gates remained off
 
@@ -40,6 +40,16 @@ TDD:
 
 Minimal fix: reject non-finite or elapsed `expiresAt` before the first network request.
 
+PR #120, `Drain private snapshot execution before cancellation finalization`, is also complete and merged only into Phase 10A2.
+
+- root cause: the private snapshot execution class detached immediately on abort, allowing trusted finalization to race repository processing/upload cleanup
+- RED head `a88ab371628f3262f881243f117818f67fdddda4`, Linux RED CI `35067132487`
+- GREEN head `05b7959e61902d2916b4ba4e1166421b599d9f67`, GREEN CI `35067478620`
+- audit, full tests, typecheck, CLI build/version, both benchmarks, Next build, browser smoke, production diagnostic, and exact-head Vercel passed
+- merge into #76: `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+
+Minimal fix: use the existing drain-on-abort path so finalization waits for the private executor to settle and release its owned resources.
+
 ## Do not repeat completed work
 
 - PR #116 upload expiry TOCTOU hardening is released on main
@@ -47,6 +57,7 @@ Minimal fix: reject non-finite or elapsed `expiresAt` before the first network r
 - PR #118 workspace collaborator controls are released and deployed
 - PR #113/#114/#115 hardening is integrated into #76
 - PR #119 download-expiry hardening is integrated into #76
+- PR #120 private snapshot abort-drain hardening is integrated into #76
 - positive owner/admin GitHub App canary is complete
 - Phase 6D real Linux/rootless-Podman acceptance is complete
 
@@ -87,4 +98,4 @@ This normal-chat session had no usable authenticated browser automation surface 
 
 ## Branch hygiene
 
-A fresh GitHub listing returned 21 branches, not the four claimed by the old cleanup snapshot. Do not delete based on the old manifest. A fresh open-PR/reachability/worktree audit is required first. The source branch `fix/repository-scan-download-expiry-20260916` is known to back merged PR #119, but no deletion was performed here.
+A fresh GitHub listing returned 21 branches, not the four claimed by the old cleanup snapshot. Do not delete based on the old manifest. A fresh open-PR/reachability/worktree audit is required first. The source branches `fix/repository-scan-download-expiry-20260916` and `fix/private-supervisor-abort-drain-20260916` are known to back merged PRs #119 and #120, but no deletion was performed here.

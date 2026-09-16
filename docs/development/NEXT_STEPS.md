@@ -26,14 +26,14 @@ If either live canary exposes a defect, remediate it before Phase 10A2 release w
 
 ## Priority 2 - Phase 10A2 PR #76 after #79 clears
 
-Current executable/security-hardening merge after PR #119:
+Current executable/security-hardening merge after PR #120:
 
-`79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+`2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 
 Do not reconcile #76 early while #79 is open. Once #79 genuinely clears:
 
 1. fetch current `main`, #76, production migration history, and exact runtime/config state
-2. reconcile #76 once onto the current released mainline, preserving #113/#114/#115/#119 and released mainline fixes
+2. reconcile #76 once onto the current released mainline, preserving #113/#114/#115/#119/#120 and released mainline fixes
 3. run fresh exact-candidate validation; historical branch CI is not release proof
 4. re-review the exact current Phase 10A2 migrations
 5. apply only absent reviewed migrations to ScopeForge Supabase `tdgpibrepzcvdivztkta`
@@ -111,3 +111,10 @@ PR #119 is complete. Do not redo it:
 - RED `24c6f442...`, CI `35054474634`
 - GREEN `9658a652...`, CI `35054754370`
 - merged only into #76 as `79e4b2a1...`
+
+PR #120 is complete. Do not redo it:
+
+- RED `a88ab371...`, Linux CI `35067132487`
+- GREEN `05b7959e...`, CI `35067478620`, exact-head Vercel passed
+- merged only into #76 as `2ff2bf07...`
+- completed Phase 10A2 security diff review found this one reportable issue and confirmed its remediation
