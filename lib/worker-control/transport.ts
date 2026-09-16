@@ -40,9 +40,22 @@ export function workerUuid(value: unknown): string {
   return value;
 }
 
-export function assertNoWorkerRequestBody(request: Request): void {
+export async function assertNoWorkerRequestBody(request: Request): Promise<void> {
   const length = declaredLength(request);
-  if ((length !== null && length !== 0) || request.body !== null) {
+  if (length !== null && length !== 0) {
+    throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
+  }
+  if (request.body === null) return;
+
+  const reader = request.body.getReader();
+  try {
+    const chunk = await reader.read();
+    if (!chunk.done) {
+      await reader.cancel();
+      throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
+    }
+  } catch (error) {
+    if (error instanceof WorkerTransportError) throw error;
     throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
   }
 }
