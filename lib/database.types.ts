@@ -247,6 +247,14 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      list_workspace_collaborators: {
+        Args: { target_workspace_id: string };
+        Returns: { user_id: string; display_name: string | null; email: string; role: WorkspaceRole }[];
+      };
+      manage_workspace_collaborator: {
+        Args: { target_workspace_id: string; operation: string; collaborator_email?: string; collaborator_id?: string; collaborator_role?: WorkspaceRole };
+        Returns: undefined;
+      };
       persist_passive_runtime_result: {
         Args: { target_workspace_id: string; target_asset_id: string; target_job_id: string; observation_rows: Json; finding_rows: Json; evidence_rows: Json; observed_at: string };
         Returns: undefined;

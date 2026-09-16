@@ -1,5 +1,7 @@
 # Signup confirmation repair - 2026-09-16
 
+> Continuation: read [Workspace collaborator controls](WORKSPACE_COLLABORATOR_CONTROLS_ACCEPTANCE.md) for the current branch, implementation, validation, migration boundary, and #79 member-canary path.
+
 ## Scope and current state
 
 Branch: `fix/signup-confirmation-flow-20260916`, based on main `c49e3c5`.

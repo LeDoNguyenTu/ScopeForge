@@ -161,6 +161,24 @@ async function main() {
     }
 
     for (const width of [390, 1440]) {
+      await setWindowRect(sessionId, width, 1100);
+      await navigate(sessionId, "/preview/workspace");
+      await waitFor(sessionId, "workspace collaborator controls", "return Boolean(document.querySelector('.workspaceSettings') && document.querySelector('.workspaceMemberList') && document.querySelector('.workspaceAdminButton')); ");
+      const workspaceGeometry = await execute(sessionId, `
+        const root=document.documentElement, body=document.body;
+        const admin=document.querySelector('.workspaceAdminButton');
+        const resources=[...document.querySelectorAll('.workspaceToolbarActions a')].find(link=>link.textContent?.includes('Resources'));
+        const adminRect=admin?.getBoundingClientRect(), resourcesRect=resources?.getBoundingClientRect();
+        return {scrollWidth:Math.max(root.scrollWidth,body.scrollWidth),innerWidth,
+          separated:Boolean(adminRect&&resourcesRect&&Math.abs(resourcesRect.left-adminRect.right)>=12),
+          addButton:Boolean([...document.querySelectorAll('button')].some(button=>button.textContent?.includes('Add collaborator')))};
+      `);
+      if (!workspaceGeometry || workspaceGeometry.scrollWidth > workspaceGeometry.innerWidth + 1 || !workspaceGeometry.separated || !workspaceGeometry.addButton) throw new Error(`Workspace controls layout regressed at ${width}px: ${JSON.stringify(workspaceGeometry)}`);
+      assertCleanLogs(await browserLogs(sessionId), "/preview/workspace");
+      await captureScreenshot(sessionId, `workspace-controls-${width}.png`);
+    }
+
+    for (const width of [390, 1440]) {
       await setWindowRect(sessionId, width, 1000);
       for (const [status, heading] of [["invalid", "We could not confirm this link"], ["expired", "This link has expired or was already used"], ["error", "Confirmation is temporarily unavailable"]]) {
         const path = `/auth/result?status=${status}`;

@@ -37,7 +37,16 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("href", "/dashboard");
     expect(screen.getByRole("link", { name: "Assets" })).toHaveAttribute("href", "/dashboard/assets");
     expect(screen.getByRole("link", { name: "Findings" })).toHaveAttribute("href", "/dashboard/findings");
+    expect(screen.getByRole("link", { name: "Workspace" })).toHaveAttribute("href", "/dashboard/workspace");
     expect(screen.getByText("ScopeForge Lab")).toBeInTheDocument();
     expect(screen.getByText("Immersive content")).toBeInTheDocument();
+  });
+
+  it("separates the platform administration control from ordinary resources", () => {
+    render(<AppShell {...props} platformAdminHref="/admin"><p>Content</p></AppShell>);
+    const admin = screen.getByRole("link", { name: "Platform admin" });
+    expect(admin).toHaveClass("workspaceAdminButton");
+    expect(admin).toHaveAttribute("href", "/admin");
+    expect(admin.parentElement).toHaveClass("workspaceToolbarActions");
   });
 });
