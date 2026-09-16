@@ -2,7 +2,13 @@
 
 Last reconciled: 2026-09-16, Asia/Singapore
 
-## Priority 1 — finish Phase 10A2 operational acceptance
+## Priority 0 — Codex must finish Phase 10A2 host/runtime acceptance first
+
+When Codex next has an authorized OCI/SSH terminal, its first task is `docs/development/CODEX_PRIORITY_0_HOST_ACCEPTANCE.md`.
+
+Do not spend that host-capable session redoing issue #79, Phase 10A2 schema deployment, existing hardening PRs, or the canary fixture unless fresh evidence proves a regression. The release is waiting on real Linux worker/private-repository acceptance.
+
+If no authorized host terminal is available, preserve Priority 0 and continue only safe independent repo-side work that cannot weaken or falsely satisfy the release gate.
 
 Already complete; do not repeat:
 
@@ -10,12 +16,12 @@ Already complete; do not repeat:
 - reconciliation of PR #76 onto current main at the recorded checkpoint
 - exact executable candidate validation for `4ef285473402336b4488af4e1c2b4b1ea28d5eb7`
 - CI `35102938452` success
-- exact-head Vercel preview READY
+- exact-head executable Vercel preview READY
 - Phase 10A2 production migrations applied
 - production schema/function/ACL/advisor inspection
 - purpose-built private canary fixture at `LeDoNguyenTu/scopeforge-private-canary@d95ca07123e28ee64de799e87651c2a3b6edb5cf`
 
-Remaining order:
+Priority 0 execution order:
 
 1. restore authorized access to the dedicated Oracle Linux worker host
 2. verify exact live PR #76 head and ensure no executable change superseded `4ef28547...`
@@ -31,6 +37,18 @@ Remaining order:
 12. verify cancellation, worker/task cleanup, scratch/output/resource ceilings, observability, privacy-reduced logs, credential isolation, and rollback
 13. if any gate fails: disable repository runtime gates, stop workers if needed, preserve evidence, fix via TDD, and repeat exact-candidate acceptance
 14. if every gate passes: mark #76 ready, merge with expected head, verify post-merge main CI and exact production deployment
+
+## Priority 1 — safe independent repo-side work while Priority 0 is externally blocked
+
+Allowed while the host is unreachable:
+
+- inspect and fix clearly demonstrated security/correctness defects through TDD on isolated branches
+- improve deterministic worker deployment/acceptance tooling without enabling production gates
+- harden tests and architecture guards
+- reconcile durable documentation with live evidence
+- review stale branch/PR state without deleting anything that cannot be proven safe
+
+Do not mutate production migrations, worker identities, repository links, or runtime gates merely to make progress look larger.
 
 ## Priority 2 — Phase 10A3 only after #76 production verification
 
