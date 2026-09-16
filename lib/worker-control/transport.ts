@@ -49,11 +49,16 @@ export async function assertNoWorkerRequestBody(request: Request): Promise<void>
 
   const reader = request.body.getReader();
   try {
-    const chunk = await reader.read();
-    if (!chunk.done) {
-      await reader.cancel();
-      throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
+    for (let emptyChunks = 0; emptyChunks < 8; emptyChunks += 1) {
+      const chunk = await reader.read();
+      if (chunk.done) return;
+      if (chunk.value.byteLength > 0) {
+        await reader.cancel();
+        throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
+      }
     }
+    await reader.cancel();
+    throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
   } catch (error) {
     if (error instanceof WorkerTransportError) throw error;
     throw new WorkerTransportError("WORKER_REQUEST_INVALID", 400);
