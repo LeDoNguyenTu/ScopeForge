@@ -2,103 +2,76 @@
 
 Last reconciled: 2026-09-16, Asia/Singapore
 
-Always fetch live `main`, #79, #76, #77, open PRs, and branch refs before starting. Live state wins.
+## Priority 0 — Codex must finish Phase 10A2 host/runtime acceptance first
 
-## Priority 1 - issue #79 complete
+When Codex next has an authorized OCI/SSH terminal, its first task is `docs/development/CODEX_PRIORITY_0_HOST_ACCEPTANCE.md`.
 
-Both negative production canaries passed on 2026-09-16. The normal member was denied Connect GitHub, and a fresh owner-signed flow rejected a different real installation ID with `?error=installation`. The original repository connection remained verified. Issue #79 is closed.
+Do not spend that host-capable session redoing issue #79, Phase 10A2 schema deployment, existing hardening PRs, or the canary fixture unless fresh evidence proves a regression. The release is waiting on real Linux worker/private-repository acceptance.
 
-## Priority 2 - Phase 10A2 PR #76
+If no authorized host terminal is available, preserve Priority 0 and continue only safe independent repo-side work that cannot weaken or falsely satisfy the release gate.
 
-Current executable/security-hardening merge after PR #120:
+Already complete; do not repeat:
 
-`2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+- issue #79 provider authorization acceptance
+- reconciliation of PR #76 onto current main at the recorded checkpoint
+- exact executable candidate validation for `4ef285473402336b4488af4e1c2b4b1ea28d5eb7`
+- CI `35102938452` success
+- exact-head executable Vercel preview READY
+- Phase 10A2 production migrations applied
+- production schema/function/ACL/advisor inspection
+- purpose-built private canary fixture at `LeDoNguyenTu/scopeforge-private-canary@d95ca07123e28ee64de799e87651c2a3b6edb5cf`
 
-#79 is closed. Proceed in this order:
+Priority 0 execution order:
 
-1. fetch current `main`, #76, production migration history, and exact runtime/config state
-2. reconcile #76 once onto the current released mainline, preserving #113/#114/#115/#119/#120 and released mainline fixes
-3. run fresh exact-candidate validation; historical branch CI is not release proof
-4. re-review the exact current Phase 10A2 migrations
-5. apply only absent reviewed migrations to ScopeForge Supabase `tdgpibrepzcvdivztkta`
-6. verify schema, function bodies, ACLs, grants/revokes, RLS/private-table posture, and Security Advisor results
-7. keep private repository snapshot/scan gates off until the dedicated private worker passes its own acceptance
-8. prove containment, scratch/output ceilings, quotas, cancellation, cleanup, observability, rollback, and credential boundaries
-9. prove one end-to-end private flow: provider revalidation -> exact private archive lease -> immutable snapshot -> exact zero-egress repository scan -> findings
-10. verify provider credentials remain control-plane-only and private source/capability material does not leak to browser state or ordinary logs
-11. merge/release #76 only after all provider, schema, runtime, privacy, and rollback gates pass
-12. verify production after release
+1. restore authorized access to the dedicated Oracle Linux worker host
+2. verify exact live PR #76 head and ensure no executable change superseded `4ef28547...`
+3. verify Node 24, rootless Podman, cgroup v2, systemd delegation, `scopeforge-worker`, disk/memory/PID prerequisites
+4. run `npm ci` and `npm run build:workers` from the exact candidate
+5. deploy worker bundle and build the pinned scanner image; record its immutable digest
+6. generate worker credentials only on the host, store mode-0600, and register only credential hashes
+7. start private snapshot + zero-egress scan workers while repository runtime gates remain disabled; prove authenticated idle claims/heartbeats
+8. through the legitimate GitHub owner/admin flow, ensure `LeDoNguyenTu/scopeforge-private-canary` is included in the ScopeForge GitHub App installation's selected repositories
+9. enable only the Phase 10A2 repository gates for a bounded canary window
+10. connect/import the private canary normally; do not insert repository-link rows manually
+11. run the scan and prove exact private archive lease -> immutable snapshot -> zero-egress scan -> high-confidence `jsts/command-injection` / CWE-78 finding
+12. verify cancellation, worker/task cleanup, scratch/output/resource ceilings, observability, privacy-reduced logs, credential isolation, and rollback
+13. if any gate fails: disable repository runtime gates, stop workers if needed, preserve evidence, fix via TDD, and repeat exact-candidate acceptance
+14. if every gate passes: mark #76 ready, merge with expected head, verify post-merge main CI and exact production deployment
 
-Phase 10A2 migrations currently waiting:
+## Priority 1 — safe independent repo-side work while Priority 0 is externally blocked
 
-- `20260911100000_phase_10a2_private_repository_snapshot.sql`
-- `20260911110000_phase_10a2_private_project_scan_routing.sql`
+Allowed while the host is unreachable:
 
-PR #113 changed the first migration's claim body, so the older preflight is not sufficient authorization to apply the current migration.
+- inspect and fix clearly demonstrated security/correctness defects through TDD on isolated branches
+- improve deterministic worker deployment/acceptance tooling without enabling production gates
+- harden tests and architecture guards
+- reconcile durable documentation with live evidence
+- review stale branch/PR state without deleting anything that cannot be proven safe
 
-## Priority 3 - Phase 10A3 PR #77 only after #76 releases
+Do not mutate production migrations, worker identities, repository links, or runtime gates merely to make progress look larger.
 
-Current live head observed before this docs refresh:
+## Priority 2 — Phase 10A3 only after #76 production verification
 
-`d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
+PR #77 remains draft at `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`.
 
-After Phase 10A2 release:
+After #76 release:
 
 1. reconcile #77 onto released Phase 10A2/main
 2. run fresh exact-candidate validation
-3. re-read and apply only reviewed absent Phase 10A3 migrations
+3. re-read production migration history; apply only reviewed absent Phase 10A3 migrations
 4. configure the independent server-only webhook secret/endpoint without exposing it
-5. canary raw-body HMAC verification, invalid-signature rejection, oversize rejection, replay, installation/repository lifecycle, latest-head coalescing, same-head recovery, stale-trigger authoritative-head recovery, public/private separation, and leak boundaries
-6. prove a full automatic webhook-triggered flow through immutable snapshot publication and findings
-7. merge/release only after all operational gates pass
-8. verify production after merge
+5. run all signed-delivery/replay/lifecycle/coalescing/recovery/privacy canaries
+6. prove a complete webhook-triggered immutable snapshot -> scan -> findings flow
+7. merge/release only after acceptance and production verification
 
-## Independent maintenance boundary
+## Non-blocking follow-up
 
-Safe independent work includes:
+Supabase Performance Advisor reports INFO-level unindexed-FK and unused-index suggestions. One Phase 10A2 item is the composite GitHub-link/workspace FK, whose current partial index begins with the link ID. Do not mutate the release candidate solely for this INFO-level optimization; handle it in a separate measured performance hardening change after Phase 10A2 release unless production evidence makes it urgent.
 
-- narrowly scoped TDD security/regression fixes
-- dependency/runtime/tooling maintenance
-- evidence-based UI fixes
-- documentation/handoff repair
-- architecture/security review
-- branch/release hygiene after fresh live verification
+## Never do to shortcut acceptance
 
-Any independent fix must use genuine RED, minimal GREEN, and exact-candidate validation. It must not be used as evidence that either Phase 10 operational gate passed.
-
-## Runtime gates that stay off until accepted
-
-- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
-- `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
-- `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
-
-## Branch cleanup next step
-
-A live branch listing returned 21 refs, contradicting the previous four-ref cleanup claim. Before deleting anything:
-
-1. fetch every branch
-2. fetch every open PR, including pagination
-3. inspect current worktrees in the actual checkout
-4. prove reachability/merged or superseded status for each candidate
-5. preserve `main`, #76, #77, `demo/portfolio-20260910`, every active task branch, and every active worktree
-6. delete only after the candidate list is freshly reviewed
-7. re-list branches and document the exact result
-
-No branch deletion was performed during the latest continuation.
-
-## Completed latest maintenance
-
-PR #119 is complete. Do not redo it:
-
-- RED `24c6f442...`, CI `35054474634`
-- GREEN `9658a652...`, CI `35054754370`
-- merged only into #76 as `79e4b2a1...`
-
-PR #120 is complete. Do not redo it:
-
-- RED `a88ab371...`, Linux CI `35067132487`
-- GREEN `05b7959e...`, CI `35067478620`, exact-head Vercel passed
-- merged only into #76 as `2ff2bf07...`
-- completed Phase 10A2 security diff review found this one reportable issue and confirmed its remediation
+- do not fabricate worker identities, repository links, memberships, or findings
+- do not copy SSH/private/provider/worker secrets into Git, chat, PR bodies, Vercel, or Supabase data rows
+- do not use unrelated private repositories as the canary
+- do not enable Phase 10A3 early
+- do not treat historical Phase 6D containment as Phase 10A2 exact-candidate acceptance
