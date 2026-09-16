@@ -10,6 +10,7 @@ Group=scopeforge-worker
 Environment=NODE_ENV=production
 Environment=HOME=/home/scopeforge-worker
 RuntimeDirectory=scopeforge-worker
+RuntimeDirectoryPreserve=yes
 RuntimeDirectoryMode=0700
 Environment=XDG_RUNTIME_DIR=/run/scopeforge-worker
 EnvironmentFile=/etc/scopeforge/workers/%i.env

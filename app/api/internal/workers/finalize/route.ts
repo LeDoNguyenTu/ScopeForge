@@ -5,6 +5,7 @@ import {
 } from "@/lib/repository-snapshots/service";
 import {
   continueConnectedProjectScanAfterSnapshot,
+  reconcileConnectedProjectScanTerminal,
   reconcileConnectedProjectSnapshotTerminal,
 } from "@/lib/project-scans/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
@@ -51,6 +52,14 @@ function failedRepositorySnapshotTaskId(value: unknown): string | null {
   return typeof candidate.taskId === "string" ? candidate.taskId : null;
 }
 
+function failedRepositoryScanTaskId(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  if (candidate.executionClass !== "phase3_repository_scan_no_egress_v1") return null;
+  if (candidate.outcome !== "failed" && candidate.outcome !== "cancelled") return null;
+  return typeof candidate.taskId === "string" ? candidate.taskId : null;
+}
+
 export async function POST(request: Request): Promise<Response> {
   try {
     const dependencies = createWorkerControlServerDependencies();
@@ -88,6 +97,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const snapshotTaskId = failedRepositorySnapshotTaskId(body.terminal);
+    const scanTaskId = failedRepositoryScanTaskId(body.terminal);
     const result = isPrivateRepositorySnapshotTerminal(body.terminal)
       ? await finalizePrivateRepositorySnapshotFailureAttempt({
           workerId: worker.workerId,
@@ -101,6 +111,9 @@ export async function POST(request: Request): Promise<Response> {
         }, dependencies);
     if (snapshotTaskId) {
       await reconcileConnectedProjectSnapshotTerminal({ snapshotTaskId });
+    }
+    if (scanTaskId) {
+      await reconcileConnectedProjectScanTerminal({ scanTaskId });
     }
     return workerJson({
       ok: true,

@@ -10,6 +10,7 @@ describe("worker systemd service", () => {
     expect(unit).not.toMatch(/\/run\/user\/\d+/);
     expect(unit).not.toContain("DBUS_SESSION_BUS_ADDRESS=");
     expect(unit).toContain("RuntimeDirectory=scopeforge-worker");
+    expect(unit).toContain("RuntimeDirectoryPreserve=yes");
     expect(unit).toContain("RuntimeDirectoryMode=0700");
     expect(unit).toContain("Environment=XDG_RUNTIME_DIR=/run/scopeforge-worker");
     expect(unit).toContain(
