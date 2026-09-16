@@ -2,95 +2,44 @@
 
 Last refreshed: 2026-09-16, Asia/Singapore
 
-Use this with `CODEX_HANDOFF.md`, `CURRENT_STATE.md`, `NEXT_STEPS.md`, and `UNFINISHED_WORK.md`. Always inspect live GitHub first.
+Use with `CODEX_HANDOFF.md`, `CURRENT_STATE.md`, `NEXT_STEPS.md`, `UNFINISHED_WORK.md`, and `PHASE_10A2_WORKING_STATE.md`. Inspect live GitHub/Supabase/Vercel before acting.
 
-## Exact handoff state
+## Exact handoff
 
-Before this documentation commit:
+Phase 10A2 application implementation, provider authorization, schema deployment, and database ACL validation have advanced. The remaining release gate is dedicated Linux worker/private-repository operational acceptance.
 
-- live `main`: `bc6d50d5ffee782dc8aa48c8ec82c94d3fc82bd3`
-- issue #79: CLOSED after both live negative authorization canaries passed
-- PR #76: OPEN/DRAFT, documentation head `3439fd9095b65ddcd7e4d8bd3943ffed1766d7c6`, executable hardening merge `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
-- PR #77: OPEN/DRAFT, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
-- open PR pagination showed no third open PR after #120 merged
-- Phase 10A2 and Phase 10A3 production migrations remained unapplied
-- private repository snapshot/scan runtime gates remained off
+Pre-doc executable candidate:
 
-The docs commit itself advances main. Fetch instead of assuming the SHA above remains the current tip.
+`4ef285473402336b4488af4e1c2b4b1ea28d5eb7`
 
-## Latest completed engineering work
+Verification:
 
-PR #119, `Fail closed on expired repository scan downloads`, is complete and merged only into Phase 10A2.
+- CI `35102938452`: success
+- Vercel `dpl_Cgt5cBd5guXKvVEfRDJS8fEXKENE`: READY
+- PR #76 returned to DRAFT until operational acceptance passes
+- issue #79 CLOSED
+- production Phase 10A2 migrations APPLIED
+- Phase 10A2 worker identities: 0
+- Phase 10A2 queued tasks: 0
 
-Root cause:
+Private canary:
 
-- `downloadRepositoryScanArtifact()` parsed `descriptor.expiresAt`
-- it did not reject an elapsed signed R2 capability before `fetch()`
-- worker-side authorization therefore did not fail closed at time of use
+- repo: `LeDoNguyenTu/scopeforge-private-canary`
+- fixture commit: `d95ca07123e28ee64de799e87651c2a3b6edb5cf`
+- expected scan signal: `jsts/command-injection`, high confidence, CWE-78
 
-TDD:
+Host:
 
-- RED head `24c6f442c946fa1a676f7c79c401638c0f391895`
-- RED CI `35054474634`
-- sole failure was the intended new regression, with 1,791/1,792 tests passing
-- GREEN head `9658a652f1e5416475489f9971da13409e5319d9`
-- GREEN CI `35054754370` fully passed
-- Vercel exact-head status passed
-- merge into #76: `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- Oracle public IP: `168.107.81.228`
+- SSH user: `ubuntu`
+- historical access via OCI Cloud Shell + owner-held private key
+- current public TCP/22: connection refused from this session
+- no private key or OCI host-control surface available in this chat
 
-Minimal fix: reject non-finite or elapsed `expiresAt` before the first network request.
+Do not bypass the missing host session by registering unusable worker credentials, inserting a private repository link manually, or claiming historical acceptance.
 
-PR #120, `Drain private snapshot execution before cancellation finalization`, is also complete and merged only into Phase 10A2.
+## Resume exactly here
 
-- root cause: the private snapshot execution class detached immediately on abort, allowing trusted finalization to race repository processing/upload cleanup
-- RED head `a88ab371628f3262f881243f117818f67fdddda4`, Linux RED CI `35067132487`
-- GREEN head `05b7959e61902d2916b4ba4e1166421b599d9f67`, GREEN CI `35067478620`
-- audit, full tests, typecheck, CLI build/version, both benchmarks, Next build, browser smoke, production diagnostic, and exact-head Vercel passed
-- merge into #76: `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+Once an authorized terminal reaches the host, follow `PHASE_10A2_WORKER_OPERATIONS.md` against the exact live #76 candidate, generate credentials on-host, register hashes only, verify idle workers with gates disabled, legitimately add/import the private canary through the ScopeForge GitHub App, run the bounded end-to-end canary, verify cleanup/privacy/rollback, then release #76 if and only if all evidence passes.
 
-Minimal fix: use the existing drain-on-abort path so finalization waits for the private executor to settle and release its owned resources.
-
-## Do not repeat completed work
-
-- PR #116 upload expiry TOCTOU hardening is released on main
-- PR #117 signup confirmation repair is released
-- PR #118 workspace collaborator controls are released and deployed
-- PR #113/#114/#115 hardening is integrated into #76
-- PR #119 download-expiry hardening is integrated into #76
-- PR #120 private snapshot abort-drain hardening is integrated into #76
-- positive owner/admin GitHub App canary is complete
-- Phase 6D real Linux/rootless-Podman acceptance is complete
-
-## Issue #79 acceptance complete
-
-Both live negative canaries passed on 2026-09-16. The legitimate member was denied Connect GitHub. The owner/admin flow used a fresh signed state and a different real installation ID; GitHub authorization completed and ScopeForge rejected it at `?error=installation`. A clean reload still rendered `Connected`, `Repository access verified`, and `LeDoNguyenTu/ScopeForge`.
-
-The GitHub App's **Redirect on update** setting is enabled so existing-installation updates return to the configured Setup URL. No signed state, OAuth code, token, secret, or private key was recorded. Issue #79 is closed.
-
-## Unsafe actions deliberately not taken
-
-- no fabricated production identity/membership
-- no owner role downgrade
-- no forged callback state
-- no authorization weakening
-- no Phase 10A2/10A3 migration apply
-- no private/repository runtime enablement
-- no webhook secret/configuration change
-- no #76 or #77 release/reconciliation
-
-## Exact resume procedure
-
-1. Read root `AGENTS.md`.
-2. Fetch/prune and inspect current worktree/status.
-3. Resolve live `origin/main`.
-4. Inspect PR #76, PR #77, all newer/open PRs/issues, exact heads and checks.
-5. Compare against persistent docs. Live state wins.
-6. Reconcile #76 exactly once to current released main and fresh-validate the exact candidate.
-7. Re-review and apply only absent reviewed Phase 10A2 migrations to `tdgpibrepzcvdivztkta`.
-8. Keep runtime gates off until private-worker containment, rollback, privacy, and end-to-end acceptance pass.
-9. Release #76 only when all gates pass.
-10. Reconcile/release #77 only after #76.
-
-## Branch hygiene
-
-A fresh GitHub listing returned 21 branches, not the four claimed by the old cleanup snapshot. Do not delete based on the old manifest. A fresh open-PR/reachability/worktree audit is required first. The source branches `fix/repository-scan-download-expiry-20260916` and `fix/private-supervisor-abort-drain-20260916` are known to back merged PRs #119 and #120, but no deletion was performed here.
+PR #77 remains untouched until #76 is released and production-verified.

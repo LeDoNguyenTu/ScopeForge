@@ -2,125 +2,78 @@
 
 Last reconciled: 2026-09-16, Asia/Singapore
 
-Fetch live refs before acting. This document records semantic state, not a promise that embedded SHAs remain branch tips after documentation commits.
+Always fetch live refs before acting. This file records the last verified semantic state.
 
-## Repository and release queue
+## Release queue
 
-- repository: `LeDoNguyenTu/ScopeForge`
-- pre-documentation live `main`: `bc6d50d5ffee782dc8aa48c8ec82c94d3fc82bd3`
-- issue #79: CLOSED after both live negative authorization canaries passed
-- PR #76: OPEN/DRAFT, Phase 10A2 private repository acquisition
-- current Phase 10A2 documentation head: `3439fd9095b65ddcd7e4d8bd3943ffed1766d7c6`
-- current executable/security-hardening merge on #76 after PR #120: `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
-- PR #77: OPEN/DRAFT, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
-- strict release order: `#79 -> #76 -> #77`
+- `main` at checkpoint: `1b23dc8e5aa4c130d7ff6174cbf9444879b88bae`
+- issue #79: CLOSED
+- PR #76: OPEN/DRAFT, Phase 10A2
+- #76 pre-doc executable candidate: `4ef285473402336b4488af4e1c2b4b1ea28d5eb7`
+- exact-head CI: `35102938452` SUCCESS
+- exact-head Vercel: `dpl_Cgt5cBd5guXKvVEfRDJS8fEXKENE` READY
+- #76 was 159 ahead / 0 behind `main` at verification
+- PR #77: OPEN/DRAFT at `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, blocked behind #76
 
-The only open PRs observed after PR #120 merged were #76 and #77. Verify again at resume time.
+Release order: `complete Phase 10A2 operational acceptance -> release #76 -> reconcile/accept/release #77`.
 
-## Production/provider state
+## Production Phase 10A2 schema
 
-Positive GitHub App owner/admin acceptance is complete:
+ScopeForge Supabase: `tdgpibrepzcvdivztkta`.
 
-- hosted GitHub integration is active
-- owner/admin Connect GitHub succeeded
-- active `LeDoNguyenTu` connection persisted
-- `LeDoNguyenTu/ScopeForge` listing/import succeeded
-- unauthenticated connect/callback remains behind sign-in
-- prior provider/log/integration/browser-readable leakage review found no release-blocking token/secret exposure
+Applied production migrations:
 
-PR #118 workspace collaborator controls are released and deployed. The legitimate collaborator is a member of Brian's workspace while owning a separate workspace. This supplied the normal-member path used for the completed #79 authorization canary without fabricating database state.
+- `20260916122505 phase_10a2_private_repository_snapshot`
+- `20260916122512 phase_10a2_private_project_scan_routing`
 
-## Issue #79 acceptance complete
+Verified live catalog/ACL state includes the private GitHub link binding, required execution classes, service-role-only orchestration wrappers, and no direct private-table DML grants for browser/service roles.
 
-Both negative production checks passed on 2026-09-16:
+Security Advisor has no newly identified Phase 10A2 authorization bypass. Existing collaborator SECURITY DEFINER warnings are intentional RPCs that enforce `auth.uid()` plus owner/admin authorization internally. Performance lints are INFO-level.
 
-- `214nsa@gmail.com` selected Brian's workspace as `Member`; the GitHub integration page denied access and showed no Connect GitHub control.
-- a fresh owner-signed flow with a different real installation ID completed GitHub authorization and was rejected by ScopeForge at `?error=installation`.
-- the original connection remained intact and still listed `LeDoNguyenTu/ScopeForge` after a clean reload.
+## Production runtime state
 
-The GitHub App's **Redirect on update** setting is enabled. Existing-installation updates return to the configured ScopeForge Setup URL. Issue #79 is closed.
+At last verification:
 
-## Phase 10A2 state
+- Phase 10A2 worker nodes: 0
+- Phase 10A2 worker tasks: 0
+- no private repository link has been fabricated
+- no worker plaintext credential has been generated or stored outside an authorized host
 
-PR #76 contains the private repository acquisition implementation and remains deliberately unreleased.
+Do not infer runtime acceptance from migrations, green CI, or Phase 6D evidence.
 
-Integrated security hardening includes:
+## Private canary
 
-- #113 trusted claim workspace/asset binding
-- #114 broker authority expiry rechecks
-- #115 private archive stream cleanup
-- #119 expired repository-scan download fail-closed enforcement
-- #120 private snapshot abort drain before trusted finalization
+Dedicated canary repository: `LeDoNguyenTu/scopeforge-private-canary` (private).
 
-PR #119 evidence:
+Fixture commit: `d95ca07123e28ee64de799e87651c2a3b6edb5cf`.
 
-- RED head `24c6f442c946fa1a676f7c79c401638c0f391895`
-- RED CI `35054474634`
-- GREEN head `9658a652f1e5416475489f9971da13409e5319d9`
-- GREEN CI `35054754370`
-- merged into #76 only as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+Expected deterministic finding after a successful end-to-end scan: high-confidence `jsts/command-injection`, CWE-78.
 
-PR #120 evidence:
+The ScopeForge GitHub App connection uses selected-repository access. No verified evidence yet shows that the private canary repo was added to that selection.
 
-- RED head `a88ab371628f3262f881243f117818f67fdddda4`
-- RED CI `35067132487`
-- GREEN head `05b7959e61902d2916b4ba4e1166421b599d9f67`
-- GREEN CI `35067478620`
-- exact-head Vercel deployment passed
-- merged into #76 only as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
-- all 34 Phase 10A2 source files were included in the completed security diff review; the one reportable finding was remediated by #120
+## Worker host
 
-The Phase 10A2 migrations remain intentionally unapplied:
+Historical accepted Oracle host:
 
-- `20260911100000_phase_10a2_private_repository_snapshot.sql`
-- `20260911110000_phase_10a2_private_project_scan_routing.sql`
+- public IP `168.107.81.228`
+- SSH user `ubuntu`
+- prior access via OCI Cloud Shell and the owner's SSH private key
+- prior Linux/runtime: Ubuntu 24.04, rootless Podman, cgroup v2
 
-PR #113 changed the first migration's private worker claim body. Re-review the exact current migration before any production apply.
-
-Reconcile #76 once onto current main, then require fresh exact-candidate validation before schema or runtime acceptance.
-
-## Runtime gates
-
-Keep false/absent until independent operational and rollback acceptance:
-
-- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
-- `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
-- `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
-
-Code presence, migration presence, historical Linux containment, or green CI does not authorize production enablement.
-
-## Phase 10A3 state
-
-PR #77 is still draft and stacked on #76. It must not be released before Phase 10A2.
-
-After #76 releases, reconcile #77 onto the released baseline and run fresh exact-candidate validation before any Phase 10A3 production migration or webhook configuration.
-
-## External account targets
-
-- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
-- wrong/different Job Command Center Supabase: `xwsergbpvkcsugexssmc`
-- Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
-- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
-- production domain: `scopeforge.dev`
-
-No external provider account mutation occurred in the latest continuation other than ordinary GitHub repository/PR/documentation writes.
-
-## Branch state warning
-
-The historical cleanup manifest said the repository had four remote refs. A fresh GitHub branch listing on 2026-09-16 returned 21 branches. Treat the old four-ref statement as stale. No deletion was performed from that stale list.
+Current session result: public TCP/22 connection refused. This session does not possess the SSH key and no OCI host-control connector is available.
 
 ## Completed work not to repeat
 
-- PR #116 upload expiry TOCTOU fix
-- PR #117 signup confirmation repair
-- PR #118 collaborator controls and forward migration
-- PR #119 repository-scan download expiry enforcement
-- PR #120 private snapshot cancellation/finalization ordering fix
-- positive owner/admin GitHub provider canary
-- Phase 6D real Linux/rootless-Podman acceptance
+- #113 trusted private claim binding
+- #114 authority-expiry hardening
+- #115 archive stream cleanup
+- #119 scan artifact expiry enforcement
+- #120 private executor drain/finalization ordering
+- #121 UID-independent worker runtime directory
+- issue #79 provider authorization acceptance
+- Phase 10A2 migrations/database ACL validation
+- private canary fixture preparation
 
 ## Immediate resume point
 
-Issue #79 is closed. Reconcile PR #76 once onto current main, run fresh exact-candidate validation, re-review the exact migrations, and proceed through controlled Phase 10A2 schema and private-worker acceptance. Runtime gates remain off until their own acceptance passes.
+Do not write more application features merely to avoid the operational gate. Regain authorized host access, deploy and accept the exact worker candidate, add/verify the canary repository in the legitimate GitHub App selection, run the bounded private end-to-end canary, verify rollback/privacy/cleanup, then release #76 only if all evidence passes.
