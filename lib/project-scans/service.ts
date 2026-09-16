@@ -60,6 +60,10 @@ export interface ProjectScanServiceDependencies {
   recordRetryPending(context: ConnectedProjectContinuationContext): Promise<void>;
 }
 
+export interface ProjectScanSnapshotTerminalDependencies {
+  reconcileSnapshotTerminal(snapshotTaskId: string): Promise<void>;
+}
+
 function failure(code: ProjectScanErrorCode, message: string): ProjectScanError {
   return new ProjectScanError(code, message);
 }
@@ -311,6 +315,33 @@ function createDefaultDependencies(): ProjectScanServiceDependencies {
       if (error) throw failure("PROJECT_SCAN_PERSIST_FAILED", "Connected project retry state could not be recorded safely.");
     },
   };
+}
+
+function createSnapshotTerminalDependencies(): ProjectScanSnapshotTerminalDependencies {
+  const admin = createAdminClient<Phase10a2Database>();
+  return {
+    reconcileSnapshotTerminal: async (snapshotTaskId) => {
+      const { error } = await admin.rpc("reconcile_connected_project_snapshot_terminal", {
+        target_snapshot_task_id: snapshotTaskId,
+      });
+      if (error) {
+        throw failure(
+          "PROJECT_SCAN_PERSIST_FAILED",
+          "Connected project snapshot terminal state could not be reconciled safely.",
+        );
+      }
+    },
+  };
+}
+
+export async function reconcileConnectedProjectSnapshotTerminal(
+  input: { snapshotTaskId: string },
+  dependencies?: ProjectScanSnapshotTerminalDependencies,
+): Promise<{ status: "reconciled" }> {
+  const snapshotTaskId = validUuid(input.snapshotTaskId);
+  const deps = dependencies ?? createSnapshotTerminalDependencies();
+  await deps.reconcileSnapshotTerminal(snapshotTaskId);
+  return { status: "reconciled" };
 }
 
 function assertContextMatchesRequest(
