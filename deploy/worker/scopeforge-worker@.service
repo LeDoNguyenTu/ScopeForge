@@ -1,0 +1,33 @@
+[Unit]
+Description=ScopeForge worker (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=scopeforge-worker
+Group=scopeforge-worker
+Environment=NODE_ENV=production
+Environment=HOME=/home/scopeforge-worker
+Environment=XDG_RUNTIME_DIR=/run/user/1002
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1002/bus
+EnvironmentFile=/etc/scopeforge/workers/%i.env
+ExecStart=/opt/scopeforge/node/bin/node /opt/scopeforge/current/scopeforge-worker.cjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+Delegate=yes
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/scopeforge /home/scopeforge-worker/.local/share/containers /run/user/1002
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

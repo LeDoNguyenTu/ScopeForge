@@ -1,0 +1,8 @@
+FROM node:24.16.0-bookworm-slim
+
+WORKDIR /app
+COPY --chown=65532:65532 hosted-scanner-entry.js /app/hosted-scanner-entry.js
+COPY --chown=65532:65532 node_modules /app/node_modules
+
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/node", "/app/hosted-scanner-entry.js"]
