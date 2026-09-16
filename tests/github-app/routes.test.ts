@@ -84,6 +84,47 @@ describe("GitHub integration routes", () => {
     expect(cookie).toMatch(/Max-Age=600/i);
   });
 
+  it("does not create a connection state cookie when workspace authorization denies connect", async () => {
+    const { GitHubConnectionAuthorizationError } = await import("@/lib/github-app/authorization");
+    mocks.beginGitHubConnection.mockRejectedValue(
+      new GitHubConnectionAuthorizationError("GITHUB_CONNECTION_FORBIDDEN", "private-authorization-detail"),
+    );
+    const { GET } = await import("@/app/api/integrations/github/connect/route");
+    const response = await GET(new NextRequest("https://scopeforge.dev/api/integrations/github/connect"));
+
+    expect(response.headers.get("location")).toBe("https://scopeforge.dev/dashboard/integrations/github?error=forbidden");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(mocks.prepareGitHubUserAuthorization).not.toHaveBeenCalled();
+    expect(mocks.completeGitHubConnection).not.toHaveBeenCalled();
+  });
+
+  it.each(["prepare", "complete"] as const)("clears both callback cookies on forbidden %s without exposing details", async (stage) => {
+    const { GitHubConnectionAuthorizationError } = await import("@/lib/github-app/authorization");
+    const rejected = stage === "prepare" ? mocks.prepareGitHubUserAuthorization : mocks.completeGitHubConnection;
+    rejected.mockRejectedValue(
+      new GitHubConnectionAuthorizationError("GITHUB_CONNECTION_FORBIDDEN", "private-authorization-detail"),
+    );
+    const { GET } = await import("@/app/api/integrations/github/callback/route");
+    const query = stage === "prepare" ? "installation_id=9001" : "code=oauth-code";
+    const response = await GET(new NextRequest(
+      `https://scopeforge.dev/api/integrations/github/callback?${query}&state=signed-state-value`,
+      { headers: { cookie: "scopeforge_github_state=signed-state-value; scopeforge_github_installation=9001" } },
+    ));
+
+    expect(rejected).toHaveBeenCalledOnce();
+    const other = stage === "prepare" ? mocks.completeGitHubConnection : mocks.prepareGitHubUserAuthorization;
+    expect(other).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://scopeforge.dev/dashboard/integrations/github?error=forbidden");
+    for (const name of ["scopeforge_github_state", "scopeforge_github_installation"]) {
+      expect(response.cookies.get(name)).toMatchObject({
+        value: "", maxAge: 0, httpOnly: true, secure: true, sameSite: "lax",
+        path: "/api/integrations/github/callback", expires: new Date(0),
+      });
+    }
+    expect(response.headers.get("set-cookie")).not.toContain("signed-state-value");
+    expect(response.headers.get("set-cookie")).not.toContain("oauth-code");
+  });
+
   it("fails closed on callback before OAuth/provider work when the hosted integration is disabled", async () => {
     delete process.env.HOSTED_GITHUB_INTEGRATION_ENABLED;
     const { GET } = await import("@/app/api/integrations/github/callback/route");

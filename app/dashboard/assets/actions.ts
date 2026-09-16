@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedWorkspaceId } from "@/lib/workspaces/selection";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeAssetTarget } from "@/lib/assets/normalize-target";
 import { createVerificationChallenge, hashVerificationToken, verifyHttpWellKnownTarget } from "@/lib/assets/verification";
@@ -21,11 +22,13 @@ async function resolveContext() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw Object.assign(new Error("Sign in to continue."), { code: "UNAUTHENTICATED" });
 
-  const { data: memberships, error } = await supabase
+  let membershipQuery = supabase
     .from("workspace_members")
     .select("role, workspaces(id,name,slug)")
-    .eq("user_id", user.id)
-    .limit(1);
+    .eq("user_id", user.id);
+  const selectedId = await getSelectedWorkspaceId(user.id);
+  if (selectedId) membershipQuery = membershipQuery.eq("workspace_id", selectedId);
+  const { data: memberships, error } = await membershipQuery.order("joined_at", { ascending: true }).limit(1);
   if (error) throw new Error(error.message);
 
   const membership = memberships?.[0];

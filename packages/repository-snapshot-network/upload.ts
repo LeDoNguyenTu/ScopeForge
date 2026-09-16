@@ -40,7 +40,7 @@ export async function uploadRepositorySnapshotArtifact(input: {
   signal: AbortSignal;
 }): Promise<void> {
   if (input.signal.aborted) throw new DOMException("Repository artifact upload was aborted.", "AbortError");
-  const url = assertUploadDescriptor(input.descriptor);
+  assertUploadDescriptor(input.descriptor);
   const metadata = await stat(input.artifactPath);
   if (!metadata.isFile() || metadata.size !== input.storedArtifactBytes || metadata.size < 1) {
     throw new Error("Repository snapshot artifact size does not match upload provenance.");
@@ -48,6 +48,8 @@ export async function uploadRepositorySnapshotArtifact(input: {
 
   await new Promise<void>((resolve, reject) => {
     let settled = false;
+    // Filesystem work may outlive the signed upload capability.
+    const url = assertUploadDescriptor(input.descriptor);
     const request = httpsRequest(url, {
       method: "PUT",
       headers: {

@@ -11,6 +11,7 @@ import {
 } from "@/lib/phase3-import/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedWorkspaceId } from "@/lib/workspaces/selection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -165,11 +166,13 @@ async function loadRequestContext(): Promise<Phase3ImportRequestContext | null> 
 
   if (userError || !user) return null;
 
-  const { data: memberships, error: membershipError } = await supabase
+  let membershipQuery = supabase
     .from("workspace_members")
     .select("role, workspaces(id)")
-    .eq("user_id", user.id)
-    .limit(1);
+    .eq("user_id", user.id);
+  const selectedId = await getSelectedWorkspaceId(user.id);
+  if (selectedId) membershipQuery = membershipQuery.eq("workspace_id", selectedId);
+  const { data: memberships, error: membershipError } = await membershipQuery.order("joined_at", { ascending: true }).limit(1);
 
   if (membershipError) {
     throw new Phase3ImportRouteError("PHASE3_IMPORT_CONTEXT_FAILED", 500);

@@ -80,9 +80,11 @@ describe("Phase 6C immutable snapshot reader", () => {
         .toBe("export const answer = 42;\n");
       expect(await readFile(path.join(materialized.sourceDirectory, "README.md"), "utf8"))
         .toBe("# Safe snapshot\n");
-      expect((await stat(path.join(materialized.sourceDirectory, "src/index.ts"))).mode & 0o777).toBe(0o444);
-      expect((await stat(path.join(materialized.sourceDirectory, "src"))).mode & 0o777).toBe(0o555);
-      expect((await stat(materialized.sourceDirectory)).mode & 0o777).toBe(0o555);
+      if (process.platform !== "win32") {
+        expect((await stat(path.join(materialized.sourceDirectory, "src/index.ts"))).mode & 0o777).toBe(0o444);
+        expect((await stat(path.join(materialized.sourceDirectory, "src"))).mode & 0o777).toBe(0o555);
+        expect((await stat(materialized.sourceDirectory)).mode & 0o777).toBe(0o555);
+      }
       await expect(stat(path.join(materialized.sourceDirectory, ".scopeforge/snapshot-manifest-v1.json")))
         .rejects.toMatchObject({ code: "ENOENT" });
       expect(materialized.manifest.contentDigest).toBe(bundle.contentDigest);

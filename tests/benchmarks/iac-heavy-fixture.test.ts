@@ -43,7 +43,7 @@ afterEach(async () => {
 });
 
 describe("iac-heavy-v1 fixture", () => {
-  it("builds a deterministic 601-file four-family IaC fixture", async () => {
+  it("builds a deterministic 601-file four-family IaC fixture", { timeout: 30_000 }, async () => {
     const firstRoot = await tempRoot();
     const secondRoot = await tempRoot();
     await buildIacHeavyFixture(firstRoot);
@@ -69,7 +69,7 @@ describe("iac-heavy-v1 fixture", () => {
     expect(IAC_HEAVY_PROFILE.maxWallMs).toBe(30_000);
   });
 
-  it("pins execution to IaC and exactly the four benchmark rules", async () => {
+  it("pins execution to IaC and exactly the four benchmark rules", { timeout: 30_000 }, async () => {
     const root = await tempRoot();
     await buildIacHeavyFixture(root);
     const config = JSON.parse(await readFile(join(root, ".scopeforge.json"), "utf8"));

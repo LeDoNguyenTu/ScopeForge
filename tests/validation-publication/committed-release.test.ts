@@ -12,6 +12,10 @@ import {
 const EVIDENCE = join(process.cwd(), "validation", "publication", "phase-8-release-v1.evidence.json");
 const MARKDOWN_REPORT = join(process.cwd(), "docs", "validation", "reports", "phase-8-release-v1.md");
 
+function normalizeNewlines(value: string): string {
+  return value.replace(/\r\n/g, "\n");
+}
+
 describe("committed Phase 8 technical publication", () => {
   it("locks the accepted Phase 8A and Phase 8B release evidence", async () => {
     const evidence = parsePublicationEvidence(await readFile(EVIDENCE, "utf8"));
@@ -87,6 +91,7 @@ describe("committed Phase 8 technical publication", () => {
     const secondJson = serializeTechnicalPublicationJson(result);
     expect(firstJson).toBe(secondJson);
     expect(JSON.parse(firstJson)).toEqual(result);
-    expect(await readFile(MARKDOWN_REPORT, "utf8")).toBe(renderTechnicalPublicationMarkdown(result));
+    expect(normalizeNewlines(await readFile(MARKDOWN_REPORT, "utf8")))
+      .toBe(renderTechnicalPublicationMarkdown(result));
   });
 });

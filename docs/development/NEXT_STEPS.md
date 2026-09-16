@@ -1,103 +1,72 @@
 # ScopeForge Next Steps
 
-## Continuation checkpoint - 2026-09-12
+Last reconciled: 2026-09-16, Asia/Singapore
 
-This checkpoint supersedes the older release status below.
+Always fetch live `main`, #79, #76, #77, open PRs, and branch refs before starting. Live state wins.
 
-- PR #74 merged as `33d21de652f3c04aa88ebd4f122348803e59b153` after final CI run `34678875883` succeeded (387 files, 1,726 tests, audit 0, typecheck, builds, benchmarks and browser acceptance).
-- Vercel production deployment `dpl_BFbUfBRQKCbMgHViMhsXX5kvfTYk` is READY for that merge.
-- Fresh production GET probes confirmed both GitHub connect and callback return HTTP 307 to `https://scopeforge.dev/dashboard/integrations/github?error=disabled`. Callback clears both transient cookies with Secure, HttpOnly and SameSite=Lax attributes.
-- GitHub provider configuration and authenticated connection/import acceptance remain unverified. No integration or worker runtime flag was enabled.
-- PR #76 now targets `main`. This reconciliation merges released main into Phase 10A2, retaining the Phase 10C admin console, GitHub release gate and private acquisition capability. The sole conflict in `docs/ENVIRONMENT.md` was resolved by retaining both the release-gate instructions and private archive lease secrecy rule.
-- Local integrated validation: `npm test` passed 402 files / 1,787 tests; `npm run typecheck` exited 0; `git diff --check` passed.
-- PR #76 remains draft. Provider/worker containment and private end-to-end canaries remain required before release. Phase 10A2/10A3 production migrations were not applied in this continuation.
-- Next: propagate this reconciliation into PR #77, validate the combined candidate, then complete provider configuration and runtime acceptance in order. Earlier CI records below describe historical candidates only.
+## Priority 1 - issue #79 complete
 
+Both negative production canaries passed on 2026-09-16. The normal member was denied Connect GitHub, and a fresh owner-signed flow rejected a different real installation ID with `?error=installation`. The original repository connection remained verified. Issue #79 is closed.
 
-Last reconciled: 2026-09-12 (Asia/Singapore)
+## Priority 2 - Phase 10A2 PR #76
 
-## Released baseline
+Current executable/security-hardening merge after PR #120:
 
-Current released `main`:
+`2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 
-`1151af2dddb76737ee2f0a0d1a802f06a975d318`
+#79 is closed. Proceed in this order:
 
-Production: `scopeforge.dev`.
+1. fetch current `main`, #76, production migration history, and exact runtime/config state
+2. reconcile #76 once onto the current released mainline, preserving #113/#114/#115/#119/#120 and released mainline fixes
+3. run fresh exact-candidate validation; historical branch CI is not release proof
+4. re-review the exact current Phase 10A2 migrations
+5. apply only absent reviewed migrations to ScopeForge Supabase `tdgpibrepzcvdivztkta`
+6. verify schema, function bodies, ACLs, grants/revokes, RLS/private-table posture, and Security Advisor results
+7. keep private repository snapshot/scan gates off until the dedicated private worker passes its own acceptance
+8. prove containment, scratch/output ceilings, quotas, cancellation, cleanup, observability, rollback, and credential boundaries
+9. prove one end-to-end private flow: provider revalidation -> exact private archive lease -> immutable snapshot -> exact zero-egress repository scan -> findings
+10. verify provider credentials remain control-plane-only and private source/capability material does not leak to browser state or ordinary logs
+11. merge/release #76 only after all provider, schema, runtime, privacy, and rollback gates pass
+12. verify production after release
 
-Released boundaries include Phases 1-9E, strict CSP, accepted Command Center V5 and Phase 10C platform administration. Do not regress the V5/CSP/auth/RLS/worker-authority baseline while completing later phases.
+Phase 10A2 migrations currently waiting:
 
-## Priority 1 - finish Phase 10A1 provider acceptance and release
+- `20260911100000_phase_10a2_private_repository_snapshot.sql`
+- `20260911110000_phase_10a2_private_project_scan_routing.sql`
 
-Active PR: #74
-Branch: `feat/phase-10a-github-connected-projects`
-Current exact head: `17831b98dbbf06adf213cd2c8694ecd0d6852b74`
-CI #912 / run `34611735763`: SUCCESS
+PR #113 changed the first migration's claim body, so the older preflight is not sufficient authorization to apply the current migration.
 
-Code and production database gates are complete.
+## Priority 3 - Phase 10A3 PR #77 only after #76 releases
 
-Verified production state:
+Current live head observed before this docs refresh:
 
-- all five Phase 10A1 migrations are recorded in ScopeForge production,
-- browser users are SELECT-only on the public GitHub integration tables,
-- `service_role` is reduced to SELECT/INSERT/UPDATE/DELETE on those tables,
-- private scan intent has no direct browser/service-role table grant,
-- privileged Phase 10A1 RPCs remain service-role-only,
-- Security Advisor has no Phase 10A1 release-blocking schema issue,
-- exact-head CI #912 passed the complete repository matrix with 1,720 tests.
+`d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
 
-Remaining release work is provider-focused:
+After Phase 10A2 release:
 
-1. Verify the six required GitHub App server-only settings through a supported configuration surface without exposing values.
-2. Verify GitHub App homepage, setup URL and callback URL match the documented `https://scopeforge.dev` flow.
-3. Verify Contents and Metadata permissions remain read-only with no repository write permission.
-4. Run an authenticated owner/admin Connect GitHub -> installation proof -> repository listing -> repository import canary.
-5. Confirm no App private key, OAuth token, installation token, signed state or raw provider error body appears in browser state, integration rows, redirects or ordinary logs.
-6. Keep hosted worker flags off.
-7. Merge PR #74 only after the live provider canary succeeds.
-8. Verify the merged production deployment, integration routes, V5/admin/auth paths and security headers.
+1. reconcile #77 onto released Phase 10A2/main
+2. run fresh exact-candidate validation
+3. re-read and apply only reviewed absent Phase 10A3 migrations
+4. configure the independent server-only webhook secret/endpoint without exposing it
+5. canary raw-body HMAC verification, invalid-signature rejection, oversize rejection, replay, installation/repository lifecycle, latest-head coalescing, same-head recovery, stale-trigger authoritative-head recovery, public/private separation, and leak boundaries
+6. prove a full automatic webhook-triggered flow through immutable snapshot publication and findings
+7. merge/release only after all operational gates pass
+8. verify production after merge
 
-The exact-head GitHub Vercel status currently reports the Hobby build-rate limit. A recent branch preview is READY and GitHub CI passed the exact head's production build/browser diagnostics, so do not misclassify that external quota condition as a code regression.
+## Independent maintenance boundary
 
-## Priority 2 - complete current-base Phase 10A2 stack reconciliation
+Safe independent work includes:
 
-PR #76 already contains the private repository acquisition implementation and remains draft/stacked on Phase 10A1.
+- narrowly scoped TDD security/regression fixes
+- dependency/runtime/tooling maintenance
+- evidence-based UI fixes
+- documentation/handoff repair
+- architecture/security review
+- branch/release hygiene after fresh live verification
 
-Previously validated head:
+Any independent fix must use genuine RED, minimal GREEN, and exact-candidate validation. It must not be used as evidence that either Phase 10 operational gate passed.
 
-`6959cea91cbecba9e9e454901d3c57a95bc46edd`
-
-CI #904 / run `34607770399`: SUCCESS with 392 files / 1,731 tests and the complete validation matrix.
-
-The Phase 10A1 base later advanced by seven commits. The conflict surface is limited to four release/state documents plus the Phase 10A1 ACL hardening migration and regression test.
-
-Current reconciliation sequence:
-
-1. Carry the verified Phase 10A1 ACL migration and regression test into the stack unchanged.
-2. Sync the Phase 10A1 release/working-state documents from the verified base.
-3. Reconcile shared `CURRENT_STATE.md` and `NEXT_STEPS.md` so Phase 10A1 production truth and Phase 10A2 implementation truth both remain explicit.
-4. Confirm GitHub can synthesize a merge candidate against the latest Phase 10A1 base.
-5. Run the complete Phase 10A2 validation matrix against that current base.
-6. Keep PR #76 draft/non-releasable even if CI passes because Phase 10A1 has not released yet.
-
-## Priority 3 - Phase 10A2 production schema/provider/private canary
-
-After Phase 10A1 releases and PR #76 is reconciled onto released `main`:
-
-1. Read the exact ScopeForge production migration head.
-2. Apply only reviewed forward Phase 10A2 migrations that are absent.
-3. Verify private tables/RPCs, explicit revokes/grants, RLS and service-role authority boundaries.
-4. Run Security Advisor.
-5. Verify GitHub App access to a selected private test repository with intended read-only permissions.
-6. Verify the dedicated private snapshot worker deployment and rollback mechanism.
-7. Enable `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED` only in the accepted canary environment.
-8. Run one complete private connected-project canary: project scan request -> private archive lease -> immutable snapshot publication -> exact zero-egress repository scan -> findings.
-9. Verify provider credentials never reach the worker contract and archive capability/private source do not appear in browser state or ordinary logs.
-10. Disable the flag immediately if identity, credential, network, publication, containment or cleanup invariants fail.
-11. Merge/release Phase 10A2 only after every code, schema, provider and runtime gate is green.
-
-## Priority 4 - independent hosted runtime acceptance
-
-Keep these false/absent until independent operational canary and rollback acceptance explicitly authorizes each capability:
+## Runtime gates that stay off until accepted
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
@@ -105,28 +74,31 @@ Keep these false/absent until independent operational canary and rollback accept
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-A canary must prove the exact worker class, containment, quotas, cancellation/recovery, observability and rollback path before its flag changes in production.
+## Branch cleanup next step
 
-## Remaining provider/security follow-ups
+A live branch listing returned 21 refs, contradicting the previous four-ref cleanup claim. Before deleting anything:
 
-- Supabase leaked-password protection remains disabled; enable only through a supported Auth-management surface and re-verify auth flows.
-- Verify Turnstile production enforcement rather than inferring it from configuration code.
-- Verify Vercel WAF/rate-limit controls through a supported management surface.
-- Preserve strict nonce CSP and existing browser security headers during all provider changes.
-- Deployment discovery/DAST remains a later connected-project phase after private repository acquisition is stable.
+1. fetch every branch
+2. fetch every open PR, including pagination
+3. inspect current worktrees in the actual checkout
+4. prove reachability/merged or superseded status for each candidate
+5. preserve `main`, #76, #77, `demo/portfolio-20260910`, every active task branch, and every active worktree
+6. delete only after the candidate list is freshly reviewed
+7. re-list branches and document the exact result
 
-## Baseline rule
+No branch deletion was performed during the latest continuation.
 
-Any next implementation work must preserve together:
+## Completed latest maintenance
 
-- accepted Command Center V5 desktop/mobile presentation,
-- Phase 10C admin console and authority separation,
-- strict nonce CSP,
-- Supabase workspace/RLS/RPC authorization,
-- no browser service-role/provider secrets,
-- no GitHub provider credentials in worker contracts,
-- public/private repository acquisition class separation,
-- worker/runtime authority separation,
-- disabled/unaccepted hosted capability defaults,
-- immutable snapshot and finding provenance,
-- exact-snapshot recovery without implicit reacquisition.
+PR #119 is complete. Do not redo it:
+
+- RED `24c6f442...`, CI `35054474634`
+- GREEN `9658a652...`, CI `35054754370`
+- merged only into #76 as `79e4b2a1...`
+
+PR #120 is complete. Do not redo it:
+
+- RED `a88ab371...`, Linux CI `35067132487`
+- GREEN `05b7959e...`, CI `35067478620`, exact-head Vercel passed
+- merged only into #76 as `2ff2bf07...`
+- completed Phase 10A2 security diff review found this one reportable issue and confirmed its remediation

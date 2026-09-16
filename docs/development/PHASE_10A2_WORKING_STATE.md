@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-16, Asia/Singapore
 
-Phase 10A2 is implemented but deliberately remains an unreleased draft behind issue #79 and its own schema/runtime/privacy/rollback acceptance.
+Phase 10A2 is implemented and remains an unreleased draft behind its schema/runtime/privacy/rollback acceptance. Issue #79 is closed.
 
 Active PR: #76
 
@@ -14,9 +14,9 @@ Latest executable/security-hardening merge before this documentation-only branch
 
 Strict release order:
 
-`issue #79 browser canaries -> reconcile/fresh-validate #76 -> Phase 10A2 schema/runtime acceptance -> merge/release #76 -> reconcile/fresh-validate #77 -> Phase 10A3 acceptance`
+`reconcile/fresh-validate #76 -> Phase 10A2 schema/runtime acceptance -> merge/release #76 -> reconcile/fresh-validate #77 -> Phase 10A3 acceptance`
 
-Do not reconcile #76 to current `main` merely to make it current while #79 remains open.
+PR #76 was reconciled once onto released main `1b23dc8e5aa4c130d7ff6174cbf9444879b88bae` after issue #79 closed. The reconciliation had documentation-only conflicts; current-main documentation won while this Phase 10A2 working-state record was preserved and refreshed.
 
 ## Provider gate
 
@@ -29,11 +29,9 @@ The legitimate normal-member production canary passed on 2026-09-16:
 - the GitHub integration route rendered `GitHub integration unavailable` and `Workspace owner or admin access is required.`
 - no Connect GitHub control was available
 
-Exactly one production browser canary remains in issue #79:
+The owner/admin wrong-installation canary also passed on 2026-09-16 through a fresh signed production flow. GitHub authorization completed with a different real installation ID and ScopeForge rejected it at `?error=installation`. A clean reload still showed the original connection as verified and listed `LeDoNguyenTu/ScopeForge`.
 
-1. authorized owner/admin normal signed flow with a different valid GitHub installation ID must reject it as not belonging to the authorized connection/workspace
-
-Do not fabricate membership, forge callback state, downgrade an owner, directly mutate production role state for the test, weaken authorization, or substitute CI/unit coverage.
+The GitHub App's **Redirect on update** setting is enabled so existing-installation changes return to the configured Setup URL. Issue #79 is closed.
 
 ## Architecture boundary
 
@@ -115,20 +113,18 @@ Keep the following false/absent until the dedicated operational canary and rollb
 
 Historical Phase 6D Linux/rootless-Podman containment evidence is useful but does not authorize Phase 10A2 production runtime enablement.
 
-## Release gates after #79 clears
+## Release gates
 
-1. Fetch live current `main`, #76, production migration history, and actual runtime/config state.
-2. Reconcile #76 exactly once onto current released main, preserving #113/#114/#115/#119/#120 and all released mainline security fixes.
-3. Run fresh exact-candidate validation after reconciliation. Historical maintenance CI is not release proof.
-4. Re-review exact current Phase 10A2 migrations.
-5. Apply only absent reviewed migrations to `tdgpibrepzcvdivztkta`.
-6. Verify schema, function bodies, ACLs, grants/revokes, RLS/private-table privileges, and Security Advisor results.
-7. Keep private snapshot/scan gates off until dedicated private-worker acceptance.
-8. Prove containment, quotas, scratch/output ceilings, cancellation, cleanup, observability, rollback, and credential boundaries.
-9. Prove private archive lease -> immutable snapshot -> exact zero-egress scan -> findings end to end.
-10. Prove provider credentials remain control-plane-only and private source/capability material does not leak to browser state or ordinary logs.
-11. Merge/release #76 only after provider, schema, runtime, privacy, rollback, and production verification all pass.
-12. Only then reconcile and fresh-validate Phase 10A3 PR #77.
+1. Run fresh exact-candidate validation after reconciliation. Historical maintenance CI is not release proof.
+2. Re-review exact current Phase 10A2 migrations and current production migration history.
+3. Apply only absent reviewed migrations to `tdgpibrepzcvdivztkta`.
+4. Verify schema, function bodies, ACLs, grants/revokes, RLS/private-table privileges, and Security Advisor results.
+5. Keep private snapshot/scan gates off until dedicated private-worker acceptance.
+6. Prove containment, quotas, scratch/output ceilings, cancellation, cleanup, observability, rollback, and credential boundaries.
+7. Prove private archive lease -> immutable snapshot -> exact zero-egress scan -> findings end to end.
+8. Prove provider credentials remain control-plane-only and private source/capability material does not leak to browser state or ordinary logs.
+9. Merge/release #76 only after provider, schema, runtime, privacy, rollback, and production verification all pass.
+10. Only then reconcile and fresh-validate Phase 10A3 PR #77.
 
 ## Permanent guards
 
@@ -146,4 +142,4 @@ The Phase 10A2 suite must continue to pin:
 
 ## Release rule
 
-PR #76 stays draft and non-releasable while issue #79 remains open. No Phase 10A2/10A3 production migration, webhook secret, production membership, provider authorization rule, or private-worker runtime gate may be changed merely to satisfy the remaining canaries.
+PR #76 stays draft and non-releasable until exact-candidate, schema, private-worker, privacy, rollback, and production verification pass. Issue #79 is closed. Runtime gates remain off until their dedicated acceptance authorizes them.

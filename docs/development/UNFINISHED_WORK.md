@@ -1,102 +1,117 @@
 # ScopeForge Unfinished Work Queue
 
-Last reconciled: 2026-09-10 (Asia/Singapore)
+Last reconciled: 2026-09-16, Asia/Singapore
 
-This is the persistent non-UI resume queue. It records only work that is actually unfinished. Historical implementation branches and old phase checklists are not a source of new work by themselves.
+This file lists genuinely unfinished work only. Fetch live refs before acting.
 
-## Global rules
+## 1. Issue #79 - completed release prerequisite
 
-- start from current `main`; never use stale feature, reconciliation, preview, diagnostic, or temporary restoration branches as integration bases
-- preserve the accepted Command Center V5 public and authenticated presentation
-- preserve strict nonce CSP and the existing browser security-header baseline
-- preflight before CI; do not use Actions as the first debugging loop
-- do not claim green gates without exact-SHA evidence
-- keep deployed Supabase migrations immutable; corrections are forward-only
-- do not enable hosted worker/runtime capability flags merely because their code exists
-- do not add generic URL/proxy/browser/arbitrary network authority
-- do not confuse ScopeForge Supabase `tdgpibrepzcvdivztkta` with another project
-- no AI co-author attribution
-- do not infer provider or environment state from repository source
+Both live negative authorization canaries passed on 2026-09-16. A normal member was denied Connect GitHub, and a fresh owner-signed flow rejected a different real installation ID with `?error=installation`. The original `LeDoNguyenTu/ScopeForge` connection remained verified. Issue #79 is closed and is no longer unfinished work.
 
-## Completed - do not recreate
+## 2. Phase 10A2 - PR #76 private repository acquisition
 
-The following previously queued boundaries are released:
+PR #76 remains open/draft. Latest executable/security-hardening merge after PR #120:
 
-- Phase 7 Community Security Packs v1
-- Phase 8A offline accuracy foundation
-- Phase 8B deterministic scanner performance matrix
-- Phase 8C reproducible technical publication
-- Phase 9A authentication-boundary hardening
-- Phase 9B provider/auth hardening code
-- Phase 9C database/RPC defense-in-depth
-- Phase 9D security telemetry/browser hardening
-- Phase 9E incident readiness and release engineering
-- post-Phase-9 strict CSP compatibility and enforcement
-- restoration of the accepted Command Center V5 presentation on top of strict CSP
+`2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 
-The latest substantively validated executable release is `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`. Post-merge CI #803 / run `34396470298` passed the full validation gate, including real Chrome CSP/V5 visual acceptance. Later docs-only `main` commits may advance the Git ref without changing the executable application tree.
+Integrated maintenance now includes #113, #114, #115, #119, and #120.
 
-Detailed release evidence is in `docs/development/STRICT_CSP_AND_V5_RESTORATION_RELEASE_STATE.md`.
+PR #119 is complete and must not be recreated:
 
-## 1. Provider operational verification - separate gate
+- RED head `24c6f442c946fa1a676f7c79c401638c0f391895`
+- RED CI `35054474634`
+- GREEN head `9658a652f1e5416475489f9971da13409e5319d9`
+- GREEN CI `35054754370`
+- merged into #76 as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
 
-Current conservative truth:
+PR #120 is complete and must not be recreated:
 
-- production Turnstile provider enforcement: `NOT VERIFIED`
-- Vercel custom WAF/rate-limit rule state: `NOT VERIFIED`
-- Supabase leaked-password protection: `VERIFIED DISABLED`
-- strict CSP: `ENFORCED`
+- RED head `a88ab371628f3262f881243f117818f67fdddda4`
+- Linux RED CI `35067132487`
+- GREEN head `05b7959e61902d2916b4ba4e1166421b599d9f67`
+- GREEN CI `35067478620`; exact-head Vercel passed
+- merged into #76 as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+- completed all-file Phase 10A2 security diff review recorded one reportable issue, remediated by this PR
 
-Provider inspection is legitimate unfinished operational work when a supported account surface is available. Provider activation or configuration changes are not implied by this queue and require their own reviewed operational plan, rollback path, and verification evidence.
+With #79 closed:
 
-Do not describe configuration-gated Turnstile application support as production provider enforcement until the external Cloudflare/Supabase/Vercel state is directly proven.
+1. fetch live main/#76 and production migration history
+2. reconcile once onto current released main
+3. run fresh exact-candidate validation
+4. re-review exact current Phase 10A2 migrations
+5. apply only absent reviewed migrations to `tdgpibrepzcvdivztkta`
+6. verify schema/functions/ACL/RLS/Security Advisor posture
+7. keep private worker gates off until dedicated acceptance
+8. prove containment, quotas, cleanup, cancellation, observability, rollback, and credential isolation
+9. prove exact private archive lease -> immutable snapshot -> zero-egress repository scan -> findings
+10. merge/release only after all provider/schema/runtime/privacy/rollback checks pass
 
-## 2. Production worker enablement - separate from completed code phases
+Pending Phase 10A2 migrations:
 
-### Phase 6B
+- `20260911100000_phase_10a2_private_repository_snapshot.sql`
+- `20260911110000_phase_10a2_private_project_scan_routing.sql`
 
-Hosted GitHub repository acquisition remains disabled pending a dedicated acquisition-worker/private-artifact operational acceptance, monitoring, rollback, and staged canary gate.
+PR #113 changed the first migration. Re-review it before apply.
 
-### Phase 6C
+## 3. Phase 10A3 - PR #77 webhook reconciliation
 
-Hosted zero-egress repository scanning remains disabled pending its own execution-boundary operational acceptance for zero egress, read-only boundaries, resource enforcement, cancellation/container termination, monitoring, rollback, and canary evidence.
+PR #77 remains open/draft and stacked on #76. It cannot release before Phase 10A2.
 
-### Phase 6D
+After #76 releases:
 
-Passive and active runtime worker code and release acceptance are complete. Production enablement remains a separate operational gate for each capability and requires monitoring, rollback, staged canary evidence, and exact environment-state verification.
+1. reconcile #77 to released main
+2. run fresh exact-candidate validation
+3. apply only reviewed absent Phase 10A3 migrations
+4. configure independent server-only webhook secret/endpoint
+5. prove signature and size rejection, replay/lifecycle/coalescing/recovery behavior, public/private separation, leak boundaries, and one complete automatic scan
+6. release only after operational acceptance
 
-The operational requirement remains that these four flags stay false/absent until their independent gates authorize them:
+## 4. Branch cleanup reconciliation
+
+The previous branch cleanup snapshot is stale. Fresh GitHub state returned 21 branches while only #76 and #77 are open PRs.
+
+No deletion was performed in the latest continuation. Before cleanup:
+
+- fetch all branches and all open PR pages
+- inspect actual local worktrees
+- prove merged/reachability/supersession status for every candidate
+- preserve main, #76, #77, the portfolio demo branch, active tasks, and active worktrees
+- re-list refs after any deletion
+
+Known merged source branches from the latest work: `fix/repository-scan-download-expiry-20260916` for PR #119 and `fix/private-supervisor-abort-drain-20260916` for PR #120.
+
+## 5. Independent maintenance
+
+Allowed:
+
+- narrow TDD security/regression hardening
+- dependency/runtime/tooling maintenance
+- evidence-based UI fixes
+- documentation/release hygiene
+- architecture/security review
+
+Not allowed as a workaround:
+
+- early Phase 10A2/10A3 migration apply
+- early private/repository worker enablement
+- synthetic production identities/state
+- weakening provider authorization
+- treating green CI as operational acceptance
+
+## Runtime gates still requiring their own acceptance
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
+- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-The current Vercel connector does not expose environment-variable values, so a fresh direct environment read is not available through the present tool surface. No environment mutation was performed by the CSP or V5 restoration releases.
+## Completed, do not recreate
 
-Do not use Phase 6D containment evidence, Phase 8 validation success, or the public release as automatic authorization for 6B/6C/6D production enablement.
-
-## 3. Branch cleanup
-
-A fresh branch audit still shows historical completed `diag/*`, `preview/*`, reconciliation, documentation, feature, CSP, and temporary V5 restoration branches.
-
-The connected GitHub write surface does not expose a genuine branch delete-ref operation. Do not force-move or repoint those refs to make them look deleted.
-
-When a true delete-ref surface becomes available:
-
-1. re-audit each candidate against current `main`
-2. delete only branches already proven historical/completed
-3. preserve `main`
-4. re-list branches after deletion and record the cleanup result
-
-## 4. Future product work
-
-There is currently no open implementation PR, no open issue, and no approved new product phase in the repository queue.
-
-Do not invent a Phase 10 from historical branches or dormant capability. A new implementation boundary must be explicitly scoped against current `main`, pass the normal design/spec review gate, and preserve V5, CSP, authorization, and runtime safety invariants.
-
-## UI baseline
-
-The earlier separate V5 UI stream is complete. PR #67 restored and released the accepted V5 presentation on top of the strict CSP baseline.
-
-Accessibility/responsive work may be proposed as a future scoped change if new evidence identifies a concrete issue, but the old UI branches are not active workstreams.
+- PR #116 upload capability expiry fix
+- PR #117 signup confirmation repair
+- PR #118 collaborator controls
+- PR #119 repository-scan download expiry fix
+- PR #120 private snapshot cancellation/finalization ordering fix
+- positive owner/admin GitHub provider canary
+- Phase 6D real Linux/rootless-Podman acceptance
