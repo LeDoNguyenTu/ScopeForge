@@ -1,146 +1,80 @@
 # ScopeForge Branch Cleanup Candidates
 
-Last reconciled: 2026-09-14 (Asia/Singapore)
+Last live audit: 2026-09-16, Asia/Singapore
 
-This is the historical branch-cleanup manifest from the 2026-09-13 audit, not a current deletion list. It is intentionally documentation-only and does not authorize rewriting, force-moving, or repointing refs.
+This is a reconciliation record, not deletion authorization. Always re-fetch branches, open PRs, reachability, and local worktrees immediately before deleting refs.
 
-## Audited repository state
+## Live state observed
 
-Audit baseline:
+GitHub returned **21 remote branches**. This supersedes the older claim that only four refs remained.
 
-- `main`: `4c65c1f179653f4a478e22ac4069ad004017c68f`
-- total live branches: **60**
-- branch-list page 2 with `per_page=100`: empty
-- open PRs: exactly **2**
-  - PR #76: `feat/phase-10a2-private-repository-acquisition`
-  - PR #77: `feat/phase-10a3-github-webhook-reconciliation`
-- open-PR page 3 with `per_page=1`: empty
+Only two PRs remain open after PR #119 merged:
 
-2026-09-14 reconciliation: a fresh audit found 68 remote branches. The authenticated local Git CLI deleted 62 historical refs in three evidence tiers: 31 exact merged-PR heads, 20 additional tips reachable from retained refs, and 11 diagnostic/superseded/temporary/explicitly closed refs confirmed against the prior manifest and live PR history. No open-PR or active-worktree ref was deleted.
+- PR #76: `feat/phase-10a2-private-repository-acquisition`
+- PR #77: `feat/phase-10a3-github-webhook-reconciliation`
 
-A post-delete fetch initially returned six branches:
+Open-PR pagination page 3 with one result per page was empty, confirming there was no third open PR at this checkpoint.
+
+Observed branch set:
+
+- `chore/refresh-compatible-dependencies`
+- `demo/portfolio-20260910`
+- `docs/mobile-session-handoff-20260915`
+- `docs/session-reconciliation-20260915`
+- `feat/phase-10a2-private-repository-acquisition`
+- `feat/phase-10a3-github-webhook-reconciliation`
+- `feat/workspace-collaborator-controls-20260916`
+- `fix/ci-production-webdriver-isolation-20260915`
+- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp`
+- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp2`
+- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp3`
+- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp4`
+- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp5`
+- `fix/phase-10a2-broker-authority-expiry-20260915`
+- `fix/phase-10a2-private-claim-binding-20260915`
+- `fix/phase-10a2-private-stream-cleanup-20260915`
+- `fix/repository-scan-download-expiry-20260916`
+- `fix/repository-upload-expiry-toctou-20260915`
+- `fix/signup-confirmation-flow-20260916`
+- `main`
+- `test/github-connection-reauthorization-20260915`
+
+## Must retain without further question
 
 - `main`
-- `feat/phase-10a2-private-repository-acquisition` (open PR #76)
-- `feat/phase-10a3-github-webhook-reconciliation` (open PR #77)
-- `demo/portfolio-20260910` (intentional demo state)
-- `design/phase-7-security-packs-v1` (active local worktree)
-- `preview/command-center-v5-reference-rebuild` (active local worktree with local commits beyond the remote tip)
+- `feat/phase-10a2-private-repository-acquisition` - open draft PR #76
+- `feat/phase-10a3-github-webhook-reconciliation` - open draft PR #77
+- `demo/portfolio-20260910` - intentional demo/portfolio ref
+- any branch backing a new open PR created after this audit
+- any branch attached to an active local worktree at deletion time
 
-Three additional active local worktree branches have no remote ref and were untouched. The historical lists below explain the original audit only; they are no longer an executable deletion manifest. Never simulate deletion by force-moving refs.
+## Known merged/superseded candidates requiring final pre-delete verification
 
-## Final cleanup - 2026-09-15
+The following have strong live-history reasons to be cleanup candidates, but no deletion was performed in this continuation:
 
-A new live audit found only PR #76 and PR #77 open. All four auxiliary worktrees were clean. Their branches were proven merged, commit-contained by a merged PR, explicitly superseded, or historical preview-only according to this manifest. The cleanup removed:
+- `fix/repository-scan-download-expiry-20260916` - PR #119 merged into #76 as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- `feat/workspace-collaborator-controls-20260916` - PR #118 merged/released
+- `fix/signup-confirmation-flow-20260916` - PR #117 merged/released
+- `fix/repository-upload-expiry-toctou-20260915` - PR #116 merged/released
+- `fix/phase-10a2-private-claim-binding-20260915` - PR #113 integrated into #76
+- `fix/phase-10a2-broker-authority-expiry-20260915` - PR #114 integrated into #76
+- `fix/phase-10a2-private-stream-cleanup-20260915` - PR #115 integrated into #76
+- the five `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp*` refs - historical temporary reconciliation refs; verify they are not active worktrees before deletion
 
-- remote `design/phase-7-security-packs-v1`
-- remote `preview/command-center-v5-reference-rebuild`
-- four auxiliary worktrees
-- ten finished local branches
+The remaining maintenance/docs/test refs also require fresh merged/reachability and worktree verification before deletion. Do not infer safety only from their names.
 
-The verified final state is exactly four remote branches (`main`, #76, #77 and `demo/portfolio-20260910`), one local branch (`main`) and one worktree. The ideal branch set below is now the actual branch set.
+## Required cleanup procedure
 
-Deleting a branch ref does not delete commits that are already reachable from merged history or another retained branch. The list below classifies refs only.
+1. Fetch `main`, all branches, and all open PR pages.
+2. Inspect `git worktree list` and local branch state in the actual checkout.
+3. For each candidate, prove at least one reviewed preservation path: merged PR, tip reachable from a retained ref, or explicitly superseded/closed work whose commits remain reachable.
+4. Preserve all active PR heads, active worktree branches, intentional demo refs, and current task branches.
+5. Delete refs only through a genuine delete-ref operation. Never simulate deletion by force-moving or repointing a branch.
+6. Re-fetch the complete branch list after deletion.
+7. Record exact deleted refs, retained refs, final count, and any exceptions in `LATEST_SESSION.md` and `SESSION_HANDOFF.md`.
 
-## Retain - 4 branches
+## Latest-work cleanup note
 
-Do not delete these refs:
+PR #119 is merged, but its source branch was intentionally left in place because this chat did not have a reviewed delete-ref action exposed and the broader manifest was already stale. That is safer than attempting partial cleanup from outdated assumptions.
 
-- `main` - production integration branch
-- `feat/phase-10a2-private-repository-acquisition` - active draft PR #76
-- `feat/phase-10a3-github-webhook-reconciliation` - active draft PR #77, stacked behind Phase 10A2
-- `demo/portfolio-20260910` - intentional portfolio/demo branch, outside engineering cleanup
-
-## Safe to delete - 56 branches
-
-No branch below is the head of an open PR. They are merged, superseded, closed, diagnostic/preview-only, or temporary historical refs whose work is preserved by `main`, PR #76, PR #77, or repository history.
-
-### Completed maintenance and release branches
-
-- `chore/ci-doc-runtime-alignment` - PR #90 merged; Node 24 public CI example now released
-- `chore/main-runtime-tooling-alignment` - PR #88 merged into `main`
-- `chore/node24-runtime-alignment` - PR #83 merged into the retained Phase 10A3 branch
-- `chore/vitest-config-esm` - PR #84 merged into the retained Phase 10A3 branch
-- `docs/csp-v5-restoration-release-state` - merged PR #68
-- `docs/current-handoff-cleanup` - merged PR #69
-- `docs/phase-9d-release-state` - merged PR #63
-- `docs/phase-9e-release-state` - merged PR #65
-- `docs/pr90-release-state` - PR #91 merged into `main`
-- `docs/runtime-tooling-release-state` - PR #89 merged into `main`
-- `feat/admin-ui-responsive-control-plane` - PR #87 merged into `main`
-- `feat/command-center-ui-v4` - merged PR #49; historical branch name for the V5 integration
-- `feat/phase-9b-provider-edge-hardening-v1` - merged PR #60
-- `feat/phase-9c-database-rpc-hardening-v1` - merged PR #59
-- `feat/phase-9e-incident-release-engineering-v1` - merged PR #64
-- `feat/phase-10a-github-connected-projects` - merged/released PR #74
-- `feat/phase-10c-platform-admin-console` - merged PR #75
-- `feat/strict-csp-compatibility-v1` - merged PR #66
-- `fix/phase-10a3-superseded-head-recovery` - PR #86 merged into retained PR #77; implementation remains in the Phase 10A3 branch
-- `fix/restore-approved-command-center-v3` - merged PR #71
-- `fix/restore-approved-v5-ui` - merged PR #67
-- `fix/turnstile-visible-ui-production-v5` - merged PR #70
-- `reconcile/phase-9d-v5-main` - merged PR #62
-- `revert/pr49-ui-only` - merged PR #73
-
-### Explicitly superseded or closed work
-
-- `design/phase-7-security-packs-v1` - PR #53 superseded by merged PR #54
-- `feat/phase-9d-security-telemetry-browser-hardening-v1` - PR #61 superseded by merged reconciliation PR #62
-- `revert/pre-pr49-baseline` - closed PR #72, explicitly DO NOT MERGE
-- `docs/phase-10a2-design-staging` - temporary/empty Phase 10A2 staging ref; not an implementation baseline
-
-### Historical design, diagnostic, preview, restoration, and temporary refs
-
-- `design/command-center-ui-v4`
-- `design/strict-csp-compatibility-v1`
-- `diag/v5-poster-red`
-- `diag/v5-reference-live-capture`
-- `diag/v5-release-gates`
-- `diag/v5-release-gates-actual`
-- `diag/v5-release-gates-final`
-- `diag/v5-release-gates-once`
-- `diag/v5-release-gates-run`
-- `diag/v5-release-gates-working`
-- `feat/phase-6d-network-workers-v1-task9`
-- `fix/phase-6b-snapshot-runtime-gate`
-- `fix/restore-approved-v5-ui-canonical`
-- `fix/restore-approved-v5-ui-final`
-- `fix/restore-approved-v5-ui-impl`
-- `fix/restore-approved-v5-ui-mainline`
-- `fix/restore-approved-v5-ui-red`
-- `fix/restore-approved-v5-ui-work`
-- `fix/snapshot-runtime-gate-launch`
-- `preview/command-center-v5-1-citadel`
-- `preview/command-center-v5-1-citadel-safety`
-- `preview/command-center-v5-1-citadel-spec`
-- `preview/command-center-v5-reference-rebuild`
-- `preview/command-center-v5-reference-rebuild-red`
-- `preview/command-center-v5-reference-rebuild-work`
-- `preview/command-center-v5-visual-review-20260901`
-- `reconcile/command-center-ui-v5-main`
-- `test/restore-approved-v5-ui-red`
-
-## Required deletion procedure
-
-When a genuine delete-ref surface becomes available:
-
-1. Re-fetch `main`, the full branch list, and all open PRs immediately before deletion.
-2. Preserve the four **Retain** refs above and any newly created branch that backs a new open PR or active task.
-3. Delete only refs still present in the **Safe to delete** list.
-4. Do not force-move or repoint any branch as a substitute for deletion.
-5. Re-fetch the complete branch list after deletion.
-6. Expected branch count is **4** if no new branch has been created in the meantime.
-7. Record the actual deleted refs, retained refs, and final branch count in the session handoff.
-
-Expected ideal branch set after cleanup, assuming no new work has started:
-
-```text
-main
-feat/phase-10a2-private-repository-acquisition
-feat/phase-10a3-github-webhook-reconciliation
-demo/portfolio-20260910
-```
-
-## Release sequencing remains unchanged
-
-Branch cleanup is repository hygiene only. It does not clear issue #79, does not authorize Phase 10A2/10A3 migrations, and does not enable any hosted worker/runtime flag. The required release order remains #79 negative production canaries -> Phase 10A2 PR #76 operational acceptance/release -> Phase 10A3 PR #77 reconciliation and operational acceptance/release.
+Branch hygiene does not change the release sequence and never clears issue #79 or authorizes Phase 10A2/10A3 production actions.

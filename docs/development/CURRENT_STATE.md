@@ -1,199 +1,74 @@
 # ScopeForge Current State
 
-## Latest collaborator-controls continuation - 2026-09-16
+Last reconciled: 2026-09-16, Asia/Singapore
 
-Read [Workspace collaborator controls](WORKSPACE_COLLABORATOR_CONTROLS_ACCEPTANCE.md) before historical status below. PR #118 is merged and deployed with its forward-only migration and green exact-head/post-merge CI. The record preserves the released security model and the remaining authenticated normal-member path for issue #79.
+Fetch live refs before acting. This document records semantic state, not a promise that embedded SHAs remain branch tips after documentation commits.
 
-## Latest signup repair - 2026-09-16
-
-Read [Signup confirmation acceptance](SIGNUP_CONFIRMATION_ACCEPTANCE.md) before the historical records below. It records the current user-reported onboarding defect, collaborator context, validation, and provider rollout. Issue #79 remains the Phase 10 release gate.
-
-## Authoritative PR #116 continuation - 2026-09-15
-
-Read [PR #116 upload expiry acceptance](PR_116_UPLOAD_EXPIRY_ACCEPTANCE.md) for the current implementation, genuine RED evidence, validation checkpoint, and ordered continuation. It supersedes all older status and immediate-task instructions below, including the former instruction to repair the HTTPS mock before implementation. Fetch live refs and checks before release decisions.
-
-The Phase 10A2 working-state file exists on the fetched #76 branch, not on main; the acceptance record gives the exact read command. Issue #79 remains the release gate before #76, then #77. Historical production observations below are not new verification of memberships, schema, or runtime flags.
-
-## Historical handoff snapshot
-
-Last reconciled: 2026-09-15 (Asia/Singapore)
-
-## Live reconciliation - 2026-09-15
-
-This section supersedes older current-state wording below. Fetch live refs again before acting.
-
-- Startup checkout was clean but 212 commits behind; it was fast-forwarded from `86d342216cf05d2951fd9ed427d35b6d575e7765` to live main `da719b3ff1204bd2d6589cebb0b3a5dac2e22195` after reading the newly introduced root `AGENTS.md` from the fetched ref. Git remote and authenticated GitHub identity both match `LeDoNguyenTu/ScopeForge` / `LeDoNguyenTu`.
-- PR #96 internal Action pinning is released. Its exact main CI [34777528921](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34777528921) passed on `ec7b00d1f533704100e224bc53f6a6647a3e1a4b`; PR #98 added the startup/account handoff. Older references to PR #90 as the latest validation are historical.
-- PR #97's public example was separately reconciled with live main without rewriting history, then pinned to official commit objects resolved from checkout v7, setup-node v7 and CodeQL v4. Validated candidate: `17c8c41b3ac79c3c7426612ce3bd9aba5c038824`; [CI 34778529251](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34778529251) passed 398 files / 1,746 tests, audit, typecheck, CLI, benchmarks, build, CSP browser acceptance and production diagnostic. PR #97 merged as `39fa4b147d9ecbb12ae60335412bad95fbad91fe`. Its post-merge checks must be read independently; the candidate CI is not post-merge evidence.
-- Startup production: Vercel `dpl_4irNreqdjtrtezYwoVvyp7od5JwM`, READY on main `da719b3ff1204bd2d6589cebb0b3a5dac2e22195`, aliased to `scopeforge.dev`; verified team/project IDs and Node 24.x. The homepage returned 200 with nonce CSP, HSTS, DENY, nosniff, permissions-policy and referrer-policy. This is a timestamped observation, not a claim about later deployments.
-- Supabase project `tdgpibrepzcvdivztkta` was independently verified as ScopeForge / ACTIVE_HEALTHY. Migration history still ends at `20260911143049_phase_10a1_service_role_table_acl_hardening`. No Phase 10A2/10A3 migration was applied and the completed schema compatibility preflight was not repeated.
-- #79 remains open. Owner browser access and GitHub passkey/MFA confirmation now work, and the authenticated GitHub App settings show the intended read-only permission model. The existing production connection redirects a new Connect GitHub attempt to its installed-App settings, so no unrelated installation has been submitted through a fresh signed ScopeForge callback. Production has two owner memberships and no member/viewer session for the second canary. [Precise blocker evidence](https://github.com/LeDoNguyenTu/ScopeForge/issues/79#issuecomment-5655657881).
-- #76 remains draft at `709ef8af4ce4befae12ba910d3bca15599b5cab1`; #77 remains draft at `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76. Neither was reconciled onto `main` or released ahead of #79.
-- A complete static security diff review of exact PR #76 head `709ef8af4ce4befae12ba910d3bca15599b5cab1` found no reportable source-level security issue. The review and its operational limitations are recorded in [PR #76 comment 5659605414](https://github.com/LeDoNguyenTu/ScopeForge/pull/76#issuecomment-5659605414). This does not clear provider, schema, runtime, privacy, rollback, or end-to-end release acceptance.
-- No provider credentials, hosted gates, webhook, runtime host, production identities or schema were modified. Live runtime environment values were not re-read; prior flag observations remain historical and all unaccepted capabilities must stay disabled.
-- PR #102 merged the general Windows portability fixes as `70e014495c0c5355c60d39f96dc961c0eb3e846e`; exact post-merge [CI 34810194348](https://github.com/LeDoNguyenTu/ScopeForge/actions/runs/34810194348) passed. PR #103 makes the remaining symlink cases depend on a real host capability probe and splits combined tests so unrelated assertions still run. On Node 24.16.0, its focused run passed 51 tests with 16 capability skips; typecheck passed; the full Windows run passed 394 files / 1,724 tests with 4 files / 24 tests skipped and no failures. Linux CI remains necessary and must execute the symlink, POSIX and rootless-Podman coverage unavailable on this host.
-- Branch cleanup first deleted 62 historical remote refs after a live 68-branch audit. On 2026-09-15 a fresh open-PR, ancestry, supersession and clean-worktree audit removed the final two historical remote refs, four completed auxiliary worktrees and ten finished local branches. The verified repository now has exactly four remote branches (`main`, #76, #77 and the intentional demo branch), one local branch (`main`) and one worktree.
-
-## Resume/ref semantics
-
-Always fetch the live `main` ref before acting. Do not treat a SHA embedded in this file as the repository's current tip, because merging a documentation-only synchronization PR necessarily advances `main` after the file was written.
-
-Use exact SHAs only for evidence that must remain immutable:
-
-- historical executable merge validated on `main` before PR #96/#97: `c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
-- post-merge CI #1030 / run `34745795461`: SUCCESS
-- historical production deployment recorded before PR #96/#97: `dpl_FQ8JPMgvFbSY4SkK6tCxHuKZdEd6`, READY on docs-only main SHA `e157fb8150df76cc8166e3c695a6ed83d74d0077`
-
-CI #1030 is historical PR #90 evidence. Later CI/workflow/test changes require their own exact-candidate validation; consult the current reconciliation above.
-
-## Released baseline
+## Repository and release queue
 
 - repository: `LeDoNguyenTu/ScopeForge`
-- production domain: `https://scopeforge.dev`
-- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
-- Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
-- ScopeForge Supabase project: `tdgpibrepzcvdivztkta`
+- pre-documentation live `main`: `c94748ba70079f28f9c6a84615ca4f5e96c0a395`
+- issue #79: OPEN
+- PR #76: OPEN/DRAFT, Phase 10A2 private repository acquisition
+- current executable/security-hardening merge on #76 after PR #119: `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+- PR #77: OPEN/DRAFT, head `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`, stacked on #76
+- strict release order: `#79 -> #76 -> #77`
 
-`scopeforge.dev` was directly fetched after PR #93 and returned HTTP 200 with strict nonce CSP, HSTS, `nosniff`, frame denial, permissions policy, and referrer policy intact. PR #92, #93, and #94 are documentation-only, and preserve that application behavior. PR #96 subsequently changed the internal CI pins, and PR #97 addresses the published example separately.
+The only open PRs observed after PR #119 merged were #76 and #77. Verify again at resume time.
 
-Released main includes Phase 10A1 GitHub connected-project core, Phase 10C platform administration, strict nonce CSP/security headers, the accepted Command Center presentation, PR #87 responsive admin/GitHub UI, PR #88 Node 24/runtime-tooling alignment, PR #90 public CI-guide runtime alignment, PR #92 branch-cleanup audit documentation, PR #93 resume-state synchronization, and PR #94 GitHub App setup-state reconciliation.
+## Production/provider state
 
-## Recent maintenance releases
+Positive GitHub App owner/admin acceptance is complete:
 
-### PR #88 - runtime/tooling alignment
+- hosted GitHub integration is active
+- owner/admin Connect GitHub succeeded
+- active `LeDoNguyenTu` connection persisted
+- `LeDoNguyenTu/ScopeForge` listing/import succeeded
+- unauthenticated connect/callback remains behind sign-in
+- prior provider/log/integration/browser-readable leakage review found no release-blocking token/secret exposure
 
-Squash merge:
+PR #118 workspace collaborator controls are released and deployed. A legitimate collaborator now exists as a member of Brian's workspace while owning a separate workspace. This supplies the normal-member path needed for the remaining #79 authorization canary without fabricating database state.
 
-`e12bbbe51515fc3d738428737ecd6281f2a2a3c8`
+## Issue #79 remaining acceptance
 
-Post-merge CI #1027 / run `34744753785`: SUCCESS.
+Exactly two authenticated production browser checks remain:
 
-- Node 24 runtime contract `>=24 <25`
-- `actions/upload-artifact@v7`
-- `vitest.config.mts` without converting the CommonJS CLI package contract
-- 396/396 test files, 1,743/1,743 tests
-- typecheck, CLI, benchmarks, optimized build, strict-CSP browser acceptance, production diagnostic, artifact upload: PASS
+1. owner/admin normal signed flow with a different valid GitHub installation ID must be rejected because it does not belong to the authorized connection/workspace
+2. legitimate normal member/viewer must select Brian's workspace and be unable to initiate or complete Connect GitHub
 
-### PR #90 - published CI example alignment
+Do not substitute unit tests, forged callback state, fabricated membership, direct role mutation, or an owner downgrade.
 
-Squash merge:
+## Phase 10A2 state
 
-`c3a42e2ff2d2dd3f2689e64847426fbd67a588b4`
+PR #76 contains the private repository acquisition implementation and remains deliberately unreleased.
 
-TDD evidence:
+Integrated security hardening includes:
 
-- RED CI #1028 / run `34745362606`: 1,743 pre-existing tests passed and only the new public-CI-example Node 24 guard failed because `docs/scanner/CI.md` still used Node 22
-- GREEN CI #1029 / run `34745529387`: SUCCESS, 396/396 files and 1,744/1,744 tests
-- post-merge main CI #1030 / run `34745795461`: SUCCESS
-- post-merge artifact: `10314341432`, 3,443,940 bytes
+- #113 trusted claim workspace/asset binding
+- #114 broker authority expiry rechecks
+- #115 private archive stream cleanup
+- #119 expired repository-scan download fail-closed enforcement
 
-The public GitHub CI example now uses Node 24 and is permanently guarded against drifting back to Node 22.
+PR #119 evidence:
 
-Detailed evidence: `docs/development/CI_DOC_RUNTIME_ALIGNMENT_WORKING_STATE.md`.
+- RED head `24c6f442c946fa1a676f7c79c401638c0f391895`
+- RED CI `35054474634`
+- GREEN head `9658a652f1e5416475489f9971da13409e5319d9`
+- GREEN CI `35054754370`
+- merged into #76 only as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
 
-### PR #92 - branch cleanup audit
-
-Merge:
-
-`80c1d4710b31dab0081d0d8918fcd8ce4091119c`
-
-Fresh branch/PR audit before the audit branch itself was created:
-
-- 60 live branches
-- exactly 2 open PR heads: #76 and #77
-- 4 refs retained by policy: `main`, #76, #77, and `demo/portfolio-20260910`
-- 56 refs classified safe to delete through a genuine delete-ref operation
-
-The authenticated local Git CLI deleted 62 historical refs after a fresh 68-branch/open-PR/worktree audit. A later 2026-09-15 audit confirmed that the remaining auxiliary worktrees were clean and their branches were merged, superseded, or explicitly historical. It removed those four worktrees, ten finished local branches, and remote `design/phase-7-security-packs-v1` plus `preview/command-center-v5-reference-rebuild`. The final remote set is exactly `main`, #76, #77 and `demo/portfolio-20260910`; the only local branch/worktree is `main`. Never simulate deletion by force-moving refs.
-
-Authoritative manifest: `docs/development/BRANCH_CLEANUP_CANDIDATES.md`.
-
-### PR #93 / #94 - operational documentation reconciliation
-
-PR #93 synchronized the four persistent resume files with the verified production/provider state. PR #94 reconciled `PHASE_10A1_GITHUB_APP_SETUP.md` so completed provider activation/import work is no longer presented as pending and only the two issue #79 negative canaries remain outstanding.
-
-Both are documentation-only and do not replace executable CI evidence.
-
-## Responsive admin/GitHub UI
-
-PR #87 is the released responsive admin/GitHub UI baseline. Do not reopen cosmetic UI work without concrete visual or behavioral evidence. Preserve no whole-page horizontal scrolling on mobile, safe-area handling, touch/accessibility behavior, strict CSP, and existing authorization boundaries.
-
-## GitHub App provider acceptance - issue #79
-
-The positive production owner/admin canary is proven:
-
-- `HOSTED_GITHUB_INTEGRATION_ENABLED=true` is active
-- owner/admin connection/install proof completed
-- connection metadata for `LeDoNguyenTu` persisted active with repository selection `selected`
-- `LeDoNguyenTu/ScopeForge` imported on default branch `main`
-- repository access is active
-- expected connect -> callback -> integration -> import flow was observed
-- safe metadata/RLS/cookie/redirect/log boundaries have been reviewed
-
-Issue #79 explicitly records that only two independent live authenticated production browser canaries remain:
-
-1. from an authenticated owner/admin callback flow, submit a different valid numeric GitHub installation ID and prove rejection
-2. from an authenticated normal member/viewer session, prove Connect GitHub cannot be initiated or completed
-
-Regression tests cover these properties, but they are not a substitute for live provider acceptance. Read-only production verification on 2026-09-14 found two memberships, both owner, and no member/viewer identity for the second canary. Do not weaken authorization, expose provider secrets, or mutate an owner account merely to manufacture a pass.
-
-## Production Supabase truth
-
-Production migration history remains recorded through:
-
-`20260911143049_phase_10a1_service_role_table_acl_hardening`
-
-The reviewed Phase 10A2/10A3 migrations remain intentionally unapplied while #79 is open.
-
-Phase 10A2 migrations awaiting the gate:
+The Phase 10A2 migrations remain intentionally unapplied:
 
 - `20260911100000_phase_10a2_private_repository_snapshot.sql`
 - `20260911110000_phase_10a2_private_project_scan_routing.sql`
 
-Read-only transactional/schema preflight for both Phase 10A2 migrations is already complete. Required live function signatures, keys, constraints, ACL assumptions, and existing-row compatibility were verified, and the Phase 10A2 target column/FK/index/RPCs are absent as expected. Do not redo that preflight unless PR #76 or production schema changes materially.
+PR #113 changed the first migration's private worker claim body. Re-review the exact current migration before any production apply.
 
-## Phase 10A2
-
-PR #76 (`feat/phase-10a2-private-repository-acquisition`) remains draft/open at recorded head:
-
-`709ef8af4ce4befae12ba910d3bca15599b5cab1`
-
-Its PR description has been refreshed to reflect the completed positive provider canary and schema preflight. Main has advanced since that candidate. Do not reconcile or apply migrations merely to make the PR current while #79 remains open.
-
-After #79:
-
-1. re-read actual #76 and live current main, then reconcile
-2. run fresh exact-candidate validation
-3. re-read production migration history and apply only absent reviewed Phase 10A2 migrations
-4. verify schema, RLS, grants/revokes and service-role boundaries
-5. complete private worker containment, quotas, cancellation/cleanup, observability and rollback acceptance
-6. prove private archive lease -> immutable snapshot -> exact zero-egress repository scan -> findings
-7. prove GitHub credentials remain control-plane-only and no private source/capability material leaks into browser state or ordinary logs
-8. merge/release only when provider, code, schema, runtime, privacy and rollback gates are green
-
-If the final host-level containment canary genuinely requires direct SSH unavailable here, hand off only that exact probe to Codex/VS Code or another approved SSH environment.
-
-## Phase 10A3
-
-PR #77 (`feat/phase-10a3-github-webhook-reconciliation`) remains draft/open.
-
-Current pre-reconciliation evidence:
-
-- executable head: `d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
-- delivery-retention fix candidate: `d21641123659191eb50c126fe2f972eed73e44d4`
-- validated synthetic merge: `865dfe1443ae2995f73cdca6ea93dc8c1ea9c90f`
-- identical validated/current tree: `3f222059811008ed973d4e30b47550776cef7d6d`
-- PR #106 / CI run `34869590260`: SUCCESS, 415 files / 1,901 tests, audit/type/build/benchmark/browser checks passed; Vercel preview READY
-
-The exact-head security review found that snapshot publication advanced `successful_commit_sha` while the repository scan was only queued. PR #104 corrected this with forward migration `20260915010000_phase_10a3_terminal_scan_watermark.sql`: only exact terminal repository-scan success advances the watermark; retry-wait retains ownership; failure/cancellation do not advance success; and newer desired heads keep the single provider-revalidated follow-up. The migration remains unapplied.
-
-PR #106 bounds the authenticated-delivery replay ledger to a rolling seven-day window through forward migration `20260915020000_phase_10a3_webhook_delivery_retention.sql`. Cleanup and admission remain service-role-only and transactional. Seven days retains a safety margin beyond GitHub's documented three-day manual-redelivery availability. The migration remains unapplied.
-
-After Phase 10A2 release, reconcile #77 onto released main, run fresh exact validation, apply only reviewed absent Phase 10A3 migrations, configure the independent webhook secret/endpoint, and complete invalid-signature/oversize, replay, lifecycle, coalescing, terminal success/failure, same-head recovery, stale-trigger authoritative-head recovery, leak-boundary, and full automatic-scan acceptance before merge.
+Do not reconcile #76 merely to catch up with docs/main while #79 remains open. Reconcile once after #79 clears, then require fresh exact-candidate validation.
 
 ## Runtime gates
 
-Keep false/absent until independent canary and rollback acceptance authorizes each capability:
+Keep false/absent until independent operational and rollback acceptance:
 
 - `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
 - `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
@@ -201,18 +76,37 @@ Keep false/absent until independent canary and rollback acceptance authorizes ea
 - `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
 - `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
 
-CI success, migration presence, historical containment evidence, or product UI availability does not authorize hosted worker activation.
+Code presence, migration presence, historical Linux containment, or green CI does not authorize production enablement.
 
-## Historical external-host work
+## Phase 10A3 state
 
-Phase 6D Tasks 14-16, including real Oracle Linux/rootless-Podman Task 15 containment acceptance, are complete. Do not repeat them.
+PR #77 is still draft and stacked on #76. It must not be released before Phase 10A2.
+
+After #76 releases, reconcile #77 onto the released baseline and run fresh exact-candidate validation before any Phase 10A3 production migration or webhook configuration.
+
+## External account targets
+
+- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
+- wrong/different Job Command Center Supabase: `xwsergbpvkcsugexssmc`
+- Vercel team: `team_WEcf1g1YcD6vYU8LD5jVUOKF`
+- Vercel project: `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`
+- production domain: `scopeforge.dev`
+
+No external provider account mutation occurred in the latest continuation other than ordinary GitHub repository/PR/documentation writes.
+
+## Branch state warning
+
+The historical cleanup manifest said the repository had four remote refs. A fresh GitHub branch listing on 2026-09-16 returned 21 branches. Treat the old four-ref statement as stale. No deletion was performed from that stale list.
+
+## Completed work not to repeat
+
+- PR #116 upload expiry TOCTOU fix
+- PR #117 signup confirmation repair
+- PR #118 collaborator controls and forward migration
+- PR #119 repository-scan download expiry enforcement
+- positive owner/admin GitHub provider canary
+- Phase 6D real Linux/rootless-Podman acceptance
 
 ## Immediate resume point
 
-1. Fetch the live `main` ref first; do not use a docs-embedded main SHA as the current tip.
-2. Keep #79 open until owner GitHub confirmation and a legitimate member/viewer session allow both negative canaries to complete.
-3. While parked, continue isolated maintenance/security/documentation/regression work that cannot weaken or bypass #79.
-4. Do not apply Phase 10A2 migrations or enable private/runtime capability flags before #79 clears.
-5. After #79, release #76 in strict order, then #77.
-6. Preserve the four verified remote refs. Re-audit open PRs and active local worktrees before any future cleanup.
-7. Keep `CURRENT_STATE.md`, `NEXT_STEPS.md`, `SESSION_HANDOFF.md`, and `UNFINISHED_WORK.md` synchronized for semantic state, not by chasing every docs-only main SHA.
+Finish the two #79 browser canaries through normal authenticated product flows if a suitable browser/session surface is available. If not, continue only isolated security/regression/tooling work. Never use independent maintenance to infer #79, Phase 10A2, or Phase 10A3 operational acceptance.
