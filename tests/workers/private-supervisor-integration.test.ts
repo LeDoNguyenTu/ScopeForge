@@ -124,4 +124,64 @@ describe("Phase 10A2 private worker supervisor integration", () => {
       terminal: privateTerminal(),
     });
   });
+
+  it("does not finalize cancellation while private repository execution is still stopping", async () => {
+    vi.useFakeTimers();
+    try {
+      const task = {
+        ...privateTask(),
+        budget: {
+          ...privateTask().budget,
+          maxWallTimeMs: 5,
+        },
+      };
+      let finishExecution: (() => void) | undefined;
+      let abortObserved = false;
+      const cancelledTerminal = {
+        ...privateTerminal(),
+        outcome: "cancelled" as const,
+        failureCode: null,
+        result: null,
+      };
+      const execute = vi.fn(async (_contract, signal: AbortSignal) => (
+        new Promise<typeof cancelledTerminal>((resolve) => {
+          finishExecution = () => resolve(cancelledTerminal);
+          signal.addEventListener("abort", () => {
+            abortObserved = true;
+          }, { once: true });
+        })
+      ));
+      const finalize = vi.fn(async () => ({ outcome: "cancelled" as const, replayed: false }));
+
+      const run = runWorkerOnce({
+        control: {
+          claim: vi.fn(async () => task as unknown as WorkerTaskContract),
+          heartbeat: vi.fn(async () => ({
+            cancelRequested: false,
+            leaseExpiresAt: "2099-09-11T13:01:30.000Z",
+          })),
+          finalize,
+        },
+        executor: { execute } as never,
+        heartbeatMs: 60_000,
+      });
+
+      await vi.advanceTimersByTimeAsync(6);
+
+      expect(abortObserved).toBe(true);
+      expect(finalize).not.toHaveBeenCalled();
+      finishExecution?.();
+      await expect(run).resolves.toEqual({
+        status: "completed",
+        outcome: "cancelled",
+        replayed: false,
+      });
+      expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
+        leaseToken: task.leaseToken,
+        terminal: expect.objectContaining({ outcome: "cancelled" }),
+      }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
