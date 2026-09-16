@@ -938,26 +938,6 @@ export async function processGitHubWebhook(
     const authoritativeHead = await deps.getDefaultBranchHead(installationToken.token, repository);
     if (!COMMIT_SHA_PATTERN.test(authoritativeHead)) throw new GitHubWebhookServiceError();
 
-    if (repository.isPrivate) {
-      if (!deps.privateSnapshotRuntimeEnabled()) {
-        return finish(
-          deps,
-          input.deliveryId,
-          "processed",
-          "PRIVATE_SNAPSHOT_RUNTIME_UNAVAILABLE",
-          { status: "runtime_unavailable", code: "PRIVATE_SNAPSHOT_RUNTIME_UNAVAILABLE" },
-        );
-      }
-    } else if (!deps.publicSnapshotRuntimeEnabled()) {
-      return finish(
-        deps,
-        input.deliveryId,
-        "processed",
-        "PUBLIC_SNAPSHOT_RUNTIME_UNAVAILABLE",
-        { status: "runtime_unavailable", code: "PUBLIC_SNAPSHOT_RUNTIME_UNAVAILABLE" },
-      );
-    }
-
     const pushHead = await deps.recordPushHead({
       workspaceId: context.workspaceId,
       linkId: context.linkId,
@@ -994,6 +974,26 @@ export async function processGitHubWebhook(
       );
     }
     if (!pushHead.shouldEnqueue) throw new GitHubWebhookServiceError();
+
+    if (repository.isPrivate) {
+      if (!deps.privateSnapshotRuntimeEnabled()) {
+        return finish(
+          deps,
+          input.deliveryId,
+          "processed",
+          "PRIVATE_SNAPSHOT_RUNTIME_UNAVAILABLE",
+          { status: "runtime_unavailable", code: "PRIVATE_SNAPSHOT_RUNTIME_UNAVAILABLE" },
+        );
+      }
+    } else if (!deps.publicSnapshotRuntimeEnabled()) {
+      return finish(
+        deps,
+        input.deliveryId,
+        "processed",
+        "PUBLIC_SNAPSHOT_RUNTIME_UNAVAILABLE",
+        { status: "runtime_unavailable", code: "PUBLIC_SNAPSHOT_RUNTIME_UNAVAILABLE" },
+      );
+    }
 
     const enqueue = await deps.enqueueProjectSnapshot({
       workspaceId: context.workspaceId,
