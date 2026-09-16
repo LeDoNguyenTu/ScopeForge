@@ -1,5 +1,9 @@
 # ScopeForge Codex handoff
 
+## Latest collaborator-controls continuation - 2026-09-16
+
+Read [Workspace collaborator controls](WORKSPACE_COLLABORATOR_CONTROLS_ACCEPTANCE.md) before historical status below. It records the active branch, security model, test evidence, pending migration/release validation, and the legitimate normal-member path for issue #79.
+
 ## Latest signup repair - 2026-09-16
 
 Read [Signup confirmation acceptance](SIGNUP_CONFIRMATION_ACCEPTANCE.md) before the historical records below. It records the current user-reported onboarding defect, collaborator context, validation, and provider rollout. Issue #79 remains the Phase 10 release gate.

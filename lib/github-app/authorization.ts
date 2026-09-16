@@ -3,6 +3,7 @@ import type { WorkspaceRole } from "@/lib/database.types";
 import type { Phase10a1Database } from "@/lib/database.phase10a1.types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedWorkspaceId } from "@/lib/workspaces/selection";
 import { exchangeGitHubUserCode, listUserInstallations } from "./client";
 import { getGitHubAppConfig } from "./config";
 import { createGitHubConnectionState, verifyGitHubConnectionState } from "./state";
@@ -117,8 +118,9 @@ function createDefaultDependencies(): GitHubConnectionAuthorizationDependencies 
         .from("workspace_members")
         .select("workspace_id,role")
         .eq("user_id", user.id);
-      if (workspaceId) query = query.eq("workspace_id", workspaceId);
-      const { data, error } = workspaceId
+      const targetWorkspaceId = workspaceId ?? await getSelectedWorkspaceId(user.id);
+      if (targetWorkspaceId) query = query.eq("workspace_id", targetWorkspaceId);
+      const { data, error } = targetWorkspaceId
         ? await query.maybeSingle()
         : await query.order("joined_at", { ascending: true }).limit(1).maybeSingle();
       if (error || !data) {
