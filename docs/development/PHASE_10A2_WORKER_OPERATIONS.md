@@ -22,6 +22,8 @@ The build uses the repository-pinned `esbuild` version and targets Node 24. The 
 
 Use the dedicated `scopeforge-worker` Linux account on the accepted rootless-Podman/cgroup-v2 host. Install the verified Node 24 distribution under `/opt/scopeforge/node` and deploy the worker bundle under `/opt/scopeforge/current`.
 
+The systemd unit provisions `/run/scopeforge-worker` with `RuntimeDirectory=scopeforge-worker` and mode `0700`, then exposes it as `XDG_RUNTIME_DIR`. Do not hardcode or depend on a numeric Linux UID or `/run/user/<uid>` path in the service definition. This keeps the deployment portable when the dedicated `scopeforge-worker` account receives a different UID on a rebuilt or replacement host.
+
 Store one root-owned mode-`0600` environment file per worker under `/etc/scopeforge/workers/`. Required common names:
 
 - `SCOPEFORGE_WORKER_BASE_URL`
