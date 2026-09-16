@@ -21,7 +21,7 @@ await build({
 await build({
   ...shared,
   entryPoints: ["packages/hosted-scanner-runner/container-entry.ts"],
-  outfile: `${outdir}/lib/hosted-scanner-entry.js`,
+  outfile: `${outdir}/hosted-scanner-entry.js`,
   external: [
     "performance",
     "ajv",
