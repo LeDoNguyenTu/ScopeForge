@@ -114,6 +114,19 @@ describe("GitHub webhook public route", () => {
     expect(text).not.toContain("x-hub-signature-256");
   });
 
+  it("returns 202 for a correctly signed unsupported event", async () => {
+    const ignored = {
+      status: "ignored" as const,
+      code: "EVENT_UNSUPPORTED",
+    };
+    mocks.processGitHubWebhook.mockResolvedValueOnce(ignored);
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toEqual({ ok: true, data: ignored });
+  });
+
   it.each([
     [{ status: "accepted" as const, code: "PING" as const }, 200],
     [{ status: "ignored" as const, code: "REPOSITORY_ARCHIVED" }, 200],

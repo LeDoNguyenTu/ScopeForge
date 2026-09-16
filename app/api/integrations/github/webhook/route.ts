@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function successStatus(result: GitHubWebhookResult): 200 | 202 {
+  if (result.status === "ignored" && result.code === "EVENT_UNSUPPORTED") return 202;
   return result.status === "queued" || result.status === "pending" ? 202 : 200;
 }
 
