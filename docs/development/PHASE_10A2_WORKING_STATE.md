@@ -10,7 +10,7 @@ Active branch: `feat/phase-10a2-private-repository-acquisition`
 
 Latest executable/security-hardening merge before this documentation-only branch update:
 
-`79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
+`2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
 
 Strict release order:
 
@@ -72,6 +72,24 @@ TDD evidence:
 
 Minimal implementation: reject non-finite or elapsed `expiresAt` synchronously before the first R2 GET. No schema, provider authorization, worker gate, secret, membership, or production state changed.
 
+### PR #120 - drain private execution before trusted finalization
+
+Finding: `repository_snapshot_github_private_v1` used the supervisor's detachable abort wrapper. A deadline, cancellation request, or lost lease could therefore publish a terminal result while the private executor was still reading, processing, or uploading repository data.
+
+TDD and release evidence:
+
+- test-only RED head: `a88ab371628f3262f881243f117818f67fdddda4`
+- Linux RED CI: `35067132487`; the intended assertion proved `finalize` ran before the held-open private executor settled
+- exact GREEN head: `05b7959e61902d2916b4ba4e1166421b599d9f67`
+- GREEN CI: `35067478620`
+- GREEN: audit, full tests, typecheck, CLI build/version, both benchmarks, Next build, CSP browser smoke, production V5/Turnstile diagnostic, and artifact step passed
+- exact-head Vercel deployment passed
+- PR #120 merged only into this branch as `2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+
+Minimal implementation: route private snapshot execution through the existing drain-on-abort path already used for resource-owning execution classes. Trusted finalization now waits for the executor to settle and release its process/source/scratch/upload lifetime. Public execution behavior, provider authorization, schema, gates, and production state did not change.
+
+The completed security diff review covered all 34 Phase 10A2 source files from merge base `33d21de652f3c04aa88ebd4f122348803e59b153` through pre-fix head `d485d435b7b62132ea088dbe16caae7c1a7038ca`. It recorded this one medium-severity, high-confidence CWE-664 finding; PR #120 remediated it.
+
 ## Production schema state
 
 The Phase 10A2 migrations remain unapplied to ScopeForge Supabase `tdgpibrepzcvdivztkta`:
@@ -94,7 +112,7 @@ Historical Phase 6D Linux/rootless-Podman containment evidence is useful but doe
 ## Release gates after #79 clears
 
 1. Fetch live current `main`, #76, production migration history, and actual runtime/config state.
-2. Reconcile #76 exactly once onto current released main, preserving #113/#114/#115/#119 and all released mainline security fixes.
+2. Reconcile #76 exactly once onto current released main, preserving #113/#114/#115/#119/#120 and all released mainline security fixes.
 3. Run fresh exact-candidate validation after reconciliation. Historical maintenance CI is not release proof.
 4. Re-review exact current Phase 10A2 migrations.
 5. Apply only absent reviewed migrations to `tdgpibrepzcvdivztkta`.
@@ -116,6 +134,7 @@ The Phase 10A2 suite must continue to pin:
 - provider/source authority cannot cross the worker boundary after expiry
 - expired R2 download capabilities fail before network use
 - opened private archive responses close on pre-parser failure
+- private snapshot cancellation drains executor-owned resources before trusted finalization
 - privileged orchestration remains service-role-only
 - hosted repository capabilities remain default-off until explicitly accepted
 
