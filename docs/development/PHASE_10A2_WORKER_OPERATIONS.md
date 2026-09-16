@@ -43,7 +43,7 @@ The scan worker receives only a temporary attempt-scoped R2 GET. The scanner con
 
 ## Scanner image
 
-After `npm ci --omit=dev`, stage `hosted-scanner-entry.js`, production `node_modules`, and `deploy/worker/Containerfile.scanner` in a private host build directory. Build locally as the worker account, inspect the resulting digest, and set only the immutable digest reference in the scan worker environment.
+After `npm ci --omit=dev`, stage `hosted-scanner-entry.js`, production `node_modules`, and `deploy/worker/Containerfile.scanner` in a private host build directory. The container source pins the accepted Node 24.16.0 base by registry digest. Build locally as the worker account, inspect the resulting digest, and set only the immutable result digest in the scan worker environment.
 
 Do not publish this operational image to a public registry. Do not use a mutable tag in the worker environment.
 
