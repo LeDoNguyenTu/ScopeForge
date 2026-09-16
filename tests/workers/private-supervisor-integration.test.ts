@@ -125,7 +125,7 @@ describe("Phase 10A2 private worker supervisor integration", () => {
     });
   });
 
-  it("does not finalize cancellation while private repository execution is still stopping", async () => {
+  it("does not finalize a budget stop while private repository execution is still stopping", async () => {
     vi.useFakeTimers();
     try {
       const task = {
@@ -151,7 +151,7 @@ describe("Phase 10A2 private worker supervisor integration", () => {
           }, { once: true });
         })
       ));
-      const finalize = vi.fn(async () => ({ outcome: "cancelled" as const, replayed: false }));
+      const finalize = vi.fn(async () => ({ outcome: "failed" as const, replayed: false }));
 
       const run = runWorkerOnce({
         control: {
@@ -173,12 +173,15 @@ describe("Phase 10A2 private worker supervisor integration", () => {
       finishExecution?.();
       await expect(run).resolves.toEqual({
         status: "completed",
-        outcome: "cancelled",
+        outcome: "failed",
         replayed: false,
       });
       expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
         leaseToken: task.leaseToken,
-        terminal: expect.objectContaining({ outcome: "cancelled" }),
+        terminal: expect.objectContaining({
+          outcome: "failed",
+          failureCode: "WORKER_BUDGET_EXCEEDED",
+        }),
       }));
     } finally {
       vi.useRealTimers();
