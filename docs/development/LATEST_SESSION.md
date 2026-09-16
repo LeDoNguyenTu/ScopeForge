@@ -2,7 +2,7 @@
 
 ## Latest collaborator-controls continuation - 2026-09-16
 
-Read [Workspace collaborator controls](WORKSPACE_COLLABORATOR_CONTROLS_ACCEPTANCE.md) before historical status below. It records the active branch, security model, test evidence, pending migration/release validation, and the legitimate normal-member path for issue #79.
+Read [Workspace collaborator controls](WORKSPACE_COLLABORATOR_CONTROLS_ACCEPTANCE.md) before historical status below. PR #118 is merged and deployed with its forward-only migration and green exact-head/post-merge CI. The record preserves the released security model and the remaining authenticated normal-member path for issue #79.
 
 ## Latest signup repair - 2026-09-16
 

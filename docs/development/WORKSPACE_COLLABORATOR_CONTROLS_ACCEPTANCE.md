@@ -1,51 +1,77 @@
-# Workspace collaborator controls - working state
+# Workspace collaborator controls - release acceptance
 
 Last updated: 2026-09-16, Asia/Singapore
 
-## Live baseline
+## Released state
 
 - Repository: `LeDoNguyenTu/ScopeForge`.
-- Branch: `feat/workspace-collaborator-controls-20260916` from main `17ee530`.
-- Signup repair PR #117 merged as `12a2609458d8b4c7369e2bb7d4926dd686a84769`; production deployment `dpl_5QLmhM2ztPJuJ8PYrjeEcKBTh8Qu` is READY.
-- ScopeForge Supabase project is `tdgpibrepzcvdivztkta`. Never use `xwsergbpvkcsugexssmc`.
-- Supabase Auth Site URL and the exact production callback were corrected and verified. See `SIGNUP_CONFIRMATION_ACCEPTANCE.md`.
+- PR: #118, `Add workspace collaborator controls`.
+- Exact candidate: `3657b5c1d83b39c14bf7c414f3ec5290da95cc5e`.
+- Merge on `main`: `d0a2521879fb76d5a7b2c013add11536f0dc3fd4`.
+- Production deployment: `dpl_9cH2czWFWLWj8Y6wPZE4V3xikiPR`, READY for the merge SHA and aliased to `scopeforge.dev`.
+- ScopeForge Supabase: `tdgpibrepzcvdivztkta`. Never use `xwsergbpvkcsugexssmc`.
+- Production migration history records `20260916005453_workspace_collaborator_controls`. This was a forward-only application of repository migration `20260916040000_workspace_collaborator_controls.sql`.
 - Issue #79 remains the Phase 10 release gate. PR #76 must follow #79; PR #77 must follow released #76.
 
 ## User request and production membership
 
-The user correctly identified that ScopeForge had no owner-facing collaborator UI. The user selected Brian's workspace for the designated collaborator. A guarded idempotent insert already added that confirmed account as `member` of Brian's workspace; its existing `owner` role in Meo's workspace remains unchanged.
+The user correctly identified that ScopeForge had no owner-facing collaborator UI. The designated confirmed collaborator is now a `member` of Brian's workspace while retaining `owner` of Meo's workspace. No owner role was downgraded or transferred.
 
-Do not reorder membership timestamps, downgrade an owner, or fabricate membership to make a canary pass. The member negative provider canary requires the collaborator to select Brian's workspace through the normal application UI and authenticate normally.
+The collaborator's normal authenticated session is still required to select Brian's workspace and perform the issue #79 member Connect GitHub denial canary. The production browser available during release validation was signed out, so this canary has not been claimed from database membership, unit tests, or an owner session.
 
-## Implementation on this branch
+## Released implementation
 
-- New `/dashboard/workspace` page lists the signed-in user's memberships, switches the active workspace, and exposes collaborator controls only to an owner/admin.
-- Active selection is stored in an HTTP-only, same-site cookie bound to the authenticated user. The cookie is only a preference: each consumer still verifies current membership server-side.
-- GitHub connection initiation, hosted import, asset actions, and dashboard context honor the selected workspace. Operations receiving a workspace ID retain their existing explicit membership checks.
-- Owners/admins can add an existing confirmed, unsuspended ScopeForge account as `member` or `viewer`, change those two roles, and remove them. The UI cannot grant owner/admin roles or edit protected owner/admin memberships.
-- Forward-only migration `20260916040000_workspace_collaborator_controls.sql` provides session-scoped security-definer RPCs, locks authorization and the workspace in the write transaction, rejects suspended actors/targets, writes bounded audit events, and revokes anonymous/public execution.
-- Platform admin has a distinct outlined control and spacing from Resources. Backup platform-admin delegation and ACM are explicitly deferred in `BACKUP_ADMIN_FUTURE.md`; this branch does not grant or expose platform privileges.
-- Preview-only `/preview/workspace` supplies synthetic rendered browser evidence without bypassing production authentication.
+- `/dashboard/workspace` lists the signed-in user's memberships, switches the active workspace, and shows collaborator controls to owners/admins.
+- Active selection uses an HTTP-only SameSite=Lax cookie bound to the authenticated user. It is a preference only; every consumer revalidates current membership server-side.
+- Dashboard context, GitHub connection initiation, hosted import, and asset actions honor the selected workspace. Operations receiving an explicit workspace ID retain explicit membership checks.
+- Owners/admins can add an existing confirmed, unsuspended account as `member` or `viewer`, change those two roles, and remove them.
+- The UI and RPC cannot grant owner/admin roles or edit protected owner/admin memberships.
+- The migration provides session-scoped security-definer RPCs, locks authorization and the workspace during writes, rejects suspended actors/targets, writes bounded audit events, and revokes anonymous/public execution.
+- Platform admin is a distinct outlined control with visual space from Resources.
+- Backup platform-admin delegation and ACM remain explicitly deferred in `BACKUP_ADMIN_FUTURE.md`; this release grants no platform privilege.
+- `/preview/workspace` supplies synthetic responsive evidence without bypassing production authentication.
 
-## TDD and validation evidence
+## TDD and local validation
 
-RED evidence was captured for missing active-workspace selection and missing Workspace navigation. The focused implementation suite now passes 8 files / 49 tests, including:
+RED evidence was captured for missing active-workspace selection and missing Workspace navigation. Final focused validation passed 8 files / 49 tests, including:
 
 - user-bound cookie parsing and malformed/cross-account rejection;
-- server-action input validation and membership verification before cookie persistence;
+- server-action validation and membership verification before cookie persistence;
 - member/viewer-only role surface and protected owner UI;
-- PostgreSQL execution of the migration for owner success, member and anonymous denial, suspended-owner denial, protected-role rejection, confirmed-account eligibility, bounded audit data, and rollback when audit insertion fails;
-- GitHub authorization and hosted import regression coverage;
-- typecheck and Next production build.
+- PostgreSQL-compatible execution of the migration for owner success, member and anonymous denial, suspended-owner denial, protected-role rejection, account eligibility, bounded audit data, and rollback when audit insertion fails;
+- GitHub authorization and hosted import regression coverage.
 
-Docker Desktop was unavailable, so the database integration suite uses pinned PGlite `0.5.8`. Production migration application, exact-candidate CI, Vercel preview, screenshots, and live authenticated browser acceptance remain pending. Do not apply the migration or merge until the candidate passes CI and the rendered preview is inspected.
+The full local suite passed 401 files with 1,774 tests and 4 files / 24 tests skipped for unavailable platform capabilities. Audit reported zero vulnerabilities. Typecheck, CommonJS CLI build/version (`ScopeForge 0.1.0`), scanner and matrix benchmarks, and the optimized Next build passed.
 
-## Ordered continuation
+Docker Desktop was unavailable, so the focused database integration suite used pinned PGlite `0.5.8`. Exact-head Linux CI then ran the complete non-skipped suite.
 
-1. Inspect the branch diff and run audit, full tests, typecheck, CLI/version, benchmarks, and a clean Next build.
-2. Commit and push without AI attribution; open a focused PR.
-3. Require exact-head Linux CI and Vercel READY. Download and inspect 390px and desktop workspace-control screenshots.
-4. Re-read production migration history, apply only the absent reviewed collaborator migration to `tdgpibrepzcvdivztkta`, then verify function grants and live behavior. This is independent of Phase 10A2/10A3 migrations, which remain unapplied.
-5. Merge only after code, migration, responsive UI, security boundaries, and rollback behavior are accepted. Verify production deployment exact SHA.
-6. Use the designated collaborator's normal authenticated session to select Brian's workspace and prove the #79 member Connect GitHub denial. Do not claim the canary from unit tests or database membership alone.
-7. The unrelated-installation #79 canary remains separately required before releasing #76.
+## Exact-candidate CI and rendered acceptance
+
+- Exact-head CI run `35041678098`, job `104622688275`: SUCCESS on `3657b5c1d83b39c14bf7c414f3ec5290da95cc5e`.
+- Linux result: 405/405 test files and 1,798/1,798 tests passed.
+- Audit, typecheck, CLI build/version, scanner benchmark, matrix benchmark, optimized Next build, strict-CSP browser smoke, production diagnostic, and artifact upload all passed.
+- Exact preview `dpl_2ZhsoyPcpKy5HorZFjWkEs3FC4ou`: READY on the exact candidate.
+- The generated 390px and 1440px workspace screenshots were inspected. The mobile layout stacks without horizontal page overflow, and the Platform admin control has a distinct style and at least 12px separation from Resources.
+- Post-merge CI run `35042019694`, job `104623720526`: SUCCESS on merge SHA `d0a2521879fb76d5a7b2c013add11536f0dc3fd4`. All audit, 405/405 files and 1,798/1,798 tests, typecheck, CLI, benchmark, build, CSP-browser, production-diagnostic, and artifact steps passed.
+
+## Production database acceptance
+
+Before application, production history ended at `20260911143049_phase_10a1_service_role_table_acl_hardening`; Phase 10A2 and Phase 10A3 migrations were absent and remain unapplied.
+
+Only the collaborator-controls migration was applied. Live SQL acceptance proved:
+
+- an active owner can list the workspace roster;
+- a normal member receives `insufficient_privilege` for the management roster RPC;
+- anonymous execution is denied;
+- `authenticated` has execute access to both scoped RPCs while `anon` does not;
+- the designated account still has the intended Brian-workspace member role and its separate Meo-workspace owner role.
+
+Supabase's advisor flags the two authenticated-callable security-definer RPCs. This is intentional for these narrow APIs because they need controlled `auth.users` lookup and enforce `auth.uid()`, active-account, active-membership, workspace-role, target-state, protected-role, and audit checks inside the transaction. The exact behavior and grants are covered by migration integration tests and live SQL acceptance. Other advisor findings were pre-existing; this migration adds no foreign keys or indexes.
+
+## Remaining release gate
+
+1. Sign in normally as the designated collaborator at `scopeforge.dev`.
+2. Open Workspace, select Brian's workspace, and verify the page shows the collaborator as `member` without owner/admin management controls.
+3. Attempt Connect GitHub and capture the expected authorization denial for issue #79. Do not weaken provider authorization or simulate this canary.
+4. Complete the separate unrelated-installation negative canary required by issue #79.
+5. Only after #79 clears may PR #76 be reconciled/released; PR #77 follows released #76.
