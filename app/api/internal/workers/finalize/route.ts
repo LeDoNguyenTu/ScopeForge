@@ -67,7 +67,10 @@ export async function POST(request: Request): Promise<Response> {
         });
       }
 
-      return workerJson({ ok: true, data: result });
+      return workerJson({
+        ok: true,
+        data: { outcome: result.outcome, replayed: result.replayed },
+      });
     }
 
     const result = isPrivateRepositorySnapshotTerminal(body.terminal)
@@ -81,7 +84,10 @@ export async function POST(request: Request): Promise<Response> {
           leaseToken: body.leaseToken,
           terminal: body.terminal,
         }, dependencies);
-    return workerJson({ ok: true, data: result });
+    return workerJson({
+      ok: true,
+      data: { outcome: result.outcome, replayed: result.replayed },
+    });
   } catch (error) {
     return workerRouteError(error, "worker.finalize");
   }
