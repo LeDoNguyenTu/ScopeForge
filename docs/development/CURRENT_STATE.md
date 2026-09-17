@@ -13,6 +13,8 @@ Last reconciled: 2026-09-18, Asia/Singapore.
 - Production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY at `scopeforge.dev`. Signed ping/unsupported-event and invalid-signature/oversize edge canaries passed with statuses `200/202/401/413`.
 - GitHub provider deliveries for `ping` and `installation.new_permissions_accepted` succeeded; the installation delivery returned HTTP 200 in 0.5 seconds. The temporary secret file is deleted and the clipboard is clear.
 - PR #77 is ready. CI run `35257848754` and Vercel passed at exact head `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
+- Activation checkpoint `a9f86a58e735076e4fdb8ceee7d0179aa27cb2c5` is also green in exact-head CI run `35261201693` and Vercel.
+- Two rapid private-canary pushes (`3677257...`, `f13f3d7...`) reached the production webhook as `202/200`; private snapshot finalize, scan artifact, scan finalize, and follow-up snapshot finalize routes all returned HTTP 200. Exact newest-head terminal read-model confirmation remains required before merge.
 - Existing advisor backlog remains: reviewed collaborator SECURITY DEFINER RPCs, leaked-password protection, and measured foreign-key/index performance follow-up.
 
 Older queue details below are historical and must not override this checkpoint.

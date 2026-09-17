@@ -19,6 +19,8 @@ Immediate next action: run the remaining replay/lifecycle/coalescing/recovery/pu
 
 Already complete after the first checkpoint: PR #77 is ready; production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY; signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413` passed. The GitHub App webhook endpoint/secret and Push/Repository subscriptions are saved; Installation and Installation repositories are automatic. GitHub shows successful `ping` and `installation.new_permissions_accepted` deliveries, with the latter returning HTTP 200 in 0.5 seconds. The temporary secret file was deleted and clipboard cleared. CI `35257848754` and Vercel passed at head `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
 
+Latest continuation: activation docs commit `a9f86a58e735076e4fdb8ceee7d0179aa27cb2c5` is pushed and green in CI `35261201693` plus Vercel. Rapid private-canary commits `3677257c7fb1250b94ad483e505ecfe923f889a5` and `f13f3d72d0782e4260898201d8dd2f08885a8088` produced webhook `202/200`, snapshot finalize `200`, scan artifact/finalize `200/200`, and a follow-up snapshot finalize `200`. Confirm `f13f3d72...` is terminal in the production read model before claiming newest-head convergence. The Browser extension failed twice, including after reset, with missing kernel assets; retry after the host/browser plugin is repaired or restarted.
+
 ## Resume exactly here
 
 - Worktree: `D:\PROJECTS\ScopeForge-pr76-review`

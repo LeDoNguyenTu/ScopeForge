@@ -13,6 +13,7 @@ The GitHub App webhook URL/secret and required event subscriptions are configure
 Remaining:
 
 - run the remaining replay/lifecycle/coalescing/recovery/public-private and end-to-end production webhook/security acceptance matrix; deployment, provider transport, and non-mutating edge canaries are complete
+- confirm rapid private-canary head `f13f3d72d0782e4260898201d8dd2f08885a8088` is the terminal production scan; route logs prove the webhook and worker sequence but do not expose the bounded read-model SHA
 - obtain exact-head CI/Vercel after the final documentation checkpoint, merge, and verify released production
 
 PR #76 is merged/released and is no longer unfinished. Do not repeat issue #79 or Phase 10A2 acceptance.

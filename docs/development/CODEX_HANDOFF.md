@@ -19,6 +19,9 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state still wi
 - Exact candidate production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY and aliased to `scopeforge.dev`.
 - Non-mutating production canaries passed: signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413`.
 - Exact-head CI run `35257848754` and Vercel passed at `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
+- GitHub App activation checkpoint commit `a9f86a58e735076e4fdb8ceee7d0179aa27cb2c5` is pushed. Exact-head CI run `35261201693` and Vercel passed.
+- Private automatic-scan canary: rapid default-branch commits `3677257c7fb1250b94ad483e505ecfe923f889a5` then `f13f3d72d0782e4260898201d8dd2f08885a8088` were pushed to `LeDoNguyenTu/scopeforge-private-canary`. Production received two signed webhook requests (`202`, then `200`), then returned `200` for snapshot finalization, repository-scan artifact access, repository-scan finalization, and a later snapshot finalization. This proves live GitHub -> webhook -> private worker -> scan execution and exercises the rapid-push/coalescing path.
+- Do not yet claim exact newest-head convergence from those route logs alone. Confirm the production read model or private reconciliation state shows `f13f3d72...` terminal before merging. The requested Browser extension currently fails initialization with `failed to write kernel assets: The system cannot find the path specified. (os error 3)`.
 
 ## Immediate resume point
 
