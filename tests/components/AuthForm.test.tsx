@@ -180,6 +180,7 @@ describe("AuthForm", () => {
         email: "alice@example.com",
         password: "password123",
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: { full_name: "Alice" },
           captchaToken: "captcha-test-token"
         }
@@ -199,5 +200,21 @@ describe("AuthForm", () => {
 
     await waitFor(() => expect(mocks.signInWithPassword).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByRole("button", { name: /sign in/i })).toBeDisabled());
+  });
+
+  it("replaces successful signup with a separate message and resets every field", async () => {
+    mocks.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    render(<AuthForm mode="sign-up" captchaSiteKey="site-key" />);
+    fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Alice" } });
+    fillCredentials();
+    fireEvent.click(screen.getByRole("button", { name: /complete security check/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+    await screen.findByRole("heading", { name: "Check your email" });
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create account/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /security verification/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Use a different email" }));
+    for (const label of ["Display name", "Email", "Password"]) expect(screen.getByLabelText(label)).toHaveValue("");
+    expect(screen.getByRole("button", { name: /create account/i })).toBeDisabled();
   });
 });

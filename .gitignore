@@ -2,6 +2,7 @@ node_modules/
 .next/
 out/
 .scopeforge-build/
+.scopeforge-worker-build/
 .env
 .env.local
 .env.*.local
@@ -10,3 +11,4 @@ out/
 .DS_Store
 *.tsbuildinfo
 coverage/
+.artifacts/

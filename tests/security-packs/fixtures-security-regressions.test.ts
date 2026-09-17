@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { validateSecurityPackFixtures } from "@/packages/security-packs/fixtures";
 import { loadSecurityPackManifest } from "@/packages/security-packs/parse";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 import {
   DEFAULT_TASK5_CASES,
   cleanupTask5Roots,
@@ -31,7 +32,7 @@ async function expectFixtureBoundaryFailure(root: string) {
 }
 
 describe("Security Pack hostile fixture boundaries", () => {
-  it("rejects a fixture file symlink without modifying the outside target", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects a fixture file symlink without modifying the outside target", async () => {
     const root = await createTask5Pack();
     const outside = await createOutsideFile("OUTSIDE_SYMLINK_SENTINEL\n");
     const original = await readFile(outside);
@@ -51,7 +52,7 @@ describe("Security Pack hostile fixture boundaries", () => {
     expect(await readFile(outside)).toEqual(original);
   });
 
-  it("rejects a symlinked case.json without reflecting or modifying outside bytes", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects a symlinked case.json without reflecting or modifying outside bytes", async () => {
     const root = await createTask5Pack();
     const outside = await createOutsideFile('{"RAW_CASE_SENTINEL":true}\n');
     const original = await readFile(outside);

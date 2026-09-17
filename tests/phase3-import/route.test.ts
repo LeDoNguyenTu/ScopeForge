@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
+vi.mock("@/lib/workspaces/selection", () => ({ getSelectedWorkspaceId: async () => undefined }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/phase3-import/repository", () => ({
   createPhase3ImportRepository: mocks.createPhase3ImportRepository,
@@ -96,6 +97,7 @@ function sessionClient(input: {
   const query = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
     limit: vi.fn(async () => ({
       data: workspaceId ? [{ role, workspaces: { id: workspaceId } }] : [],
       error: null,

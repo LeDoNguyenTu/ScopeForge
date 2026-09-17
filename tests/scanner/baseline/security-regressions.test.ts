@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { runCli } from "@/packages/cli/run-cli";
 import { loadBaseline } from "@/packages/scanner-core/baseline/load";
 import { SCAN_EXIT } from "@/packages/scanner-core/policy/exit-codes";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 
 const tempPaths: string[] = [];
 
@@ -63,7 +64,7 @@ describe("baseline security regressions", () => {
     expect(capture.serialized()).not.toContain(sentinel);
   });
 
-  it("refuses a repository-configured baseline symlink that resolves outside the scan root", async () => {
+  it.skipIf(!symlinkTestsSupported)("refuses a repository-configured baseline symlink that resolves outside the scan root", async () => {
     const root = await tempDir("scopeforge-baseline-symlink-root-");
     const outside = await tempDir("scopeforge-baseline-symlink-outside-");
     await writeFile(

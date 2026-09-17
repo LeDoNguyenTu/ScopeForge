@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Boxes, Bug, Gauge } from "lucide-react";
+import { BookOpen, Boxes, Bug, Gauge, Users } from "lucide-react";
 
 const items = [
   { href: "/dashboard", label: "Overview", Icon: Gauge, match: "exact" as const },
   { href: "/dashboard/assets", label: "Assets", Icon: Boxes, match: "prefix" as const },
   { href: "/dashboard/findings", label: "Findings", Icon: Bug, match: "prefix" as const },
   { href: "/dashboard/resources", label: "Resources", Icon: BookOpen, match: "prefix" as const },
+  { href: "/dashboard/workspace", label: "Workspace", Icon: Users, match: "prefix" as const },
 ];
 
 export default function SideNav() {

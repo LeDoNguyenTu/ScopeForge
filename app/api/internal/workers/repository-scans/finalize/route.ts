@@ -1,6 +1,7 @@
 import { reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal } from "@/lib/project-scans/service";
 import { createRepositoryScanArtifactRepository } from "@/lib/repository-scans/repository";
 import { publishRepositoryScanSuccess } from "@/lib/repository-scans/service";
+import { reconcileConnectedProjectScanTerminal } from "@/lib/project-scans/service";
 import { RepositoryScanError } from "@/lib/repository-scans/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
@@ -49,6 +50,7 @@ export async function POST(request: Request): Promise<Response> {
       terminal: body.terminal,
       claimedSnapshot,
     }, { repository });
+    await reconcileConnectedProjectScanTerminal({ scanTaskId: result.taskId });
 
     await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
       scanTaskId: result.taskId,

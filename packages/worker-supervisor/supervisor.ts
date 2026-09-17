@@ -220,10 +220,12 @@ async function executePreparedTask(
   signal: AbortSignal,
 ): Promise<unknown> {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1"
+      || task.executionClass === "repository_snapshot_github_private_v1"
       || isRuntimeExecutionClass(task.executionClass)) {
-    // Phase 6C and Phase 6D own killable external sandboxes. Do not detach on
-    // abort: the executor resolves/rejects only after hostile work has stopped,
-    // so cleanup and trusted finalization cannot race a still-running process.
+    // Phase 6C, Phase 6D, and private snapshot execution own resources that
+    // must be drained on abort. The executor resolves/rejects only after its
+    // process, source stream, scratch state, and upload work have stopped, so
+    // cleanup and trusted finalization cannot race still-running work.
     return executor.execute(contract, signal);
   }
   return executeWithinSupervisorBoundary(executor, contract, signal);

@@ -7,6 +7,7 @@ import { applyBaseline } from "@/packages/scanner-core/baseline/apply";
 import { loadBaseline } from "@/packages/scanner-core/baseline/load";
 import { serializeBaseline } from "@/packages/scanner-core/baseline/serialize";
 import type { Finding } from "@/packages/scanner-core/findings/types";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 
 const tempPaths: string[] = [];
 
@@ -117,7 +118,7 @@ describe("baseline contract", () => {
     expect(fresh.baselineState).toBe("none");
   });
 
-  it("fails closed on malformed, incompatible, oversized, and symlinked baselines", async () => {
+  it("fails closed on malformed, incompatible, and oversized baselines", async () => {
     const root = await tempDir("scopeforge-baseline-invalid-");
     const path = join(root, ".scopeforge-baseline.json");
 
@@ -129,8 +130,12 @@ describe("baseline contract", () => {
 
     await writeFile(path, "x".repeat(4 * 1024 * 1024 + 1));
     await expect(loadBaseline(root, ".scopeforge-baseline.json")).rejects.toMatchObject({ code: "baseline_too_large" });
+  });
 
-    await rm(path);
+  it.skipIf(!symlinkTestsSupported)("fails closed on a symlinked baseline", async () => {
+    const root = await tempDir("scopeforge-baseline-symlink-");
+    const path = join(root, ".scopeforge-baseline.json");
+
     const outside = await tempDir("scopeforge-baseline-outside-");
     const victim = join(outside, "baseline.json");
     await writeFile(victim, serializeBaseline([finding()]));

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { runValidationPublicationCli } from "@/packages/validation-publication";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 import { evidenceFixture } from "./fixtures";
 
 function streams(cwd: string) {
@@ -48,7 +49,7 @@ describe("Phase 8C publication developer runner", () => {
     expect(io.stderr()).toContain("Technical publication error");
   });
 
-  it("rejects symlink evidence rather than following it", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects symlink evidence rather than following it", async () => {
     const directory = await root();
     const target = await evidenceFile(directory);
     const alias = join(directory, "alias.json");

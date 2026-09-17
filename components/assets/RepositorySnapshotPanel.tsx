@@ -12,6 +12,7 @@ interface RepositorySnapshotPanelProps {
   role: WorkspaceRole;
   history: readonly RepositorySnapshotHistoryItem[];
   runtimeAvailable: boolean;
+  managedByConnectedProject?: boolean;
 }
 
 function bytesLabel(bytes: number): string {
@@ -25,6 +26,7 @@ export default function RepositorySnapshotPanel({
   role,
   history,
   runtimeAvailable,
+  managedByConnectedProject = false,
 }: RepositorySnapshotPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -49,59 +51,72 @@ export default function RepositorySnapshotPanel({
 
   return (
     <div className="verificationPanel">
-      <div className="verificationHeader">
-        <div>
-          <span className="sectionEyebrow">Private source snapshot</span>
-          <h2>Acquire an immutable public GitHub source snapshot</h2>
-          <p>ScopeForge resolves the current public GitHub default branch to an exact commit, normalizes the source into a private seven-day artifact, and records safe provenance.</p>
-        </div>
-        <Archive size={20} />
-      </div>
-
-      <div className="guardrail">
-        <ShieldCheck size={17} />
-        <p><strong>Acquisition is not scanning.</strong> This boundary does not run package scripts, builds, Git hooks, submodules, Git LFS fetches, or repository code. Security scanning remains a separate Phase 6C execution boundary.</p>
-      </div>
-
-      {canRequest ? (
-        <div className="challengeBox">
-          <div className="instructionStep">
-            <span>1</span>
-            <div>
-              <strong>Create a bounded source snapshot</strong>
-              <p>The repository URL, default branch, immutable commit, execution profile, network policy, and storage location are derived by trusted ScopeForge services. There are no caller-configurable acquisition fields.</p>
-              {!runtimeAvailable && (
-                <p>The repository acquisition worker is not enabled in this deployment. Existing snapshot history remains available.</p>
-              )}
-            </div>
+      {managedByConnectedProject ? (
+        <div className="verificationHeader">
+          <div>
+            <span className="sectionEyebrow">Source provenance</span>
+            <h2>Immutable source history</h2>
+            <p>Connected project scans publish bounded source snapshots here for provenance and retention review.</p>
           </div>
-          <button
-            className="primaryButton compact"
-            disabled={pending || !runtimeAvailable}
-            onClick={requestSnapshot}
-            type="button"
-          >
-            <Archive size={14} /> {pending
-              ? "Queueing snapshot..."
-              : runtimeAvailable
-                ? "Create private source snapshot"
-                : "Snapshot runtime unavailable"}
-          </button>
+          <Archive size={20} />
         </div>
       ) : (
-        <div className="emptyCompact">Snapshot history is read-only for your workspace role. Owners and admins can request new hosted source snapshots.</div>
+        <>
+          <div className="verificationHeader">
+            <div>
+              <span className="sectionEyebrow">Private source snapshot</span>
+              <h2>Acquire an immutable public GitHub source snapshot</h2>
+              <p>ScopeForge resolves the current public GitHub default branch to an exact commit, normalizes the source into a private seven-day artifact, and records safe provenance.</p>
+            </div>
+            <Archive size={20} />
+          </div>
+
+          <div className="guardrail">
+            <ShieldCheck size={17} />
+            <p><strong>Acquisition is not scanning.</strong> This boundary does not run package scripts, builds, Git hooks, submodules, Git LFS fetches, or repository code. Security scanning remains a separate Phase 6C execution boundary.</p>
+          </div>
+
+          {canRequest ? (
+            <div className="challengeBox">
+              <div className="instructionStep">
+                <span>1</span>
+                <div>
+                  <strong>Create a bounded source snapshot</strong>
+                  <p>The repository URL, default branch, immutable commit, execution profile, network policy, and storage location are derived by trusted ScopeForge services. There are no caller-configurable acquisition fields.</p>
+                  {!runtimeAvailable && (
+                    <p>The repository acquisition worker is not enabled in this deployment. Existing snapshot history remains available.</p>
+                  )}
+                </div>
+              </div>
+              <button
+                className="primaryButton compact"
+                disabled={pending || !runtimeAvailable}
+                onClick={requestSnapshot}
+                type="button"
+              >
+                <Archive size={14} /> {pending
+                  ? "Queueing snapshot..."
+                  : runtimeAvailable
+                    ? "Create private source snapshot"
+                    : "Snapshot runtime unavailable"}
+              </button>
+            </div>
+          ) : (
+            <div className="emptyCompact">Snapshot history is read-only for your workspace role. Owners and admins can request new hosted source snapshots.</div>
+          )}
+
+          {message && <div className="authMessage" role="status">{message}</div>}
+          {errorMessage && <div className="authMessage" role="alert">{errorMessage}</div>}
+        </>
       )}
 
-      {message && <div className="authMessage" role="status">{message}</div>}
-      {errorMessage && <div className="authMessage" role="alert">{errorMessage}</div>}
-
-      <div className="verificationHeader">
+      {!managedByConnectedProject && <div className="verificationHeader">
         <div>
           <span className="sectionEyebrow">Snapshot history</span>
           <h3>Recent immutable repository provenance</h3>
         </div>
         <Clock3 size={18} />
-      </div>
+      </div>}
 
       {history.length === 0 ? (
         <div className="emptyCompact">No private source snapshots have been published for this repository yet.</div>

@@ -11,7 +11,7 @@ const input = {
   mediatorSocketPath: `/run/scopeforge/runtime-mediator/${"b".repeat(64)}.sock`,
 };
 
-describe("Phase 6D runtime worker Podman command", () => {
+describe.skipIf(process.platform === "win32")("Phase 6D runtime worker Podman command", () => {
   it("allows Node native threads inside a tight PID ceiling while preserving networkless mediator-only IPC", () => {
     const command = buildRuntimeWorkerPodmanCreateCommand(input);
     const joined = command.args.join(" ");

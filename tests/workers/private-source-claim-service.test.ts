@@ -10,6 +10,8 @@ const WORKER_ID = "11111111-1111-4111-8111-111111111111";
 const TASK_ID = "22222222-2222-4222-8222-222222222222";
 const ATTEMPT_ID = "33333333-3333-4333-8333-333333333333";
 const LINK_ID = "44444444-4444-4444-8444-444444444444";
+const WORKSPACE_ID = "55555555-5555-4555-8555-555555555555";
+const ASSET_ID = "66666666-6666-4666-8666-666666666666";
 const LEASE_EXPIRES_AT = "2026-09-11T13:01:30.000Z";
 
 function privateRepositoryClaim() {
@@ -23,6 +25,8 @@ function privateRepositoryClaim() {
     artifactObjectKey: `repository-source/${"b".repeat(64)}.tar.gz`,
     input: {
       kind: "repository_snapshot_github_private" as const,
+      workspaceId: WORKSPACE_ID,
+      assetId: ASSET_ID,
       owner: "scopeforge-labs",
       repository: "private-app",
       canonicalRepositoryUrl: "https://github.com/scopeforge-labs/private-app",
@@ -32,6 +36,7 @@ function privateRepositoryClaim() {
 }
 
 describe("private repository worker claim composition", () => {
+  // The source broker must reauthorize the exact workspace/asset binding before minting provider authority.
   it("brokers an attempt-bound private archive lease and strips control-plane identifiers", async () => {
     const claim = privateRepositoryClaim();
     const heartbeat = vi.fn(async () => ({ cancelRequested: false, leaseExpiresAt: LEASE_EXPIRES_AT }));
@@ -77,6 +82,8 @@ describe("private repository worker claim composition", () => {
       leaseToken: claim.leaseToken,
     });
     expect(privateRepositorySourceLease).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      assetId: ASSET_ID,
       githubRepositoryLinkId: LINK_ID,
       owner: claim.input.owner,
       repository: claim.input.repository,
@@ -96,7 +103,11 @@ describe("private repository worker claim composition", () => {
       privateArchiveLease: { kind: "github_private_archive_lease_v1" },
       artifactUpload: { method: "PUT" },
     });
+    expect(result?.input).not.toHaveProperty("workspaceId");
+    expect(result?.input).not.toHaveProperty("assetId");
     expect(result?.input).not.toHaveProperty("githubRepositoryLinkId");
+    expect(JSON.stringify(result)).not.toContain(WORKSPACE_ID);
+    expect(JSON.stringify(result)).not.toContain(ASSET_ID);
     expect(JSON.stringify(result)).not.toContain(LINK_ID);
     expect(JSON.stringify(result)).not.toContain(claim.artifactObjectKey);
   });

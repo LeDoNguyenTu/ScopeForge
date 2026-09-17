@@ -12,6 +12,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:cli": "tsc -p tsconfig.cli.json",
+    "build:workers": "node scripts/build-workers.mjs",
     "scopeforge": "npm run build:cli --silent && node .scopeforge-build/packages/cli/index.js",
     "validation:accuracy": "npm run build:cli --silent && node .scopeforge-build/packages/validation-accuracy/cli.js",
     "validation:publication": "npm run build:cli --silent && node .scopeforge-build/packages/validation-publication/cli.js",
@@ -35,12 +36,14 @@
     "yaml": "2.9.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@types/three": "^0.180.0",
+    "esbuild": "^0.27.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.8.3",
     "vitest": "^4.1.11"

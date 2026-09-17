@@ -175,6 +175,16 @@ describe("Phase 10A2 private repository source broker", () => {
     expect(deps.createInstallationToken).not.toHaveBeenCalled();
   });
 
+  it("does not release a private archive capability after worker authority expires during broker calls", async () => {
+    const now = vi.fn()
+      .mockReturnValueOnce(new Date("2026-09-11T00:00:00.000Z"))
+      .mockReturnValue(new Date("2026-09-11T00:01:31.000Z"));
+    const deps = { ...dependencies(), now };
+
+    await expect(createPrivateRepositorySourceLease(claim(), deps)).rejects.toThrow(/expired|authority|lease/i);
+    expect(deps.getInstallationRepositoryArchiveRedirect).not.toHaveBeenCalled();
+  });
+
   it("rejects a redirect that is not bound to the exact private repository commit", async () => {
     const deps = dependencies();
     deps.getInstallationRepositoryArchiveRedirect.mockResolvedValueOnce(

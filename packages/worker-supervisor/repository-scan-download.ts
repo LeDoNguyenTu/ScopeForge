@@ -58,6 +58,9 @@ function validateInput(input: RepositoryScanArtifactDownloadInput): URL {
     throw new Error("Repository scan artifact descriptor URL is invalid.");
   }
   const expiresAt = new Date(input.descriptor.expiresAt).getTime();
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    throw new Error("Repository scan artifact authorization is expired.");
+  }
   const queryExpiry = url.searchParams.get("X-Amz-Expires");
   const signature = url.searchParams.get("X-Amz-Signature");
   if (url.protocol !== "https:"
@@ -67,7 +70,6 @@ function validateInput(input: RepositoryScanArtifactDownloadInput): URL {
       || url.password !== ""
       || url.hash !== ""
       || !SNAPSHOT_PATH_PATTERN.test(url.pathname)
-      || !Number.isFinite(expiresAt)
       || queryExpiry === null
       || !/^[1-9][0-9]{0,2}$/.test(queryExpiry)
       || Number(queryExpiry) > 120

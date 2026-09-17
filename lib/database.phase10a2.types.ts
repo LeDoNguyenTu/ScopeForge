@@ -30,6 +30,18 @@ export type Phase10a2Functions = Phase10a1Database["public"]["Functions"]
       };
       Returns: Json;
     };
+    reconcile_connected_project_snapshot_terminal: {
+      Args: {
+        target_snapshot_task_id: string;
+      };
+      Returns: Json;
+    };
+    reconcile_connected_project_scan_terminal: {
+      Args: {
+        target_scan_task_id: string;
+      };
+      Returns: Json;
+    };
   };
 
 export type Phase10a2Database = Omit<Phase10a1Database, "public"> & {

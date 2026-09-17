@@ -54,4 +54,23 @@ describe("Phase 6B GitHub network policy", () => {
     });
     expect(options.lookup).toBeTypeOf("function");
   });
+
+  it("returns Node 24's array lookup shape when the HTTPS client requests all addresses", async () => {
+    const options = buildPinnedGitHubRequestOptions({
+      url: new URL("https://codeload.github.com/octocat/Hello-World/legacy.tar.gz/" + "a".repeat(40)),
+      address: "140.82.112.6",
+      family: 4,
+      timeoutMs: 5_000,
+    });
+
+    const lookup = options.lookup as NonNullable<typeof options.lookup>;
+    const result = await new Promise<unknown>((resolve, reject) => {
+      lookup("codeload.github.com", { all: true }, (error, addresses) => {
+        if (error) reject(error);
+        else resolve(addresses);
+      });
+    });
+
+    expect(result).toEqual([{ address: "140.82.112.6", family: 4 }]);
+  });
 });

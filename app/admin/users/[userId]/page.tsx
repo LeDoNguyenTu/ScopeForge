@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AdminPageHeader from "@/components/platform-admin/AdminPageHeader";
 import UserAdminControls from "@/components/platform-admin/UserAdminControls";
 import { requirePlatformAdmin } from "@/lib/platform-admin/authorization";
 import { PlatformAdminReadError, getPlatformUser } from "@/lib/platform-admin/users";
@@ -33,14 +34,12 @@ export default async function PlatformAdminUserDetailPage({
 
   return (
     <>
-      <header className="adminPageHeader">
-        <div>
-          <span className="adminEyebrow">User administration</span>
-          <h1>{detail.user.displayName}</h1>
-          <p>{detail.user.email ?? "No email address"}</p>
-        </div>
-        <Link className="adminButton" href="/admin/users">Back to users</Link>
-      </header>
+      <AdminPageHeader
+        eyebrow="User administration"
+        title={detail.user.displayName}
+        description={detail.user.email ?? "No email address"}
+        actions={<Link className="adminButton" href="/admin/users">Back to users</Link>}
+      />
 
       <div className="adminDetailGrid">
         <section className="adminPanel">
@@ -56,9 +55,9 @@ export default async function PlatformAdminUserDetailPage({
           </dl>
         </section>
 
-        <aside className="adminPanel">
+        <aside className="adminPanel adminDangerPanel">
           <h2>Account controls</h2>
-          <p>Every mutation re-checks platform authority server-side and writes a platform audit event.</p>
+          <p>Every mutation re-checks platform authority server-side and writes a platform audit event. Destructive actions remain deliberately separated from account evidence.</p>
           <UserAdminControls
             userId={detail.user.id}
             email={detail.user.email}
@@ -71,7 +70,7 @@ export default async function PlatformAdminUserDetailPage({
 
       <section className="adminSection">
         <h2>Workspace memberships</h2>
-        <div className="adminTableWrap">
+        <div className="adminTableWrap adminDesktopTable">
           <table className="adminTable">
             <thead><tr><th>Workspace</th><th>Role</th><th>Joined</th><th>ID</th></tr></thead>
             <tbody>
@@ -86,6 +85,26 @@ export default async function PlatformAdminUserDetailPage({
             </tbody>
           </table>
           {detail.workspaces.length === 0 ? <div className="adminEmpty">This user has no workspace memberships.</div> : null}
+        </div>
+
+        <div className="adminMobileCards" aria-label="Workspace memberships">
+          {detail.workspaces.map((workspace) => (
+            <article className="adminMobileCard" key={workspace.id}>
+              <div className="adminMobileCardHeader">
+                <div>
+                  <span className="adminMobileCardEyebrow">Workspace membership</span>
+                  <h2>{workspace.name}</h2>
+                  <p>{workspace.slug}</p>
+                </div>
+                <span className="adminBadge adminBadgeActive">{workspace.role}</span>
+              </div>
+              <div className="adminMobileCardGrid">
+                <div className="adminMobileDatum"><span>Joined</span><strong>{timestamp(workspace.joinedAt)}</strong></div>
+                <div className="adminMobileDatum"><span>Workspace ID</span><strong className="adminCode">{workspace.id}</strong></div>
+              </div>
+            </article>
+          ))}
+          {detail.workspaces.length === 0 ? <div className="adminEmpty adminMobileCard">This user has no workspace memberships.</div> : null}
         </div>
       </section>
     </>

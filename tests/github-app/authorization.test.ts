@@ -76,12 +76,59 @@ describe("GitHub installation authorization", () => {
     expect(url.searchParams.get("state")).toBeTruthy();
   });
 
-  it("rejects a workspace member before redirecting to GitHub", async () => {
+  it.each(["member", "viewer"] as const)("rejects a workspace %s before redirecting to GitHub", async (role) => {
     await expect(beginGitHubConnection(dependencies({
-      authorizeWorkspace: async () => ({ userId: USER_ID, workspaceId: WORKSPACE_ID, role: "member" }),
+      authorizeWorkspace: async () => ({ userId: USER_ID, workspaceId: WORKSPACE_ID, role }),
     }))).rejects.toEqual(expect.objectContaining<Partial<GitHubConnectionAuthorizationError>>({
       code: "GITHUB_CONNECTION_FORBIDDEN",
     }));
+  });
+
+  describe.each(["member", "viewer"] as const)("role revoked to %s during connection", (role) => {
+    it.each(["prepare", "complete"] as const)("rejects the %s stage before provider work or persistence", async (stage) => {
+      let currentRole: "owner" | "member" | "viewer" = "owner";
+      const authorizeWorkspace = vi.fn(async () => ({
+        userId: USER_ID, workspaceId: WORKSPACE_ID, role: currentRole,
+      }));
+      const exchangeUserCode = vi.fn();
+      const listUserInstallations = vi.fn();
+      const upsertConnection = vi.fn();
+      const deps = dependencies({ authorizeWorkspace, exchangeUserCode, listUserInstallations, upsertConnection });
+      const started = await beginGitHubConnection(deps);
+      const state = started.searchParams.get("state")!;
+
+      currentRole = role;
+      const continuation = stage === "prepare"
+        ? prepareGitHubUserAuthorization({ state, installationId: 9001 }, deps)
+        : completeGitHubConnection({ state, installationId: 9001, code: "oauth-code" }, deps);
+
+      await expect(continuation).rejects.toMatchObject({ code: "GITHUB_CONNECTION_FORBIDDEN" });
+      expect(authorizeWorkspace).toHaveBeenLastCalledWith(WORKSPACE_ID);
+      expect(exchangeUserCode).not.toHaveBeenCalled();
+      expect(listUserInstallations).not.toHaveBeenCalled();
+      expect(upsertConnection).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each(["prepare", "complete"] as const)("rejects a different workspace at the %s stage even for the same owner", async (stage) => {
+    const exchangeUserCode = vi.fn();
+    const listUserInstallations = vi.fn();
+    const upsertConnection = vi.fn();
+    const deps = dependencies({
+      authorizeWorkspace: async () => ({
+        userId: USER_ID, workspaceId: "44444444-4444-4444-8444-444444444444", role: "owner",
+      }),
+      exchangeUserCode, listUserInstallations, upsertConnection,
+    });
+    const input = { state: signedState(), installationId: 9001, code: "oauth-code" };
+    const continuation = stage === "prepare"
+      ? prepareGitHubUserAuthorization(input, deps)
+      : completeGitHubConnection(input, deps);
+
+    await expect(continuation).rejects.toMatchObject({ code: "GITHUB_CONNECTION_STATE_MISMATCH" });
+    expect(exchangeUserCode).not.toHaveBeenCalled();
+    expect(listUserInstallations).not.toHaveBeenCalled();
+    expect(upsertConnection).not.toHaveBeenCalled();
   });
 
   it("re-authorizes the signed ScopeForge user and workspace before OAuth", async () => {

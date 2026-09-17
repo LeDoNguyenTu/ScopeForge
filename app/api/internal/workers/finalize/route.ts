@@ -1,12 +1,14 @@
-import {
-  continueConnectedProjectScanAfterSnapshot,
-  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
-} from "@/lib/project-scans/service";
 import { createRepositorySnapshotServerDependencies } from "@/lib/repository-snapshots/server-dependencies";
 import {
   publishPrivateRepositorySnapshotAttempt,
   publishRepositorySnapshotAttempt,
 } from "@/lib/repository-snapshots/service";
+import {
+  continueConnectedProjectScanAfterSnapshot,
+  reconcileConnectedProjectScanTerminal,
+  reconcileConnectedProjectSnapshotTerminal,
+  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
+} from "@/lib/project-scans/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
 import {
@@ -45,6 +47,25 @@ function isRepositoryScanTerminal(value: unknown): boolean {
   return (value as Record<string, unknown>).executionClass === "phase3_repository_scan_no_egress_v1";
 }
 
+function failedRepositorySnapshotTaskId(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  if (
+    candidate.executionClass !== "repository_snapshot_github_public_v1"
+    && candidate.executionClass !== "repository_snapshot_github_private_v1"
+  ) return null;
+  if (candidate.outcome !== "failed" && candidate.outcome !== "cancelled") return null;
+  return typeof candidate.taskId === "string" ? candidate.taskId : null;
+}
+
+function failedRepositoryScanTaskId(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  if (candidate.executionClass !== "phase3_repository_scan_no_egress_v1") return null;
+  if (candidate.outcome !== "failed" && candidate.outcome !== "cancelled") return null;
+  return typeof candidate.taskId === "string" ? candidate.taskId : null;
+}
+
 export async function POST(request: Request): Promise<Response> {
   try {
     const dependencies = createWorkerControlServerDependencies();
@@ -75,10 +96,15 @@ export async function POST(request: Request): Promise<Response> {
         });
       }
 
-      return workerJson({ ok: true, data: result });
+      return workerJson({
+        ok: true,
+        data: { outcome: result.outcome, replayed: result.replayed },
+      });
     }
 
     const repositoryScanTerminal = isRepositoryScanTerminal(body.terminal);
+    const snapshotTaskId = failedRepositorySnapshotTaskId(body.terminal);
+    const scanTaskId = failedRepositoryScanTaskId(body.terminal);
     const result = isPrivateRepositorySnapshotTerminal(body.terminal)
       ? await finalizePrivateRepositorySnapshotFailureAttempt({
           workerId: worker.workerId,
@@ -90,14 +116,21 @@ export async function POST(request: Request): Promise<Response> {
           leaseToken: body.leaseToken,
           terminal: body.terminal,
         }, dependencies);
-
+    if (snapshotTaskId) {
+      await reconcileConnectedProjectSnapshotTerminal({ snapshotTaskId });
+    }
+    if (scanTaskId) {
+      await reconcileConnectedProjectScanTerminal({ scanTaskId });
+    }
     if (repositoryScanTerminal) {
       await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
         scanTaskId: result.taskId,
       });
     }
-
-    return workerJson({ ok: true, data: result });
+    return workerJson({
+      ok: true,
+      data: { outcome: result.outcome, replayed: result.replayed },
+    });
   } catch (error) {
     return workerRouteError(error, "worker.finalize");
   }

@@ -20,6 +20,9 @@
 .workspaceToolbar > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspaceToolbar > span > span { color: #4a5b68; margin: 0 12px; }
 .workspaceToolbar a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; flex-shrink: 0; color: #b3c1cc; }
+.workspaceToolbar .workspaceToolbarActions { display: flex; align-items: center; gap: 18px; overflow: visible; flex-wrap: wrap; justify-content: flex-end; }
+.workspaceToolbar a.workspaceAdminButton { padding: 0 12px; border: 1px solid #3b7264; border-radius: 10px; color: #9ff5d2; background: #102c25; }
+@media(max-width:760px){.workspaceToolbar:has(.workspaceAdminButton){flex-wrap:wrap;padding:12px 0}.workspaceToolbar .workspaceToolbarActions{gap:16px}.workspaceToolbar a.workspaceAdminButton{min-height:44px}}
 .saasDashboard { display: grid; gap: 24px; }
 .saasPageHeading { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .saasEyebrow { font-size: 10px; font-weight: 650; letter-spacing: .12em; color: #88a69f; }

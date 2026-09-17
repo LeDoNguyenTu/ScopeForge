@@ -254,12 +254,14 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
               role={role}
               history={repositorySnapshotHistory}
               runtimeAvailable={HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED}
+              managedByConnectedProject={Boolean(connectedProjectScan)}
             />
           </section>
           <section className="panel verificationSection">
             <RepositoryScanPanel
               latestJob={repositoryScanLatestJob}
               history={repositoryScanHistory}
+              managedByConnectedProject={Boolean(connectedProjectScan)}
             />
           </section>
           <section className="panel verificationSection">

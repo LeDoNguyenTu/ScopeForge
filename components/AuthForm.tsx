@@ -7,6 +7,7 @@ import TurnstileChallenge, { type TurnstileChallengeStatus } from "@/components/
 import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
 import { authErrorMessage } from "@/lib/auth/error-message";
 import { createClient } from "@/lib/supabase/client";
+import AuthStatusCard from "@/components/auth/AuthStatusCard";
 
 function verificationCopy(status: TurnstileChallengeStatus) {
   if (status === "verified") {
@@ -39,6 +40,7 @@ export default function AuthForm({
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaEpoch, setCaptchaEpoch] = useState(0);
   const [captchaStatus, setCaptchaStatus] = useState<TurnstileChallengeStatus>("loading");
@@ -65,16 +67,20 @@ export default function AuthForm({
           email,
           password,
           options: {
+            emailRedirectTo: new URL("/auth/callback", window.location.origin).toString(),
             data: { full_name: displayName.trim() || undefined },
             ...(captchaToken ? { captchaToken } : {})
           }
         });
         if (error) throw error;
+        setEmail("");
+        setPassword("");
+        setDisplayName("");
         if (data.session) {
           window.location.assign("/dashboard");
           return;
         }
-        setMessage("Account created. Check your email if confirmation is enabled.");
+        setEmailSent(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword(
           captchaToken
@@ -95,6 +101,8 @@ export default function AuthForm({
       setBusy(false);
     }
   }
+
+  if (emailSent) return <AuthStatusCard status="sent" onTryAgain={() => setEmailSent(false)} />;
 
   return (
     <div className="authCard">

@@ -199,12 +199,14 @@ export function createPrivateRepositorySnapshotExecutor(
       }
 
       let workDirectory: string | null = null;
+      let archiveResponse: GitHubArchiveStream["response"] | null = null;
       let stage: ExecutionStage = "archive";
       try {
         const archive = await dependencies.source.openArchive(
           contract.input.privateArchiveLease,
           signal,
         );
+        archiveResponse = archive.response;
         if (archive.contentLength !== null) inputBytes = archive.contentLength;
 
         workDirectory = await createWorkDirectory();
@@ -271,6 +273,9 @@ export function createPrivateRepositorySnapshotExecutor(
           result,
         });
       } catch (error) {
+        if (archiveResponse !== null && !archiveResponse.destroyed) {
+          archiveResponse.destroy();
+        }
         const executionMetrics = emptyMetrics();
         if (isAbort(error, signal)) return terminal(contract, "cancelled", null, executionMetrics);
         return terminal(contract, "failed", failureCode(stage, error), executionMetrics);

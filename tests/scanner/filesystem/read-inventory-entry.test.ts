@@ -8,6 +8,7 @@ import {
   readInventoryEntryBytes,
 } from "@/packages/scanner-core/filesystem/read-inventory-entry";
 import { buildRepositoryInventory } from "@/packages/scanner-core/inventory/build-inventory";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 
 const tempPaths: string[] = [];
 
@@ -49,7 +50,7 @@ describe("readInventoryEntry", () => {
     await expect(readInventoryEntryBytes(inventory, "bytes.bin")).resolves.toEqual(bytes);
   });
 
-  it("rejects a file replaced by a symlink after inventory creation", async () => {
+  it.skipIf(!symlinkTestsSupported)("rejects a file replaced by a symlink after inventory creation", async () => {
     const root = await tempDir("scopeforge-read-root-");
     const outside = await tempDir("scopeforge-read-outside-");
     const target = join(root, "target.txt");

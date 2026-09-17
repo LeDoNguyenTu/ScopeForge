@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import React from "react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import RepositoryScanPanel from "@/components/assets/RepositoryScanPanel";
 
 const panelPath = path.resolve("components/assets/RepositoryScanPanel.tsx");
 
@@ -30,5 +33,13 @@ describe("Phase 6C repository scan asset panel", () => {
     ]) {
       expect(source).not.toContain(forbidden);
     }
+  });
+
+  it("shows scan provenance without a stale runtime control for connected projects", () => {
+    render(<RepositoryScanPanel latestJob={null} history={[]} managedByConnectedProject />);
+
+    expect(screen.getByRole("heading", { name: /hosted scan history/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /runtime unavailable/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/hosted repository scanning remains disabled/i)).not.toBeInTheDocument();
   });
 });

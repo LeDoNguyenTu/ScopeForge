@@ -23,8 +23,8 @@ export default function AppShell({
       <main className="workspaceContent" id="workspace-content" tabIndex={-1}>
         <div className="workspaceToolbar">
           <span>{workspaceName} <span>/</span> Security workspace</span>
-          <span>
-            {platformAdminHref ? <Link href={platformAdminHref}><ShieldCheck size={15} /> Platform admin</Link> : null}
+          <span className="workspaceToolbarActions">
+            {platformAdminHref ? <Link className="workspaceAdminButton" href={platformAdminHref}><ShieldCheck size={15} /> Platform admin</Link> : null}
             <Link href="/dashboard/resources"><BookOpen size={15} /> Resources</Link>
           </span>
         </div>

@@ -6,6 +6,8 @@ const workerId = "11111111-1111-4111-8111-111111111111";
 const taskId = "22222222-2222-4222-8222-222222222222";
 const attemptId = "33333333-3333-4333-8333-333333333333";
 const linkId = "44444444-4444-4444-8444-444444444444";
+const workspaceId = "55555555-5555-4555-8555-555555555555";
+const assetId = "66666666-6666-4666-8666-666666666666";
 
 interface PrivateWorkerRepositorySurface {
   registerPrivateRepositorySnapshot(input: { credentialHash: string; softwareVersion: string }): Promise<unknown>;
@@ -34,7 +36,7 @@ describe("Phase 10A2 private worker persistence repository", () => {
     });
   });
 
-  it("parses a private claim as stable metadata only", async () => {
+  it("parses a private claim with the authoritative workspace and asset binding", async () => {
     const objectKey = `repository-source/${"b".repeat(64)}.tar.gz`;
     const rpc = vi.fn(async (name: string) => ({
       data: name === "claim_worker_task" ? {
@@ -48,6 +50,8 @@ describe("Phase 10A2 private worker persistence repository", () => {
         artifactObjectKey: objectKey,
         input: {
           kind: "repository_snapshot_github_private",
+          workspaceId,
+          assetId,
           owner: "octocat",
           repository: "private-repo",
           canonicalRepositoryUrl: "https://github.com/octocat/private-repo",
@@ -64,6 +68,8 @@ describe("Phase 10A2 private worker persistence repository", () => {
       artifactObjectKey: objectKey,
       input: {
         kind: "repository_snapshot_github_private",
+        workspaceId,
+        assetId,
         githubRepositoryLinkId: linkId,
       },
     });

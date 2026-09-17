@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { runCli } from "@/packages/cli/run-cli";
 import { SCAN_EXIT } from "@/packages/scanner-core/policy/exit-codes";
+import { symlinkTestsSupported } from "@/tests/support/symlink-capability";
 import type { Scanner } from "@/packages/scanner-core/coordinator/types";
 import type { Finding } from "@/packages/scanner-core/findings/types";
 
@@ -113,7 +114,7 @@ describe("runCli", () => {
     expect(JSON.parse(await readFile(outputPath, "utf8")).schemaVersion).toBe(1);
   });
 
-  it("refuses to follow a configured output symlink", async () => {
+  it.skipIf(!symlinkTestsSupported)("refuses to follow a configured output symlink", async () => {
     const root = await tempDir("scopeforge-cli-safe-output-");
     const outside = await tempDir("scopeforge-cli-safe-output-outside-");
     const victim = join(outside, "victim.txt");

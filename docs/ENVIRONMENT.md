@@ -67,6 +67,16 @@ Each flag is enabled only when its implementation treats the value as exactly `t
 
 Code completion, CI success, schema deployment, or provider configuration alone does not authorize any hosted capability. Each runtime requires its own deployment/containment verification, canary, observability, and rollback acceptance.
 
+## Supabase email confirmation URLs
+
+For ScopeForge project `tdgpibrepzcvdivztkta`, configure Auth URL Configuration separately from Vercel environment variables:
+
+- Site URL: `https://scopeforge.dev`
+- Exact allowed redirect: `https://scopeforge.dev/auth/callback`
+- Signup passes the current application origin plus `/auth/callback` explicitly. Add any deliberately authorized non-production origins individually; do not allow broad production wildcards.
+
+The standard Supabase confirmation email template is supported. Successful PKCE callbacks show `/auth/result`; expired provider fragments are mapped to bounded guidance and removed from the address bar. `/auth/confirm` also supports token-hash templates if custom email delivery is configured later. Changing Site URL does not repair links already sent with localhost redirects. Users whose email is already confirmed can sign in normally.
+
 ## GitHub connected-project release gate
 
 `HOSTED_GITHUB_INTEGRATION_ENABLED` is intentionally independent from GitHub App credential presence. Configuring provider credentials must not expose the integration by itself.

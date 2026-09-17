@@ -10,7 +10,7 @@ const INPUT = {
   taskMetadataPath: "/var/lib/scopeforge/work/111/task.json",
 };
 
-describe("Phase 6C Podman sandbox command", () => {
+describe.skipIf(process.platform === "win32")("Phase 6C Podman sandbox command", () => {
   it("constructs a closed rootless zero-egress container configuration", () => {
     const command = buildPodmanCreateCommand(INPUT);
 
