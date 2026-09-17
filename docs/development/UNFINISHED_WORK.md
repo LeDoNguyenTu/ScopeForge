@@ -1,5 +1,21 @@
 # ScopeForge Unfinished Work
 
+## Current PR #77 release remainder
+
+Implementation, schema, provider activation, local validation, exact-source CI/Vercel, production deployment, private same-head recovery, live database verification, authenticated UI acceptance, and the focused security scan are complete.
+
+Source commit `37c3e68a6e188b30a1c23399449cc794fa776335` fixed the finalize-order defect. Production deployment `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV` settled head `f13f3d72...` to idle and successful without creating another snapshot.
+
+Remaining:
+
+- obtain exact-head CI/Vercel after the final documentation checkpoint
+- merge PR #77 normally
+- verify released `main`, main CI, production, workers, advisors, and authenticated browser behavior
+- then reconcile PR #124
+
+PR #76 and issue #79 are complete. Do not repeat their acceptance.
+
+Older unfinished-work sections below are historical.
 Last reconciled: 2026-09-18, Asia/Singapore.
 
 ## Current release blocker

@@ -1,5 +1,23 @@
 # ScopeForge Session Handoff
 
+## Resume exactly here - accepted PR #77 source
+
+- Worktree: `D:\PROJECTS\ScopeForge-pr77`
+- Branch: `feat/phase-10a3-github-webhook-reconciliation`
+- PR #77: open/ready and cleanly mergeable before this documentation update
+- Accepted source head: `37c3e68a6e188b30a1c23399449cc794fa776335`
+- Base/released `main`: `327b06d150f24d4cb3161cac078198ae0d473613`
+- Exact-source CI: `35286439598`, passed; Vercel passed
+- Production: `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV`, READY at `scopeforge.dev`
+- Full suite: 437 files passed, 4 skipped; 1,996 tests passed, 24 skipped
+- Security scan: `7231ee4e-2c72-4014-8f8f-15b055638982`, complete, zero findings
+- Production state: project/intent idle, automatic pending false, desired/successful SHA `f13f3d72d0782e4260898201d8dd2f08885a8088`, no error
+- Recovery proof: exact-head snapshots stayed at 3; exact-head successful scans increased from 2 to 3; UI returned to **Scan project**
+- Detailed evidence: `docs/development/PR_77_RELEASE_ACCEPTANCE.md`
+
+Immediate next action: commit/push this documentation, require exact-head CI/Vercel, merge PR #77, then verify released `main` and production. Reconcile PR #124 after release.
+
+Older resume sections below are historical.
 Last refreshed: 2026-09-18, Asia/Singapore.
 
 ## Resume exactly here (supersedes the older PR #76 section below)

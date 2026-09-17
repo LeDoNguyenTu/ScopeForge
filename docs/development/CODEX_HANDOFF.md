@@ -1,5 +1,22 @@
 # ScopeForge Codex handoff
 
+## 2026-09-18 accepted PR #77 recovery checkpoint
+
+Live provider state wins over this handoff.
+
+- Worktree/branch: `D:\PROJECTS\ScopeForge-pr77` / `feat/phase-10a3-github-webhook-reconciliation`
+- Accepted source head: `37c3e68a6e188b30a1c23399449cc794fa776335`; base/released `main`: `327b06d150f24d4cb3161cac078198ae0d473613`
+- Exact-source CI `35286439598` and Vercel passed. Production deployment `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV` is READY.
+- Root cause: generic connected-project cleanup ran before automatic/manual-aware settlement in both repository-scan finalize routes, erasing exact identifiers before the successful watermark could settle.
+- Fix: run aware settlement first, stop before cleanup when retry is required, then invoke idempotent generic cleanup.
+- TDD: both route-order assertions were witnessed RED; focused suites passed 33 tests; full suite passed 437 files/1,996 tests with expected skips.
+- Security: GitNexus impact/detect-changes reviewed both worker entry points; Codex Security scan `7231ee4e-2c72-4014-8f8f-15b055638982` found zero issues.
+- Production recovery: desired/successful SHA now equal `f13f3d72d0782e4260898201d8dd2f08885a8088`; project/intent are idle; automatic pending is false; no error remains.
+- No reacquisition: exact-head snapshots stayed at 3 while successful exact-head scans increased from 2 to 3. Authenticated UI returned to **Scan project**.
+- Full acceptance detail: `docs/development/PR_77_RELEASE_ACCEPTANCE.md`.
+- Remaining gate: push this documentation checkpoint, require exact-head CI/Vercel, merge PR #77, and verify released `main` plus production. Then reconcile PR #124.
+
+Older handoff content below is historical and must not override this checkpoint.
 Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state still wins.
 
 ## 2026-09-18 Phase 10A3 release checkpoint (supersedes older resume text below)

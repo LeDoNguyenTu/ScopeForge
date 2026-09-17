@@ -1,5 +1,18 @@
 # ScopeForge Current State
 
+## 2026-09-18 accepted Phase 10A3 recovery checkpoint
+
+- Released `main` remains `327b06d150f24d4cb3161cac078198ae0d473613`; issue #79 is closed and PR #76 is released.
+- PR #77 is open/ready and was mergeable before this documentation update. Accepted source head: `37c3e68a6e188b30a1c23399449cc794fa776335`.
+- Exact-source CI `35286439598` and Vercel passed. Production deployment `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV` is READY at `scopeforge.dev`.
+- Full validation passes 437 files/1,996 tests, audit, typecheck, CLI/worker/Next builds, both benchmarks, Linux CSP browser smoke, and the production diagnostic.
+- Codex Security diff scan `7231ee4e-2c72-4014-8f8f-15b055638982` completed with zero findings.
+- Production same-head recovery is accepted: project and intent are `idle`, automatic pending is false, desired/successful SHA both equal `f13f3d72d0782e4260898201d8dd2f08885a8088`, and errors are clear.
+- Recovery reused the existing third exact-head snapshot. Exact-head successful scans increased from two to three while exact-head snapshots stayed at three.
+- Authenticated production UI shows **Scan project** and the newest successful run. Detailed evidence is in `docs/development/PR_77_RELEASE_ACCEPTANCE.md`.
+- Remaining: push the final documentation checkpoint, require exact-head CI/Vercel, merge PR #77, then verify released `main` and production. PR #124 follows the Phase 10A3 release.
+
+The older checkpoint below is historical and must not override this section.
 Last reconciled: 2026-09-18, Asia/Singapore.
 
 ## Current Phase 10A3 checkpoint
