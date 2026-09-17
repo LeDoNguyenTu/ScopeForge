@@ -155,6 +155,27 @@ describe("Phase 6C supervisor preparation", () => {
     expect(result).toEqual({ status: "completed", outcome: "succeeded", replayed: false });
   });
 
+  it("retries the same terminal publication when post-settlement reconciliation returns a transient server failure", async () => {
+    const finalize = vi.fn()
+      .mockRejectedValueOnce(Object.assign(new Error("WORKER_REQUEST_FAILED"), { status: 500 }))
+      .mockResolvedValueOnce({ outcome: "succeeded" as const, replayed: true });
+    const repoControl = control({ repositoryScanFinalizeSuccess: finalize });
+    const executor: WorkerExecutor = { execute: vi.fn(async () => success) };
+
+    const result = await runWorkerOnce({
+      control: repoControl,
+      executor,
+      repositoryScanPreparer: preparer(),
+      heartbeatMs: 60_000,
+      finalizationRetryDelayMs: 0,
+      now: () => Date.parse("2026-08-27T02:00:00.000Z"),
+    });
+
+    expect(executor.execute).toHaveBeenCalledTimes(1);
+    expect(finalize).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ status: "completed", outcome: "succeeded", replayed: true });
+  });
+
   it("rejects a successful Phase 6C terminal when the artifact digest does not match the claimed snapshot", async () => {
     const repoControl = control();
     const mismatched = {

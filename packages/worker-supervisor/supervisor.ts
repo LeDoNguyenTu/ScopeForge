@@ -21,6 +21,7 @@ export interface WorkerSupervisorDependencies {
   repositoryScanPreparer?: RepositoryScanPreparer;
   runtimeNetworkPreparer?: RuntimeNetworkPreparer;
   heartbeatMs?: number;
+  finalizationRetryDelayMs?: number;
   now?: () => number;
 }
 
@@ -346,6 +347,40 @@ async function finalizeThroughTrustedBoundary(
   });
 }
 
+function retryableFinalizationError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("status" in error)) return true;
+  const status = (error as { status?: unknown }).status;
+  return typeof status !== "number" || status === 429 || status >= 500;
+}
+
+async function finalizeWithRetry(
+  task: AnyWorkerTaskContract,
+  terminal: AnyWorkerTerminalEnvelope,
+  dependencies: WorkerSupervisorDependencies,
+): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }> {
+  const maximumAttempts = 5;
+  const retryDelayMs = Math.max(0, Math.trunc(dependencies.finalizationRetryDelayMs ?? 1_000));
+  const now = dependencies.now ?? Date.now;
+  const deadline = Date.parse(task.absoluteDeadlineAt);
+
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await finalizeThroughTrustedBoundary(task, terminal, dependencies.control);
+    } catch (error) {
+      if (
+        attempt >= maximumAttempts
+        || !retryableFinalizationError(error)
+        || now() + retryDelayMs >= deadline
+      ) {
+        throw error;
+      }
+      if (retryDelayMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+  }
+}
+
 export async function runWorkerOnce(
   dependencies: WorkerSupervisorDependencies,
 ): Promise<
@@ -473,7 +508,7 @@ export async function runWorkerOnce(
     terminal = failureTerminal(task, "WORKER_EXECUTION_FAILED");
   }
 
-  const finalization = await finalizeThroughTrustedBoundary(task, terminal, dependencies.control);
+  const finalization = await finalizeWithRetry(task, terminal, dependencies);
 
   return Object.freeze({
     status: "completed" as const,
