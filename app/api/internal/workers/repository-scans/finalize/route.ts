@@ -53,14 +53,13 @@ export async function POST(request: Request): Promise<Response> {
       terminal: body.terminal,
       claimedSnapshot,
     }, { repository });
-    await reconcileConnectedProjectScanTerminal({ scanTaskId: result.taskId });
-
     const automaticReconciliation = await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
       scanTaskId: result.taskId,
     });
     if (automaticProjectScanReconciliationRequiresRetry(automaticReconciliation)) {
       throw new Error("AUTOMATIC_PROJECT_SCAN_RECONCILIATION_RETRY_REQUIRED");
     }
+    await reconcileConnectedProjectScanTerminal({ scanTaskId: result.taskId });
 
     return workerJson({ ok: true, data: result });
   } catch (error) {

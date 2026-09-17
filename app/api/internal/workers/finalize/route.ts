@@ -120,9 +120,6 @@ export async function POST(request: Request): Promise<Response> {
     if (snapshotTaskId) {
       await reconcileConnectedProjectSnapshotTerminal({ snapshotTaskId });
     }
-    if (scanTaskId) {
-      await reconcileConnectedProjectScanTerminal({ scanTaskId });
-    }
     if (repositoryScanTerminal) {
       const automaticReconciliation = await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
         scanTaskId: result.taskId,
@@ -130,6 +127,9 @@ export async function POST(request: Request): Promise<Response> {
       if (automaticProjectScanReconciliationRequiresRetry(automaticReconciliation)) {
         throw new Error("AUTOMATIC_PROJECT_SCAN_RECONCILIATION_RETRY_REQUIRED");
       }
+    }
+    if (scanTaskId) {
+      await reconcileConnectedProjectScanTerminal({ scanTaskId });
     }
     return workerJson({
       ok: true,

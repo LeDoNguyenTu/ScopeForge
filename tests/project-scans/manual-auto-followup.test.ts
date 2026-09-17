@@ -227,4 +227,22 @@ describe("manual terminal persistence and route integration", () => {
     expect(source).toMatch(/finalizeWorkerAttempt[\s\S]+reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal/);
     expect(source).toContain("scanTaskId: result.taskId");
   });
+
+  it.each([
+    "app/api/internal/workers/repository-scans/finalize/route.ts",
+    "app/api/internal/workers/finalize/route.ts",
+  ])("settles automatic/manual state before generic connected-project cleanup in %s", async (routePath) => {
+    const source = await readFile(path.resolve(routePath), "utf8");
+    const automaticIndex = source.indexOf(
+      "const automaticReconciliation = await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal",
+    );
+    const genericIndex = source.indexOf("await reconcileConnectedProjectScanTerminal");
+    const retryGuardIndex = source.indexOf(
+      "if (automaticProjectScanReconciliationRequiresRetry(automaticReconciliation))",
+    );
+
+    expect(automaticIndex).toBeGreaterThanOrEqual(0);
+    expect(retryGuardIndex).toBeGreaterThan(automaticIndex);
+    expect(genericIndex).toBeGreaterThan(retryGuardIndex);
+  });
 });
