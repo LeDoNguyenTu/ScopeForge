@@ -9,6 +9,7 @@ import type {
   GitHubInstallationSummary,
   GitHubRepositorySummary,
 } from "@/lib/github-app/types";
+import { GitHubProviderError } from "@/lib/github-app/types";
 import type { VerifiedGitHubWebhookRequest } from "@/lib/github-app/webhook";
 
 const DELIVERY_ID = "11111111-1111-4111-8111-111111111111";
@@ -163,10 +164,18 @@ beforeEach(() => {
 
 describe("GitHub webhook lifecycle reconciliation", () => {
   it.each([
-    ["suspend", "suspended", "INSTALLATION_SUSPENDED"],
-    ["deleted", "removed", "INSTALLATION_REMOVED"],
-  ] as const)("handles installation %s without trusting payload metadata or starting scans", async (action, status, code) => {
-    const deps = lifecycleDependencies();
+    ["suspend", { ...installation, isSuspended: true }, "suspended", "INSTALLATION_SUSPENDED"],
+    ["deleted", null, "removed", "INSTALLATION_REMOVED"],
+  ] as const)("revalidates installation %s against current provider state", async (action, providerInstallation, status, code) => {
+    const deps = lifecycleDependencies({
+      getAppInstallation: vi.fn(async () => {
+        if (providerInstallation) return providerInstallation;
+        throw new GitHubProviderError(
+          "GITHUB_PROVIDER_RESOURCE_UNAVAILABLE",
+          "GitHub provider resource is unavailable.",
+        );
+      }),
+    });
 
     await expect(processGitHubWebhook(verified("installation", installationPayload(action)), deps))
       .resolves.toEqual({ status: "accepted", code });
@@ -178,14 +187,14 @@ describe("GitHub webhook lifecycle reconciliation", () => {
       installationId: INSTALLATION_ID,
       repositoryId: null,
     }));
-    expect(deps.getAppInstallation).not.toHaveBeenCalled();
+    expect(deps.getAppInstallation).toHaveBeenCalledWith(INSTALLATION_ID, config);
     expect(deps.reconcileConnection).toHaveBeenCalledWith({
       installationId: INSTALLATION_ID,
       status,
-      accountId: null,
-      accountLogin: null,
-      accountType: null,
-      repositorySelection: null,
+      accountId: providerInstallation?.accountId ?? null,
+      accountLogin: providerInstallation?.accountLogin ?? null,
+      accountType: providerInstallation?.accountType ?? null,
+      repositorySelection: providerInstallation?.repositorySelection ?? null,
     });
     expect(deps.enqueueProjectSnapshot).not.toHaveBeenCalled();
     expect(JSON.stringify(vi.mocked(deps.reconcileConnection).mock.calls)).not.toContain("attacker-forged");
@@ -211,7 +220,14 @@ describe("GitHub webhook lifecycle reconciliation", () => {
   });
 
   it("marks removed installation repositories inaccessible from stored identity without provider reactivation", async () => {
-    const deps = lifecycleDependencies();
+    const deps = lifecycleDependencies({
+      getInstallationRepository: vi.fn(async () => {
+        throw new GitHubProviderError(
+          "GITHUB_PROVIDER_RESOURCE_UNAVAILABLE",
+          "GitHub provider resource is unavailable.",
+        );
+      }),
+    });
     const payload = {
       action: "removed",
       installation: { id: INSTALLATION_ID },
@@ -223,7 +239,11 @@ describe("GitHub webhook lifecycle reconciliation", () => {
       .resolves.toEqual({ status: "accepted", code: "REPOSITORIES_RECONCILED" });
 
     expect(deps.loadRepositoryContext).toHaveBeenCalledWith(INSTALLATION_ID, REPOSITORY_ID);
-    expect(deps.createInstallationToken).not.toHaveBeenCalled();
+    expect(deps.createInstallationToken).toHaveBeenCalledWith(
+      INSTALLATION_ID,
+      config,
+      { repositoryId: REPOSITORY_ID },
+    );
     expect(deps.reconcileRepository).toHaveBeenCalledWith({
       installationId: INSTALLATION_ID,
       repositoryId: REPOSITORY_ID,
@@ -337,13 +357,24 @@ describe("GitHub webhook lifecycle reconciliation", () => {
   );
 
   it("retains stored repository identity while marking a deleted repository removed", async () => {
-    const deps = lifecycleDependencies();
+    const deps = lifecycleDependencies({
+      getInstallationRepository: vi.fn(async () => {
+        throw new GitHubProviderError(
+          "GITHUB_PROVIDER_RESOURCE_UNAVAILABLE",
+          "GitHub provider resource is unavailable.",
+        );
+      }),
+    });
 
     await expect(processGitHubWebhook(verified("repository", repositoryPayload("deleted")), deps))
       .resolves.toEqual({ status: "accepted", code: "REPOSITORY_REMOVED" });
 
     expect(deps.loadRepositoryContext).toHaveBeenCalledWith(INSTALLATION_ID, REPOSITORY_ID);
-    expect(deps.createInstallationToken).not.toHaveBeenCalled();
+    expect(deps.createInstallationToken).toHaveBeenCalledWith(
+      INSTALLATION_ID,
+      config,
+      { repositoryId: REPOSITORY_ID },
+    );
     expect(deps.reconcileRepository).toHaveBeenCalledWith({
       installationId: INSTALLATION_ID,
       repositoryId: REPOSITORY_ID,
@@ -357,6 +388,64 @@ describe("GitHub webhook lifecycle reconciliation", () => {
       accessStatus: "removed",
     });
     expect(deps.enqueueProjectSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("keeps an installation active when a captured negative event is replayed with a fresh delivery id", async () => {
+    const deps = lifecycleDependencies();
+
+    await expect(processGitHubWebhook(verified("installation", installationPayload("deleted")), deps))
+      .resolves.toEqual({ status: "accepted", code: "INSTALLATION_ACTIVE" });
+
+    expect(deps.reconcileConnection).toHaveBeenCalledWith({
+      installationId: INSTALLATION_ID,
+      status: "active",
+      accountId: installation.accountId,
+      accountLogin: installation.accountLogin,
+      accountType: installation.accountType,
+      repositorySelection: installation.repositorySelection,
+    });
+  });
+
+  it("does not let a captured deleted event with a fresh delivery id remove a repository that is currently accessible", async () => {
+    const deps = lifecycleDependencies();
+
+    await expect(processGitHubWebhook(verified("repository", repositoryPayload("deleted")), deps))
+      .resolves.toEqual({ status: "accepted", code: "REPOSITORY_RECONCILED" });
+
+    expect(deps.getInstallationRepository).toHaveBeenCalledWith("installation-secret", REPOSITORY_ID);
+    expect(deps.reconcileRepository).toHaveBeenCalledWith({
+      installationId: INSTALLATION_ID,
+      repositoryId: REPOSITORY_ID,
+      ownerLogin: repository.ownerLogin,
+      repositoryName: repository.name,
+      fullName: repository.fullName,
+      defaultBranch: repository.defaultBranch,
+      isPrivate: repository.isPrivate,
+      htmlUrl: repository.htmlUrl,
+      providerArchived: repository.isArchived,
+      accessStatus: "active",
+    });
+  });
+
+  it("fails closed without mutating repository state when negative-event provider revalidation is inconclusive", async () => {
+    const deps = lifecycleDependencies({
+      getInstallationRepository: vi.fn(async () => {
+        throw new GitHubProviderError(
+          "GITHUB_PROVIDER_REQUEST_FAILED",
+          "GitHub provider request failed.",
+        );
+      }),
+    });
+
+    await expect(processGitHubWebhook(verified("repository", repositoryPayload("deleted")), deps))
+      .rejects.toThrow("GitHub webhook could not be processed safely.");
+
+    expect(deps.reconcileRepository).not.toHaveBeenCalled();
+    expect(deps.recordDeliveryResult).toHaveBeenCalledWith(
+      DELIVERY_ID,
+      "failed",
+      "PROCESSING_FAILED",
+    );
   });
 
   it("ignores unknown lifecycle actions before delivery persistence or provider work", async () => {

@@ -23,6 +23,13 @@ function invalidInput(): GitHubProviderError {
   return new GitHubProviderError("GITHUB_PROVIDER_INPUT_INVALID", "GitHub provider request is invalid.");
 }
 
+function resourceUnavailable(): GitHubProviderError {
+  return new GitHubProviderError(
+    "GITHUB_PROVIDER_RESOURCE_UNAVAILABLE",
+    "GitHub provider resource is unavailable.",
+  );
+}
+
 function positiveSafeInteger(value: number): number {
   if (!Number.isSafeInteger(value) || value <= 0) throw invalidInput();
   return value;
@@ -53,7 +60,12 @@ async function providerJson(
       ...init,
       signal: init.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) throw providerFailure();
+    if (!response.ok) {
+      if (response.status === 404 || response.status === 410 || response.status === 422) {
+        throw resourceUnavailable();
+      }
+      throw providerFailure();
+    }
     return await response.json();
   } catch (error) {
     if (error instanceof GitHubProviderError) throw error;
@@ -133,7 +145,22 @@ function installationFromProvider(value: unknown): GitHubInstallationSummary {
   }
   if (accountType !== "User" && accountType !== "Organization") throw providerFailure();
   if (repositorySelection !== "all" && repositorySelection !== "selected") throw providerFailure();
-  return Object.freeze({ id, accountId, accountLogin, accountType, repositorySelection });
+  const suspendedAt = row.suspended_at;
+  if (
+    suspendedAt !== undefined
+    && suspendedAt !== null
+    && (typeof suspendedAt !== "string" || !Number.isFinite(Date.parse(suspendedAt)))
+  ) {
+    throw providerFailure();
+  }
+  return Object.freeze({
+    id,
+    accountId,
+    accountLogin,
+    accountType,
+    repositorySelection,
+    ...(suspendedAt === undefined ? {} : { isSuspended: typeof suspendedAt === "string" }),
+  });
 }
 
 function repositoryFromProvider(value: unknown): GitHubRepositorySummary {

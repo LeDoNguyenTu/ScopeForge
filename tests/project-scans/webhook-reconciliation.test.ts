@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal } from "@/lib/project-scans/service";
+import {
+  automaticProjectScanReconciliationRequiresRetry,
+  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
+} from "@/lib/project-scans/service";
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-111111111111";
 const LINK_ID = "22222222-2222-4222-8222-222222222222";
@@ -53,6 +56,7 @@ function dependencies(overrides: Record<string, unknown> = {}) {
   return {
     settleAutomaticProjectScanTerminal: vi.fn(async () => completion()),
     settleManualProjectScanTerminal: vi.fn(async () => ({ matched: false, replayed: true })),
+    recoverPendingAutomaticProjectScan: vi.fn(async () => ({ matched: false, replayed: true })),
     getConfig: vi.fn(() => ({
       appId: "123",
       clientId: "client",
@@ -169,6 +173,32 @@ describe("automatic connected-project terminal reconciliation", () => {
     expect(deps.enqueueProjectSnapshot).not.toHaveBeenCalled();
   });
 
+  it("recovers a pending desired head after terminal settlement already released the original intent", async () => {
+    const deps = dependencies({
+      settleAutomaticProjectScanTerminal: vi.fn(async () => ({ matched: false, replayed: true })),
+      settleManualProjectScanTerminal: vi.fn(async () => ({ matched: false, replayed: true })),
+      recoverPendingAutomaticProjectScan: vi.fn(async () => completion({
+        followUpRequired: true,
+        desiredCommitSha: SHA_B,
+        successfulCommitSha: SHA_A,
+      })),
+      getDefaultBranchHead: vi.fn(async () => SHA_B),
+    });
+
+    await expect(reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({ scanTaskId: SCAN_TASK_ID }, deps as never))
+      .resolves.toEqual({ status: "follow_up_queued", taskId: TASK_ID, commitSha: SHA_B });
+    expect(deps.recoverPendingAutomaticProjectScan).toHaveBeenCalledWith({ scanTaskId: SCAN_TASK_ID });
+    expect(deps.enqueueProjectSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires worker retry for transient provider, enqueue, and runtime failures", () => {
+    expect(automaticProjectScanReconciliationRequiresRetry({ status: "pending", code: "PROVIDER_UNAVAILABLE" })).toBe(true);
+    expect(automaticProjectScanReconciliationRequiresRetry({ status: "pending", code: "ENQUEUE_DEFERRED" })).toBe(true);
+    expect(automaticProjectScanReconciliationRequiresRetry({ status: "runtime_unavailable", code: "PUBLIC_SNAPSHOT_RUNTIME_UNAVAILABLE" })).toBe(true);
+    expect(automaticProjectScanReconciliationRequiresRetry({ status: "pending", code: "COALESCED" })).toBe(false);
+    expect(automaticProjectScanReconciliationRequiresRetry({ status: "pending", code: "SCAN_FAILED" })).toBe(false);
+  });
+
   it("does not create a follow-up when provider/link eligibility has been revoked", async () => {
     for (const state of [
       { accessStatus: "inaccessible" },
@@ -257,5 +287,18 @@ describe("automatic terminal persistence and worker-finalize integration", () =>
     const repositoryFinalize = await readFile(path.resolve("app/api/internal/workers/repository-scans/finalize/route.ts"), "utf8");
     expect(snapshotFinalize).not.toContain("reconcileAutomaticProjectScanAfterSnapshot");
     expect(repositoryFinalize).toMatch(/publishRepositoryScanSuccess[\s\S]+reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal/);
+  });
+
+  it("keeps pending reconciliation retryable after terminal intent release", async () => {
+    const sql = await readFile(path.resolve("supabase/migrations/20260915010000_phase_10a3_terminal_scan_watermark.sql"), "utf8");
+    const genericFinalize = await readFile(path.resolve("app/api/internal/workers/finalize/route.ts"), "utf8");
+    const repositoryFinalize = await readFile(path.resolve("app/api/internal/workers/repository-scans/finalize/route.ts"), "utf8");
+
+    expect(sql).toContain("create or replace function public.recover_pending_github_webhook_project_scan");
+    expect(sql.replace(/\s+/g, " ")).toMatch(/grant execute on function public\.recover_pending_github_webhook_project_scan\(uuid\) to service_role/);
+    for (const source of [genericFinalize, repositoryFinalize]) {
+      expect(source).toContain("automaticProjectScanReconciliationRequiresRetry");
+      expect(source).toMatch(/reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal[\s\S]+automaticProjectScanReconciliationRequiresRetry/);
+    }
   });
 });

@@ -66,6 +66,9 @@ export interface AutomaticProjectScanReconciliationDependencies {
   settleManualProjectScanTerminal(input: {
     scanTaskId: string;
   }): Promise<unknown>;
+  recoverPendingAutomaticProjectScan(input: {
+    scanTaskId: string;
+  }): Promise<unknown>;
   getConfig(): GitHubAppConfig;
   createInstallationToken(
     installationId: number,
@@ -257,6 +260,13 @@ function createDefaultDependencies(): AutomaticProjectScanReconciliationDependen
       if (error) throw new Error("MANUAL_PROJECT_SCAN_TERMINAL_FAILED");
       return data;
     },
+    recoverPendingAutomaticProjectScan: async (input) => {
+      const { data, error } = await admin.rpc("recover_pending_github_webhook_project_scan", {
+        target_scan_task_id: input.scanTaskId,
+      });
+      if (error) throw new Error("AUTOMATIC_PROJECT_SCAN_RECOVERY_FAILED");
+      return data;
+    },
     getConfig: getGitHubAppConfig,
     createInstallationToken: (installationId, config, options) =>
       createInstallationToken(installationId, config, options),
@@ -429,6 +439,25 @@ export async function reconcilePendingAutomaticProjectScanAfterRepositoryScanTer
     return { status: "pending", code: "ENQUEUE_DEFERRED" };
   }
 
-  if (!settlement || !settlement.followUpRequired) return { status: "ignored" };
-  return scheduleAutomaticFollowUp(settlement, deps);
+  if (settlement?.followUpRequired) return scheduleAutomaticFollowUp(settlement, deps);
+  if (settlement) return { status: "ignored" };
+
+  let recovery: ManualTerminalSettlement | null;
+  try {
+    recovery = parseManualTerminalSettlement(
+      await deps.recoverPendingAutomaticProjectScan({ scanTaskId: input.scanTaskId }),
+    );
+  } catch {
+    return { status: "pending", code: "ENQUEUE_DEFERRED" };
+  }
+  if (!recovery || !recovery.followUpRequired) return { status: "ignored" };
+  return scheduleAutomaticFollowUp(recovery, deps);
+}
+
+export function automaticProjectScanReconciliationRequiresRetry(
+  result: AutomaticProjectScanReconciliationResult,
+): boolean {
+  if (result.status === "runtime_unavailable") return true;
+  return result.status === "pending"
+    && (result.code === "PROVIDER_UNAVAILABLE" || result.code === "ENQUEUE_DEFERRED");
 }

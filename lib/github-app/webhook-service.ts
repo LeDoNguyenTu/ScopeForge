@@ -11,6 +11,7 @@ import {
   getInstallationRepository,
 } from "./client";
 import { getGitHubAppConfig } from "./config";
+import { GitHubProviderError } from "./types";
 import type {
   GitHubAppConfig,
   GitHubInstallationSummary,
@@ -617,6 +618,11 @@ async function fetchAuthoritativeRepository(
   return repository;
 }
 
+function isProviderResourceUnavailable(error: unknown): boolean {
+  return error instanceof GitHubProviderError
+    && error.code === "GITHUB_PROVIDER_RESOURCE_UNAVAILABLE";
+}
+
 async function processLifecycleWebhook(
   input: VerifiedGitHubWebhookRequest,
   deps: GitHubWebhookServiceDependencies,
@@ -649,16 +655,31 @@ async function processLifecycleWebhook(
     if (input.event === "installation") {
       const lifecycle = requireLifecycleDependencies(deps);
       if (action === "suspend" || action === "deleted") {
-        const status = action === "suspend" ? "suspended" : "removed";
+        let installation: GitHubInstallationSummary | null = null;
+        try {
+          installation = await lifecycle.getAppInstallation(installationId, deps.getConfig());
+        } catch (error) {
+          if (!isProviderResourceUnavailable(error)) throw error;
+        }
+        if (installation && installation.id !== installationId) {
+          throw new GitHubWebhookServiceError();
+        }
+        const status = installation
+          ? (installation.isSuspended ? "suspended" : "active")
+          : "removed";
         const reconciliation = await lifecycle.reconcileConnection({
           installationId,
           status,
-          accountId: null,
-          accountLogin: null,
-          accountType: null,
-          repositorySelection: null,
+          accountId: installation?.accountId ?? null,
+          accountLogin: installation?.accountLogin ?? null,
+          accountType: installation?.accountType ?? null,
+          repositorySelection: installation?.repositorySelection ?? null,
         });
-        const code = action === "suspend" ? "INSTALLATION_SUSPENDED" : "INSTALLATION_REMOVED";
+        const code = status === "active"
+          ? "INSTALLATION_ACTIVE"
+          : status === "suspended"
+            ? "INSTALLATION_SUSPENDED"
+            : "INSTALLATION_REMOVED";
         if (!reconciliation.matched) {
           return finish(
             deps,
@@ -713,7 +734,21 @@ async function processLifecycleWebhook(
         }
 
         if (action === "removed") {
-          await deps.reconcileRepository(storedRepositoryReconciliation(context, "inaccessible"));
+          let providerRepository: GitHubRepositorySummary | null = null;
+          try {
+            providerRepository = await fetchAuthoritativeRepository(
+              deps,
+              installationId,
+              targetRepositoryId,
+            );
+          } catch (error) {
+            if (!isProviderResourceUnavailable(error)) throw error;
+          }
+          await deps.reconcileRepository(
+            providerRepository
+              ? providerRepositoryReconciliation(installationId, providerRepository)
+              : storedRepositoryReconciliation(context, "inaccessible"),
+          );
           continue;
         }
 
@@ -746,8 +781,20 @@ async function processLifecycleWebhook(
     }
 
     if (action === "deleted") {
+      let providerRepository: GitHubRepositorySummary | null = null;
+      try {
+        providerRepository = await fetchAuthoritativeRepository(
+          deps,
+          installationId,
+          exactRepositoryId,
+        );
+      } catch (error) {
+        if (!isProviderResourceUnavailable(error)) throw error;
+      }
       const reconciliation = await deps.reconcileRepository(
-        storedRepositoryReconciliation(context, "removed"),
+        providerRepository
+          ? providerRepositoryReconciliation(installationId, providerRepository)
+          : storedRepositoryReconciliation(context, "removed"),
       );
       if (!reconciliation.matched) {
         return finish(
@@ -758,12 +805,13 @@ async function processLifecycleWebhook(
           { status: "ignored", code: "REPOSITORY_NOT_CONNECTED" },
         );
       }
+      const code = providerRepository ? "REPOSITORY_RECONCILED" : "REPOSITORY_REMOVED";
       return finish(
         deps,
         input.deliveryId,
         "processed",
-        "REPOSITORY_REMOVED",
-        { status: "accepted", code: "REPOSITORY_REMOVED" },
+        code,
+        { status: "accepted", code },
       );
     }
 

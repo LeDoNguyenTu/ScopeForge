@@ -52,6 +52,7 @@ function dependencies(overrides: Record<string, unknown> = {}) {
   return {
     settleAutomaticProjectScanTerminal: vi.fn(async () => ({ matched: false, replayed: true })),
     settleManualProjectScanTerminal: vi.fn(async () => terminalContext()),
+    recoverPendingAutomaticProjectScan: vi.fn(async () => ({ matched: false, replayed: true })),
     getConfig: vi.fn(() => ({
       appId: "123",
       clientId: "client-id",

@@ -19,6 +19,7 @@ const webhookRpcs = [
   "reconcile_github_webhook_repository_state",
   "settle_github_webhook_project_scan_terminal",
   "settle_manual_connected_project_scan_terminal",
+  "recover_pending_github_webhook_project_scan",
 ] as const;
 
 describe("Phase 10A3 database type overlay", () => {
@@ -41,6 +42,7 @@ describe("Phase 10A3 database type overlay", () => {
   it("keeps private webhook persistence tables out of the browser database surface", async () => {
     const source = await typeSource();
     expect(source).not.toMatch(/^\s{6}github_webhook_deliveries:\s*\{/m);
+    expect(source).not.toMatch(/^\s{6}github_webhook_delivery_receipts:\s*\{/m);
     expect(source).not.toMatch(/^\s{6}github_repository_auto_scan_state:\s*\{/m);
   });
 });

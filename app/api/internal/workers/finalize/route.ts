@@ -4,6 +4,7 @@ import {
   publishRepositorySnapshotAttempt,
 } from "@/lib/repository-snapshots/service";
 import {
+  automaticProjectScanReconciliationRequiresRetry,
   continueConnectedProjectScanAfterSnapshot,
   reconcileConnectedProjectScanTerminal,
   reconcileConnectedProjectSnapshotTerminal,
@@ -123,9 +124,12 @@ export async function POST(request: Request): Promise<Response> {
       await reconcileConnectedProjectScanTerminal({ scanTaskId });
     }
     if (repositoryScanTerminal) {
-      await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
+      const automaticReconciliation = await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
         scanTaskId: result.taskId,
       });
+      if (automaticProjectScanReconciliationRequiresRetry(automaticReconciliation)) {
+        throw new Error("AUTOMATIC_PROJECT_SCAN_RECONCILIATION_RETRY_REQUIRED");
+      }
     }
     return workerJson({
       ok: true,

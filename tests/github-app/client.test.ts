@@ -229,6 +229,7 @@ describe("GitHub provider client", () => {
         id: 42,
         account: { id: 7, login: "example-org", type: "Organization" },
         repository_selection: "selected",
+        suspended_at: "2026-09-17T12:00:00.000Z",
       });
     });
 
@@ -238,7 +239,16 @@ describe("GitHub provider client", () => {
       accountLogin: "example-org",
       accountType: "Organization",
       repositorySelection: "selected",
+      isSuspended: true,
     });
+  });
+
+  it.each([404, 410, 422])("classifies provider status %i as an unavailable resource without exposing its body", async (status) => {
+    await expect(getInstallationRepository(
+      "ghs_ephemeral",
+      42,
+      vi.fn(async () => new Response("provider-secret-body", { status })),
+    )).rejects.toMatchObject({ code: "GITHUB_PROVIDER_RESOURCE_UNAVAILABLE" });
   });
 
   it.each([

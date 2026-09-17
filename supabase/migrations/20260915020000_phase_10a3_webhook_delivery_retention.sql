@@ -1,6 +1,19 @@
--- Phase 10A3 release hardening: bound webhook replay metadata growth.
--- GitHub exposes manual redelivery for the past three days. Retain seven days
--- so ordinary and delayed redeliveries remain idempotent with a safety margin.
+-- Phase 10A3 release hardening: retain the minimum delivery identity forever
+-- while pruning detailed webhook metadata after seven days. GitHub does not
+-- authenticate X-GitHub-Delivery, so this ledger is defense in depth only;
+-- destructive lifecycle events are independently revalidated with GitHub.
+
+create table private.github_webhook_delivery_receipts (
+  delivery_id uuid primary key
+);
+
+alter table private.github_webhook_delivery_receipts enable row level security;
+revoke all on table private.github_webhook_delivery_receipts
+  from public, anon, authenticated, service_role;
+
+insert into private.github_webhook_delivery_receipts (delivery_id)
+select delivery_id from private.github_webhook_deliveries
+on conflict (delivery_id) do nothing;
 
 create or replace function public.admit_github_webhook_delivery(
   target_delivery_id uuid,
@@ -32,19 +45,8 @@ begin
     raise exception 'GITHUB_WEBHOOK_DELIVERY_INVALID';
   end if;
 
-  -- The received_at index makes this rolling cleanup proportional to expired
-  -- replay rows. With cleanup on every accepted request, storage cannot grow
-  -- indefinitely after the retention window passes.
-  delete from private.github_webhook_deliveries
-   where received_at < now() - interval '7 days';
-
-  insert into private.github_webhook_deliveries (
-    delivery_id, event_name, action, installation_id, repository_id,
-    push_after_sha, processing_state, received_at
-  ) values (
-    target_delivery_id, target_event_name, target_action, target_installation_id,
-    target_repository_id, target_push_after_sha, 'received', now()
-  )
+  insert into private.github_webhook_delivery_receipts (delivery_id)
+  values (target_delivery_id)
   on conflict (delivery_id) do nothing
   returning delivery_id into admitted_id;
 
@@ -55,6 +57,20 @@ begin
       'deliveryId', target_delivery_id
     );
   end if;
+
+  -- Keep richer operational metadata bounded. The receipt above is not
+  -- deleted, so an exact delivery UUID can never become admissible again.
+  delete from private.github_webhook_deliveries
+   where received_at < now() - interval '7 days';
+
+  insert into private.github_webhook_deliveries (
+    delivery_id, event_name, action, installation_id, repository_id,
+    push_after_sha, processing_state, received_at
+  ) values (
+    target_delivery_id, target_event_name, target_action, target_installation_id,
+    target_repository_id, target_push_after_sha, 'received', now()
+  )
+  returning delivery_id into admitted_id;
 
   return jsonb_build_object(
     'admitted', true,

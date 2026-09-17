@@ -28,6 +28,7 @@ export interface GitHubInstallationSummary {
   accountLogin: string;
   accountType: "User" | "Organization";
   repositorySelection: "all" | "selected";
+  isSuspended?: boolean;
 }
 
 export interface GitHubInstallationToken {
@@ -54,7 +55,8 @@ export interface GitHubRepositoryPage {
 
 export type GitHubProviderErrorCode =
   | "GITHUB_PROVIDER_REQUEST_FAILED"
-  | "GITHUB_PROVIDER_INPUT_INVALID";
+  | "GITHUB_PROVIDER_INPUT_INVALID"
+  | "GITHUB_PROVIDER_RESOURCE_UNAVAILABLE";
 
 export class GitHubProviderError extends Error {
   constructor(public readonly code: GitHubProviderErrorCode, message: string) {

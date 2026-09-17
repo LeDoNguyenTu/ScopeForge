@@ -21,6 +21,7 @@ describe("Phase 10A3 webhook security architecture", () => {
 
     expect(readModel).toContain('.from("github_repository_links")');
     expect(browserSource).not.toContain("github_webhook_deliveries");
+    expect(browserSource).not.toContain("github_webhook_delivery_receipts");
     expect(browserSource).not.toContain("github_repository_auto_scan_state");
     expect(browserSource).not.toContain("trigger_delivery_id");
     expect(browserSource).not.toContain("trigger_commit_sha");
@@ -72,6 +73,7 @@ describe("Phase 10A3 webhook security architecture", () => {
       "record_github_webhook_push_head",
       "enqueue_github_webhook_project_snapshot",
       "settle_github_webhook_project_scan_terminal",
+      "recover_pending_github_webhook_project_scan",
     ]) {
       expect(sql).toMatch(new RegExp(`revoke all on function public\\.${fn}\\([^;]+\\) from public, anon, authenticated, service_role`));
       expect(sql).toMatch(new RegExp(`grant execute on function public\\.${fn}\\([^;]+\\) to service_role`));

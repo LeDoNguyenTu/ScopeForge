@@ -219,3 +219,129 @@ revoke all on function public.settle_github_webhook_project_scan_terminal(uuid)
   from public, anon, authenticated, service_role;
 grant execute on function public.settle_github_webhook_project_scan_terminal(uuid)
   to service_role;
+
+-- A worker may retry terminal delivery after the settlement transaction has
+-- released the original intent but before a transient provider/enqueue failure
+-- has been repaired. Reconstruct only a still-pending connected-project head
+-- from the exact terminal repository-scan task; never trust caller-supplied
+-- workspace, link, repository, delivery, or commit identity.
+create or replace function public.recover_pending_github_webhook_project_scan(
+  target_scan_task_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  task_record private.worker_tasks%rowtype;
+  job_record public.scan_jobs%rowtype;
+  repository_scan_record private.repository_scan_tasks%rowtype;
+  initial_link public.github_repository_links%rowtype;
+  link_record public.github_repository_links%rowtype;
+  connection_record public.github_connections%rowtype;
+  auto_record private.github_repository_auto_scan_state%rowtype;
+  terminal_state boolean := false;
+begin
+  if target_scan_task_id is null then
+    raise exception 'GITHUB_WEBHOOK_SCAN_RECOVERY_INVALID';
+  end if;
+
+  select * into task_record
+    from private.worker_tasks
+   where id = target_scan_task_id
+     and execution_class = 'phase3_repository_scan_no_egress_v1';
+
+  if task_record.id is null then
+    return jsonb_build_object('matched', false, 'replayed', true);
+  end if;
+
+  select * into job_record
+    from public.scan_jobs
+   where id = task_record.scan_job_id
+     and workspace_id = task_record.workspace_id
+     and asset_id = task_record.asset_id
+     and job_kind = 'repository_scan'::public.scan_job_kind;
+
+  terminal_state :=
+    (task_record.state = 'completed' and job_record.status = 'succeeded')
+    or (task_record.state = 'cancelled' and job_record.status = 'cancelled')
+    or (task_record.state = 'dead_letter' and job_record.status = 'failed');
+  if job_record.id is null or not terminal_state then
+    return jsonb_build_object('matched', false, 'replayed', true);
+  end if;
+
+  select * into repository_scan_record
+    from private.repository_scan_tasks
+   where task_id = task_record.id
+     and scan_job_id = job_record.id
+     and workspace_id = task_record.workspace_id
+     and asset_id = task_record.asset_id;
+  if repository_scan_record.task_id is null then
+    return jsonb_build_object('matched', false, 'replayed', true);
+  end if;
+
+  select * into initial_link
+    from public.github_repository_links
+   where workspace_id = task_record.workspace_id
+     and asset_id = task_record.asset_id;
+  if initial_link.id is null then
+    return jsonb_build_object('matched', false, 'replayed', true);
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('scopeforge-github-auto-scan-link:' || initial_link.id::text, 0)
+  );
+
+  select * into link_record
+    from public.github_repository_links
+   where id = initial_link.id
+     and workspace_id = task_record.workspace_id
+     and asset_id = task_record.asset_id
+   for update;
+
+  select * into connection_record
+    from public.github_connections
+   where id = link_record.github_connection_id
+     and workspace_id = link_record.workspace_id
+   for update;
+
+  select * into auto_record
+    from private.github_repository_auto_scan_state
+   where link_id = link_record.id
+     and workspace_id = link_record.workspace_id
+   for update;
+
+  if connection_record.id is null
+     or auto_record.link_id is null
+     or not auto_record.pending
+     or auto_record.desired_commit_sha is null
+     or auto_record.latest_delivery_id is null then
+    return jsonb_build_object('matched', false, 'replayed', true);
+  end if;
+
+  return jsonb_build_object(
+    'matched', true,
+    'replayed', false,
+    'followUpRequired', true,
+    'workspaceId', link_record.workspace_id,
+    'linkId', link_record.id,
+    'installationId', connection_record.installation_id,
+    'repositoryId', link_record.repository_id,
+    'latestDeliveryId', auto_record.latest_delivery_id,
+    'defaultBranch', link_record.default_branch,
+    'isPrivate', link_record.is_private,
+    'htmlUrl', link_record.html_url,
+    'accessStatus', link_record.access_status,
+    'autoScanEnabled', link_record.auto_scan_enabled,
+    'providerArchived', auto_record.provider_archived,
+    'desiredCommitSha', auto_record.desired_commit_sha,
+    'successfulCommitSha', auto_record.successful_commit_sha
+  );
+end;
+$$;
+
+revoke all on function public.recover_pending_github_webhook_project_scan(uuid)
+  from public, anon, authenticated, service_role;
+grant execute on function public.recover_pending_github_webhook_project_scan(uuid)
+  to service_role;

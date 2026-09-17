@@ -135,12 +135,19 @@ describe("Phase 10A3 GitHub webhook reconciliation migration", () => {
     expect(segment).toMatch(/grant execute on function public\.reconcile_github_webhook_repository_state\([^;]+\) to service_role/);
   });
 
-  it("bounds replay rows while retaining more than GitHub's redelivery window", async () => {
+  it("retains delivery identities permanently while pruning detailed replay metadata", async () => {
     const sql = (await deliveryRetentionOverlaySource()).replace(/\s+/g, " ");
     const start = sql.indexOf("create or replace function public.admit_github_webhook_delivery");
     const segment = sql.slice(start);
 
     expect(start).toBeGreaterThanOrEqual(0);
+    expect(sql).toContain("create table private.github_webhook_delivery_receipts");
+    expect(sql).toContain("delivery_id uuid primary key");
+    expect(sql).toContain("alter table private.github_webhook_delivery_receipts enable row level security");
+    expect(sql).toContain("revoke all on table private.github_webhook_delivery_receipts from public, anon, authenticated, service_role");
+    expect(segment).toContain("insert into private.github_webhook_delivery_receipts");
+    expect(segment.indexOf("insert into private.github_webhook_delivery_receipts"))
+      .toBeLessThan(segment.indexOf("delete from private.github_webhook_deliveries"));
     expect(segment).toContain("delete from private.github_webhook_deliveries");
     expect(segment).toContain("received_at < now() - interval '7 days'");
     expect(segment.indexOf("delete from private.github_webhook_deliveries"))

@@ -85,6 +85,12 @@ export type Phase10a3Functions = Phase10a2Database["public"]["Functions"] & {
     };
     Returns: Json;
   };
+  recover_pending_github_webhook_project_scan: {
+    Args: {
+      target_scan_task_id: string;
+    };
+    Returns: Json;
+  };
 };
 
 export type Phase10a3Database = Omit<Phase10a2Database, "public"> & {
