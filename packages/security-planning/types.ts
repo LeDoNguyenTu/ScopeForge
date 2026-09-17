@@ -64,6 +64,7 @@ export interface Hypothesis {
   baseConfidence: number;
   confidence: number;
   status: HypothesisStatus;
+  evidenceRefs: readonly string[];
 }
 
 export type StateMutationClass = "none" | "bounded" | "state_changing";
