@@ -1,3 +1,7 @@
+import {
+  automaticProjectScanReconciliationRequiresRetry,
+  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
+} from "@/lib/project-scans/service";
 import { createRepositoryScanArtifactRepository } from "@/lib/repository-scans/repository";
 import { publishRepositoryScanSuccess } from "@/lib/repository-scans/service";
 import { reconcileConnectedProjectScanTerminal } from "@/lib/project-scans/service";
@@ -49,6 +53,12 @@ export async function POST(request: Request): Promise<Response> {
       terminal: body.terminal,
       claimedSnapshot,
     }, { repository });
+    const automaticReconciliation = await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
+      scanTaskId: result.taskId,
+    });
+    if (automaticProjectScanReconciliationRequiresRetry(automaticReconciliation)) {
+      throw new Error("AUTOMATIC_PROJECT_SCAN_RECONCILIATION_RETRY_REQUIRED");
+    }
     await reconcileConnectedProjectScanTerminal({ scanTaskId: result.taskId });
 
     return workerJson({ ok: true, data: result });

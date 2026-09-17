@@ -1,6 +1,44 @@
 # ScopeForge Codex handoff
 
-Last reconciled: 2026-09-17, Asia/Singapore. Live GitHub/provider state still wins.
+## 2026-09-18 accepted PR #77 recovery checkpoint
+
+Live provider state wins over this handoff.
+
+- Worktree/branch: `D:\PROJECTS\ScopeForge-pr77` / `feat/phase-10a3-github-webhook-reconciliation`
+- Accepted source head: `37c3e68a6e188b30a1c23399449cc794fa776335`; base/released `main`: `327b06d150f24d4cb3161cac078198ae0d473613`
+- Exact-source CI `35286439598` and Vercel passed. Production deployment `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV` is READY.
+- Root cause: generic connected-project cleanup ran before automatic/manual-aware settlement in both repository-scan finalize routes, erasing exact identifiers before the successful watermark could settle.
+- Fix: run aware settlement first, stop before cleanup when retry is required, then invoke idempotent generic cleanup.
+- TDD: both route-order assertions were witnessed RED; focused suites passed 33 tests; full suite passed 437 files/1,996 tests with expected skips.
+- Security: GitNexus impact/detect-changes reviewed both worker entry points; Codex Security scan `7231ee4e-2c72-4014-8f8f-15b055638982` found zero issues.
+- Production recovery: desired/successful SHA now equal `f13f3d72d0782e4260898201d8dd2f08885a8088`; project/intent are idle; automatic pending is false; no error remains.
+- No reacquisition: exact-head snapshots stayed at 3 while successful exact-head scans increased from 2 to 3. Authenticated UI returned to **Scan project**.
+- Full acceptance detail: `docs/development/PR_77_RELEASE_ACCEPTANCE.md`.
+- Remaining gate: push this documentation checkpoint, require exact-head CI/Vercel, merge PR #77, and verify released `main` plus production. Then reconcile PR #124.
+
+Older handoff content below is historical and must not override this checkpoint.
+Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state still wins.
+
+## 2026-09-18 Phase 10A3 release checkpoint (supersedes older resume text below)
+
+- Released `main`: `327b06d150f24d4cb3161cac078198ae0d473613` (Phase 10A2 is released and production-verified).
+- PR #77 branch: `feat/phase-10a3-github-webhook-reconciliation`.
+- Last source head: `1fd0a5472d8dbdb4359992de96f1ad494f72df24`; remote matches and the worktree was clean before this documentation refresh.
+- PR #77 is OPEN/ready and mergeable/clean. Current documentation head is `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
+- Full validation at `1fd0a547`: 437 files passed, 4 skipped; 1,994 tests passed, 24 skipped; audit 0; typecheck, CLI 0.1.0, worker build, scanner benchmark, benchmark matrix, and Next production build passed.
+- Exact security scan `3d751254-8c97-4b99-b464-a97955b7839d` covered all 24 changed source/schema files in `327b06d..1fd0a547` and reported zero findings.
+- All seven reviewed Phase 10A3 migrations are applied to ScopeForge Supabase `tdgpibrepzcvdivztkta`; live generated migration versions run from `20260917180241` through `20260917180257`.
+- Production Vercel now has a cryptographically random secret `GITHUB_APP_WEBHOOK_SECRET`. Its value must never be printed or copied into documentation.
+- The ScopeForge GitHub App webhook now targets `https://scopeforge.dev/api/integrations/github/webhook` with the matching production secret. Push and Repository subscriptions are saved. GitHub delivers Installation and Installation repositories to all GitHub Apps without separate subscription checkboxes.
+- GitHub recorded successful provider deliveries for `ping` and `installation.new_permissions_accepted`; the latter completed with HTTP 200 in 0.5 seconds. The local temporary secret file was deleted and the clipboard cleared without displaying the value.
+- Remaining release gate: run replay/lifecycle/coalescing/recovery/public-private/end-to-end production canaries, then merge and verify released production.
+- PR #77 was marked ready. Exact-head CI run `35257055269` passed at documentation head `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`, and its Vercel preview was READY.
+- Exact candidate production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY and aliased to `scopeforge.dev`.
+- Non-mutating production canaries passed: signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413`.
+- Exact-head CI run `35257848754` and Vercel passed at `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
+- GitHub App activation checkpoint commit `a9f86a58e735076e4fdb8ceee7d0179aa27cb2c5` is pushed. Exact-head CI run `35261201693` and Vercel passed.
+- Private automatic-scan canary: rapid default-branch commits `3677257c7fb1250b94ad483e505ecfe923f889a5` then `f13f3d72d0782e4260898201d8dd2f08885a8088` were pushed to `LeDoNguyenTu/scopeforge-private-canary`. Production received two signed webhook requests (`202`, then `200`), then returned `200` for snapshot finalization, repository-scan artifact access, repository-scan finalization, and a later snapshot finalization. This proves live GitHub -> webhook -> private worker -> scan execution and exercises the rapid-push/coalescing path.
+- Do not yet claim exact newest-head convergence from those route logs alone. Confirm the production read model or private reconciliation state shows `f13f3d72...` terminal before merging. The requested Browser extension currently fails initialization with `failed to write kernel assets: The system cannot find the path specified. (os error 3)`.
 
 ## Immediate resume point
 

@@ -1,30 +1,29 @@
 # ScopeForge Latest Session
 
-Date: 2026-09-17, Asia/Singapore
+Date: 2026-09-18, Asia/Singapore
 
 ## Outcome
 
-Phase 10A2 production acceptance passed end to end. PR #76 remains draft only for this handoff and final exact-head CI.
+PR #77's production same-head recovery blocker is fixed and accepted. Source commit `37c3e68a6e188b30a1c23399449cc794fa776335` passed exact-head CI `35286439598`, Vercel, production deployment, authenticated browser acceptance, and live database verification.
 
-## Completed
+## What changed
 
-- Preserved rootless Podman runtime state across instance restarts.
-- Added forward-only snapshot/scan terminal recovery and scan-success completion migrations.
-- Excluded local GitNexus data from Vercel uploads.
-- Fixed scanner access to 0444 task metadata under systemd `UMask=0077`.
-- Reduced connected-project UI to one safe `Scan project` action with history-only subordinate panels.
-- Fixed encoded canonical finding IDs returning 404 by decoding the route segment exactly once.
+- Both repository-scan finalize routes now run automatic/manual-aware terminal settlement before legacy generic connected-project cleanup.
+- A retry-required automatic reconciliation exits before cleanup, preserving exact recovery state.
+- A two-route ordering regression was witnessed RED, then passed with the minimal route reorder.
+- No schema change was needed; existing Phase 10A3 functions already had the correct exact-task settlement behavior.
 
 ## Evidence
 
-- Executable head: `e8d47e4a42ac97b3eabfb41a884555fe24ef93ec`.
-- Vercel: `dpl_B3sfM7kVZubuBqGBkw3WtB4wJMk1`, READY.
-- Worker release: `2e640e8929f6f7da579d7904a6d49532ec055c5d`; both services active.
-- Canary task/job/run: `58601082-a4a1-428e-8383-ff8d0fba21e6` / `f4d2cd32-5339-43f0-8188-69ecfa0494bb` / `024e283b-353c-485d-b3ed-36f4e68bc1f7`.
-- Result: one high/high command-injection finding, CWE-78, 2 files, 475 bytes, zero scanner errors.
-- Production: 2 enabled workers, 0 active tasks, 1 canary finding.
-- Full suite with four workers: 425 files passed, 4 skipped; 1,869 tests passed, 24 skipped. Audit/type/builds/benchmarks/headers/browser acceptance passed.
+- Production deployment: `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV`, READY at `scopeforge.dev`.
+- Production private head: `f13f3d72d0782e4260898201d8dd2f08885a8088`.
+- Before repair acceptance: retry pending, successful watermark null, 3 same-head snapshots, 2 successful same-head scans.
+- After one accepted resume: project and intent `idle`, automatic `pending=false`, desired SHA equals successful SHA, no error, still 3 same-head snapshots, 3 successful same-head scans.
+- Authenticated UI returned to **Scan project** and displays the newest successful 3-file/533-byte scan.
+- Full suite: 437 files passed, 4 skipped; 1,996 tests passed, 24 skipped.
+- Audit, typecheck, CLI/worker/Next builds, benchmarks, Linux CI browser smoke, and production diagnostic passed.
+- Codex Security scan `7231ee4e-2c72-4014-8f8f-15b055638982`: zero findings.
 
-Default high-concurrency local runs hit independent fixture-only timeouts; each fixture passed alone and the complete suite passed with bounded concurrency.
+Detailed evidence: `docs/development/PR_77_RELEASE_ACCEPTANCE.md`.
 
-Next: mark #76 ready, require final exact-head CI, merge, verify `main` and production, then reconcile PR #77. PR #124 stays a docs-only Phase 11 plan.
+Next: push this documentation checkpoint, require exact-head CI/Vercel, merge PR #77, and verify released `main` and production. PR #124 remains next after the Phase 10A3 release.

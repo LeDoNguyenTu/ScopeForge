@@ -568,3 +568,9 @@ export async function resumeConnectedProjectScan(
     return { status: "retry_pending" };
   }
 }
+
+export {
+  automaticProjectScanReconciliationRequiresRetry,
+  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
+} from "./automatic-reconciliation";
+export type { AutomaticProjectScanReconciliationDependencies } from "./automatic-reconciliation";

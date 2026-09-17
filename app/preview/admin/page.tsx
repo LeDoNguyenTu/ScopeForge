@@ -136,8 +136,8 @@ function SettingsPreview() {
 }
 
 const sampleRepositories: GitHubRepositorySummary[] = [
-  { id: 1, ownerLogin: "LeDoNguyenTu", name: "ScopeForge", fullName: "LeDoNguyenTu/ScopeForge", defaultBranch: "main", isPrivate: false, htmlUrl: "https://github.com/LeDoNguyenTu/ScopeForge" },
-  { id: 2, ownerLogin: "example-enterprise", name: "private-security-platform-with-a-very-long-name", fullName: "example-enterprise/private-security-platform-with-a-very-long-name", defaultBranch: "feature/long-default-branch-name-for-mobile-validation", isPrivate: true, htmlUrl: "https://example.invalid/private" },
+  { id: 1, ownerLogin: "LeDoNguyenTu", name: "ScopeForge", fullName: "LeDoNguyenTu/ScopeForge", defaultBranch: "main", isPrivate: false, isArchived: false, htmlUrl: "https://github.com/LeDoNguyenTu/ScopeForge" },
+  { id: 2, ownerLogin: "example-enterprise", name: "private-security-platform-with-a-very-long-name", fullName: "example-enterprise/private-security-platform-with-a-very-long-name", defaultBranch: "feature/long-default-branch-name-for-mobile-validation", isPrivate: true, isArchived: false, htmlUrl: "https://example.invalid/private" },
 ];
 
 function GitHubPreview() {

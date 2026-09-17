@@ -154,6 +154,7 @@ export default function ConnectedProjectScanPanel({
       <div className="detailList">
         <div><dt>GitHub repository</dt><dd>{project.fullName}</dd></div>
         <div><dt>Repository access</dt><dd>{project.accessStatus}</dd></div>
+        <div><dt>Automatic scanning</dt><dd>{project.autoScanEnabled ? "On" : "Off"}</dd></div>
         <div><dt>Visibility</dt><dd>{project.isPrivate ? "Private" : "Public"}</dd></div>
         <div><dt>Branch</dt><dd><GitBranch size={13} /> Default branch: {project.defaultBranch}</dd></div>
       </div>

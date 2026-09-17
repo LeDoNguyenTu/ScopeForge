@@ -4,9 +4,11 @@ import {
   publishRepositorySnapshotAttempt,
 } from "@/lib/repository-snapshots/service";
 import {
+  automaticProjectScanReconciliationRequiresRetry,
   continueConnectedProjectScanAfterSnapshot,
   reconcileConnectedProjectScanTerminal,
   reconcileConnectedProjectSnapshotTerminal,
+  reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal,
 } from "@/lib/project-scans/service";
 import { authenticateWorkerRequest } from "@/lib/worker-control/auth";
 import { workerJson, workerRouteError } from "@/lib/worker-control/http-response";
@@ -39,6 +41,11 @@ function repositorySnapshotSuccessKind(value: unknown): RepositorySnapshotSucces
 function isPrivateRepositorySnapshotTerminal(value: unknown): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   return (value as Record<string, unknown>).executionClass === "repository_snapshot_github_private_v1";
+}
+
+function isRepositoryScanTerminal(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  return (value as Record<string, unknown>).executionClass === "phase3_repository_scan_no_egress_v1";
 }
 
 function failedRepositorySnapshotTaskId(value: unknown): string | null {
@@ -96,6 +103,7 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
+    const repositoryScanTerminal = isRepositoryScanTerminal(body.terminal);
     const snapshotTaskId = failedRepositorySnapshotTaskId(body.terminal);
     const scanTaskId = failedRepositoryScanTaskId(body.terminal);
     const result = isPrivateRepositorySnapshotTerminal(body.terminal)
@@ -111,6 +119,14 @@ export async function POST(request: Request): Promise<Response> {
         }, dependencies);
     if (snapshotTaskId) {
       await reconcileConnectedProjectSnapshotTerminal({ snapshotTaskId });
+    }
+    if (repositoryScanTerminal) {
+      const automaticReconciliation = await reconcilePendingAutomaticProjectScanAfterRepositoryScanTerminal({
+        scanTaskId: result.taskId,
+      });
+      if (automaticProjectScanReconciliationRequiresRetry(automaticReconciliation)) {
+        throw new Error("AUTOMATIC_PROJECT_SCAN_RECONCILIATION_RETRY_REQUIRED");
+      }
     }
     if (scanTaskId) {
       await reconcileConnectedProjectScanTerminal({ scanTaskId });

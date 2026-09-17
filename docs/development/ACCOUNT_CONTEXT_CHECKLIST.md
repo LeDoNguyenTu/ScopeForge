@@ -1,6 +1,6 @@
 # ScopeForge account and provider context checklist
 
-Prepared: 2026-09-14, Asia/Singapore
+Prepared: 2026-09-18, Asia/Singapore
 
 This file contains only non-secret identity/context information. It is a guard against operating the wrong account or project. Never add secret values to this file.
 
@@ -26,6 +26,8 @@ Before work:
 
 Also verify the ScopeForge GitHub App under the intended GitHub account. The production connection is expected to be associated with GitHub account `LeDoNguyenTu` and selected repository access for `LeDoNguyenTu/ScopeForge`. Do not expose the App private key, client secret, state secret, installation token, or OAuth token.
 
+As of 2026-09-18, the ScopeForge GitHub App webhook is configured for `https://scopeforge.dev/api/integrations/github/webhook`; Push and Repository subscriptions are saved. Installation and Installation repositories are default GitHub App events and do not appear as selectable subscription checkboxes.
+
 ## 2. Vercel
 
 Verified during this handoff:
@@ -38,6 +40,7 @@ Verified during this handoff:
 - framework: Next.js
 - configured Node runtime: 24.x
 - production domain includes: `scopeforge.dev`
+- production `GITHUB_APP_WEBHOOK_SECRET`: configured on 2026-09-18; never reveal its value
 
 At handoff time, the connected Vercel project reported a READY production deployment. Treat its deployment ID and commit as historical unless re-read live.
 
@@ -60,6 +63,7 @@ Correct ScopeForge project:
 - project ref/ID: `tdgpibrepzcvdivztkta`
 - region: `ap-southeast-1`
 - status at handoff: `ACTIVE_HEALTHY`
+- Phase 10A3 migrations applied on 2026-09-18; live generated versions `20260917180241` through `20260917180257`
 
 Different project - do not use for ScopeForge:
 
