@@ -14,7 +14,7 @@ const objectPath = `/repository-source/${"a".repeat(64)}.tar.gz`;
 const descriptor = {
   method: "GET" as const,
   url: `https://scopeforge-source.${"b".repeat(32)}.r2.cloudflarestorage.com${objectPath}?X-Amz-Expires=60&X-Amz-Signature=${"c".repeat(64)}`,
-  expiresAt: "2026-08-27T01:01:00.000Z",
+  expiresAt: "2099-08-27T01:01:00.000Z",
 };
 
 function response(body: Buffer, contentLength: string | null = String(body.length)): Response {
@@ -45,6 +45,26 @@ describe("Phase 6C trusted snapshot stager", () => {
         headers: { accept: "application/gzip" },
       });
       expect(await readFile(destination)).toEqual(bytes);
+    } finally {
+      await rm(work, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an expired download capability before starting the R2 request", async () => {
+    const work = await mkdtemp(path.join(tmpdir(), "scopeforge-scan-expired-"));
+    const destination = path.join(work, "snapshot.tar.gz");
+    const fetchImpl = vi.fn(async () => response(bytes));
+    try {
+      await expect(downloadRepositoryScanArtifact({
+        descriptor: { ...descriptor, expiresAt: "2000-01-01T00:00:00.000Z" },
+        expectedHost: `scopeforge-source.${"b".repeat(32)}.r2.cloudflarestorage.com`,
+        expectedBytes: bytes.length,
+        expectedDigest: digest,
+        destinationPath: destination,
+        signal: new AbortController().signal,
+      }, { fetch: fetchImpl as typeof fetch })).rejects.toThrow("Repository scan artifact authorization is expired.");
+      expect(fetchImpl).not.toHaveBeenCalled();
+      await expect(readFile(destination)).rejects.toThrow();
     } finally {
       await rm(work, { recursive: true, force: true });
     }

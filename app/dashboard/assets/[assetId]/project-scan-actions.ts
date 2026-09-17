@@ -10,7 +10,7 @@ import { getDashboardContext } from "@/lib/workspaces/current";
 
 export type ConnectedProjectScanActionResult =
   | { ok: true; status: "snapshot_queued"; taskId: string; message: string }
-  | { ok: true; status: "private_acquisition_required" | "snapshot_runtime_unavailable"; message: string }
+  | { ok: true; status: "private_snapshot_runtime_unavailable" | "snapshot_runtime_unavailable"; message: string }
   | { ok: true; status: "scan_queued"; taskId: string; scanJobId: string; replayed: boolean; message: string }
   | { ok: true; status: "retry_pending" | "scan_runtime_unavailable" | "no_pending_scan"; message: string }
   | { ok: false; error: { code: string; message: string } };
@@ -72,11 +72,11 @@ export async function requestConnectedProjectSecurityScan(
       actorId: user.id,
     });
 
-    if (result.status === "private_acquisition_required") {
+    if (result.status === "private_snapshot_runtime_unavailable") {
       return {
         ok: true,
-        status: "private_acquisition_required",
-        message: "This private repository is connected, but private source acquisition ships in Phase 10A2.",
+        status: "private_snapshot_runtime_unavailable",
+        message: "This private repository is connected and authorized, but the dedicated private snapshot runtime is disabled in this deployment.",
       };
     }
     if (result.status === "snapshot_runtime_unavailable") {

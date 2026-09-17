@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    assertNoWorkerRequestBody(request);
+    await assertNoWorkerRequestBody(request);
     const dependencies = createWorkerControlServerDependencies();
     const worker = await authenticateWorkerRequest(request, {
       authenticate: (input) => authenticateWorkerNode(input, dependencies),

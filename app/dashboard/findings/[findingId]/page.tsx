@@ -8,6 +8,7 @@ import FindingRetestPanel from "@/components/findings/FindingRetestPanel";
 import SecurityStoryPanel from "@/components/findings/SecurityStoryPanel";
 import type { Json } from "@/lib/database.types";
 import { createSecurityFindingRepository } from "@/lib/security-findings/repository";
+import { decodeFindingRouteId } from "@/lib/security-findings/route-param";
 import { resolveRetestSource } from "@/lib/security-remediation/source-registry";
 import { buildSecurityStoryV1 } from "@/lib/security-remediation/story";
 import { getDashboardContext } from "@/lib/workspaces/current";
@@ -58,7 +59,8 @@ export default async function FindingDetailPage({
 }: {
   params: Promise<{ findingId: string }>;
 }) {
-  const { findingId } = await params;
+  const { findingId: findingRouteId } = await params;
+  const findingId = decodeFindingRouteId(findingRouteId);
   const { supabase, user, workspace, role, displayName } = await getDashboardContext();
   const repository = createSecurityFindingRepository(supabase);
   const detail = await repository.loadWorkspaceFindingDetail(workspace.id, findingId);

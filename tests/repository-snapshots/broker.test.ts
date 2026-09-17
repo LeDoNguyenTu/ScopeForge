@@ -24,6 +24,15 @@ describe("Phase 6B worker broker", () => {
     expect(source).toContain("finalizeWorkerAttempt");
   });
 
+  it("returns only the bounded finalization acknowledgement to the worker", async () => {
+    const source = await readFile(finalizePath, "utf8");
+    const acknowledgements = source.match(
+      /data: \{ outcome: result\.outcome, replayed: result\.replayed \}/g,
+    );
+
+    expect(acknowledgements).toHaveLength(2);
+  });
+
   it("does not accept private locators or new authority fields outside the terminal envelope", async () => {
     const source = await readFile(finalizePath, "utf8");
     expect(source).toContain('strictObject(await readBoundedWorkerJson(request), ["leaseToken", "terminal"])');

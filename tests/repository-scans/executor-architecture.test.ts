@@ -41,4 +41,15 @@ describe("Phase 6C prepared executor authority", () => {
     expect(source).toContain("prepared.contract");
     expect(source).toContain("prepared.cleanup");
   });
+
+  it("makes task metadata readable by the fixed unprivileged container user despite a restrictive service umask", async () => {
+    const source = await readFile(executorPath, "utf8");
+    const writeIndex = source.indexOf("await writeFile(taskMetadataPath");
+    const chmodIndex = source.indexOf("await chmod(taskMetadataPath, 0o444)");
+    const executeIndex = source.indexOf("sandboxResult = await sandbox.execute");
+
+    expect(writeIndex).toBeGreaterThan(-1);
+    expect(chmodIndex).toBeGreaterThan(writeIndex);
+    expect(executeIndex).toBeGreaterThan(chmodIndex);
+  });
 });
