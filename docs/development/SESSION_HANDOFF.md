@@ -17,6 +17,8 @@ Last refreshed: 2026-09-18, Asia/Singapore.
 
 Immediate next action: update the ScopeForge GitHub App webhook URL/secret, using the local temporary secret file via clipboard without displaying its value. Browser automation failed to initialize, so this may be the only user-assisted step. Delete the temporary secret file after the GitHub App save succeeds. Then run production canaries, mark #77 ready, require exact-head CI/Vercel, merge, and verify production.
 
+Already complete after the first checkpoint: PR #77 is ready; CI `35257055269` and the Vercel preview passed at `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`; production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY; signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413` passed. Remaining canaries require the GitHub App webhook save.
+
 ## Resume exactly here
 
 - Worktree: `D:\PROJECTS\ScopeForge-pr76-review`

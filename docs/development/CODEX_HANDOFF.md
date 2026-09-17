@@ -14,6 +14,9 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state still wi
 - Production Vercel now has a cryptographically random secret `GITHUB_APP_WEBHOOK_SECRET`. Its value must never be printed or copied into documentation.
 - Remaining release gate: configure the ScopeForge GitHub App webhook URL as `https://scopeforge.dev/api/integrations/github/webhook` with the same secret, then run signed/invalid/oversize/replay/lifecycle/coalescing/recovery/public-private/end-to-end canaries.
 - Browser automation was unavailable because the local CUA kernel assets could not initialize. The secret remains in the local temporary secret file for secure clipboard transfer; delete that file immediately after GitHub App configuration.
+- PR #77 was marked ready. Exact-head CI run `35257055269` passed at documentation head `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`, and its Vercel preview was READY.
+- Exact candidate production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY and aliased to `scopeforge.dev`.
+- Non-mutating production canaries passed: signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413`.
 
 ## Immediate resume point
 

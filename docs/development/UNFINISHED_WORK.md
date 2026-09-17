@@ -11,8 +11,8 @@ Code hardening, exact local validation, final security review, Phase 10A3 schema
 Remaining:
 
 - configure the ScopeForge GitHub App webhook URL and matching secret
-- redeploy and run the full production webhook/security acceptance matrix
-- mark ready, obtain exact-head CI/Vercel, merge, and verify released production
+- run the remaining provider-delivery and end-to-end production webhook/security acceptance matrix; deployment plus the non-mutating edge canaries are complete
+- obtain exact-head CI/Vercel after the final documentation checkpoint, merge, and verify released production
 
 PR #76 is merged/released and is no longer unfinished. Do not repeat issue #79 or Phase 10A2 acceptance.
 

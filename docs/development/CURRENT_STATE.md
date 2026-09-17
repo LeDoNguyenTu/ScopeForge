@@ -10,6 +10,8 @@ Last reconciled: 2026-09-18, Asia/Singapore.
 - Exact source validation and the final 24-file security scan are green; security scan ID `3d751254-8c97-4b99-b464-a97955b7839d` has zero findings.
 - All seven Phase 10A3 migrations are deployed to `tdgpibrepzcvdivztkta`. Privileged functions are `service_role` only with empty search paths; private reconciliation tables have RLS enabled and no DML grants to browser or service roles.
 - Production Vercel has the new webhook secret. The GitHub App webhook still needs the matching secret and `https://scopeforge.dev/api/integrations/github/webhook` URL before canaries or merge.
+- Production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY at `scopeforge.dev`. Signed ping/unsupported-event and invalid-signature/oversize edge canaries passed with statuses `200/202/401/413`.
+- PR #77 is ready and CI run `35257055269` passed at `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`. A final documentation-only CI run is expected after this checkpoint commit.
 - Existing advisor backlog remains: reviewed collaborator SECURITY DEFINER RPCs, leaked-password protection, and measured foreign-key/index performance follow-up.
 
 Older queue details below are historical and must not override this checkpoint.

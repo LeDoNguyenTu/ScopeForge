@@ -12,6 +12,8 @@ Phase 10A2 is released on `main` at `327b06d150f24d4cb3161cac078198ae0d473613`. 
 - Phase 10A3 privileged RPCs are executable only by `service_role`; private reconciliation tables have RLS and no direct DML grants.
 - Production Vercel has a new cryptographically random `GITHUB_APP_WEBHOOK_SECRET`.
 - The GitHub App still needs the matching secret plus `https://scopeforge.dev/api/integrations/github/webhook`; production canaries and exact-head ready-state CI follow that configuration.
+- PR #77 was marked ready and CI `35257055269` passed at `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`.
+- Production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY. Signed ping/unsupported-event and invalid-signature/oversize canaries passed (`200/202/401/413`). Provider-delivery and end-to-end canaries remain gated on the GitHub App webhook save.
 
 Do not reapply the migrations, rotate the new secret, weaken provider revalidation, or enable any additional runtime gate merely to accelerate acceptance.
 
