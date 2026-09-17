@@ -6,9 +6,13 @@ import { reconcileConnectedProjectScanTerminal } from "@/lib/project-scans/servi
 const SCAN_TASK_ID = "66666666-6666-4666-8666-666666666666";
 const migrationPath = path.resolve(
   process.cwd(),
-  "supabase/migrations/20260917073000_phase_10a2_project_scan_terminal_recovery.sql",
+  "supabase/migrations/20260917080000_phase_10a2_project_scan_success_completion.sql",
 );
 const finalizeRoutePath = path.resolve(process.cwd(), "app/api/internal/workers/finalize/route.ts");
+const successFinalizeRoutePath = path.resolve(
+  process.cwd(),
+  "app/api/internal/workers/repository-scans/finalize/route.ts",
+);
 
 describe("connected project scan terminal recovery", () => {
   it("reconciles terminal scan tasks through the service-only persistence boundary", async () => {
@@ -34,6 +38,14 @@ describe("connected project scan terminal recovery", () => {
     expect(sql).toMatch(/revoke all on function public\.reconcile_connected_project_scan_terminal\(uuid\)[\s\S]*from public, anon, authenticated, service_role/i);
   });
 
+  it("returns a successfully published connected-project scan to idle", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+
+    expect(sql).toMatch(/job_record\.status = 'succeeded'/i);
+    expect(sql).toMatch(/set state = 'idle',[\s\S]*scan_task_id = null,[\s\S]*scan_job_id = null,[\s\S]*last_error_code = null/i);
+    expect(sql).toMatch(/set project_scan_state = 'idle'/i);
+  });
+
   it("reconciles a failed scan only after its worker finalization is durable", async () => {
     const source = await readFile(finalizeRoutePath, "utf8");
     const finalizeIndex = source.lastIndexOf("finalizeWorkerAttempt");
@@ -41,5 +53,14 @@ describe("connected project scan terminal recovery", () => {
 
     expect(finalizeIndex).toBeGreaterThan(-1);
     expect(reconcileIndex).toBeGreaterThan(finalizeIndex);
+  });
+
+  it("reconciles a successful scan only after its publication is durable", async () => {
+    const source = await readFile(successFinalizeRoutePath, "utf8");
+    const publishIndex = source.lastIndexOf("publishRepositoryScanSuccess");
+    const reconcileIndex = source.lastIndexOf("reconcileConnectedProjectScanTerminal");
+
+    expect(publishIndex).toBeGreaterThan(-1);
+    expect(reconcileIndex).toBeGreaterThan(publishIndex);
   });
 });
