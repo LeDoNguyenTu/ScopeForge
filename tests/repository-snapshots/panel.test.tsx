@@ -70,4 +70,21 @@ describe("RepositorySnapshotPanel", () => {
     expect(screen.getByText(/acquisition worker is not enabled/i)).toBeInTheDocument();
     expect(requestRepositorySnapshot).not.toHaveBeenCalled();
   });
+
+  it("shows provenance without a second acquisition control for connected projects", () => {
+    render(
+      <RepositorySnapshotPanel
+        assetId="asset-1"
+        role="owner"
+        history={history}
+        runtimeAvailable
+        managedByConnectedProject
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: /immutable source history/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /snapshot/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/current public github default branch/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/aaaaaaaaaaaa on main/i)).toBeInTheDocument();
+  });
 });

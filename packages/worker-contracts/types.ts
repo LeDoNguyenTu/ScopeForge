@@ -7,9 +7,11 @@ export type WorkerExecutionClass =
   | "phase3_repository_scan_no_egress_v1"
   | "passive_runtime_observation_v1"
   | "active_cors_validation_v1";
+export type PrivateRepositorySnapshotExecutionClass = "repository_snapshot_github_private_v1";
 export type WorkerNetworkPolicy =
   | "none"
   | "github_public_archive_and_attempt_artifact_put_v1"
+  | "github_private_archive_lease_and_attempt_artifact_put_v1"
   | "passive_runtime_target_bound_v1"
   | "active_cors_target_bound_v1";
 export type WorkerTerminalOutcome = "succeeded" | "failed" | "cancelled";
@@ -63,6 +65,12 @@ export interface WorkerExecutionProfile {
   budget: WorkerExecutionBudget;
 }
 
+export interface PrivateRepositorySnapshotExecutionProfile {
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+  networkPolicy: "github_private_archive_lease_and_attempt_artifact_put_v1";
+  budget: WorkerExecutionBudget;
+}
+
 export interface FoundationProbeInput {
   kind: "foundation_probe";
   nonce: string;
@@ -79,6 +87,24 @@ export interface RepositorySnapshotInput {
   owner: string;
   repository: string;
   canonicalRepositoryUrl: string;
+  artifactUpload: RepositorySnapshotUploadDescriptor;
+}
+
+export interface GitHubPrivateArchiveLease {
+  kind: "github_private_archive_lease_v1";
+  canonicalRepositoryUrl: string;
+  defaultBranch: string;
+  resolvedCommitSha: string;
+  archiveUrl: string;
+  expiresAt: string;
+}
+
+export interface PrivateRepositorySnapshotInput {
+  kind: "repository_snapshot_github_private";
+  owner: string;
+  repository: string;
+  canonicalRepositoryUrl: string;
+  privateArchiveLease: GitHubPrivateArchiveLease;
   artifactUpload: RepositorySnapshotUploadDescriptor;
 }
 
@@ -123,6 +149,18 @@ export interface WorkerTaskContract {
   input: WorkerTaskInput;
 }
 
+export interface PrivateRepositorySnapshotTaskContract {
+  taskId: string;
+  attemptId: string;
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: PrivateRepositorySnapshotInput;
+}
+
+export type AnyWorkerTaskContract = WorkerTaskContract | PrivateRepositorySnapshotTaskContract;
+
 export interface WorkerAttemptMetrics {
   wallTimeMs: number;
   cpuTimeMs: number;
@@ -146,6 +184,21 @@ export interface RepositorySnapshotSkipCounts {
 
 export interface RepositorySnapshotResult {
   kind: "repository_snapshot_github_public";
+  canonicalRepositoryUrl: string;
+  defaultBranch: string;
+  resolvedCommitSha: string;
+  contentDigest: string;
+  artifactDigest: string;
+  compressedBytes: number;
+  expandedBytes: number;
+  retainedFileCount: number;
+  retainedBytes: number;
+  storedArtifactBytes: number;
+  skipCounts: RepositorySnapshotSkipCounts;
+}
+
+export interface PrivateRepositorySnapshotResult {
+  kind: "repository_snapshot_github_private";
   canonicalRepositoryUrl: string;
   defaultBranch: string;
   resolvedCommitSha: string;
@@ -203,8 +256,29 @@ export interface WorkerTerminalEnvelope {
   result: WorkerTerminalResult | null;
 }
 
+export interface PrivateRepositorySnapshotTerminalEnvelope {
+  schemaVersion: 1;
+  taskId: string;
+  attemptId: string;
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+  outcome: WorkerTerminalOutcome;
+  failureCode: WorkerTerminalFailureCode | null;
+  metrics: WorkerAttemptMetrics;
+  result: PrivateRepositorySnapshotResult | null;
+}
+
+export type AnyWorkerTerminalEnvelope = WorkerTerminalEnvelope | PrivateRepositorySnapshotTerminalEnvelope;
+
 export interface WorkerTerminalExpectation {
   taskId: string;
   attemptId: string;
   executionClass: WorkerExecutionClass;
 }
+
+export interface PrivateRepositorySnapshotTerminalExpectation {
+  taskId: string;
+  attemptId: string;
+  executionClass: PrivateRepositorySnapshotExecutionClass;
+}
+
+export type AnyWorkerTerminalExpectation = WorkerTerminalExpectation | PrivateRepositorySnapshotTerminalExpectation;

@@ -1,104 +1,32 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-16, Asia/Singapore
+Last reconciled: 2026-09-17, Asia/Singapore.
 
-Always fetch live `main`, #79, #76, #77, open PRs, and branch refs before starting. Live state wins.
+## Priority 0: release PR #76
 
-## Priority 1 - issue #79 complete
+1. commit/push this handoff
+2. mark #76 ready
+3. require CI and Vercel success for the exact final head
+4. merge without force-pushing or deleting unverified branches
+5. verify merged `main`, main CI, production, worker health, and the accepted finding
 
-Both negative production canaries passed on 2026-09-16. The normal member was denied Connect GitHub, and a fresh owner-signed flow rejected a different real installation ID with `?error=installation`. The original repository connection remained verified. Issue #79 is closed.
+## Priority 1: PR #77 Phase 10A3
 
-## Priority 2 - Phase 10A2 PR #76
+Only after #76 is released:
 
-Current executable/security-hardening merge after PR #120:
+1. reconcile #77 onto released `main`
+2. inspect current migrations, webhook contracts, CI, and handoff state
+3. run focused/full validation
+4. apply only reviewed absent forward migrations
+5. configure the server-only webhook secret without exposing it
+6. prove signed delivery, replay rejection, lifecycle/coalescing/recovery, privacy, and webhook-triggered snapshot -> scan -> findings
+7. release after exact-head CI, Vercel, and production acceptance
 
-`2ff2bf07cdf4e12b5b9c82d6a002167d29469d24`
+## Later work
 
-#79 is closed. Proceed in this order:
+- review PR #124 Phase 11 architecture
+- design backup platform-admin delegation with explicit access-control management
+- enable Supabase leaked-password protection
+- address measured database performance follow-ups
 
-1. fetch current `main`, #76, production migration history, and exact runtime/config state
-2. reconcile #76 once onto the current released mainline, preserving #113/#114/#115/#119/#120 and released mainline fixes
-3. run fresh exact-candidate validation; historical branch CI is not release proof
-4. re-review the exact current Phase 10A2 migrations
-5. apply only absent reviewed migrations to ScopeForge Supabase `tdgpibrepzcvdivztkta`
-6. verify schema, function bodies, ACLs, grants/revokes, RLS/private-table posture, and Security Advisor results
-7. keep private repository snapshot/scan gates off until the dedicated private worker passes its own acceptance
-8. prove containment, scratch/output ceilings, quotas, cancellation, cleanup, observability, rollback, and credential boundaries
-9. prove one end-to-end private flow: provider revalidation -> exact private archive lease -> immutable snapshot -> exact zero-egress repository scan -> findings
-10. verify provider credentials remain control-plane-only and private source/capability material does not leak to browser state or ordinary logs
-11. merge/release #76 only after all provider, schema, runtime, privacy, and rollback gates pass
-12. verify production after release
-
-Phase 10A2 migrations currently waiting:
-
-- `20260911100000_phase_10a2_private_repository_snapshot.sql`
-- `20260911110000_phase_10a2_private_project_scan_routing.sql`
-
-PR #113 changed the first migration's claim body, so the older preflight is not sufficient authorization to apply the current migration.
-
-## Priority 3 - Phase 10A3 PR #77 only after #76 releases
-
-Current live head observed before this docs refresh:
-
-`d9466f40e38e84e2fc694396c5947aa0f95a2d5d`
-
-After Phase 10A2 release:
-
-1. reconcile #77 onto released Phase 10A2/main
-2. run fresh exact-candidate validation
-3. re-read and apply only reviewed absent Phase 10A3 migrations
-4. configure the independent server-only webhook secret/endpoint without exposing it
-5. canary raw-body HMAC verification, invalid-signature rejection, oversize rejection, replay, installation/repository lifecycle, latest-head coalescing, same-head recovery, stale-trigger authoritative-head recovery, public/private separation, and leak boundaries
-6. prove a full automatic webhook-triggered flow through immutable snapshot publication and findings
-7. merge/release only after all operational gates pass
-8. verify production after merge
-
-## Independent maintenance boundary
-
-Safe independent work includes:
-
-- narrowly scoped TDD security/regression fixes
-- dependency/runtime/tooling maintenance
-- evidence-based UI fixes
-- documentation/handoff repair
-- architecture/security review
-- branch/release hygiene after fresh live verification
-
-Any independent fix must use genuine RED, minimal GREEN, and exact-candidate validation. It must not be used as evidence that either Phase 10 operational gate passed.
-
-## Runtime gates that stay off until accepted
-
-- `HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- `HOSTED_PRIVATE_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED`
-- `HOSTED_REPOSITORY_SCAN_RUNTIME_ENABLED`
-- `HOSTED_PASSIVE_RUNTIME_WORKER_ENABLED`
-- `HOSTED_ACTIVE_CORS_WORKER_ENABLED`
-
-## Branch cleanup next step
-
-A live branch listing returned 21 refs, contradicting the previous four-ref cleanup claim. Before deleting anything:
-
-1. fetch every branch
-2. fetch every open PR, including pagination
-3. inspect current worktrees in the actual checkout
-4. prove reachability/merged or superseded status for each candidate
-5. preserve `main`, #76, #77, `demo/portfolio-20260910`, every active task branch, and every active worktree
-6. delete only after the candidate list is freshly reviewed
-7. re-list branches and document the exact result
-
-No branch deletion was performed during the latest continuation.
-
-## Completed latest maintenance
-
-PR #119 is complete. Do not redo it:
-
-- RED `24c6f442...`, CI `35054474634`
-- GREEN `9658a652...`, CI `35054754370`
-- merged only into #76 as `79e4b2a1...`
-
-PR #120 is complete. Do not redo it:
-
-- RED `a88ab371...`, Linux CI `35067132487`
-- GREEN `05b7959e...`, CI `35067478620`, exact-head Vercel passed
-- merged only into #76 as `2ff2bf07...`
-- completed Phase 10A2 security diff review found this one reportable issue and confirmed its remediation
+Do not fabricate state, expose secrets, weaken authorization/RLS/containment, rewrite deployed migrations, or apply Phase 10A3 production state before #76 releases.

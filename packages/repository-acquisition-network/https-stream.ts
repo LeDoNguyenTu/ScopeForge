@@ -66,11 +66,16 @@ export function buildPinnedGitHubRequestOptions(input: {
     path: `${input.url.pathname}${input.url.search}`,
     timeout: input.timeoutMs,
     headers,
-    lookup: ((_hostname: string, _options: unknown, callback: (
+    lookup: ((_hostname: string, options: unknown, callback: (
       error: NodeJS.ErrnoException | null,
-      address: string,
-      family: number,
+      address: string | Array<{ address: string; family: number }>,
+      family?: number,
     ) => void) => {
+      if (typeof options === "object" && options !== null
+          && "all" in options && options.all === true) {
+        callback(null, [{ address: input.address, family: input.family }]);
+        return;
+      }
       callback(null, input.address, input.family);
     }) as RequestOptions["lookup"],
   };

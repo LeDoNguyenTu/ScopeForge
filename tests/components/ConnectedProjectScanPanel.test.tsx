@@ -33,6 +33,7 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof ConnectedPro
       role="owner"
       project={publicProject}
       snapshotRuntimeAvailable
+      privateSnapshotRuntimeAvailable={false}
       scanRuntimeAvailable={false}
       {...overrides}
     />,
@@ -55,11 +56,32 @@ describe("ConnectedProjectScanPanel", () => {
     expect(screen.getByText(/scan will wait safely until the repository scan runtime is enabled/i)).toBeInTheDocument();
   });
 
-  it("keeps private repositories connected but outside Phase 10A1 acquisition", () => {
+  it("truthfully disables private acquisition when its dedicated runtime is unavailable", () => {
     renderPanel({ project: { ...publicProject, isPrivate: true } });
     expect(screen.getByText("Private")).toBeInTheDocument();
-    expect(screen.getByText(/phase 10a2/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /private acquisition required/i })).toBeDisabled();
+    expect(screen.getByText(/private source acquisition is disabled in this deployment/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /private snapshot runtime unavailable/i })).toBeDisabled();
+  });
+
+  it("makes a connected private repository scannable when the dedicated acquisition runtime is enabled", async () => {
+    mocks.requestScan.mockResolvedValue({
+      ok: true,
+      status: "snapshot_queued",
+      taskId: "77777777-7777-4777-8777-777777777777",
+      message: "ScopeForge queued an isolated private source snapshot.",
+    });
+    renderPanel({
+      project: { ...publicProject, isPrivate: true },
+      privateSnapshotRuntimeAvailable: true,
+    });
+
+    expect(screen.getByRole("button", { name: /^scan project$/i })).toBeEnabled();
+    expect(screen.getByText(/dedicated private acquisition worker/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^scan project$/i }));
+
+    await waitFor(() => expect(mocks.requestScan).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222"));
+    expect(await screen.findByText(/isolated private source snapshot/i)).toBeInTheDocument();
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("prevents duplicate user starts while snapshot orchestration is already active", () => {
@@ -91,6 +113,15 @@ describe("ConnectedProjectScanPanel", () => {
     expect(mocks.requestScan).not.toHaveBeenCalled();
     expect(await screen.findByText(/resumed the published snapshot/i)).toBeInTheDocument();
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows a private waiting snapshot to use the same exact-snapshot recovery path", () => {
+    renderPanel({
+      project: { ...publicProject, isPrivate: true, projectScanState: "waiting_scan_runtime" },
+      privateSnapshotRuntimeAvailable: false,
+      scanRuntimeAvailable: true,
+    });
+    expect(screen.getByRole("button", { name: /resume project scan/i })).toBeEnabled();
   });
 
   it("keeps waiting recovery disabled until the repository scan runtime is available", () => {

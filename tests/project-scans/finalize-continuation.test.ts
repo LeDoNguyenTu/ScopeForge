@@ -18,8 +18,10 @@ function dependencies(overrides: Partial<ProjectScanServiceDependencies> = {}): 
     loadAuthorizedProject: vi.fn(async () => { throw new Error("unused"); }),
     revalidateRepository: vi.fn(async () => { throw new Error("unused"); }),
     snapshotRuntimeEnabled: () => true,
+    privateSnapshotRuntimeEnabled: () => true,
     scanRuntimeEnabled: () => true,
     enqueueSnapshotIntent: vi.fn(async () => ({ taskId: SNAPSHOT_TASK_ID })),
+    enqueuePrivateSnapshotIntent: vi.fn(async () => ({ taskId: SNAPSHOT_TASK_ID })),
     loadRecovery: vi.fn(async () => null),
     loadContinuation: vi.fn(async () => ({
       workspaceId: WORKSPACE_ID,
@@ -105,7 +107,7 @@ describe("connected project snapshot continuation", () => {
     expect(deps.enqueueScanContinuation).not.toHaveBeenCalled();
   });
 
-  it("never sends a private project into the public snapshot continuation path", async () => {
+  it("routes a published private snapshot through the same exact-snapshot scan continuation", async () => {
     const deps = dependencies({
       loadContinuation: vi.fn(async () => ({
         workspaceId: WORKSPACE_ID,
@@ -122,8 +124,12 @@ describe("connected project snapshot continuation", () => {
       })),
     });
     await expect(continueConnectedProjectScanAfterSnapshot({ snapshotTaskId: SNAPSHOT_TASK_ID, snapshotId: SNAPSHOT_ID }, deps))
-      .resolves.toEqual({ status: "ignored" });
-    expect(deps.enqueueScanContinuation).not.toHaveBeenCalled();
+      .resolves.toEqual({ status: "scan_queued", taskId: SCAN_TASK_ID, scanJobId: SCAN_JOB_ID, replayed: false });
+    expect(deps.enqueueScanContinuation).toHaveBeenCalledWith(expect.objectContaining({
+      isPrivate: true,
+      snapshotTaskId: SNAPSHOT_TASK_ID,
+      snapshotId: SNAPSHOT_ID,
+    }));
   });
 
   it("records retry-pending state instead of throwing after immutable snapshot publication", async () => {

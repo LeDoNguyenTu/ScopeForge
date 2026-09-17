@@ -1,17 +1,23 @@
 import { createHash } from "node:crypto";
 import {
   validateWorkerTerminalEnvelope,
+  type AnyWorkerTaskContract,
+  type AnyWorkerTerminalEnvelope,
   type WorkerTaskContract,
   type WorkerTerminalEnvelope,
 } from "@/packages/worker-contracts";
 import type { WorkerSupervisorControlClient } from "./control-client";
-import type { WorkerExecutor, WorkerExecutorContract } from "./executor";
+import type {
+  AnyWorkerExecutor,
+  AnyWorkerExecutorContract,
+  WorkerExecutorContract,
+} from "./executor";
 import type { RepositoryScanPreparer } from "./repository-scan";
 import type { RuntimeNetworkPreparer } from "./runtime-network";
 
 export interface WorkerSupervisorDependencies {
   control: WorkerSupervisorControlClient;
-  executor: WorkerExecutor;
+  executor: AnyWorkerExecutor;
   repositoryScanPreparer?: RepositoryScanPreparer;
   runtimeNetworkPreparer?: RuntimeNetworkPreparer;
   heartbeatMs?: number;
@@ -25,13 +31,13 @@ type RuntimeExecutionClass =
   | "active_cors_validation_v1";
 
 function isRuntimeExecutionClass(
-  executionClass: WorkerTaskContract["executionClass"],
+  executionClass: AnyWorkerTaskContract["executionClass"],
 ): executionClass is RuntimeExecutionClass {
   return executionClass === "passive_runtime_observation_v1"
     || executionClass === "active_cors_validation_v1";
 }
 
-function executorContract(task: WorkerTaskContract): WorkerExecutorContract {
+function executorContract(task: AnyWorkerTaskContract): AnyWorkerExecutorContract {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
     throw new Error("Phase 6C tasks must be prepared before executor dispatch.");
   }
@@ -45,13 +51,13 @@ function executorContract(task: WorkerTaskContract): WorkerExecutorContract {
     absoluteDeadlineAt: task.absoluteDeadlineAt,
     budget: task.budget,
     input: task.input,
-  });
+  }) as AnyWorkerExecutorContract;
 }
 
 function failureTerminal(
-  task: WorkerTaskContract,
+  task: AnyWorkerTaskContract,
   code: "WORKER_LOST" | "WORKER_EXECUTION_FAILED" | "WORKER_OUTPUT_INVALID" | "WORKER_BUDGET_EXCEEDED",
-): WorkerTerminalEnvelope {
+): AnyWorkerTerminalEnvelope {
   return Object.freeze({
     schemaVersion: 1,
     taskId: task.taskId,
@@ -67,13 +73,13 @@ function failureTerminal(
       outputBytes: 0,
     }),
     result: null,
-  });
+  }) as AnyWorkerTerminalEnvelope;
 }
 
 function cancelledTerminal(
-  task: WorkerTaskContract,
-  prior?: WorkerTerminalEnvelope,
-): WorkerTerminalEnvelope {
+  task: AnyWorkerTaskContract,
+  prior?: AnyWorkerTerminalEnvelope,
+): AnyWorkerTerminalEnvelope {
   return Object.freeze({
     schemaVersion: 1,
     taskId: task.taskId,
@@ -89,7 +95,7 @@ function cancelledTerminal(
       outputBytes: 0,
     }),
     result: null,
-  });
+  }) as AnyWorkerTerminalEnvelope;
 }
 
 function foundationProbeDigest(nonce: string): string {
@@ -97,8 +103,8 @@ function foundationProbeDigest(nonce: string): string {
 }
 
 function successfulOutputMatchesTask(
-  task: WorkerTaskContract,
-  terminal: WorkerTerminalEnvelope,
+  task: AnyWorkerTaskContract,
+  terminal: AnyWorkerTerminalEnvelope,
 ): boolean {
   if (task.executionClass === "foundation_no_egress_v1") {
     return task.input.kind === "foundation_probe"
@@ -109,6 +115,14 @@ function successfulOutputMatchesTask(
     return task.input.kind === "repository_snapshot_github_public"
       && terminal.result?.kind === "repository_snapshot_github_public"
       && terminal.result.canonicalRepositoryUrl === task.input.canonicalRepositoryUrl;
+  }
+  if (task.executionClass === "repository_snapshot_github_private_v1") {
+    return task.input.kind === "repository_snapshot_github_private"
+      && terminal.executionClass === "repository_snapshot_github_private_v1"
+      && terminal.result?.kind === "repository_snapshot_github_private"
+      && terminal.result.canonicalRepositoryUrl === task.input.canonicalRepositoryUrl
+      && terminal.result.defaultBranch === task.input.privateArchiveLease.defaultBranch
+      && terminal.result.resolvedCommitSha === task.input.privateArchiveLease.resolvedCommitSha;
   }
   if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
     return task.input.kind === "phase3_repository_scan"
@@ -133,15 +147,21 @@ function successfulOutputMatchesTask(
 }
 
 function canonicalTerminal(
-  task: WorkerTaskContract,
+  task: AnyWorkerTaskContract,
   value: unknown,
-): WorkerTerminalEnvelope {
+): AnyWorkerTerminalEnvelope {
   try {
-    const terminal = validateWorkerTerminalEnvelope(value, {
-      taskId: task.taskId,
-      attemptId: task.attemptId,
-      executionClass: task.executionClass,
-    });
+    const terminal = task.executionClass === "repository_snapshot_github_private_v1"
+      ? validateWorkerTerminalEnvelope(value, {
+        taskId: task.taskId,
+        attemptId: task.attemptId,
+        executionClass: "repository_snapshot_github_private_v1",
+      })
+      : validateWorkerTerminalEnvelope(value, {
+        taskId: task.taskId,
+        attemptId: task.attemptId,
+        executionClass: task.executionClass,
+      });
     if (terminal.outcome === "succeeded" && !successfulOutputMatchesTask(task, terminal)) {
       return failureTerminal(task, "WORKER_OUTPUT_INVALID");
     }
@@ -152,7 +172,7 @@ function canonicalTerminal(
 }
 
 function executionTimeoutMs(
-  task: WorkerTaskContract,
+  task: AnyWorkerTaskContract,
   now: () => number,
 ): number {
   const deadlineMs = Date.parse(task.absoluteDeadlineAt);
@@ -161,8 +181,8 @@ function executionTimeoutMs(
 }
 
 function executeWithinSupervisorBoundary(
-  executor: WorkerExecutor,
-  contract: WorkerExecutorContract,
+  executor: AnyWorkerExecutor,
+  contract: AnyWorkerExecutorContract,
   signal: AbortSignal,
 ): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -194,16 +214,18 @@ function executeWithinSupervisorBoundary(
 }
 
 async function executePreparedTask(
-  task: WorkerTaskContract,
-  executor: WorkerExecutor,
-  contract: WorkerExecutorContract,
+  task: AnyWorkerTaskContract,
+  executor: AnyWorkerExecutor,
+  contract: AnyWorkerExecutorContract,
   signal: AbortSignal,
 ): Promise<unknown> {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1"
+      || task.executionClass === "repository_snapshot_github_private_v1"
       || isRuntimeExecutionClass(task.executionClass)) {
-    // Phase 6C and Phase 6D own killable external sandboxes. Do not detach on
-    // abort: the executor resolves/rejects only after hostile work has stopped,
-    // so cleanup and trusted finalization cannot race a still-running process.
+    // Phase 6C, Phase 6D, and private snapshot execution own resources that
+    // must be drained on abort. The executor resolves/rejects only after its
+    // process, source stream, scratch state, and upload work have stopped, so
+    // cleanup and trusted finalization cannot race still-running work.
     return executor.execute(contract, signal);
   }
   return executeWithinSupervisorBoundary(executor, contract, signal);
@@ -273,23 +295,23 @@ async function prepareRuntimeTask(
 }
 
 async function preparedExecutorContract(
-  task: WorkerTaskContract,
+  task: AnyWorkerTaskContract,
   dependencies: WorkerSupervisorDependencies,
   signal: AbortSignal,
   runtimeIsCancelled: () => Promise<boolean>,
-): Promise<{ contract: WorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
+): Promise<{ contract: AnyWorkerExecutorContract; cleanup: (() => Promise<void>) | null }> {
   if (task.executionClass === "phase3_repository_scan_no_egress_v1") {
-    return prepareRepositoryScanTask(task, dependencies, signal);
+    return prepareRepositoryScanTask(task as WorkerTaskContract, dependencies, signal);
   }
   if (isRuntimeExecutionClass(task.executionClass)) {
-    return prepareRuntimeTask(task, dependencies, signal, runtimeIsCancelled);
+    return prepareRuntimeTask(task as WorkerTaskContract, dependencies, signal, runtimeIsCancelled);
   }
   return { contract: executorContract(task), cleanup: null };
 }
 
 async function finalizeThroughTrustedBoundary(
-  task: WorkerTaskContract,
-  terminal: WorkerTerminalEnvelope,
+  task: AnyWorkerTaskContract,
+  terminal: AnyWorkerTerminalEnvelope,
   control: WorkerSupervisorControlClient,
 ): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }> {
   if (isRuntimeExecutionClass(task.executionClass)) {
@@ -301,7 +323,7 @@ async function finalizeThroughTrustedBoundary(
       taskId: task.taskId,
       attemptId: task.attemptId,
       leaseToken: task.leaseToken,
-      terminal,
+      terminal: terminal as WorkerTerminalEnvelope,
     });
   }
 
@@ -314,7 +336,7 @@ async function finalizeThroughTrustedBoundary(
       taskId: task.taskId,
       attemptId: task.attemptId,
       leaseToken: task.leaseToken,
-      terminal,
+      terminal: terminal as WorkerTerminalEnvelope,
     });
   }
 
@@ -403,7 +425,7 @@ export async function runWorkerOnce(
     });
   }, heartbeatMs);
 
-  let terminal: WorkerTerminalEnvelope;
+  let terminal: AnyWorkerTerminalEnvelope;
   let cleanup: (() => Promise<void>) | null = null;
   let cleanupFailed = false;
   try {

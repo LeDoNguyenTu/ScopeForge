@@ -47,7 +47,7 @@ export interface ConnectedProjectScanRecovery {
 
 export type ProjectScanRequestResult =
   | { status: "snapshot_queued"; taskId: string }
-  | { status: "private_acquisition_required" }
+  | { status: "private_snapshot_runtime_unavailable" }
   | { status: "snapshot_runtime_unavailable" };
 
 export type ProjectScanContinuationResult =

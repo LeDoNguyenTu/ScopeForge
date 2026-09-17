@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstat, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   validateWorkerTerminalEnvelope,
@@ -216,6 +216,7 @@ export function createRepositoryScanExecutor(
         await writeFile(taskMetadataPath, `${JSON.stringify({
           canonicalRepositoryUrl: contract.input.canonicalRepositoryUrl,
         })}\n`, { flag: "wx", mode: 0o444 });
+        await chmod(taskMetadataPath, 0o444);
 
         let sandboxResult;
         try {
