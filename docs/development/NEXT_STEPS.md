@@ -4,13 +4,12 @@ Last reconciled: 2026-09-18, Asia/Singapore.
 
 ## Priority 0: finish PR #77 release
 
-1. Configure the ScopeForge GitHub App webhook URL as `https://scopeforge.dev/api/integrations/github/webhook` and use the same secret already stored in Vercel production. Transfer it from the local temporary secret file without displaying it, then delete the file.
-2. Run provider replay, lifecycle, newest-head coalescing, same-head recovery, stale-trigger authoritative-head, terminal retry, public/private separation, privacy, rollback, and full webhook -> snapshot -> scan -> findings canaries. Signed ping, unsupported-event 202, invalid-signature 401, and oversize 413 already passed on the READY production candidate.
-3. Require exact-head GitHub CI plus Vercel success after the final documentation-only checkpoint.
-4. Merge normally and verify released `main`, production deployment, migration ledger, advisors, workers, and browser behavior.
-5. Reconcile PR #124 only after PR #77 releases.
+1. Run provider replay, lifecycle, newest-head coalescing, same-head recovery, stale-trigger authoritative-head, terminal retry, public/private separation, privacy, rollback, and full webhook -> snapshot -> scan -> findings canaries. GitHub provider `ping` and `installation.new_permissions_accepted` deliveries plus signed ping, unsupported-event 202, invalid-signature 401, and oversize 413 already passed.
+2. Require exact-head GitHub CI plus Vercel success after the final acceptance documentation checkpoint. The pre-acceptance documentation head `8b6a3dca3fa72901b064f92ac486e408f360a3a8` is green in CI run `35257848754` and Vercel.
+3. Merge normally and verify released `main`, production deployment, migration ledger, advisors, workers, and browser behavior.
+4. Reconcile PR #124 only after PR #77 releases.
 
-The seven Phase 10A3 migrations and Vercel production webhook secret are already deployed. Do not reapply or rotate them merely to repeat work.
+The seven Phase 10A3 migrations, Vercel production webhook secret, GitHub App webhook endpoint/secret, and required event subscriptions are already deployed. Do not reapply or rotate them merely to repeat work.
 
 ## Priority 0: release PR #76
 

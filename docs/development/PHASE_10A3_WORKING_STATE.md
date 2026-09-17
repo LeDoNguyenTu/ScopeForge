@@ -11,13 +11,13 @@ Phase 10A2 is released on `main` at `327b06d150f24d4cb3161cac078198ae0d473613`. 
 - All seven Phase 10A3 migrations are deployed to `tdgpibrepzcvdivztkta` and verified in the live ledger.
 - Phase 10A3 privileged RPCs are executable only by `service_role`; private reconciliation tables have RLS and no direct DML grants.
 - Production Vercel has a new cryptographically random `GITHUB_APP_WEBHOOK_SECRET`.
-- The GitHub App still needs the matching secret plus `https://scopeforge.dev/api/integrations/github/webhook`; production canaries and exact-head ready-state CI follow that configuration.
+- The GitHub App has the matching secret plus `https://scopeforge.dev/api/integrations/github/webhook`. Push and Repository are subscribed; Installation and Installation repositories are automatic GitHub App events.
 - PR #77 was marked ready and CI `35257055269` passed at `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`.
-- Production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY. Signed ping/unsupported-event and invalid-signature/oversize canaries passed (`200/202/401/413`). Provider-delivery and end-to-end canaries remain gated on the GitHub App webhook save.
+- Production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY. Signed ping/unsupported-event and invalid-signature/oversize canaries passed (`200/202/401/413`). GitHub provider deliveries for `ping` and `installation.new_permissions_accepted` succeeded, with HTTP 200 for the installation delivery. Replay/lifecycle/coalescing/recovery/public-private and end-to-end canaries remain.
 
 Do not reapply the migrations, rotate the new secret, weaken provider revalidation, or enable any additional runtime gate merely to accelerate acceptance.
 
-Phase 10A3 remains implemented, DRAFT, and stacked behind Phase 10A2 PR #76. It is not authorized for production migration or webhook activation yet.
+Phase 10A3 is implemented and PR #77 is OPEN/ready. Phase 10A2 PR #76 is released; the reviewed Phase 10A3 migrations and webhook activation are deployed. Release still requires the remaining production acceptance matrix.
 
 ## Current live checkpoint
 

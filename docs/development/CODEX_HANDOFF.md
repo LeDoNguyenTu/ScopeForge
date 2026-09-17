@@ -7,16 +7,18 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state still wi
 - Released `main`: `327b06d150f24d4cb3161cac078198ae0d473613` (Phase 10A2 is released and production-verified).
 - PR #77 branch: `feat/phase-10a3-github-webhook-reconciliation`.
 - Last source head: `1fd0a5472d8dbdb4359992de96f1ad494f72df24`; remote matches and the worktree was clean before this documentation refresh.
-- PR #77 is OPEN/DRAFT and mergeable/clean. Vercel is READY for the exact source head. GitHub CI was skipped because the PR remained draft.
+- PR #77 is OPEN/ready and mergeable/clean. Current documentation head is `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
 - Full validation at `1fd0a547`: 437 files passed, 4 skipped; 1,994 tests passed, 24 skipped; audit 0; typecheck, CLI 0.1.0, worker build, scanner benchmark, benchmark matrix, and Next production build passed.
 - Exact security scan `3d751254-8c97-4b99-b464-a97955b7839d` covered all 24 changed source/schema files in `327b06d..1fd0a547` and reported zero findings.
 - All seven reviewed Phase 10A3 migrations are applied to ScopeForge Supabase `tdgpibrepzcvdivztkta`; live generated migration versions run from `20260917180241` through `20260917180257`.
 - Production Vercel now has a cryptographically random secret `GITHUB_APP_WEBHOOK_SECRET`. Its value must never be printed or copied into documentation.
-- Remaining release gate: configure the ScopeForge GitHub App webhook URL as `https://scopeforge.dev/api/integrations/github/webhook` with the same secret, then run signed/invalid/oversize/replay/lifecycle/coalescing/recovery/public-private/end-to-end canaries.
-- Browser automation was unavailable because the local CUA kernel assets could not initialize. The secret remains in the local temporary secret file for secure clipboard transfer; delete that file immediately after GitHub App configuration.
+- The ScopeForge GitHub App webhook now targets `https://scopeforge.dev/api/integrations/github/webhook` with the matching production secret. Push and Repository subscriptions are saved. GitHub delivers Installation and Installation repositories to all GitHub Apps without separate subscription checkboxes.
+- GitHub recorded successful provider deliveries for `ping` and `installation.new_permissions_accepted`; the latter completed with HTTP 200 in 0.5 seconds. The local temporary secret file was deleted and the clipboard cleared without displaying the value.
+- Remaining release gate: run replay/lifecycle/coalescing/recovery/public-private/end-to-end production canaries, then merge and verify released production.
 - PR #77 was marked ready. Exact-head CI run `35257055269` passed at documentation head `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`, and its Vercel preview was READY.
 - Exact candidate production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY and aliased to `scopeforge.dev`.
 - Non-mutating production canaries passed: signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413`.
+- Exact-head CI run `35257848754` and Vercel passed at `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
 
 ## Immediate resume point
 

@@ -6,18 +6,18 @@ Last refreshed: 2026-09-18, Asia/Singapore.
 
 - Worktree: `D:\PROJECTS\ScopeForge-pr77`
 - Branch: `feat/phase-10a3-github-webhook-reconciliation`
-- PR #77: open/draft, cleanly mergeable
+- PR #77: open/ready, cleanly mergeable
 - Last source head: `1fd0a5472d8dbdb4359992de96f1ad494f72df24`
 - Base/released `main`: `327b06d150f24d4cb3161cac078198ae0d473613`
-- Vercel preview: READY; GitHub CI skipped while draft
+- Exact-head CI `35257848754` and Vercel: passed at `8b6a3dca3fa72901b064f92ac486e408f360a3a8`
 - Source validation: 437 files passed, 4 skipped; 1,994 tests passed, 24 skipped; all builds, audit, typecheck, and benchmarks passed
 - Final security scan: `3d751254-8c97-4b99-b464-a97955b7839d`, complete, zero findings
 - Production schema: all seven Phase 10A3 migrations applied and ACL/RLS checks passed
 - Production Vercel: `GITHUB_APP_WEBHOOK_SECRET` configured securely
 
-Immediate next action: update the ScopeForge GitHub App webhook URL/secret, using the local temporary secret file via clipboard without displaying its value. Browser automation failed to initialize, so this may be the only user-assisted step. Delete the temporary secret file after the GitHub App save succeeds. Then run production canaries, mark #77 ready, require exact-head CI/Vercel, merge, and verify production.
+Immediate next action: run the remaining replay/lifecycle/coalescing/recovery/public-private/end-to-end production canaries, then document exact-candidate evidence, merge, and verify production.
 
-Already complete after the first checkpoint: PR #77 is ready; CI `35257055269` and the Vercel preview passed at `657359bc44a5376205f8a449f1b4cae9cc2b3fa4`; production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY; signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413` passed. Remaining canaries require the GitHub App webhook save.
+Already complete after the first checkpoint: PR #77 is ready; production deployment `dpl_Cyn83SBDv8C2X6fKFLiikK5DncuA` is READY; signed ping `200`, signed unsupported event `202`, invalid signature `401`, and oversized request `413` passed. The GitHub App webhook endpoint/secret and Push/Repository subscriptions are saved; Installation and Installation repositories are automatic. GitHub shows successful `ping` and `installation.new_permissions_accepted` deliveries, with the latter returning HTTP 200 in 0.5 seconds. The temporary secret file was deleted and clipboard cleared. CI `35257848754` and Vercel passed at head `8b6a3dca3fa72901b064f92ac486e408f360a3a8`.
 
 ## Resume exactly here
 

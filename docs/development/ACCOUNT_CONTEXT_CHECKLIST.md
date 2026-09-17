@@ -26,6 +26,8 @@ Before work:
 
 Also verify the ScopeForge GitHub App under the intended GitHub account. The production connection is expected to be associated with GitHub account `LeDoNguyenTu` and selected repository access for `LeDoNguyenTu/ScopeForge`. Do not expose the App private key, client secret, state secret, installation token, or OAuth token.
 
+As of 2026-09-18, the ScopeForge GitHub App webhook is configured for `https://scopeforge.dev/api/integrations/github/webhook`; Push and Repository subscriptions are saved. Installation and Installation repositories are default GitHub App events and do not appear as selectable subscription checkboxes.
+
 ## 2. Vercel
 
 Verified during this handoff:

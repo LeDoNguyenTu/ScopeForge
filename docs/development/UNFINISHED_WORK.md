@@ -8,10 +8,11 @@ Last reconciled: 2026-09-18, Asia/Singapore.
 
 Code hardening, exact local validation, final security review, Phase 10A3 schema deployment, and Vercel secret creation are complete.
 
+The GitHub App webhook URL/secret and required event subscriptions are configured. Successful `ping` and `installation.new_permissions_accepted` deliveries prove GitHub-to-production transport.
+
 Remaining:
 
-- configure the ScopeForge GitHub App webhook URL and matching secret
-- run the remaining provider-delivery and end-to-end production webhook/security acceptance matrix; deployment plus the non-mutating edge canaries are complete
+- run the remaining replay/lifecycle/coalescing/recovery/public-private and end-to-end production webhook/security acceptance matrix; deployment, provider transport, and non-mutating edge canaries are complete
 - obtain exact-head CI/Vercel after the final documentation checkpoint, merge, and verify released production
 
 PR #76 is merged/released and is no longer unfinished. Do not repeat issue #79 or Phase 10A2 acceptance.
