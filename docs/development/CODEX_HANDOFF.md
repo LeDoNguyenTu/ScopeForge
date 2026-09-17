@@ -1,6 +1,19 @@
 # ScopeForge Codex handoff
 
-Last reconciled: 2026-09-17, Asia/Singapore. Live GitHub/provider state still wins.
+Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state still wins.
+
+## 2026-09-18 Phase 10A3 release checkpoint (supersedes older resume text below)
+
+- Released `main`: `327b06d150f24d4cb3161cac078198ae0d473613` (Phase 10A2 is released and production-verified).
+- PR #77 branch: `feat/phase-10a3-github-webhook-reconciliation`.
+- Last source head: `1fd0a5472d8dbdb4359992de96f1ad494f72df24`; remote matches and the worktree was clean before this documentation refresh.
+- PR #77 is OPEN/DRAFT and mergeable/clean. Vercel is READY for the exact source head. GitHub CI was skipped because the PR remained draft.
+- Full validation at `1fd0a547`: 437 files passed, 4 skipped; 1,994 tests passed, 24 skipped; audit 0; typecheck, CLI 0.1.0, worker build, scanner benchmark, benchmark matrix, and Next production build passed.
+- Exact security scan `3d751254-8c97-4b99-b464-a97955b7839d` covered all 24 changed source/schema files in `327b06d..1fd0a547` and reported zero findings.
+- All seven reviewed Phase 10A3 migrations are applied to ScopeForge Supabase `tdgpibrepzcvdivztkta`; live generated migration versions run from `20260917180241` through `20260917180257`.
+- Production Vercel now has a cryptographically random secret `GITHUB_APP_WEBHOOK_SECRET`. Its value must never be printed or copied into documentation.
+- Remaining release gate: configure the ScopeForge GitHub App webhook URL as `https://scopeforge.dev/api/integrations/github/webhook` with the same secret, then run signed/invalid/oversize/replay/lifecycle/coalescing/recovery/public-private/end-to-end canaries.
+- Browser automation was unavailable because the local CUA kernel assets could not initialize. The secret remains in the local temporary secret file for secure clipboard transfer; delete that file immediately after GitHub App configuration.
 
 ## Immediate resume point
 

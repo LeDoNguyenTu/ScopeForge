@@ -1,6 +1,21 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-17, Asia/Singapore.
+Last refreshed: 2026-09-18, Asia/Singapore.
+
+## Resume exactly here (supersedes the older PR #76 section below)
+
+- Worktree: `D:\PROJECTS\ScopeForge-pr77`
+- Branch: `feat/phase-10a3-github-webhook-reconciliation`
+- PR #77: open/draft, cleanly mergeable
+- Last source head: `1fd0a5472d8dbdb4359992de96f1ad494f72df24`
+- Base/released `main`: `327b06d150f24d4cb3161cac078198ae0d473613`
+- Vercel preview: READY; GitHub CI skipped while draft
+- Source validation: 437 files passed, 4 skipped; 1,994 tests passed, 24 skipped; all builds, audit, typecheck, and benchmarks passed
+- Final security scan: `3d751254-8c97-4b99-b464-a97955b7839d`, complete, zero findings
+- Production schema: all seven Phase 10A3 migrations applied and ACL/RLS checks passed
+- Production Vercel: `GITHUB_APP_WEBHOOK_SECRET` configured securely
+
+Immediate next action: update the ScopeForge GitHub App webhook URL/secret, using the local temporary secret file via clipboard without displaying its value. Browser automation failed to initialize, so this may be the only user-assisted step. Delete the temporary secret file after the GitHub App save succeeds. Then run production canaries, mark #77 ready, require exact-head CI/Vercel, merge, and verify production.
 
 ## Resume exactly here
 

@@ -1,6 +1,19 @@
 # Phase 10A3 Working State
 
-Last reconciled: 2026-09-16, Asia/Singapore
+Last reconciled: 2026-09-18, Asia/Singapore
+
+## 2026-09-18 release checkpoint (supersedes older blocker text below)
+
+Phase 10A2 is released on `main` at `327b06d150f24d4cb3161cac078198ae0d473613`. PR #77 was reconciled and hardened through source head `1fd0a5472d8dbdb4359992de96f1ad494f72df24`.
+
+- Full exact-source validation passed: 437 files / 1,994 tests, with 4 files / 24 tests skipped; audit 0; typecheck, CLI, workers, benchmarks, and Next build passed.
+- Final immutable security scan `3d751254-8c97-4b99-b464-a97955b7839d` covered 24 files and found no reportable issues.
+- All seven Phase 10A3 migrations are deployed to `tdgpibrepzcvdivztkta` and verified in the live ledger.
+- Phase 10A3 privileged RPCs are executable only by `service_role`; private reconciliation tables have RLS and no direct DML grants.
+- Production Vercel has a new cryptographically random `GITHUB_APP_WEBHOOK_SECRET`.
+- The GitHub App still needs the matching secret plus `https://scopeforge.dev/api/integrations/github/webhook`; production canaries and exact-head ready-state CI follow that configuration.
+
+Do not reapply the migrations, rotate the new secret, weaken provider revalidation, or enable any additional runtime gate merely to accelerate acceptance.
 
 Phase 10A3 remains implemented, DRAFT, and stacked behind Phase 10A2 PR #76. It is not authorized for production migration or webhook activation yet.
 

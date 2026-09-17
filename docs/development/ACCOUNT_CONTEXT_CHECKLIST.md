@@ -1,6 +1,6 @@
 # ScopeForge account and provider context checklist
 
-Prepared: 2026-09-14, Asia/Singapore
+Prepared: 2026-09-18, Asia/Singapore
 
 This file contains only non-secret identity/context information. It is a guard against operating the wrong account or project. Never add secret values to this file.
 
@@ -38,6 +38,7 @@ Verified during this handoff:
 - framework: Next.js
 - configured Node runtime: 24.x
 - production domain includes: `scopeforge.dev`
+- production `GITHUB_APP_WEBHOOK_SECRET`: configured on 2026-09-18; never reveal its value
 
 At handoff time, the connected Vercel project reported a READY production deployment. Treat its deployment ID and commit as historical unless re-read live.
 
@@ -60,6 +61,7 @@ Correct ScopeForge project:
 - project ref/ID: `tdgpibrepzcvdivztkta`
 - region: `ap-southeast-1`
 - status at handoff: `ACTIVE_HEALTHY`
+- Phase 10A3 migrations applied on 2026-09-18; live generated versions `20260917180241` through `20260917180257`
 
 Different project - do not use for ScopeForge:
 

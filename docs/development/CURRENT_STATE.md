@@ -1,6 +1,18 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-17, Asia/Singapore.
+Last reconciled: 2026-09-18, Asia/Singapore.
+
+## Current Phase 10A3 checkpoint
+
+- `main`: `327b06d150f24d4cb3161cac078198ae0d473613`.
+- Issue #79: CLOSED; PR #76: MERGED/released.
+- PR #77: OPEN/DRAFT, cleanly mergeable; source head `1fd0a5472d8dbdb4359992de96f1ad494f72df24`.
+- Exact source validation and the final 24-file security scan are green; security scan ID `3d751254-8c97-4b99-b464-a97955b7839d` has zero findings.
+- All seven Phase 10A3 migrations are deployed to `tdgpibrepzcvdivztkta`. Privileged functions are `service_role` only with empty search paths; private reconciliation tables have RLS enabled and no DML grants to browser or service roles.
+- Production Vercel has the new webhook secret. The GitHub App webhook still needs the matching secret and `https://scopeforge.dev/api/integrations/github/webhook` URL before canaries or merge.
+- Existing advisor backlog remains: reviewed collaborator SECURITY DEFINER RPCs, leaked-password protection, and measured foreign-key/index performance follow-up.
+
+Older queue details below are historical and must not override this checkpoint.
 
 ## Release queue
 

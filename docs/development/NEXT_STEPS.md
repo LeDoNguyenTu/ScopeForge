@@ -1,6 +1,17 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-17, Asia/Singapore.
+Last reconciled: 2026-09-18, Asia/Singapore.
+
+## Priority 0: finish PR #77 release
+
+1. Configure the ScopeForge GitHub App webhook URL as `https://scopeforge.dev/api/integrations/github/webhook` and use the same secret already stored in Vercel production. Transfer it from the local temporary secret file without displaying it, then delete the file.
+2. Redeploy the exact PR candidate so the production runtime receives the new secret.
+3. Run invalid-signature, oversized-body, replay, unsupported-event 202, lifecycle, newest-head coalescing, same-head recovery, stale-trigger authoritative-head, terminal retry, public/private separation, privacy, rollback, and full webhook -> snapshot -> scan -> findings canaries.
+4. Commit/push this documentation refresh, mark PR #77 ready, and require exact-head GitHub CI plus Vercel success.
+5. Merge normally and verify released `main`, production deployment, migration ledger, advisors, workers, and browser behavior.
+6. Reconcile PR #124 only after PR #77 releases.
+
+The seven Phase 10A3 migrations and Vercel production webhook secret are already deployed. Do not reapply or rotate them merely to repeat work.
 
 ## Priority 0: release PR #76
 

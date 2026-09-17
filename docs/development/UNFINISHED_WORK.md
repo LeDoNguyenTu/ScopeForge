@@ -1,6 +1,20 @@
 # ScopeForge Unfinished Work
 
-Last reconciled: 2026-09-17, Asia/Singapore.
+Last reconciled: 2026-09-18, Asia/Singapore.
+
+## Current release blocker
+
+### PR #77
+
+Code hardening, exact local validation, final security review, Phase 10A3 schema deployment, and Vercel secret creation are complete.
+
+Remaining:
+
+- configure the ScopeForge GitHub App webhook URL and matching secret
+- redeploy and run the full production webhook/security acceptance matrix
+- mark ready, obtain exact-head CI/Vercel, merge, and verify released production
+
+PR #76 is merged/released and is no longer unfinished. Do not repeat issue #79 or Phase 10A2 acceptance.
 
 ## Release blocking
 
