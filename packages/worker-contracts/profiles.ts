@@ -1,4 +1,6 @@
 import type {
+  Phase11HttpDiscoveryExecutionClass,
+  Phase11HttpDiscoveryExecutionProfile,
   PrivateRepositorySnapshotExecutionClass,
   PrivateRepositorySnapshotExecutionProfile,
   WorkerExecutionClass,
@@ -95,6 +97,24 @@ const ACTIVE_CORS_VALIDATION_V1: WorkerExecutionProfile = Object.freeze({
   }),
 });
 
+const PHASE11_HTTP_DISCOVERY_V1: Phase11HttpDiscoveryExecutionProfile = Object.freeze({
+  executionClass: "phase11_http_discovery_v1",
+  networkPolicy: "phase11_http_discovery_target_bound_v1",
+  budget: Object.freeze({
+    maxWallTimeMs: 30_000,
+    maxCpuTimeMs: 15_000,
+    maxMemoryBytes: 268_435_456,
+    maxProcesses: 1,
+    maxInputFiles: 0,
+    maxInputBytes: 4_096,
+    maxScratchBytes: 8_388_608,
+    maxOutputBytes: 32_768,
+  }),
+});
+
+export function workerExecutionProfile(
+  executionClass: Phase11HttpDiscoveryExecutionClass,
+): Phase11HttpDiscoveryExecutionProfile;
 export function workerExecutionProfile(
   executionClass: PrivateRepositorySnapshotExecutionClass,
 ): PrivateRepositorySnapshotExecutionProfile;
@@ -102,8 +122,8 @@ export function workerExecutionProfile(
   executionClass: WorkerExecutionClass,
 ): WorkerExecutionProfile;
 export function workerExecutionProfile(
-  executionClass: WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass,
-): WorkerExecutionProfile | PrivateRepositorySnapshotExecutionProfile {
+  executionClass: WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass | Phase11HttpDiscoveryExecutionClass,
+): WorkerExecutionProfile | PrivateRepositorySnapshotExecutionProfile | Phase11HttpDiscoveryExecutionProfile {
   switch (executionClass) {
     case "foundation_no_egress_v1":
       return FOUNDATION_NO_EGRESS_V1;
@@ -117,6 +137,8 @@ export function workerExecutionProfile(
       return PASSIVE_RUNTIME_OBSERVATION_V1;
     case "active_cors_validation_v1":
       return ACTIVE_CORS_VALIDATION_V1;
+    case "phase11_http_discovery_v1":
+      return PHASE11_HTTP_DISCOVERY_V1;
   }
 
   const unreachable: never = executionClass;
