@@ -973,6 +973,7 @@ begin
     'providerId', binding_record.provider_id,
     'providerVersion', binding_record.provider_version,
     'discoveryProfile', action_record.closed_parameters->>'discoveryProfile',
+    'maxRequests', action_record.max_requests,
     'leasedAt', attempt_record.leased_at,
     'leaseExpiresAt', attempt_record.lease_expires_at,
     'cancelRequested', cancel_requested,
@@ -1169,8 +1170,12 @@ begin
   end if;
 
   if effective_outcome <> 'succeeded' then
+    -- Failed/cancelled execution must not erase already-consumed network
+    -- budget. The trusted finalization layer sends either the observed count
+    -- from a completed mediator result or the authorized max_requests as a
+    -- conservative upper bound when the executor terminated before it could
+    -- report an exact count.
     observation_rows := '[]'::jsonb;
-    target_request_count := 0;
   else
     for observation_row in select value from jsonb_array_elements(observation_rows)
     loop
