@@ -8,7 +8,7 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live repository/provider state wins
 - Vercel Hobby deployment filtering released through PR #137. Ordinary feature branches do not auto-deploy; `main` and explicit `vercel-preview-*` branches remain enabled.
 - Provider execution threat model and dependency review released through PR #138.
 
-## Prepared in PR #139
+## Prepared on the clean main-based provider branch
 
 - Bounded Nmap provider contract for port discovery and service fingerprinting.
 - Reviewed-template Nuclei provider contract with code-owned template profiles.
@@ -35,7 +35,7 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live repository/provider state wins
 - No Phase 11 Supabase migration is applied.
 - No planner-visible raw URL, command, shell, native flag, template path, header, body, or arbitrary provider argument is introduced.
 
-## Release gate for PR #139
+## Release gate
 
 Before merge:
 
@@ -47,7 +47,7 @@ Before merge:
 
 ## Next implementation gate
 
-After PR #139 releases:
+After this provider foundation releases:
 
 1. extend the existing dedicated Linux worker containment harness for Phase 11 provider execution classes
 2. introduce real runners one execution class at a time behind default-off feature flags
