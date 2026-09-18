@@ -6,25 +6,18 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live provider state wins.
 
 - Tasks 1 to 7: PR #125.
 - Task 8 persistence: PR #126.
-- Task 9 trusted run orchestration: PR #128, merge `fbab7d34bad504ecba7b883aba9f8013cc09b351`.
-- Task 11 first adaptive fixture: PR #130, merge `3677adeeb7a217c6eae5778b6d2f1240f486bea8`.
+- Task 9 trusted run orchestration: PR #128.
+- Task 11 two-stage adaptive fixture: PR #130, merge `3677adeeb7a217c6eae5778b6d2f1240f486bea8`.
 - Task 11 evaluation matrix: PR #132, merge `eb0b7ac9126feaa3ac9bb1c49e571ccc0a937653`.
-- Main CI `35346334325` and production Vercel `dpl_33dJ29vMvFy7wbMKQEeKsNbKx6t6` are READY/SUCCESS for the PR #132 merge SHA.
+- Task 11 labeled evaluation fixture: PR #134, merge `aaada713296ec70f0a6497b4828939bc6b88e7fb`.
 
-Task 9 includes immutable owner/admin authorization and policy snapshots, deterministic planner/policy evaluation, replay-safe queue reservations, explicit idempotency, approval-required intrusive work, cancellation propagation, privacy-reduced read models, private canonical state, service-role-only RPCs, and enqueue/cancellation race hardening.
-
-## Validation
-
-- Exact-head CI `35331494611`: 464 files passed, 4 skipped; 2,125 tests passed, 24 skipped; all required builds, benchmarks, browser smoke, and production diagnostics passed.
-- Local controlled validation: 460 files passed, 4 skipped; 2,101 tests passed, 24 skipped; typecheck, builds, audit, and benchmarks passed.
-- Codex Security scan `ad2fe4bb-10bb-4461-b0a0-f5fc9eecbce1`: complete, 0 findings.
-- GitNexus refreshed and used for impact/detect-changes review.
+PR #134's exact-head CI `35351118308`, post-merge main CI `35351673275`, and Vercel deployment `6525534937` passed. The released corpus is four synthetic labels and reports its scope and limits in `docs/validation/phase-11/`.
 
 ## Production boundary
 
-- Supabase `tdgpibrepzcvdivztkta` migration history ends at Phase 10A3. All three Phase 11 migrations remain unapplied and their tables are absent.
+- Supabase `tdgpibrepzcvdivztkta` remains at the Phase 10A3 migration boundary; all Phase 11 migrations are unapplied and the tables are absent.
 - No external Phase 11 provider execution is enabled.
 
 ## Next task
 
-Extend Task 11 with labeled vulnerability/attack-path, policy/approval, and remediation-retest cases. PR #132's two-fixture matrix measured 5 passing tests, replay stability, cancellation/expiry/budget/provider-failure containment, zero out-of-scope requests, zero leaked secrets, cleanup success, and zero cancellation latency. Continue using injected fake providers; do not widen hosted authority or apply production schema.
+Extend Task 11 with deterministic graph-expansion and policy/approval cases. Preserve injected execution, approval controls, deterministic evidence, and separate production schema/provider gates.

@@ -4,21 +4,20 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `eb0b7ac9126feaa3ac9bb1c49e571ccc0a937653` (PR #132 merged).
-- PR #125 released Phase 11 Tasks 1 to 7; PR #126 released Task 8 persistence; PR #128 released Task 9 orchestration.
-- Production Vercel remains READY at `scopeforge.dev`; the source release deployment was `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`.
-- PR #132 exact CI `35345875888` and post-merge main CI `35346334325` passed. Production Vercel `dpl_33dJ29vMvFy7wbMKQEeKsNbKx6t6` is READY at `scopeforge.dev` for the merge SHA.
+- `main`: `aaada713296ec70f0a6497b4828939bc6b88e7fb`.
+- PR #134 released labeled Phase 11 Task 11 evaluation coverage after PR #130's two-stage fixture and PR #132's evaluation matrix.
+- Exact-head CI `35351118308`, post-merge main CI `35351673275`, and Vercel production deployment `6525534937` are successful for the released work.
 
-## Task 9
+## Task 11
 
-Trusted run orchestration is released with immutable authority snapshots, deterministic planning and policy, replay-safe queue reservation, approval resume, cancellation race hardening, privacy-reduced read models, and service-role-only persistence boundaries. `vitest.config.mts` now includes the colocated `packages/**` and `lib/**` suites so Phase 11 tests run in normal CI.
+The adaptive harness now has deterministic evidence-gated discovery, replay, cancellation, authorization-expiry, request-budget, provider-failure, labeled accuracy, duplicate-correlation, attack-path, remediation-retest, and local safety coverage. Its metrics are deliberately limited to committed synthetic fixtures.
 
-## Production schema/runtime
+## Production boundary
 
-- Supabase `tdgpibrepzcvdivztkta` is healthy and remains at the Phase 10A3 migration boundary.
-- Phase 11 migrations `20260918061500_phase_11a_planning_graph.sql`, `20260918070000_phase_11a_run_orchestration.sql`, and `20260918070100_phase_11a_run_orchestration_hardening.sql` are source-only; live table checks returned null.
-- External Phase 11 provider execution remains disabled.
+- ScopeForge Supabase: `tdgpibrepzcvdivztkta`.
+- Phase 11 migrations remain unapplied and Phase 11 tables are absent in production.
+- External Phase 11 provider execution is disabled.
 
 ## Next
 
-PR #132 adds the Task 11 matrix: evidence-gated discovery, replay stability, cancellation, authorization expiry, request budget, and provider-failure containment, with zero out-of-scope requests, zero secret leakage, successful cleanup, and zero cancellation latency. Continue Task 11 with broader labeled vulnerability, attack-path, and remediation-retest coverage before any provider integration.
+Add deterministic graph-expansion and policy/approval fixture coverage before external provider evaluation. Do not repeat completed Phase 10 acceptance, apply Phase 11 schema early, or enable hosted providers.
