@@ -4,7 +4,7 @@ const PREFIX_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export function phase11StableId(
   prefix: string,
-  parts: readonly unknown[],
+  parts: readonly (string | readonly string[])[],
 ): string {
   if (!PREFIX_PATTERN.test(prefix)) {
     throw new Error("PHASE11_IDENTIFIER_PREFIX_INVALID");
