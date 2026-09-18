@@ -97,6 +97,87 @@ describe("Phase 11 external provider contracts", () => {
     expect(observations[0]?.observationId).toMatch(/^phase11-obs-nuclei:[0-9a-f]{64}$/);
   });
 
+  it("rejects malformed empty raw profiles before normalization", async () => {
+    const nuclei = createNucleiProvider(nucleiRunner({
+      capabilityId: "web.template.validate.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      templateProfile: "baseline-http",
+      minimumSeverity: "low",
+      matches: [],
+    }), { profiles: nucleiProfiles });
+
+    await expect(nuclei.normalize({
+      capabilityId: "web.template.validate.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      templateProfile: "unreviewed-profile",
+      minimumSeverity: "low",
+      matches: [],
+    } as never, normalizationContext)).rejects.toThrow("NUCLEI_RESULT_PROFILE_INVALID");
+
+    const http = createHttpDiscoveryProvider(httpRunner({
+      capabilityId: "web.route.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      discoveryProfile: "well-known-safe",
+      records: [],
+    }));
+
+    await expect(http.normalize({
+      capabilityId: "web.route.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      discoveryProfile: "unbounded-crawl",
+      records: [],
+    } as never, normalizationContext)).rejects.toThrow("HTTP_DISCOVERY_RESULT_PROFILE_INVALID");
+  });
+
+  it("rejects provider output that exceeds adapter cardinality ceilings", async () => {
+    const nmap = createNmapProvider(nmapRunner({
+      capabilityId: "network.port.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      records: [],
+    }));
+    const oversizedNmap = Array.from({ length: 2049 }, (_, index) => ({
+      targetNodeId: "node-1",
+      port: (index % 65535) + 1,
+      protocol: "tcp" as const,
+      state: "open" as const,
+      evidenceRef: `e-${index}`,
+      observedAt: "2026-09-18T00:00:00Z",
+    }));
+    await expect(nmap.normalize({
+      capabilityId: "network.port.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      records: oversizedNmap,
+    }, normalizationContext)).rejects.toThrow("NMAP_RESULT_RECORD_LIMIT_EXCEEDED");
+
+    const http = createHttpDiscoveryProvider(httpRunner({
+      capabilityId: "web.route.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      discoveryProfile: "well-known-safe",
+      records: [],
+    }));
+    const oversizedHttp = Array.from({ length: 5 }, (_, index) => ({
+      targetNodeId: "node-1",
+      routeKind: "root" as const,
+      status: 200,
+      evidenceRef: `e-http-${index}`,
+      observedAt: "2026-09-18T00:00:00Z",
+    }));
+    await expect(http.normalize({
+      capabilityId: "web.route.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      discoveryProfile: "well-known-safe",
+      records: oversizedHttp,
+    }, normalizationContext)).rejects.toThrow("HTTP_DISCOVERY_RESULT_RECORD_LIMIT_EXCEEDED");
+  });
+
   it("keeps Nuclei selection on reviewed code-owned profiles", async () => {
     let received: readonly string[] = [];
     const provider = createNucleiProvider({
