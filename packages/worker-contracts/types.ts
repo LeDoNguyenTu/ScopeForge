@@ -6,7 +6,8 @@ export type WorkerExecutionClass =
   | "repository_snapshot_github_public_v1"
   | "phase3_repository_scan_no_egress_v1"
   | "passive_runtime_observation_v1"
-  | "active_cors_validation_v1";
+  | "active_cors_validation_v1"
+  | "phase11_http_discovery_v1";
 export type PrivateRepositorySnapshotExecutionClass = "repository_snapshot_github_private_v1";
 export type Phase11HttpDiscoveryExecutionClass = "phase11_http_discovery_v1";
 export type WorkerNetworkPolicy =
@@ -157,7 +158,8 @@ export type WorkerTaskInput =
   | RepositorySnapshotInput
   | RepositoryScanInput
   | PassiveRuntimeObservationInput
-  | ActiveCorsValidationInput;
+  | ActiveCorsValidationInput
+  | Phase11HttpDiscoveryInput;
 
 export interface WorkerTaskContract {
   taskId: string;
@@ -191,7 +193,8 @@ export interface Phase11HttpDiscoveryTaskContract {
 
 export type AnyWorkerTaskContract =
   | WorkerTaskContract
-  | PrivateRepositorySnapshotTaskContract;
+  | PrivateRepositorySnapshotTaskContract
+  | Phase11HttpDiscoveryTaskContract;
 
 export interface WorkerAttemptMetrics {
   wallTimeMs: number;
@@ -301,7 +304,8 @@ export type WorkerTerminalResult =
   | RepositorySnapshotResult
   | RepositoryScanResult
   | PassiveRuntimeObservationResult
-  | ActiveCorsValidationResult;
+  | ActiveCorsValidationResult
+  | Phase11HttpDiscoveryResult;
 
 export interface WorkerTerminalEnvelope {
   schemaVersion: 1;
@@ -325,7 +329,10 @@ export interface PrivateRepositorySnapshotTerminalEnvelope {
   result: PrivateRepositorySnapshotResult | null;
 }
 
-export type AnyWorkerTerminalEnvelope = WorkerTerminalEnvelope | PrivateRepositorySnapshotTerminalEnvelope;
+export type AnyWorkerTerminalEnvelope =
+  | WorkerTerminalEnvelope
+  | PrivateRepositorySnapshotTerminalEnvelope
+  | Phase11HttpDiscoveryTerminalEnvelope;
 
 export interface WorkerTerminalExpectation {
   taskId: string;
