@@ -64,6 +64,7 @@ const PROFILES = new Set<NucleiTemplateProfile>([
   "known-cve-reviewed",
 ]);
 const SEVERITIES = new Set<NucleiSeverity>(["info", "low", "medium", "high", "critical"]);
+const MAX_NUCLEI_MATCHES = 4096;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -139,12 +140,16 @@ export function createNucleiProvider(
       if (raw.targetNodeId !== normalized.targetNodeId) throw new Error("NUCLEI_RESULT_TARGET_MISMATCH");
       if (raw.templateProfile !== normalized.templateProfile) throw new Error("NUCLEI_RESULT_PROFILE_MISMATCH");
       if (raw.minimumSeverity !== normalized.minimumSeverity) throw new Error("NUCLEI_RESULT_SEVERITY_FLOOR_MISMATCH");
+      if (!Array.isArray(raw.matches) || raw.matches.length > MAX_NUCLEI_MATCHES) throw new Error("NUCLEI_RESULT_MATCH_LIMIT_EXCEEDED");
       return raw;
     },
     async normalize(raw: NucleiRawResult, context: ProviderNormalizationContext) {
       if (raw.capabilityId !== NUCLEI_CAPABILITY) throw new Error("NUCLEI_RESULT_CAPABILITY_INVALID");
       if (raw.actionId !== context.actionId) throw new Error("NUCLEI_RESULT_ACTION_MISMATCH");
       if (!raw.targetNodeId.trim()) throw new Error("NUCLEI_RESULT_TARGET_REQUIRED");
+      if (!PROFILES.has(raw.templateProfile)) throw new Error("NUCLEI_RESULT_PROFILE_INVALID");
+      if (!SEVERITIES.has(raw.minimumSeverity)) throw new Error("NUCLEI_RESULT_SEVERITY_FLOOR_INVALID");
+      if (!Array.isArray(raw.matches) || raw.matches.length > MAX_NUCLEI_MATCHES) throw new Error("NUCLEI_RESULT_MATCH_LIMIT_EXCEEDED");
       const approvedForProfile = new Set(config.profiles[raw.templateProfile] ?? []);
       const observations = raw.matches.map((match: NucleiMatchRecord): Observation => {
         if (match.targetNodeId !== raw.targetNodeId) throw new Error("NUCLEI_RESULT_TARGET_OUT_OF_SCOPE");
