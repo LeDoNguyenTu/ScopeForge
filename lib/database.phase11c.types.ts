@@ -19,6 +19,15 @@ export type Phase11cWorkerFunctions = Phase10a2Database["public"]["Functions"] &
     };
     Returns: Json;
   };
+  cancel_phase11_http_worker_task: {
+    Args: {
+      target_workspace_id: string;
+      target_run_id: string;
+      target_action_id: string;
+      target_task_id: string;
+    };
+    Returns: Json;
+  };
   get_phase11_http_worker_preparation_context: {
     Args: {
       target_worker_id: string;
