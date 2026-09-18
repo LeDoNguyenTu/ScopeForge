@@ -242,8 +242,11 @@ beforeAll(async () => {
       updated_at timestamptz
     );
 
+    create function extensions.digest(bytea, text)
+    returns bytea language sql immutable as $ select $1 $;
+
     create function private.assert_phase11_run_scope(uuid, uuid, text)
-    returns void language sql as $$ select $$;
+    returns void language sql as $ select $;
 
     create function public.persist_phase11_observations(uuid, uuid, text, jsonb)
     returns jsonb language sql as $$ select '{}'::jsonb $$;
