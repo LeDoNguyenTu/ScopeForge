@@ -5,6 +5,26 @@ const migrationPath =
   "supabase/migrations/20260919020000_phase_11c_result_coverage_reconciliation.sql";
 
 describe("Phase 11C result-to-coverage reconciliation migration", () => {
+
+  it("contains one well-formed replacement for each reconciled database function", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    const names = [
+      "private.apply_phase11_attempt_coverage",
+      "public.get_phase11_http_worker_finalization_context",
+      "public.finalize_phase11_http_worker_attempt",
+      "private.recover_phase11_http_unleased_worker_tasks",
+      "private.recover_phase11_http_expired_worker_attempts",
+      "public.persist_phase11_graph_state",
+    ];
+
+    for (const name of names) {
+      expect(sql.match(new RegExp(`create or replace function ${name.replaceAll(".", "\\.")}\\(`, "gi"))).toHaveLength(1);
+    }
+    expect(sql.match(/as \$\$/g)).toHaveLength(names.length);
+    expect(sql.match(/\$\$;/g)).toHaveLength(names.length);
+    expect(sql).not.toMatch(/as \$(?!\$)/);
+  });
+
   it("persists bounded request usage on private action attempts", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).toMatch(/alter table private\.pentest_action_attempts[\s\S]*?add column request_count integer not null default 0/i);
