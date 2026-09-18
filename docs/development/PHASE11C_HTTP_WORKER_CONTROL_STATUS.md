@@ -25,12 +25,17 @@ Implemented so far:
 - HTTPS/443 target canonicalization in trusted code
 - request/runtime budget checks and clamping
 - no browser URL, hostname, method, headers, body, provider argv, network policy, or target node authority in the claimed input
+- replay-safe orchestration queue adapter keyed by the version-bound Phase 11 authorization ID
+- opaque queue references with cancellation routed back through the trusted repository boundary
+- architecture guard keeping queue/preparation free of direct database, process, and network authority
 
 The new class intentionally remains outside the generic production `WorkerExecutionClass` union at this checkpoint. It cannot be registered, claimed, or dispatched by the production fleet yet.
 
 ## Next source work
 
 1. finalize migration/RPC design against the current worker and Phase 11 schemas
+   - production migration ledger was rechecked and still ends at Phase 10A3
+   - the local execution environment does not currently provide a usable Supabase CLI, so no migration file has been fabricated or applied
 2. create a private immutable worker-task binding keyed by Phase 11 authorization identity
 3. add a service-role-only replay-safe enqueue RPC
 4. add trusted load/preparation/finalization RPCs with pinned search paths and revoked browser execution
