@@ -42,6 +42,13 @@ const ACTIVE_FAILURES = new Set([
   "ACTIVE_CORS_NETWORK_ERROR",
   "ACTIVE_CORS_OBSERVATION_BUDGET",
 ]);
+const HTTP_DISCOVERY_FAILURES = new Set([
+  "HTTP_DISCOVERY_REQUEST_BUDGET",
+  "HTTP_DISCOVERY_REQUEST_TIMEOUT",
+  "HTTP_DISCOVERY_TOTAL_TIMEOUT",
+  "HTTP_DISCOVERY_NETWORK_ERROR",
+  "HTTP_DISCOVERY_PROFILE_INVALID",
+]);
 
 export function validateRuntimeMediatorWireResponse(
   value: unknown,
@@ -79,6 +86,26 @@ export function validateRuntimeMediatorWireResponse(
         failureCode: value.failureCode,
         requestCount: value.requestCount,
         redirectCount: value.redirectCount,
+      });
+    }
+    wireInvalid();
+  }
+
+  if (executionClass === "phase11_http_discovery_v1") {
+    if (value.status === "cancelled") {
+      if (!exactKeys(value, ["status", "requestCount"])
+          || !count(value.requestCount, 12)) wireInvalid();
+      return Object.freeze({ status: "cancelled" as const, requestCount: value.requestCount });
+    }
+    if (value.status === "failed") {
+      if (!exactKeys(value, ["status", "failureCode", "requestCount"])
+          || typeof value.failureCode !== "string"
+          || !HTTP_DISCOVERY_FAILURES.has(value.failureCode)
+          || !count(value.requestCount, 12)) wireInvalid();
+      return Object.freeze({
+        status: "failed" as const,
+        failureCode: value.failureCode,
+        requestCount: value.requestCount,
       });
     }
     wireInvalid();
