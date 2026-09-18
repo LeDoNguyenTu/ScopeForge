@@ -2,6 +2,9 @@ import type {
   ActiveCorsValidationInput,
   FoundationProbeInput,
   PassiveRuntimeObservationInput,
+  Phase11HttpDiscoveryExecutionClass,
+  Phase11HttpDiscoveryInput,
+  Phase11HttpDiscoveryTaskContract,
   PrivateRepositorySnapshotExecutionClass,
   PrivateRepositorySnapshotInput,
   RepositoryScanInput,
@@ -14,7 +17,10 @@ import type {
   WorkerTerminalOutcome,
 } from "@/packages/worker-contracts";
 
-export type WorkerControlExecutionClass = WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass;
+export type WorkerControlExecutionClass =
+  | WorkerExecutionClass
+  | PrivateRepositorySnapshotExecutionClass
+  | Phase11HttpDiscoveryExecutionClass;
 
 export interface WorkerNodeIdentity {
   workerId: string;
@@ -158,6 +164,18 @@ export type RuntimeWorkerPersistenceClaimResult =
   | ActiveCorsWorkerPersistenceClaim
   | null;
 
+export interface Phase11HttpWorkerPersistenceClaim {
+  taskId: string;
+  attemptId: string;
+  executionClass: "phase11_http_discovery_v1";
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: Phase11HttpDiscoveryInput;
+}
+
+export type Phase11HttpWorkerPersistenceClaimResult = Phase11HttpWorkerPersistenceClaim | null;
+
 export interface PrivateRepositorySnapshotWorkerClaim {
   taskId: string;
   attemptId: string;
@@ -168,7 +186,11 @@ export interface PrivateRepositorySnapshotWorkerClaim {
   input: PrivateRepositorySnapshotInput;
 }
 
-export type WorkerClaimResult = WorkerTaskContract | PrivateRepositorySnapshotWorkerClaim | null;
+export type WorkerClaimResult =
+  | WorkerTaskContract
+  | PrivateRepositorySnapshotWorkerClaim
+  | Phase11HttpDiscoveryTaskContract
+  | null;
 
 export interface WorkerLeaseIdentity {
   workerId: string;

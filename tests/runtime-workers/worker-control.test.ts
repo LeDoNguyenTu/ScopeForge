@@ -8,6 +8,7 @@ import {
 import {
   claimWorkerTaskForNode,
   registerActiveCorsWorkerNode,
+  registerPhase11HttpWorkerNode,
   registerPassiveRuntimeWorkerNode,
 } from "@/lib/worker-control/service";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
@@ -109,9 +110,11 @@ describe("Phase 6D worker control paths", () => {
     const runtimeRepository = {
       registerPassiveRuntime,
       registerActiveCors,
+      registerPhase11Http: vi.fn(),
       enqueuePassiveRuntime: vi.fn(),
       enqueueActiveCors: vi.fn(),
       claimRuntime,
+      claimPhase11Http: vi.fn(),
     } as RuntimeWorkerControlRepository;
     const repository = {} as WorkerControlRepository;
     const randomBytes = () => Buffer.alloc(32, 7);
@@ -140,5 +143,90 @@ describe("Phase 6D worker control paths", () => {
       input: { kind: "active_cors_validation", domainJobId },
     });
     expect(claimRuntime).toHaveBeenCalledWith({ workerId });
+  });
+});
+
+describe("Phase 11 HTTP worker control paths", () => {
+  it("maps registration and claim to the dedicated Phase 11 RPCs", async () => {
+    const runId = "55555555-5555-4555-8555-555555555555";
+    const actionId = `phase11-action:${"c".repeat(64)}`;
+    const authorizationId = `phase11-authz:${"d".repeat(64)}`;
+    const { client, rpc } = rpcClient((name) => {
+      if (name === "register_phase11_http_worker_node") {
+        return { workerId, executionClass: "phase11_http_discovery_v1", softwareVersion: "0.1.0" };
+      }
+      if (name === "claim_phase11_http_worker_task") {
+        return {
+          taskId,
+          attemptId,
+          executionClass: "phase11_http_discovery_v1",
+          leaseToken,
+          absoluteDeadlineAt: "2026-09-19T00:00:30.000Z",
+          budget: workerExecutionProfile("phase11_http_discovery_v1").budget,
+          input: { kind: "phase11_http_discovery", runId, actionId, authorizationId },
+        };
+      }
+      throw new Error(`unexpected rpc ${name}`);
+    });
+    const repository = createWorkerControlRepository(client);
+
+    await expect(repository.registerPhase11Http({
+      credentialHash: "b".repeat(64),
+      softwareVersion: "0.1.0",
+    })).resolves.toMatchObject({ executionClass: "phase11_http_discovery_v1" });
+    await expect(repository.claimPhase11Http({ workerId })).resolves.toMatchObject({
+      executionClass: "phase11_http_discovery_v1",
+      input: { kind: "phase11_http_discovery", runId, actionId, authorizationId },
+    });
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      "register_phase11_http_worker_node",
+      "claim_phase11_http_worker_task",
+    ]);
+  });
+
+  it("routes an authenticated Phase 11 node only through its dedicated repository", async () => {
+    const runId = "55555555-5555-4555-8555-555555555555";
+    const actionId = `phase11-action:${"c".repeat(64)}`;
+    const authorizationId = `phase11-authz:${"d".repeat(64)}`;
+    const claimPhase11Http = vi.fn(async () => ({
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1" as const,
+      leaseToken,
+      absoluteDeadlineAt: "2026-09-19T00:00:30.000Z",
+      budget: workerExecutionProfile("phase11_http_discovery_v1").budget,
+      input: { kind: "phase11_http_discovery" as const, runId, actionId, authorizationId },
+    }));
+    const runtimeRepository = {
+      registerPassiveRuntime: vi.fn(),
+      registerActiveCors: vi.fn(),
+      registerPhase11Http: vi.fn(async (input: { softwareVersion: string }) => ({
+        workerId,
+        executionClass: "phase11_http_discovery_v1" as const,
+        softwareVersion: input.softwareVersion,
+      })),
+      enqueuePassiveRuntime: vi.fn(),
+      enqueueActiveCors: vi.fn(),
+      claimRuntime: vi.fn(),
+      claimPhase11Http,
+    } as RuntimeWorkerControlRepository;
+    const repository = {} as WorkerControlRepository;
+
+    await expect(claimWorkerTaskForNode({
+      workerId,
+      executionClass: "phase11_http_discovery_v1",
+      softwareVersion: "0.1.0",
+    }, { repository, runtimeRepository })).resolves.toMatchObject({
+      executionClass: "phase11_http_discovery_v1",
+      input: { kind: "phase11_http_discovery", authorizationId },
+    });
+    expect(claimPhase11Http).toHaveBeenCalledWith({ workerId });
+
+    const randomBytes = () => Buffer.alloc(32, 7);
+    await registerPhase11HttpWorkerNode(
+      { softwareVersion: "0.1.0" },
+      { repository, runtimeRepository, randomBytes },
+    );
+    expect(runtimeRepository.registerPhase11Http).toHaveBeenCalled();
   });
 });

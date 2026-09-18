@@ -179,7 +179,19 @@ export interface PrivateRepositorySnapshotTaskContract {
   input: PrivateRepositorySnapshotInput;
 }
 
-export type AnyWorkerTaskContract = WorkerTaskContract | PrivateRepositorySnapshotTaskContract;
+export interface Phase11HttpDiscoveryTaskContract {
+  taskId: string;
+  attemptId: string;
+  executionClass: Phase11HttpDiscoveryExecutionClass;
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: Phase11HttpDiscoveryInput;
+}
+
+export type AnyWorkerTaskContract =
+  | WorkerTaskContract
+  | PrivateRepositorySnapshotTaskContract;
 
 export interface WorkerAttemptMetrics {
   wallTimeMs: number;

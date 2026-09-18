@@ -61,7 +61,8 @@ type LegacyRegistrationClass =
 
 type RuntimeRegistrationClass =
   | "passive_runtime_observation_v1"
-  | "active_cors_validation_v1";
+  | "active_cors_validation_v1"
+  | "phase11_http_discovery_v1";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRIVATE_REPOSITORY_FAILURE_CODES = new Set<WorkerTerminalFailureCode>([
@@ -140,7 +141,9 @@ async function registerRuntimeWith(
   const repository = requireRuntimeRepository(dependencies);
   const node = executionClass === "passive_runtime_observation_v1"
     ? await repository.registerPassiveRuntime(input)
-    : await repository.registerActiveCors(input);
+    : executionClass === "active_cors_validation_v1"
+      ? await repository.registerActiveCors(input)
+      : await repository.registerPhase11Http(input);
   if (node.executionClass !== executionClass) {
     throw new WorkerControlError("WORKER_CONTROL_FAILED");
   }
@@ -187,6 +190,13 @@ export async function registerActiveCorsWorkerNode(
   dependencies: WorkerControlServiceDependencies,
 ) {
   return registerRuntimeWith(input.softwareVersion, dependencies, "active_cors_validation_v1");
+}
+
+export async function registerPhase11HttpWorkerNode(
+  input: { softwareVersion: string },
+  dependencies: WorkerControlServiceDependencies,
+) {
+  return registerRuntimeWith(input.softwareVersion, dependencies, "phase11_http_discovery_v1");
 }
 
 export async function disableWorkerNode(
@@ -350,18 +360,10 @@ async function composeClaim(
 }
 
 function composeRuntimeClaim(
-  claim: RuntimeWorkerPersistenceClaimResult,
+  claim: RuntimeWorkerPersistenceClaimResult | import("./types").Phase11HttpWorkerPersistenceClaimResult,
 ): WorkerClaimResult {
   if (claim === null) return null;
-  return Object.freeze({
-    taskId: claim.taskId,
-    attemptId: claim.attemptId,
-    executionClass: claim.executionClass,
-    leaseToken: claim.leaseToken,
-    absoluteDeadlineAt: claim.absoluteDeadlineAt,
-    budget: claim.budget,
-    input: claim.input,
-  });
+  return claim;
 }
 
 export async function claimWorkerTask(
@@ -376,6 +378,13 @@ export async function claimWorkerTaskForNode(
   worker: WorkerNodeIdentity,
   dependencies: WorkerControlServiceDependencies,
 ): Promise<WorkerClaimResult> {
+  if (worker.executionClass === "phase11_http_discovery_v1") {
+    const claim = await requireRuntimeRepository(dependencies).claimPhase11Http({ workerId: worker.workerId });
+    if (claim !== null && claim.executionClass !== worker.executionClass) {
+      throw new WorkerControlError("WORKER_CONTROL_FAILED");
+    }
+    return composeRuntimeClaim(claim);
+  }
   if (
     worker.executionClass === "passive_runtime_observation_v1"
     || worker.executionClass === "active_cors_validation_v1"

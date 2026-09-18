@@ -2,6 +2,22 @@
 -- Forward-only. Committing this migration does not authorize production application
 -- or hosted execution of the phase11_http_discovery_v1 class.
 
+alter table private.worker_nodes
+  drop constraint if exists worker_nodes_execution_class_check;
+
+alter table private.worker_nodes
+  add constraint worker_nodes_execution_class_check check (
+    execution_class in (
+      'foundation_no_egress_v1',
+      'repository_snapshot_github_public_v1',
+      'repository_snapshot_github_private_v1',
+      'phase3_repository_scan_no_egress_v1',
+      'passive_runtime_observation_v1',
+      'active_cors_validation_v1',
+      'phase11_http_discovery_v1'
+    )
+  );
+
 alter table private.worker_tasks
   drop constraint if exists worker_tasks_execution_class_check;
 
@@ -364,6 +380,251 @@ $$;
 revoke all on function public.enqueue_phase11_http_worker_task(uuid, uuid, text, text)
   from public, anon, authenticated, service_role;
 grant execute on function public.enqueue_phase11_http_worker_task(uuid, uuid, text, text)
+  to service_role;
+
+create or replace function public.register_phase11_http_worker_node(
+  target_credential_hash text,
+  target_software_version text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  worker_record private.worker_nodes%rowtype;
+begin
+  if target_credential_hash is null or target_credential_hash !~ '^[a-f0-9]{64}$' then
+    raise exception 'WORKER_CREDENTIAL_INVALID';
+  end if;
+  if target_software_version is null
+    or char_length(target_software_version) < 1
+    or char_length(target_software_version) > 64
+  then
+    raise exception 'WORKER_VERSION_INVALID';
+  end if;
+
+  insert into private.worker_nodes (
+    credential_hash,
+    execution_class,
+    software_version
+  ) values (
+    target_credential_hash,
+    'phase11_http_discovery_v1',
+    target_software_version
+  ) returning * into worker_record;
+
+  perform private.record_worker_event(
+    'worker.node_registered',
+    null,
+    worker_record.id,
+    null,
+    jsonb_build_object(
+      'executionClass', worker_record.execution_class,
+      'softwareVersion', worker_record.software_version
+    )
+  );
+
+  return jsonb_build_object(
+    'workerId', worker_record.id,
+    'executionClass', worker_record.execution_class,
+    'softwareVersion', worker_record.software_version,
+    'registeredAt', worker_record.registered_at
+  );
+exception
+  when unique_violation then
+    raise exception 'WORKER_CREDENTIAL_CONFLICT';
+end;
+$$;
+
+create or replace function public.claim_phase11_http_worker_task(
+  target_worker_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  claim_now timestamptz;
+  worker_record private.worker_nodes%rowtype;
+  task_record private.worker_tasks%rowtype;
+  attempt_record private.worker_attempts%rowtype;
+  binding_record private.phase11_http_worker_tasks%rowtype;
+  lease_token bytea;
+  lease_token_text text;
+begin
+  select *
+  into worker_record
+  from private.worker_nodes
+  where id = target_worker_id
+  for update;
+
+  if worker_record.id is null
+    or worker_record.disabled_at is not null
+    or worker_record.execution_class <> 'phase11_http_discovery_v1'
+  then
+    raise exception 'RUNTIME_WORKER_ACCESS_DENIED';
+  end if;
+
+  select t.*
+  into task_record
+  from private.worker_tasks t
+  join private.phase11_http_worker_tasks binding
+    on binding.task_id = t.id
+   and binding.workspace_id = t.workspace_id
+  join private.pentest_actions action
+    on action.workspace_id = binding.workspace_id
+   and action.run_id = binding.run_id
+   and action.action_id = binding.action_id
+   and action.authorization_id = binding.authorization_id
+   and action.authorization_snapshot_ref = binding.authorization_snapshot_ref
+  join private.pentest_runs run
+    on run.id = binding.run_id
+   and run.workspace_id = binding.workspace_id
+   and run.authorization_snapshot_ref = binding.authorization_snapshot_ref
+  join private.pentest_run_authorization_snapshots snapshot
+    on snapshot.workspace_id = binding.workspace_id
+   and snapshot.run_id = binding.run_id
+   and snapshot.snapshot_ref = binding.authorization_snapshot_ref
+  where t.execution_class = 'phase11_http_discovery_v1'
+    and t.state = 'queued'
+    and t.attempt_count = 0
+    and t.max_attempts = 1
+    and t.available_at <= clock_timestamp()
+    and t.absolute_deadline_at > clock_timestamp()
+    and action.state = 'queued'
+    and action.decision_status in ('approved', 'narrowed')
+    and action.requested_mode = 'safe_active'
+    and action.authorization_expires_at > clock_timestamp()
+    and snapshot.expires_at > clock_timestamp()
+    and run.status = 'running'
+    and not exists (
+      select 1
+      from private.worker_tasks active_task
+      where active_task.execution_class = 'phase11_http_discovery_v1'
+        and active_task.state = 'leased'
+    )
+  order by t.priority desc, t.available_at asc, t.created_at asc, t.id asc
+  for update of t skip locked
+  limit 1;
+
+  if task_record.id is null then
+    return null;
+  end if;
+
+  select *
+  into binding_record
+  from private.phase11_http_worker_tasks
+  where task_id = task_record.id;
+
+  claim_now := clock_timestamp();
+  if binding_record.task_id is null
+    or task_record.absolute_deadline_at <= claim_now
+  then
+    return null;
+  end if;
+
+  lease_token := extensions.gen_random_bytes(32);
+  lease_token_text := encode(lease_token, 'hex');
+
+  update private.worker_tasks
+  set state = 'leased',
+      attempt_count = task_record.attempt_count + 1,
+      updated_at = claim_now
+  where id = task_record.id
+    and state = 'queued'
+    and attempt_count = 0
+    and max_attempts = 1
+    and absolute_deadline_at > claim_now
+  returning * into task_record;
+
+  if task_record.id is null then
+    return null;
+  end if;
+
+  insert into private.worker_attempts (
+    task_id,
+    attempt_number,
+    worker_id,
+    lease_token_hash,
+    leased_at,
+    lease_expires_at,
+    last_heartbeat_at
+  ) values (
+    task_record.id,
+    task_record.attempt_count,
+    worker_record.id,
+    encode(extensions.digest(lease_token, 'sha256'), 'hex'),
+    claim_now,
+    task_record.absolute_deadline_at,
+    claim_now
+  ) returning * into attempt_record;
+
+  update private.pentest_actions
+  set state = 'running',
+      updated_at = claim_now
+  where workspace_id = binding_record.workspace_id
+    and run_id = binding_record.run_id
+    and action_id = binding_record.action_id
+    and authorization_id = binding_record.authorization_id
+    and state = 'queued';
+
+  if not found then
+    raise exception 'WORKER_JOB_STATE_CONFLICT';
+  end if;
+
+  update private.worker_nodes
+  set last_seen_at = claim_now
+  where id = worker_record.id;
+
+  perform private.record_worker_event(
+    'worker.task_claimed',
+    task_record.workspace_id,
+    worker_record.id,
+    task_record.id,
+    jsonb_build_object(
+      'attemptId', attempt_record.id,
+      'attemptNumber', attempt_record.attempt_number,
+      'leaseExpiresAt', attempt_record.lease_expires_at,
+      'executionClass', task_record.execution_class
+    )
+  );
+
+  return jsonb_build_object(
+    'taskId', task_record.id,
+    'attemptId', attempt_record.id,
+    'executionClass', task_record.execution_class,
+    'leaseToken', lease_token_text,
+    'absoluteDeadlineAt', task_record.absolute_deadline_at,
+    'budget', jsonb_build_object(
+      'maxWallTimeMs', 30000,
+      'maxCpuTimeMs', 15000,
+      'maxMemoryBytes', 268435456,
+      'maxProcesses', 1,
+      'maxInputFiles', 0,
+      'maxInputBytes', 4096,
+      'maxScratchBytes', 8388608,
+      'maxOutputBytes', 32768
+    ),
+    'input', jsonb_build_object(
+      'kind', 'phase11_http_discovery',
+      'runId', binding_record.run_id,
+      'actionId', binding_record.action_id,
+      'authorizationId', binding_record.authorization_id
+    )
+  );
+end;
+$$;
+
+revoke all on function public.register_phase11_http_worker_node(text, text)
+  from public, anon, authenticated, service_role;
+grant execute on function public.register_phase11_http_worker_node(text, text)
+  to service_role;
+
+revoke all on function public.claim_phase11_http_worker_task(uuid)
+  from public, anon, authenticated, service_role;
+grant execute on function public.claim_phase11_http_worker_task(uuid)
   to service_role;
 
 create or replace function public.get_phase11_http_worker_preparation_context(

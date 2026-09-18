@@ -98,4 +98,41 @@ describe("Phase 11C HTTP worker control migration", () => {
     expect(compact).toContain(`revoke all on function ${signature} from public, anon, authenticated, service_role;`);
     expect(compact).toContain(`grant execute on function ${signature} to service_role;`);
   });
+
+  it("registers and claims only the dedicated Phase 11 worker class", async () => {
+    const sql = await readMigration();
+    const register = functionSql(sql, "register_phase11_http_worker_node");
+    const claim = functionSql(sql, "claim_phase11_http_worker_task");
+    expect(sql).toMatch(/worker_nodes_execution_class_check[\s\S]*?'phase11_http_discovery_v1'/i);
+    expect(register).toContain("'phase11_http_discovery_v1'");
+    expect(claim).toMatch(/worker_record\.execution_class <> 'phase11_http_discovery_v1'/i);
+    expect(claim).toMatch(/t\.execution_class = 'phase11_http_discovery_v1'/i);
+    expect(claim).toMatch(/join private\.phase11_http_worker_tasks/i);
+    expect(claim).toMatch(/join private\.pentest_actions/i);
+    expect(claim).toMatch(/join private\.pentest_runs/i);
+    expect(claim).toMatch(/join private\.pentest_run_authorization_snapshots/i);
+    expect(claim).toMatch(/for update of t skip locked/i);
+    expect(claim).toMatch(/insert into private\.worker_attempts/i);
+    expect(claim).toMatch(/set state = 'leased',[\s\S]*?attempt_count = task_record\.attempt_count \+ 1/i);
+    expect(claim).toMatch(/update private\.pentest_actions[\s\S]*?set state = 'running'/i);
+    expect(claim).toContain("'kind', 'phase11_http_discovery'");
+    expect(claim).toContain("'runId', binding_record.run_id");
+    expect(claim).toContain("'actionId', binding_record.action_id");
+    expect(claim).toContain("'authorizationId', binding_record.authorization_id");
+    for (const forbidden of ["'url'", "'hostname'", "'headers'", "'method'", "'body'"]) {
+      expect(claim).not.toContain(forbidden);
+    }
+  });
+
+  it("keeps Phase 11 registration and claim service-role-only", async () => {
+    const sql = await readMigration();
+    const compact = sql.replace(/\s+/g, " ").toLowerCase();
+    for (const signature of [
+      "public.register_phase11_http_worker_node(text, text)",
+      "public.claim_phase11_http_worker_task(uuid)",
+    ]) {
+      expect(compact).toContain(`revoke all on function ${signature} from public, anon, authenticated, service_role;`);
+      expect(compact).toContain(`grant execute on function ${signature} to service_role;`);
+    }
+  });
 });
