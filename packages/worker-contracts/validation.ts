@@ -1,4 +1,8 @@
 import { workerExecutionProfile } from "./profiles";
+import {
+  validatePhase11HttpDiscoveryTaskInput,
+  validatePhase11HttpDiscoveryTerminalEnvelope,
+} from "./phase11-http-discovery-validation";
 import type {
   ActiveCorsValidationInput,
   ActiveCorsValidationResult,
@@ -377,6 +381,8 @@ export function validateWorkerTaskInput(
       return parsePassiveRuntimeInput(value);
     case "active_cors_validation_v1":
       return parseActiveCorsInput(value);
+    case "phase11_http_discovery_v1":
+      return validatePhase11HttpDiscoveryTaskInput(value);
   }
 
   const unreachable: never = executionClass;
@@ -589,6 +595,8 @@ function parseResult(
       return parsePassiveRuntimeResult(value);
     case "active_cors_validation_v1":
       return parseActiveCorsResult(value);
+    case "phase11_http_discovery_v1":
+      throw new Error("Phase 11 HTTP discovery results require the dedicated terminal validator.");
   }
 
   const unreachable: never = executionClass;
@@ -607,6 +615,8 @@ function failureCodesFor(executionClass: WorkerExecutionClass): Set<WorkerTermin
       return PASSIVE_RUNTIME_FAILURE_CODES;
     case "active_cors_validation_v1":
       return ACTIVE_CORS_FAILURE_CODES;
+    case "phase11_http_discovery_v1":
+      throw new Error("Phase 11 HTTP discovery failures require the dedicated terminal validator.");
   }
 
   const unreachable: never = executionClass;
@@ -617,6 +627,12 @@ export function validateWorkerTerminalEnvelope(
   value: unknown,
   expectation: WorkerTerminalExpectation,
 ): WorkerTerminalEnvelope {
+  if (expectation.executionClass === "phase11_http_discovery_v1") {
+    return validatePhase11HttpDiscoveryTerminalEnvelope(value, {
+      taskId: expectation.taskId,
+      attemptId: expectation.attemptId,
+    }) as WorkerTerminalEnvelope;
+  }
   if (!isRecord(value)) throw new Error("Worker terminal envelope must be an object.");
   assertExactKeys(value, ENVELOPE_KEYS, "Worker terminal envelope");
   if (value.schemaVersion !== 1) throw new Error("Worker terminal schema version is unsupported.");
