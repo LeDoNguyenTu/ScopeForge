@@ -55,4 +55,19 @@ describe.skipIf(process.platform === "win32")("Phase 6D Podman runtime limits", 
       maxOutputBytes: 65_536,
     });
   });
+
+  it("caps HTTP discovery attach time and output at its smaller mediator contract", async () => {
+    const controlled = driver();
+    const sandbox = createRuntimeWorkerSandbox({ driver: controlled });
+
+    await sandbox.execute({
+      ...baseInput,
+      executionClass: "phase11_http_discovery_v1",
+    }, new AbortController().signal);
+
+    expect(startOptions(controlled.exec)).toEqual({
+      timeoutMs: 30_000,
+      maxOutputBytes: 32_768,
+    });
+  });
 });
