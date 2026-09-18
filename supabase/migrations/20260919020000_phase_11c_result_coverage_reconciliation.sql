@@ -168,7 +168,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   lookup_now timestamptz := clock_timestamp();
   calculated_hash text;
@@ -185,7 +185,134 @@ begin
     or target_task_id is null
     or target_attempt_id is null
     or target_lease_token is null
-    or target_lease_token !~ '^[a-f0-9]{64}create or replace function public.finalize_phase11_http_worker_attempt(
+    or target_lease_token !~ '^[a-f0-9]{64}$'
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  calculated_hash := encode(
+    extensions.digest(decode(target_lease_token, 'hex'), 'sha256'),
+    'hex'
+  );
+
+  select * into worker_record
+  from private.worker_nodes
+  where id = target_worker_id;
+
+  select * into task_record
+  from private.worker_tasks
+  where id = target_task_id;
+
+  select * into attempt_record
+  from private.worker_attempts
+  where id = target_attempt_id
+    and task_id = target_task_id;
+
+  select * into binding_record
+  from private.phase11_http_worker_tasks
+  where task_id = target_task_id;
+
+  if worker_record.id is null
+    or worker_record.disabled_at is not null
+    or worker_record.execution_class <> 'phase11_http_discovery_v1'
+    or task_record.id is null
+    or task_record.execution_class <> 'phase11_http_discovery_v1'
+    or task_record.workspace_id is distinct from binding_record.workspace_id
+    or task_record.scan_job_id is not null
+    or task_record.asset_id is not null
+    or binding_record.task_id is null
+    or attempt_record.id is null
+    or attempt_record.worker_id is distinct from target_worker_id
+    or attempt_record.lease_token_hash is distinct from calculated_hash
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  if attempt_record.finished_at is null
+    and (task_record.state <> 'leased' or attempt_record.lease_expires_at <= lookup_now)
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  select * into run_record
+  from private.pentest_runs
+  where id = binding_record.run_id
+    and workspace_id = binding_record.workspace_id;
+
+  select * into action_record
+  from private.pentest_actions
+  where workspace_id = binding_record.workspace_id
+    and run_id = binding_record.run_id
+    and action_id = binding_record.action_id;
+
+  if run_record.id is null
+    or action_record.action_id is null
+    or action_record.authorization_id is distinct from binding_record.authorization_id
+    or run_record.authorization_snapshot_ref is distinct from binding_record.authorization_snapshot_ref
+    or action_record.authorization_snapshot_ref is distinct from binding_record.authorization_snapshot_ref
+    or action_record.capability_id is distinct from binding_record.capability_id
+    or action_record.capability_version is distinct from binding_record.capability_version
+    or cardinality(action_record.target_node_ids) <> 1
+    or action_record.target_node_ids[1] is distinct from binding_record.target_node_id
+    or action_record.requested_mode <> 'safe_active'
+    or action_record.closed_parameters->>'discoveryProfile' not in ('root-only', 'well-known-safe')
+  then
+    raise exception 'PHASE11_HTTP_WORKER_BINDING_MISMATCH';
+  end if;
+
+  cancel_requested := run_record.status = 'cancelled' or action_record.state = 'cancelled';
+
+  if attempt_record.finished_at is null and not cancel_requested then
+    select * into snapshot_record
+    from private.pentest_run_authorization_snapshots
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and snapshot_ref = binding_record.authorization_snapshot_ref;
+
+    if run_record.status <> 'running'
+      or action_record.state <> 'running'
+      or action_record.decision_status not in ('approved', 'narrowed')
+      or snapshot_record.snapshot_ref is null
+      or snapshot_record.expires_at <= lookup_now
+      or action_record.authorization_expires_at is null
+      or action_record.authorization_expires_at <= lookup_now
+      or action_record.authorization_expires_at > snapshot_record.expires_at
+      or not (binding_record.target_node_id = any(snapshot_record.authorized_node_ids))
+    then
+      raise exception 'PHASE11_HTTP_AUTHORIZATION_EXPIRED';
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'taskId', task_record.id,
+    'attemptId', attempt_record.id,
+    'workspaceId', binding_record.workspace_id,
+    'runId', binding_record.run_id,
+    'actionId', binding_record.action_id,
+    'authorizationId', binding_record.authorization_id,
+    'authorizationSnapshotRef', binding_record.authorization_snapshot_ref,
+    'targetNodeId', binding_record.target_node_id,
+    'capabilityId', binding_record.capability_id,
+    'providerId', binding_record.provider_id,
+    'providerVersion', binding_record.provider_version,
+    'discoveryProfile', action_record.closed_parameters->>'discoveryProfile',
+    'maxRequests', least(action_record.max_requests, 12),
+    'leasedAt', attempt_record.leased_at,
+    'leaseExpiresAt', attempt_record.lease_expires_at,
+    'cancelRequested', cancel_requested,
+    'finishedAt', attempt_record.finished_at,
+    'priorOutcome', attempt_record.outcome,
+    'priorTerminalDigest', attempt_record.terminal_payload_digest
+  );
+end;
+$$;
+
+revoke all on function public.get_phase11_http_worker_finalization_context(uuid, uuid, uuid, text)
+  from public, anon, authenticated, service_role;
+grant execute on function public.get_phase11_http_worker_finalization_context(uuid, uuid, uuid, text)
+  to service_role;
+
+create or replace function public.finalize_phase11_http_worker_attempt(
   target_worker_id uuid,
   target_task_id uuid,
   target_attempt_id uuid,
