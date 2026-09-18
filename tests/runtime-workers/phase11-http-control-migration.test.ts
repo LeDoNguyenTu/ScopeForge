@@ -64,6 +64,7 @@ describe("Phase 11C HTTP worker control migration", () => {
     expect(enqueue).toMatch(/existing_binding\.task_id is not null[\s\S]*?'replayed', true/i);
     expect(enqueue).toMatch(/action_record\.queue_reference is distinct from[\s\S]*?'phase11-http-worker:'/i);
     expect(enqueue).toMatch(/set state = 'queued',[\s\S]*?enqueue_token = null,[\s\S]*?queue_reference = 'phase11-http-worker:'/i);
+    expect(enqueue).toMatch(/update public\.pentest_action_summaries[\s\S]*?set state = 'queued'/i);
   });
 
   it("keeps the queue RPC service-role-only with a pinned search path", async () => {
@@ -115,6 +116,7 @@ describe("Phase 11C HTTP worker control migration", () => {
     expect(claim).toMatch(/insert into private\.worker_attempts/i);
     expect(claim).toMatch(/set state = 'leased',[\s\S]*?attempt_count = task_record\.attempt_count \+ 1/i);
     expect(claim).toMatch(/update private\.pentest_actions[\s\S]*?set state = 'running'/i);
+    expect(claim).toMatch(/update public\.pentest_action_summaries[\s\S]*?set state = 'running'/i);
     expect(claim).toContain("'kind', 'phase11_http_discovery'");
     expect(claim).toContain("'runId', binding_record.run_id");
     expect(claim).toContain("'actionId', binding_record.action_id");
