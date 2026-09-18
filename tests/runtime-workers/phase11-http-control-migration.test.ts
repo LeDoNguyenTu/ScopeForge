@@ -10,9 +10,9 @@ async function readMigration(): Promise<string> {
   return readFile(migrationPath, "utf8");
 }
 
-function functionSql(sql: string, name: string): string {
+function functionSql(sql: string, name: string, schema = "public"): string {
   const matches = Array.from(sql.matchAll(new RegExp(
-    `create or replace function public\\.${name}\\([\\s\\S]*?\\n\\$\\$;`,
+    `create or replace function ${schema}\\.${name}\\([\\s\\S]*?\\n\\$\\$;`,
     "gi",
   )));
   expect(matches.length).toBeGreaterThan(0);
@@ -211,8 +211,8 @@ describe("Phase 11C HTTP worker control migration", () => {
 
   it("recovers unclaimed and expired Phase 11 work without legacy scan-job authority", async () => {
     const sql = await readMigration();
-    const unleased = functionSql(sql, "recover_phase11_http_unleased_worker_tasks");
-    const leased = functionSql(sql, "recover_phase11_http_expired_worker_attempts");
+    const unleased = functionSql(sql, "recover_phase11_http_unleased_worker_tasks", "private");
+    const leased = functionSql(sql, "recover_phase11_http_expired_worker_attempts", "private");
     const recover = functionSql(sql, "recover_worker_state");
 
     expect(unleased).toMatch(/private\.phase11_http_worker_tasks/i);
