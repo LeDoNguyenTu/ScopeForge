@@ -1,71 +1,41 @@
 # ScopeForge Codex handoff
 
-Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state wins if newer.
+Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Current resume point
 
-- Repository: `LeDoNguyenTu/ScopeForge`
-- Released `main`: `e4af4d707a7a6139ad12a705e4c3b5ece726d3e0`
-- Active branch: `feat/phase-11a-run-orchestration-20260918`
-- Active PR: #128
-- PR #125 released Phase 11 Tasks 1 to 7.
-- PR #126 released Task 8 planning persistence.
+- Released `main`: `fbab7d34bad504ecba7b883aba9f8013cc09b351` (PR #128).
+- PR #128, Phase 11A trusted pentest run orchestration, is merged.
+- Production Vercel deployment: `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`, READY at `scopeforge.dev`, from the exact merge SHA.
+- Main CI: `35340050884`, SUCCESS.
+- Next implementation: Phase 11 Task 11 adaptive end-to-end evaluation harness.
 
-## Task 9 implementation
+## Task 9 released behavior
 
-PR #128 implements trusted Phase 11 run orchestration:
-
-- owner/admin verified-asset run creation
-- immutable authorization and policy snapshots
-- trusted planning-state load
-- deterministic planner and policy evaluation
-- service-controlled enqueue boundary with replay-safe reservation tokens
-- explicit queue idempotency key
-- intrusive and validation approval workflow
-- cancellation propagation
-- bounded member read models
-- service-role-only orchestration RPCs
-- control-plane authority architecture guard
-
-Important hardening already incorporated:
-
-- no-approval intrusive actions enter `approval_required`, not terminal rejection
-- run replay compares immutable authorization scope, mode ceiling, expiry, creator, policy and deadline
-- actions persist and compare capability version as part of action identity
-- authorization identity is capability-version-bound
-- action, authorization, and cancellation identifiers use deterministic SHA-256 stable IDs
-- queue idempotency uses the version-bound authorization ID
-- cancellation-aware queue finalization closes the enqueue/cancel race and preserves a late queue reference for deterministic cancellation retry
-- terminal run state cannot be overwritten by a late stop-summary update
+- verified-asset owner/admin run creation with immutable authorization and policy snapshots
+- deterministic planner -> policy -> approved-action enqueue control flow
+- replay-safe reservations and capability-version-bound queue idempotency
+- intrusive/validation approval workflow and cancellation propagation
+- privacy-reduced member read models and service-role-only orchestration RPCs
+- cancellation-aware enqueue finalization and terminal-summary race protection
+- fixed-size SHA-256 action, authorization, and cancellation identifiers
 
 ## Validation evidence
 
-- CI #1150: 446 test files and 2,035 tests passed; only four Task 9 test typing errors failed typecheck.
-- Those four typing errors were fixed.
-- CI #1151 passed the full pipeline on earlier head `fda54dbf...`.
-- CI #1152 passed the full pipeline on later head `fe6f8794...`.
-- The cancellation-race hardening migration and tests landed after #1152, so a new exact-head CI/Vercel gate is still required before merge.
+- Exact-head CI `35331494611`: SUCCESS; 464 test files passed, 4 skipped; 2,125 tests passed, 24 skipped; typecheck, CLI/version, scanner/profile benchmarks, Next build, CSP/browser smoke, and production diagnostics passed.
+- Local full suite at the fixed candidate: 460 files passed, 4 skipped; 2,101 tests passed, 24 skipped. The three filesystem-heavy tests passed on a controlled single-worker rerun.
+- `npm audit --audit-level=info`: 0 vulnerabilities.
+- Codex Security diff scan `ad2fe4bb-10bb-4461-b0a0-f5fc9eecbce1`: complete coverage, 0 findings. Daybreak access was not granted; this is advisory only.
+- GitNexus index refreshed for the PR worktree. The planner/test-config fix had LOW direct impact; the orchestration diff was HIGH due to six affected planning flows and was reviewed accordingly. `detect_changes` matched the expected planner/config scope.
 
-## Database/runtime state
+## Database and runtime state
 
-- Correct Supabase: `tdgpibrepzcvdivztkta` named `ScopeForge`.
-- Never use `xwsergbpvkcsugexssmc` for this repository.
-- `20260918061500_phase_11a_planning_graph.sql` is not applied to production.
-- `20260918070000_phase_11a_run_orchestration.sql` is not applied to production.
-- `20260918070100_phase_11a_run_orchestration_hardening.sql` is not applied to production.
+- Correct Supabase project: `tdgpibrepzcvdivztkta` (`ScopeForge`). Migration ledger ends at Phase 10A3; Phase 11 planning graph, run orchestration, and hardening migrations are unapplied. Read-only SQL confirmed the Phase 11 tables do not exist in production.
 - No Phase 11 external provider execution is enabled.
+- Existing security/performance advisor notices remain documented non-blockers: private no-policy tables, reviewed collaborator SECURITY DEFINER RPCs, leaked-password protection, unindexed foreign keys, and unused indexes.
 
-## Immediate next actions
+## Next exact task
 
-1. obtain exact-head full CI and Vercel success for #128
-2. inspect review threads and final diff
-3. merge #128 only if the exact head is green
-4. verify released `main` and post-merge CI/Vercel
-5. continue the adaptive evaluation harness from the approved Phase 11 plan
-6. keep production schema and external provider activation separately gated
+Build the deterministic adaptive end-to-end evaluation harness from `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md` Task 11. Keep it fixture-driven and injected-provider-only; do not apply Phase 11 migrations or enable hosted provider execution.
 
-## Tooling caveat
-
-Repository guidance requires GitNexus impact/change-detection review. GitNexus MCP is not exposed in this ChatGPT connector session, so no GitNexus report can truthfully be claimed.
-
-Never expose secrets, weaken authorization/RLS/containment, rewrite deployed migrations, confuse Supabase projects, or bypass production/provider release gates.
+Never expose secrets, weaken authorization/RLS/containment, rewrite deployed migrations, or confuse this project with `xwsergbpvkcsugexssmc`.
