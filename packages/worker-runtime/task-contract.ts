@@ -16,6 +16,7 @@ const CLASSES = new Set<string>([
   "phase3_repository_scan_no_egress_v1",
   "passive_runtime_observation_v1",
   "active_cors_validation_v1",
+  "phase11_http_discovery_v1",
 ]);
 const KEYS = ["taskId", "attemptId", "executionClass", "leaseToken", "absoluteDeadlineAt", "budget", "input"];
 
