@@ -25,8 +25,8 @@ function assertRuntimeTimeout(timeoutMs: number): void {
 }
 
 function assertTrustedRuntimeRequestPlan(plan: TrustedRuntimeRequestPlan): void {
-  if (plan.method !== "GET") {
-    throw new Error("Runtime transport supports GET requests only.");
+  if (plan.method !== "GET" && plan.method !== "HEAD") {
+    throw new Error("Runtime transport supports GET or HEAD requests only.");
   }
   if (plan.url.protocol !== "https:") {
     throw new Error("Runtime transport requires HTTPS.");
@@ -95,7 +95,7 @@ export function buildPinnedHttpsRequestOptions(input: {
   }
 
   return {
-    method: "GET",
+    method: input.plan.method,
     agent: false,
     hostname,
     servername: isIP(hostname) ? undefined : hostname,
