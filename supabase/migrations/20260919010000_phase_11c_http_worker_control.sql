@@ -820,3 +820,441 @@ revoke all on function public.get_phase11_http_worker_preparation_context(uuid, 
   from public, anon, authenticated, service_role;
 grant execute on function public.get_phase11_http_worker_preparation_context(uuid, uuid, uuid, text)
   to service_role;
+
+create or replace function public.get_phase11_http_worker_finalization_context(
+  target_worker_id uuid,
+  target_task_id uuid,
+  target_attempt_id uuid,
+  target_lease_token text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  lookup_now timestamptz := clock_timestamp();
+  calculated_hash text;
+  worker_record private.worker_nodes%rowtype;
+  task_record private.worker_tasks%rowtype;
+  attempt_record private.worker_attempts%rowtype;
+  binding_record private.phase11_http_worker_tasks%rowtype;
+  run_record private.pentest_runs%rowtype;
+  action_record private.pentest_actions%rowtype;
+  snapshot_record private.pentest_run_authorization_snapshots%rowtype;
+  cancel_requested boolean;
+begin
+  if target_worker_id is null
+    or target_task_id is null
+    or target_attempt_id is null
+    or target_lease_token is null
+    or target_lease_token !~ '^[a-f0-9]{64}$'
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  calculated_hash := encode(
+    extensions.digest(decode(target_lease_token, 'hex'), 'sha256'),
+    'hex'
+  );
+
+  select * into worker_record
+  from private.worker_nodes
+  where id = target_worker_id;
+
+  select * into task_record
+  from private.worker_tasks
+  where id = target_task_id;
+
+  select * into attempt_record
+  from private.worker_attempts
+  where id = target_attempt_id
+    and task_id = target_task_id;
+
+  select * into binding_record
+  from private.phase11_http_worker_tasks
+  where task_id = target_task_id;
+
+  if worker_record.id is null
+    or worker_record.disabled_at is not null
+    or worker_record.execution_class <> 'phase11_http_discovery_v1'
+    or task_record.id is null
+    or task_record.execution_class <> 'phase11_http_discovery_v1'
+    or task_record.workspace_id is distinct from binding_record.workspace_id
+    or task_record.scan_job_id is not null
+    or task_record.asset_id is not null
+    or binding_record.task_id is null
+    or attempt_record.id is null
+    or attempt_record.worker_id is distinct from target_worker_id
+    or attempt_record.lease_token_hash is distinct from calculated_hash
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  if attempt_record.finished_at is null
+    and (task_record.state <> 'leased' or attempt_record.lease_expires_at <= lookup_now)
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  select * into run_record
+  from private.pentest_runs
+  where id = binding_record.run_id
+    and workspace_id = binding_record.workspace_id;
+
+  select * into action_record
+  from private.pentest_actions
+  where workspace_id = binding_record.workspace_id
+    and run_id = binding_record.run_id
+    and action_id = binding_record.action_id;
+
+  if run_record.id is null
+    or action_record.action_id is null
+    or action_record.authorization_id is distinct from binding_record.authorization_id
+    or run_record.authorization_snapshot_ref is distinct from binding_record.authorization_snapshot_ref
+    or action_record.authorization_snapshot_ref is distinct from binding_record.authorization_snapshot_ref
+    or action_record.capability_id is distinct from binding_record.capability_id
+    or action_record.capability_version is distinct from binding_record.capability_version
+    or cardinality(action_record.target_node_ids) <> 1
+    or action_record.target_node_ids[1] is distinct from binding_record.target_node_id
+    or action_record.requested_mode <> 'safe_active'
+    or action_record.closed_parameters->>'discoveryProfile' not in ('root-only', 'well-known-safe')
+  then
+    raise exception 'PHASE11_HTTP_WORKER_BINDING_MISMATCH';
+  end if;
+
+  cancel_requested := run_record.status = 'cancelled' or action_record.state = 'cancelled';
+
+  if attempt_record.finished_at is null and not cancel_requested then
+    select * into snapshot_record
+    from private.pentest_run_authorization_snapshots
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and snapshot_ref = binding_record.authorization_snapshot_ref;
+
+    if run_record.status <> 'running'
+      or action_record.state <> 'running'
+      or action_record.decision_status not in ('approved', 'narrowed')
+      or snapshot_record.snapshot_ref is null
+      or snapshot_record.expires_at <= lookup_now
+      or action_record.authorization_expires_at is null
+      or action_record.authorization_expires_at <= lookup_now
+      or action_record.authorization_expires_at > snapshot_record.expires_at
+      or not (binding_record.target_node_id = any(snapshot_record.authorized_node_ids))
+    then
+      raise exception 'PHASE11_HTTP_AUTHORIZATION_EXPIRED';
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'taskId', task_record.id,
+    'attemptId', attempt_record.id,
+    'workspaceId', binding_record.workspace_id,
+    'runId', binding_record.run_id,
+    'actionId', binding_record.action_id,
+    'authorizationId', binding_record.authorization_id,
+    'authorizationSnapshotRef', binding_record.authorization_snapshot_ref,
+    'targetNodeId', binding_record.target_node_id,
+    'capabilityId', binding_record.capability_id,
+    'providerId', binding_record.provider_id,
+    'providerVersion', binding_record.provider_version,
+    'discoveryProfile', action_record.closed_parameters->>'discoveryProfile',
+    'leasedAt', attempt_record.leased_at,
+    'leaseExpiresAt', attempt_record.lease_expires_at,
+    'cancelRequested', cancel_requested,
+    'finishedAt', attempt_record.finished_at,
+    'priorOutcome', attempt_record.outcome,
+    'priorTerminalDigest', attempt_record.terminal_payload_digest
+  );
+end;
+$$;
+
+revoke all on function public.get_phase11_http_worker_finalization_context(uuid, uuid, uuid, text)
+  from public, anon, authenticated, service_role;
+grant execute on function public.get_phase11_http_worker_finalization_context(uuid, uuid, uuid, text)
+  to service_role;
+
+create or replace function public.finalize_phase11_http_worker_attempt(
+  target_worker_id uuid,
+  target_task_id uuid,
+  target_attempt_id uuid,
+  target_lease_token text,
+  target_terminal_digest text,
+  target_outcome text,
+  target_failure_code text,
+  target_request_count integer,
+  target_metrics jsonb,
+  observation_rows jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  finalize_now timestamptz := clock_timestamp();
+  calculated_hash text;
+  task_record private.worker_tasks%rowtype;
+  attempt_record private.worker_attempts%rowtype;
+  binding_record private.phase11_http_worker_tasks%rowtype;
+  run_record private.pentest_runs%rowtype;
+  action_record private.pentest_actions%rowtype;
+  snapshot_record private.pentest_run_authorization_snapshots%rowtype;
+  observation_row jsonb;
+  effective_outcome text;
+  attempt_status text;
+  observation_ids text[] := '{}';
+  evidence_refs text[] := '{}';
+begin
+  if target_worker_id is null
+    or target_task_id is null
+    or target_attempt_id is null
+    or target_lease_token is null
+    or target_lease_token !~ '^[a-f0-9]{64}$'
+    or target_terminal_digest is null
+    or target_terminal_digest !~ '^[a-f0-9]{64}$'
+    or target_outcome not in ('succeeded', 'failed', 'cancelled')
+    or target_request_count is null
+    or target_request_count < 0
+    or target_request_count > 12
+    or target_metrics is null
+    or jsonb_typeof(target_metrics) <> 'object'
+    or (select count(*) from jsonb_object_keys(target_metrics)) <> 5
+    or not (target_metrics ?& array[
+      'wallTimeMs', 'cpuTimeMs', 'peakMemoryBytes', 'inputBytes', 'outputBytes'
+    ])
+    or jsonb_typeof(target_metrics->'wallTimeMs') <> 'number'
+    or (target_metrics->>'wallTimeMs')::numeric not between 0 and 30000
+    or jsonb_typeof(target_metrics->'cpuTimeMs') <> 'number'
+    or (target_metrics->>'cpuTimeMs')::numeric not between 0 and 15000
+    or jsonb_typeof(target_metrics->'peakMemoryBytes') <> 'number'
+    or (target_metrics->>'peakMemoryBytes')::numeric not between 0 and 268435456
+    or jsonb_typeof(target_metrics->'inputBytes') <> 'number'
+    or (target_metrics->>'inputBytes')::numeric not between 0 and 4096
+    or jsonb_typeof(target_metrics->'outputBytes') <> 'number'
+    or (target_metrics->>'outputBytes')::numeric not between 0 and 32768
+    or observation_rows is null
+    or jsonb_typeof(observation_rows) <> 'array'
+    or jsonb_array_length(observation_rows) > 4
+  then
+    raise exception 'PHASE11_HTTP_TERMINAL_INVALID';
+  end if;
+  if target_outcome = 'failed' and target_failure_code not in (
+    'WORKER_LOST', 'WORKER_BUDGET_EXCEEDED', 'WORKER_OUTPUT_INVALID',
+    'WORKER_EXECUTION_FAILED', 'WORKER_CLASS_UNAVAILABLE',
+    'RUNTIME_WORKER_AUTHORIZATION_FAILED', 'RUNTIME_WORKER_CANCELLED',
+    'RUNTIME_WORKER_NETWORK_POLICY_FAILED', 'RUNTIME_WORKER_BUDGET_EXCEEDED',
+    'RUNTIME_WORKER_OUTPUT_INVALID', 'RUNTIME_WORKER_EXECUTION_FAILED',
+    'HTTP_DISCOVERY_REQUEST_BUDGET', 'HTTP_DISCOVERY_REQUEST_TIMEOUT',
+    'HTTP_DISCOVERY_TOTAL_TIMEOUT', 'HTTP_DISCOVERY_NETWORK_ERROR',
+    'HTTP_DISCOVERY_PROFILE_INVALID'
+  ) then
+    raise exception 'PHASE11_HTTP_FAILURE_CODE_INVALID';
+  end if;
+  if target_outcome <> 'failed' and target_failure_code is not null then
+    raise exception 'PHASE11_HTTP_FAILURE_CODE_INVALID';
+  end if;
+  if target_outcome <> 'succeeded' and jsonb_array_length(observation_rows) <> 0 then
+    raise exception 'PHASE11_HTTP_OBSERVATION_OUTCOME_INVALID';
+  end if;
+
+  calculated_hash := encode(
+    extensions.digest(decode(target_lease_token, 'hex'), 'sha256'),
+    'hex'
+  );
+
+  select * into task_record
+  from private.worker_tasks
+  where id = target_task_id
+  for update;
+
+  select * into attempt_record
+  from private.worker_attempts
+  where id = target_attempt_id
+    and task_id = target_task_id
+  for update;
+
+  select * into binding_record
+  from private.phase11_http_worker_tasks
+  where task_id = target_task_id;
+
+  if task_record.id is null
+    or task_record.execution_class <> 'phase11_http_discovery_v1'
+    or task_record.workspace_id is distinct from binding_record.workspace_id
+    or binding_record.task_id is null
+    or attempt_record.id is null
+    or attempt_record.worker_id is distinct from target_worker_id
+    or attempt_record.lease_token_hash is distinct from calculated_hash
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  if attempt_record.finished_at is not null then
+    if attempt_record.terminal_payload_digest is distinct from target_terminal_digest
+    then
+      raise exception 'WORKER_TERMINAL_CONFLICT';
+    end if;
+    return jsonb_build_object('outcome', attempt_record.outcome, 'replayed', true);
+  end if;
+
+  if task_record.state <> 'leased'
+    or task_record.absolute_deadline_at <= finalize_now
+    or attempt_record.lease_expires_at <= finalize_now
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  select * into run_record
+  from private.pentest_runs
+  where id = binding_record.run_id
+    and workspace_id = binding_record.workspace_id
+  for update;
+
+  select * into action_record
+  from private.pentest_actions
+  where workspace_id = binding_record.workspace_id
+    and run_id = binding_record.run_id
+    and action_id = binding_record.action_id
+  for update;
+
+  if run_record.id is null
+    or action_record.action_id is null
+    or action_record.authorization_id is distinct from binding_record.authorization_id
+    or run_record.authorization_snapshot_ref is distinct from binding_record.authorization_snapshot_ref
+    or action_record.authorization_snapshot_ref is distinct from binding_record.authorization_snapshot_ref
+    or action_record.capability_id is distinct from binding_record.capability_id
+    or action_record.capability_version is distinct from binding_record.capability_version
+    or cardinality(action_record.target_node_ids) <> 1
+    or action_record.target_node_ids[1] is distinct from binding_record.target_node_id
+    or action_record.requested_mode <> 'safe_active'
+  then
+    raise exception 'PHASE11_HTTP_WORKER_BINDING_MISMATCH';
+  end if;
+
+  if run_record.status = 'cancelled' or action_record.state = 'cancelled' then
+    effective_outcome := 'cancelled';
+  else
+    effective_outcome := target_outcome;
+    select * into snapshot_record
+    from private.pentest_run_authorization_snapshots
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and snapshot_ref = binding_record.authorization_snapshot_ref;
+    if run_record.status <> 'running'
+      or action_record.state <> 'running'
+      or action_record.decision_status not in ('approved', 'narrowed')
+      or snapshot_record.snapshot_ref is null
+      or snapshot_record.expires_at <= finalize_now
+      or action_record.authorization_expires_at is null
+      or action_record.authorization_expires_at <= finalize_now
+      or action_record.authorization_expires_at > snapshot_record.expires_at
+      or not (binding_record.target_node_id = any(snapshot_record.authorized_node_ids))
+    then
+      raise exception 'PHASE11_HTTP_AUTHORIZATION_EXPIRED';
+    end if;
+  end if;
+
+  if effective_outcome <> 'succeeded' then
+    observation_rows := '[]'::jsonb;
+    target_request_count := 0;
+  else
+    for observation_row in select value from jsonb_array_elements(observation_rows)
+    loop
+      if observation_row->>'observation_id' !~ '^phase11-obs-http:[0-9a-f]{64}$'
+        or observation_row->>'provider_id' <> binding_record.provider_id
+        or observation_row->>'provider_version' <> binding_record.provider_version
+        or observation_row->>'capability_id' <> binding_record.capability_id
+        or observation_row->>'authorization_snapshot_ref' <> binding_record.authorization_snapshot_ref
+        or observation_row->>'execution_mode' <> 'safe_active'
+        or observation_row->'asset_node_ids' <> jsonb_build_array(binding_record.target_node_id)
+        or jsonb_array_length(observation_row->'evidence_refs') <> 1
+        or observation_row->'evidence_refs'->>0 !~
+          ('^phase11-http-attempt:' || target_attempt_id::text || ':(root|security-txt|robots|sitemap)$')
+      then
+        raise exception 'PHASE11_HTTP_OBSERVATION_INVALID';
+      end if;
+      observation_ids := array_append(observation_ids, observation_row->>'observation_id');
+      evidence_refs := array_append(evidence_refs, observation_row->'evidence_refs'->>0);
+    end loop;
+
+    perform public.persist_phase11_observations(
+      binding_record.workspace_id,
+      binding_record.run_id,
+      binding_record.authorization_snapshot_ref,
+      observation_rows
+    );
+  end if;
+
+  attempt_status := case effective_outcome
+    when 'succeeded' then case when cardinality(observation_ids) = 0 then 'no_signal' else 'succeeded' end
+    when 'cancelled' then 'cancelled'
+    else 'provider_failed'
+  end;
+
+  insert into private.pentest_action_attempts (
+    id, workspace_id, run_id, action_id, authorization_id,
+    provider_id, provider_version, status, observation_ids, evidence_refs,
+    started_at, completed_at, error_code
+  ) values (
+    attempt_record.id, binding_record.workspace_id, binding_record.run_id,
+    binding_record.action_id, binding_record.authorization_id,
+    binding_record.provider_id, binding_record.provider_version, attempt_status,
+    observation_ids, evidence_refs, attempt_record.leased_at, finalize_now,
+    case when effective_outcome = 'failed' then target_failure_code else null end
+  );
+
+  update private.worker_attempts
+  set finished_at = finalize_now,
+      outcome = effective_outcome,
+      failure_code = case when effective_outcome = 'failed' then target_failure_code else null end,
+      terminal_payload_digest = target_terminal_digest,
+      wall_time_ms = (target_metrics->>'wallTimeMs')::integer,
+      cpu_time_ms = (target_metrics->>'cpuTimeMs')::integer,
+      peak_memory_bytes = (target_metrics->>'peakMemoryBytes')::bigint,
+      input_bytes = (target_metrics->>'inputBytes')::bigint,
+      output_bytes = (target_metrics->>'outputBytes')::bigint
+  where id = attempt_record.id;
+
+  update private.worker_tasks
+  set state = case effective_outcome when 'succeeded' then 'completed' when 'cancelled' then 'cancelled' else 'dead_letter' end,
+      updated_at = finalize_now
+  where id = task_record.id;
+
+  update private.pentest_actions
+  set state = case when effective_outcome = 'cancelled' then 'cancelled' else 'terminal' end,
+      updated_at = finalize_now
+  where workspace_id = binding_record.workspace_id
+    and run_id = binding_record.run_id
+    and action_id = binding_record.action_id;
+
+  update public.pentest_action_summaries
+  set state = case when effective_outcome = 'cancelled' then 'cancelled' else 'terminal' end,
+      updated_at = finalize_now
+  where workspace_id = binding_record.workspace_id
+    and run_id = binding_record.run_id
+    and action_id = binding_record.action_id;
+
+  perform private.record_worker_event(
+    'worker.task_terminal',
+    binding_record.workspace_id,
+    target_worker_id,
+    task_record.id,
+    jsonb_build_object(
+      'attemptId', attempt_record.id,
+      'outcome', effective_outcome,
+      'executionClass', task_record.execution_class,
+      'requestCount', target_request_count,
+      'observationCount', cardinality(observation_ids)
+    )
+  );
+
+  return jsonb_build_object('outcome', effective_outcome, 'replayed', false);
+end;
+$$;
+
+revoke all on function public.finalize_phase11_http_worker_attempt(
+  uuid, uuid, uuid, text, text, text, text, integer, jsonb, jsonb
+) from public, anon, authenticated, service_role;
+grant execute on function public.finalize_phase11_http_worker_attempt(
+  uuid, uuid, uuid, text, text, text, text, integer, jsonb, jsonb
+) to service_role;

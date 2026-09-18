@@ -135,4 +135,45 @@ describe("Phase 11C HTTP worker control migration", () => {
       expect(compact).toContain(`grant execute on function ${signature} to service_role;`);
     }
   });
+
+  it("loads finalization authority through the exact worker lease without caller scope fields", async () => {
+    const sql = await readMigration();
+    const context = functionSql(sql, "get_phase11_http_worker_finalization_context");
+    expect(context).toMatch(/target_worker_id uuid,\s*target_task_id uuid,\s*target_attempt_id uuid,\s*target_lease_token text/i);
+    expect(context).toMatch(/extensions\.digest\(decode\(target_lease_token, 'hex'\), 'sha256'\)/i);
+    expect(context).toMatch(/attempt_record\.worker_id is distinct from target_worker_id/i);
+    expect(context).toContain("'authorizationSnapshotRef'");
+    expect(context).toContain("'discoveryProfile'");
+    expect(context).toContain("'priorTerminalDigest'");
+  });
+
+  it("atomically persists normalized observations before terminalizing the Phase 11 action", async () => {
+    const sql = await readMigration();
+    const finalize = functionSql(sql, "finalize_phase11_http_worker_attempt");
+    expect(finalize).toMatch(/target_worker_id uuid,\s*target_task_id uuid,\s*target_attempt_id uuid,\s*target_lease_token text/i);
+    const signature = finalize.slice(0, finalize.indexOf(")\nreturns"));
+    for (const forbidden of ["target_workspace_id", "target_run_id", "target_action_id", "target_authorization_id", "target_node_id"]) {
+      expect(signature).not.toContain(forbidden);
+    }
+    expect(finalize).toMatch(/from private\.worker_attempts[\s\S]*?for update/i);
+    expect(finalize).toMatch(/from private\.pentest_actions[\s\S]*?for update/i);
+    expect(finalize).toMatch(/perform public\.persist_phase11_observations[\s\S]*?insert into private\.pentest_action_attempts[\s\S]*?update private\.pentest_actions/i);
+    expect(finalize).toMatch(/update private\.pentest_actions[\s\S]*?'terminal'/i);
+    expect(finalize).toMatch(/attempt_record\.terminal_payload_digest is distinct from target_terminal_digest/i);
+    expect(finalize).toMatch(/action_record\.authorization_id is distinct from binding_record\.authorization_id/i);
+    expect(finalize).toContain("PHASE11_HTTP_AUTHORIZATION_EXPIRED");
+    expect(finalize).toMatch(/target_outcome <> 'succeeded'[\s\S]*?jsonb_array_length\(observation_rows\) <> 0/i);
+  });
+
+  it("keeps finalization RPCs service-role-only", async () => {
+    const sql = await readMigration();
+    const compact = sql.replace(/\s+/g, " ").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")").toLowerCase();
+    for (const signature of [
+      "public.get_phase11_http_worker_finalization_context(uuid, uuid, uuid, text)",
+      "public.finalize_phase11_http_worker_attempt(uuid, uuid, uuid, text, text, text, text, integer, jsonb, jsonb)",
+    ]) {
+      expect(compact).toContain(`revoke all on function ${signature} from public, anon, authenticated, service_role;`);
+      expect(compact).toContain(`grant execute on function ${signature} to service_role;`);
+    }
+  });
 });

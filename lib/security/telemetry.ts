@@ -6,7 +6,8 @@ export type WorkerSecurityRoute =
   | "worker.repository_scan_finalize"
   | "worker.runtime_prepare"
   | "worker.runtime_finalize"
-  | "worker.phase11_http_prepare";
+  | "worker.phase11_http_prepare"
+  | "worker.phase11_http_finalize";
 
 type WorkerSecurityEvent = {
   schema: "scopeforge.security.v1";

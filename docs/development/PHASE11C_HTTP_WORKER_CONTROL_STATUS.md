@@ -39,15 +39,20 @@ Implemented so far:
 - a dedicated authenticated internal preparation route that accepts only task/attempt/lease identity
 - strict parsing of the lease-bound authoritative preparation context before trusted HTTPS/443 target derivation
 - typed Phase 11C worker RPC definitions, preserving the repository source-hygiene rule against unsafe RPC casts
+- a dedicated authenticated finalization route that accepts only task/attempt/lease identity plus the closed terminal envelope
+- exact-digest terminal replay protection and authoritative cancellation-race handling
+- trusted conversion of privacy-reduced worker records into the existing HTTP discovery provider raw result
+- existing provider normalization with server-derived target, authorization, observation timestamp, and evidence references
+- one atomic service-role-only finalization RPC that revalidates lease/action/snapshot scope, persists normalized observations and the Phase 11 action attempt, then terminalizes the action
+- successful, failed, and cancelled terminal paths with observations prohibited outside success
 
 The new class intentionally remains outside the generic production `WorkerExecutionClass` union at this checkpoint. It cannot be registered, claimed, or dispatched by the production fleet yet.
 
 ## Next source work
 
-1. add terminal finalization/observation persistence with exact action and authorization revalidation
-2. widen the generic worker-runtime parser, dispatcher, and terminal types only when preparation and finalization are complete together
-3. keep hosted enablement default-off
-4. perform real Linux containment acceptance before any enablement release
+1. widen the generic worker-runtime parser, dispatcher, and terminal types now that preparation and finalization are complete together
+2. keep hosted enablement default-off
+3. perform real Linux containment acceptance before any enablement release
 
 ## Production boundary
 
