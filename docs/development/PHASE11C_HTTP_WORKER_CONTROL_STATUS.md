@@ -86,3 +86,16 @@ The current candidate additionally:
 - Diagnostic CI #1191 identified two stale architecture assertions from the pre-wiring state.
 - Both were updated to permit only the exact reviewed `phase11_http_discovery_v1` class while preserving the prohibition on generic URL/fetch/proxy execution authority.
 - A fresh exact-head full CI is required after this release-candidate commit.
+
+
+## Cancellation and recovery hardening
+
+The release-candidate review found and fixed three additional control-plane issues before merge:
+
+- Phase 11 HTTP queue and claim transitions now keep the privacy-reduced public action summary synchronized with private action state at `queued` and `running`.
+- The shared heartbeat now has an authorization-aware Phase 11 branch. Phase 11 tasks do not require a legacy `scan_jobs` row, and cancellation or authorization expiry is surfaced through the normal worker heartbeat.
+- Phase 11 HTTP now has dedicated recovery before legacy scan-job recovery. Unclaimed expired/cancelled work and expired leases terminalize the worker task plus the Phase 11 action/public summary with an auditable action-attempt record.
+
+The queue adapter also now has a concrete Supabase-backed repository, a service-role-only cancellation RPC, and reusable server dependencies. Queued work cancels immediately. Leased work preserves the live lease and lets authoritative heartbeat cancellation drive normal worker finalization.
+
+No production migration or hosted enablement was performed.
