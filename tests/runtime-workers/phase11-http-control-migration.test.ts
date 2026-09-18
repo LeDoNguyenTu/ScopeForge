@@ -209,6 +209,43 @@ describe("Phase 11C HTTP worker control migration", () => {
     expect(finalize).toMatch(/target_outcome <> 'succeeded'[\s\S]*?jsonb_array_length\(observation_rows\) <> 0/i);
   });
 
+  it("recovers unclaimed and expired Phase 11 work without legacy scan-job authority", async () => {
+    const sql = await readMigration();
+    const unleased = functionSql(sql, "recover_phase11_http_unleased_worker_tasks");
+    const leased = functionSql(sql, "recover_phase11_http_expired_worker_attempts");
+    const recover = functionSql(sql, "recover_worker_state");
+
+    expect(unleased).toMatch(/private\.phase11_http_worker_tasks/i);
+    expect(unleased).toMatch(/t\.execution_class = 'phase11_http_discovery_v1'/i);
+    expect(unleased).not.toContain("public.scan_jobs");
+    expect(unleased).toMatch(/set state = case when effective_cancelled then 'cancelled' else 'dead_letter' end/i);
+    expect(unleased).toMatch(/insert into private\.pentest_action_attempts/i);
+    expect(unleased).toContain("'WORKER_CLASS_UNAVAILABLE'");
+    expect(unleased).toMatch(/update public\.pentest_action_summaries[\s\S]*?'terminal'/i);
+
+    expect(leased).toMatch(/private\.phase11_http_worker_tasks/i);
+    expect(leased).toMatch(/task\.execution_class = 'phase11_http_discovery_v1'/i);
+    expect(leased).not.toContain("public.scan_jobs");
+    expect(leased).toMatch(/attempt\.lease_expires_at <= target_now/i);
+    expect(leased).toMatch(/update private\.worker_attempts[\s\S]*?'HTTP_DISCOVERY_TOTAL_TIMEOUT'/i);
+    expect(leased).toMatch(/insert into private\.pentest_action_attempts[\s\S]*?'timed_out'/i);
+    expect(leased).toMatch(/update private\.pentest_actions[\s\S]*?'terminal'/i);
+    expect(leased).toMatch(/update public\.pentest_action_summaries[\s\S]*?'terminal'/i);
+
+    const phase11Leased = recover.indexOf("private.recover_phase11_http_expired_worker_attempts(effective_now)");
+    const legacyLeased = recover.indexOf("public.recover_expired_worker_attempts_leased_only(effective_now)");
+    expect(phase11Leased).toBeGreaterThan(-1);
+    expect(legacyLeased).toBeGreaterThan(phase11Leased);
+
+    const compact = sql.replace(/\s+/g, " ").toLowerCase();
+    for (const signature of [
+      "private.recover_phase11_http_unleased_worker_tasks(timestamptz)",
+      "private.recover_phase11_http_expired_worker_attempts(timestamptz)",
+    ]) {
+      expect(compact).toContain(`revoke all on function ${signature} from public, anon, authenticated, service_role;`);
+    }
+  });
+
   it("keeps finalization RPCs service-role-only", async () => {
     const sql = await readMigration();
     const compact = sql.replace(/\s+/g, " ").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")").toLowerCase();
