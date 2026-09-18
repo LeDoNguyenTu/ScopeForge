@@ -4,7 +4,7 @@ import type {
   ProviderNormalizationContext,
   ProviderPolicyContext,
 } from "../capability-registry/types";
-import type { Observation, PrimitiveFacts } from "../security-planning";
+import { phase11StableId, type Observation, type PrimitiveFacts } from "../security-planning";
 
 export const HTTP_DISCOVERY_PROVIDER_ID = "scopeforge.http-discovery";
 export const HTTP_DISCOVERY_PROVIDER_VERSION = "1.0.0";
@@ -134,13 +134,13 @@ export function createHttpDiscoveryProvider(
         if (!record.evidenceRef.trim()) throw new Error("HTTP_DISCOVERY_RESULT_EVIDENCE_REQUIRED");
         if (!Number.isFinite(Date.parse(record.observedAt))) throw new Error("HTTP_DISCOVERY_RESULT_TIMESTAMP_INVALID");
         return Object.freeze({
-          observationId: [
-            "phase11",
-            "http-discovery",
-            encodeURIComponent(context.actionId),
-            encodeURIComponent(record.targetNodeId),
+          observationId: phase11StableId("phase11-obs-http", [
+            context.actionId,
+            record.targetNodeId,
             record.routeKind,
-          ].join(":"),
+            String(record.status),
+            record.evidenceRef,
+          ]),
           runId: context.runId,
           providerId: HTTP_DISCOVERY_PROVIDER_ID,
           providerVersion: HTTP_DISCOVERY_PROVIDER_VERSION,
