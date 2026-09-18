@@ -4,51 +4,45 @@ Last reconciled: 2026-09-19, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `30b45974126797509eb66dd12f26528970a7bdee`.
-- PR #141 released the hardened default-off Phase 11C provider contracts.
-- PR #142 released the bounded first-party HTTP discovery mediator/runtime foundation.
-- Vercel Hobby deployment filtering remains active: ordinary feature branches do not deploy automatically.
+- `main`: `83855118b36fb7c65f7a5882bcd8abfef7ac5ec1`.
+- PR #143 released the source-only trusted Phase 11C HTTP worker control path.
+- PR #144 released the reproducible Phase 11C runtime-image candidate source and permanent `npm run build:workers` CI gate.
+- Both corresponding production Vercel deployments reached READY.
+- Vercel Hobby deployment filtering remains active for ordinary feature branches.
 
 ## Active implementation
 
-PR #143, branch `feat/phase-11c-http-worker-control-20260919`, is the active Phase 11C source-only worker-control slice.
+Branch `feat/phase-11c-result-coverage-reconciliation-20260919` is the active source-only follow-up.
 
-It now contains:
+It adds:
 
-- immutable Phase 11 HTTP worker-task bindings
-- replay-safe service-role-only enqueue
-- dedicated registration and claim
-- lease-bound authenticated preparation and finalization routes
-- authoritative run/action/snapshot/target/capability revalidation
-- atomic normalized observation and action-attempt finalization
-- cancellation and terminal replay protection
-- generic worker claim/terminal parsing for `phase11_http_discovery_v1`
-- dedicated supervisor prepare/finalize routing
-- explicit Phase 11 HTTP executor dispatch
-- reuse of the existing single-use Unix mediator and networkless Podman sandbox
+- immutable run-level request, graph-expansion, and provider-failure limits
+- deterministic stop-condition enforcement before each planner iteration
+- request usage on authoritative private action-attempt rows
+- atomic terminal-result reconciliation into private coverage and the privacy-reduced public summary
+- provider-failure accounting
+- conservative HTTP request accounting for ambiguous expired leases
+- HTTP-class request accounting capped to the runtime ceiling of 12
+- replay-safe accounting through the existing terminal replay boundary
+- monotonic graph persistence so stale graph snapshots cannot roll committed request/failure coverage backward
+- coverage semantics that charge consumed requests without falsely marking blocked/cancelled/policy-rejected actions as covered
 
-The dedicated Phase 11 input and terminal validators remain authoritative after generic wiring.
+The new migration is `20260919020000_phase_11c_result_coverage_reconciliation.sql`.
 
 ## Production boundary
 
 - ScopeForge Supabase: `tdgpibrepzcvdivztkta`.
-- Phase 11 and Phase 11C migrations remain source-only and unapplied.
 - Production migration history still ends at Phase 10A3.
+- Phase 11 and Phase 11C migrations remain source-only and unapplied.
 - Hosted `phase11_http_discovery_v1` execution remains disabled.
 - The normal worker runtime configuration still cannot select the Phase 11 HTTP class.
+- The reproducible runtime image has not yet passed the required new real-Linux containment acceptance.
 - No external Nmap, Nuclei, or httpx process runner is enabled.
 
 ## Next
 
-1. finish exact-head PR #143 CI after the request-accounting hardening and correct any regression
-2. merge the source-only slice only when its exact head is green
-3. prepare the immutable runtime image candidate
-4. run real Linux rootless-Podman/cgroup-v2 containment acceptance for `phase11_http_discovery_v1`
+1. finish exact-head validation of the result-to-coverage reconciliation slice
+2. merge source-only only if the exact head is green
+3. build the exact Phase 11 runtime image on the accepted Linux/rootless-Podman host and record its immutable digest
+4. run the affected rootless-Podman/cgroup-v2 containment matrix for `phase11_http_discovery_v1`
 5. keep production migration application and hosted enablement as separate reviewed gates
-
-
-### Latest PR #143 hardening
-
-The final release review fixed two issues before merge:
-- the concrete Supabase queue repository now has explicit typed enqueue/cancel inputs after CI #1193 found test-only-clean TypeScript implicit-any errors
-- failed/cancelled HTTP attempts can no longer erase consumed request budget; exact counts are retained when available and otherwise the authorized maximum is charged conservatively
