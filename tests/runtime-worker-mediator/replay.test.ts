@@ -32,4 +32,20 @@ describe("runtime mediator replay boundary", () => {
 
     expect(() => registry.register(registration)).toThrow();
   });
+
+  it("keeps HTTP discovery mediator sessions single-use", () => {
+    const registry = createRuntimeMediatorSessionRegistry<{ marker: string }>({
+      randomBytes: () => Buffer.alloc(32, 5),
+    });
+    const identity = registry.register({
+      ...registration,
+      executionClass: "phase11_http_discovery_v1",
+    });
+    registry.consume({ operation: "run", session: identity }, new Date("2026-08-31T00:00:10.000Z"));
+
+    expect(() => registry.consume(
+      { operation: "run", session: identity },
+      new Date("2026-08-31T00:00:11.000Z"),
+    )).toThrow();
+  });
 });
