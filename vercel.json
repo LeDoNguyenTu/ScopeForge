@@ -10,5 +10,12 @@
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://tdgpibrepzcvdivztkta.supabase.co",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ohEtMSHMkblt13r-3bg2Ag_WrGjFcSh"
+  },
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true,
+      "vercel-preview-*": true
+    }
   }
 }
