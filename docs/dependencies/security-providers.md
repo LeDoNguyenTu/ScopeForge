@@ -41,7 +41,7 @@ Nuclei v3.10 and v3.11 contain security hardening around template capabilities a
 - Upstream: https://github.com/projectdiscovery/nuclei-templates
 - License: MIT
 - Update mode: pinned reviewed manifest only, never automatic runtime update
-- Current corpus release observed during review: v10.4.6 was published 2026-07-16; before external execution is enabled, re-check the current upstream release and pin the exact commit/tag used by the reviewed manifest
+- Current corpus release observed during 2026-09-18 re-review: v10.4.7. Before external execution is enabled, pin the exact commit/tag and ScopeForge-reviewed manifest used by the worker image
 - Integrity input: upstream `templates-checksum.txt` plus a ScopeForge-owned manifest hash
 - ScopeForge policy: each enabled template ID must exist in a code-reviewed profile manifest; a template ID outside the manifest is rejected during normalization
 - Automatic `-ut` / template update: disabled in hosted workers
