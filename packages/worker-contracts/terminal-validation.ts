@@ -1,6 +1,9 @@
 import type {
   AnyWorkerTerminalEnvelope,
   AnyWorkerTerminalExpectation,
+  Phase11HttpDiscoveryExecutionClass,
+  Phase11HttpDiscoveryInput,
+  Phase11HttpDiscoveryTerminalEnvelope,
   PrivateRepositorySnapshotExecutionClass,
   PrivateRepositorySnapshotInput,
   PrivateRepositorySnapshotTerminalEnvelope,
@@ -13,6 +16,10 @@ import type {
 import { validatePrivateRepositorySnapshotInput } from "./private-repository-validation";
 import { validatePrivateRepositorySnapshotTerminalEnvelope } from "./private-repository-terminal-validation";
 import {
+  validatePhase11HttpDiscoveryTaskInput,
+  validatePhase11HttpDiscoveryTerminalEnvelope,
+} from "./phase11-http-discovery-validation";
+import {
   validateWorkerTaskInput as validateBaseWorkerTaskInput,
   validateWorkerTerminalEnvelope as validateBaseTerminalEnvelope,
 } from "./validation";
@@ -21,6 +28,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+export function validateWorkerTaskInput(
+  value: unknown,
+  executionClass: Phase11HttpDiscoveryExecutionClass,
+): Phase11HttpDiscoveryInput;
 export function validateWorkerTaskInput(
   value: unknown,
   executionClass: PrivateRepositorySnapshotExecutionClass,
@@ -32,7 +43,10 @@ export function validateWorkerTaskInput(
 export function validateWorkerTaskInput(
   value: unknown,
   executionClass: WorkerExecutionClass | PrivateRepositorySnapshotExecutionClass,
-): WorkerTaskInput | PrivateRepositorySnapshotInput {
+): WorkerTaskInput | PrivateRepositorySnapshotInput | Phase11HttpDiscoveryInput {
+  if (executionClass === "phase11_http_discovery_v1") {
+    return validatePhase11HttpDiscoveryTaskInput(value);
+  }
   if (executionClass === "repository_snapshot_github_private_v1") {
     return validatePrivateRepositorySnapshotInput(value);
   }
@@ -51,6 +65,12 @@ export function validateWorkerTerminalEnvelope(
   value: unknown,
   expectation: AnyWorkerTerminalExpectation,
 ): AnyWorkerTerminalEnvelope {
+  if (expectation.executionClass === "phase11_http_discovery_v1") {
+    return validatePhase11HttpDiscoveryTerminalEnvelope(value, {
+      taskId: expectation.taskId,
+      attemptId: expectation.attemptId,
+    }) as Phase11HttpDiscoveryTerminalEnvelope;
+  }
   if (expectation.executionClass === "repository_snapshot_github_private_v1") {
     return validatePrivateRepositorySnapshotTerminalEnvelope(value, expectation);
   }

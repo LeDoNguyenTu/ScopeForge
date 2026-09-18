@@ -47,12 +47,16 @@ describe("Phase 11C HTTP discovery runtime authority", () => {
     expect(command).not.toMatch(/--network=host|--privileged|docker[.]sock|podman[.]sock/);
   });
 
-  it("does not add the new class to production worker queue contracts yet", async () => {
+  it("allows the reviewed class in generic contracts while hosted execution remains default-off", async () => {
     const workerTypes = await source("packages/worker-contracts/types.ts");
     const workerUnion = workerTypes.match(/export type WorkerExecutionClass\s*=([\s\S]*?);/)?.[1] ?? "";
-    expect(workerUnion).not.toContain("phase11_http_discovery_v1");
+    expect(workerUnion).toContain("phase11_http_discovery_v1");
+
+    const runtimeConfig = await source("packages/worker-runtime/config.ts");
+    expect(runtimeConfig).not.toContain('executionClass: "phase11_http_discovery_v1"');
 
     const environment = await source("docs/ENVIRONMENT.md");
     expect(environment).not.toContain("HOSTED_PHASE11_HTTP_DISCOVERY");
+    expect(environment).not.toContain("PHASE11_HTTP_DISCOVERY_WORKER_ENABLED");
   });
 });

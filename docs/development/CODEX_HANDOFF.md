@@ -1,28 +1,55 @@
 # ScopeForge Codex handoff
 
-Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub and provider evidence wins.
+Last reconciled: 2026-09-19, Asia/Singapore. Live GitHub/provider state wins.
 
-## Current resume point
+## Resume point
 
-- Released `main`: `aaada713296ec70f0a6497b4828939bc6b88e7fb` (PR #134).
-- PR #134 adds the second deterministic Task 11 fixture: labeled finding accuracy, provenance-backed attack-path, remediation-retest, duplicate-correlation, reproducibility, and fixture-safety evidence.
-- Exact PR-head CI `35351118308` passed for `1cdf4cf73eba4423ccca7d36cc8c795bae557cf6`.
-- Post-merge main CI `35351673275` passed for `aaada713...`.
-- Vercel production GitHub deployment `6525534937` succeeded for that exact merge SHA. Its deployment URL is `https://scopeforge-kgih0ypyl-itsbrian.vercel.app`; the normal production diagnostic also passed against `scopeforge.dev` in CI.
+- Released `main`: `30b45974126797509eb66dd12f26528970a7bdee` from PR #142.
+- Active PR: #143 - trusted Phase 11C HTTP worker control.
+- Active branch: `feat/phase-11c-http-worker-control-20260919`.
+- Re-resolve the live PR head before making changes.
 
-## Task 11 evidence now released
+PR #143 has advanced through the complete source control path:
 
-- A committed four-label, injected-provider-only fixture yields 2 TP, 0 FN, 1 FP, and 1 TN: precision `2/3`, recall `1`, false-positive rate `1/2`, and F1 `4/5`.
-- It measures a validated-finding rate of `2/3`, one duplicate correlation key among four raw reports (`1/4`), the expected evidence-backed `entrypoint -> API -> data` path, and two correct synthetic remediation retests (`1`).
-- The benchmark completed in 1.616 seconds under its five-second catastrophic ceiling. The full local suite passed: 463 files passed, 4 skipped; 2,108 tests passed, 24 skipped.
-- Exact PR and merged-main CI both passed audit, full tests, typecheck, CLI/version, scanner benchmarks, Next build, Linux CSP/responsive browser smoke, and the production UI/Turnstile diagnostic.
+- service-role-only immutable Phase 11 worker binding and queue
+- dedicated register/claim RPCs
+- authenticated lease-bound preparation/finalization routes
+- authoritative scope/expiry/capability checks
+- cancellation and replay-safe terminal handling
+- provider normalization plus atomic Phase 11 observation/action-attempt persistence
+- generic claim and terminal parsing for `phase11_http_discovery_v1`
+- explicit supervisor prepare/finalize and executor routing
+- networkless container execution through the existing single-use Unix mediator
 
-## Next implementation
+The Phase 11-specific closed validators remain authoritative.
 
-Continue Task 11 with deterministic graph-expansion and policy/approval fixture coverage. Keep the harness synthetic, fixture-driven, auditable, and injected-provider-only. Do not use current fixture metrics as global product accuracy.
+## Immediate work
 
-## Release and provider boundary
+1. inspect the live #143 head and its newest CI
+2. preserve the request-accounting hardening: non-success HTTP attempts must never be finalized as zero requests merely because exact mediator accounting is unavailable
+3. fix any failures using TDD
+4. run full exact-head CI
+4. verify no review threads and that the PR remains mergeable
+5. merge only when the exact candidate is green
+6. verify post-merge main CI and Vercel production
+7. then move to real Linux containment acceptance
 
-- Issue #79 is CLOSED. PR #76 (Phase 10A2) and PR #77 (Phase 10A3) are both merged and released; their historical handoff branches are not active work.
-- ScopeForge Supabase is `tdgpibrepzcvdivztkta`. Phase 11 migrations remain source-only and unapplied; Phase 11 tables remain absent from production.
-- External Phase 11 provider execution remains disabled. Do not apply migrations, widen hosted authority, expose secrets, weaken authorization/RLS/containment, or confuse this project with `xwsergbpvkcsugexssmc`.
+## Hard boundaries
+
+- ScopeForge Supabase is `tdgpibrepzcvdivztkta`.
+- Production migration ledger still ends at Phase 10A3.
+- Do not apply Phase 11/11C migrations just because source merges.
+- Do not enable `phase11_http_discovery_v1` in the normal hosted worker runtime before Linux acceptance.
+- No external Nmap/Nuclei/httpx process runner is enabled.
+- Preserve `--network=none` in the executor and host-mediator-only network authority.
+- No browser/user-controlled URL, method, headers, body, argv, network policy, worker budget, or direct target authority.
+- No AI co-author metadata.
+
+
+## Latest release review
+
+CI #1193 passed the complete test suite but failed typecheck on two implicit queue-repository input parameters; those inputs are now explicitly typed.
+
+A subsequent security review found a request-budget accounting gap for failed/cancelled HTTP attempts. The fix preserves exact counts when available and otherwise charges the authorized `maxRequests` conservatively. The SQL finalizer no longer resets non-success request counts to zero.
+
+Do not merge PR #143 without a fresh exact-head CI after these fixes.

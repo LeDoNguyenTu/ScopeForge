@@ -73,6 +73,61 @@ describe("Phase 6D runtime container executor", () => {
     expect(JSON.stringify(terminal)).not.toContain(mediatorSocketPath);
   });
 
+  it("executes Phase 11 HTTP through the same networkless sandbox with its dedicated terminal validator", async () => {
+    const phase11Session = {
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1" as const,
+      nonce: "d".repeat(64),
+    };
+    const phase11Contract = {
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1" as const,
+      absoluteDeadlineAt: "2099-09-19T00:00:30.000Z",
+      budget: workerExecutionProfile("phase11_http_discovery_v1").budget,
+      input: {
+        kind: "phase11_http_worker_prepared" as const,
+        runId: "44444444-4444-4444-8444-444444444444",
+        actionId: `phase11-action:${"a".repeat(64)}`,
+        authorizationId: `phase11-authz:${"b".repeat(64)}`,
+        mediatorSocketPath,
+        mediatorSession: phase11Session,
+      },
+    };
+    const execute = vi.fn(async () => ({
+      output: JSON.stringify({
+        status: "succeeded",
+        result: {
+          kind: "phase11_http_discovery",
+          requestCount: 1,
+          records: [{ routeKind: "root", status: 200, redirected: false }],
+        },
+      }),
+    }));
+    const executor = createRuntimeWorkerExecutor({
+      podmanBinary: "/usr/bin/podman",
+      runtimeImage: `ghcr.io/scopeforge/runtime-worker@sha256:${"a".repeat(64)}`,
+      sandbox: { execute },
+      now: () => 10,
+    });
+
+    await expect(executor.execute(phase11Contract, new AbortController().signal)).resolves.toMatchObject({
+      executionClass: "phase11_http_discovery_v1",
+      outcome: "succeeded",
+      failureCode: null,
+      result: {
+        kind: "phase11_http_discovery",
+        requestCount: 1,
+        records: [{ routeKind: "root", status: 200, redirected: false }],
+      },
+    });
+    expect(execute).toHaveBeenCalledWith(expect.objectContaining({
+      executionClass: "phase11_http_discovery_v1",
+      mediatorSessionNonce: phase11Session.nonce,
+    }), expect.any(AbortSignal));
+  });
+
   it("preserves mediator cancellation as a cancelled terminal without a worker failure code", async () => {
     const executor = createRuntimeWorkerExecutor({
       podmanBinary: "/usr/bin/podman",

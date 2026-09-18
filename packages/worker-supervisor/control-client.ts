@@ -8,6 +8,11 @@ import type {
   RuntimeObservationBudget,
 } from "@/packages/runtime-observer";
 import type {
+  HttpDiscoveryCapabilityId,
+  HttpDiscoveryMethodProfile,
+  HttpDiscoveryProfile,
+} from "@/packages/runtime-worker-mediator/http-discovery";
+import type {
   ActiveValidationBudget,
   AuthorizedValidationTarget,
 } from "@/packages/runtime-validator";
@@ -33,9 +38,31 @@ export interface PreparedActiveCorsWorkerExecution {
   budget: Readonly<ActiveValidationBudget>;
 }
 
+export interface PreparedPhase11HttpWorkerExecution {
+  taskId: string;
+  workspaceId: string;
+  runId: string;
+  actionId: string;
+  authorizationId: string;
+  authorizationSnapshotRef: string;
+  targetNodeId: string;
+  target: AuthorizedRuntimeTarget;
+  capabilityId: HttpDiscoveryCapabilityId;
+  discoveryProfile: HttpDiscoveryProfile;
+  methodProfile: HttpDiscoveryMethodProfile;
+  followSameOriginRedirects: boolean;
+  budget: Readonly<{
+    maxRequests: number;
+    perRequestTimeoutMs: number;
+    totalTimeoutMs: number;
+  }>;
+  expiresAt: string;
+}
+
 export type PreparedRuntimeWorkerExecution =
   | PreparedPassiveRuntimeWorkerExecution
-  | PreparedActiveCorsWorkerExecution;
+  | PreparedActiveCorsWorkerExecution
+  | PreparedPhase11HttpWorkerExecution;
 
 export interface WorkerSupervisorControlClient {
   claim(): Promise<AnyWorkerTaskContract | null>;
@@ -56,6 +83,17 @@ export interface WorkerSupervisorControlClient {
     leaseToken: string;
   }): Promise<PreparedRuntimeWorkerExecution>;
   runtimeFinalize?(input: {
+    taskId: string;
+    attemptId: string;
+    leaseToken: string;
+    terminal: WorkerTerminalEnvelope;
+  }): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }>;
+  phase11HttpPrepare?(input: {
+    taskId: string;
+    attemptId: string;
+    leaseToken: string;
+  }): Promise<PreparedPhase11HttpWorkerExecution>;
+  phase11HttpFinalize?(input: {
     taskId: string;
     attemptId: string;
     leaseToken: string;

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const phase6cDatabaseTypesPath = path.resolve("lib/database.phase6c.types.ts");
 const phase6dDatabaseTypesPath = path.resolve("lib/database.phase6d.types.ts");
 const phase10a2DatabaseTypesPath = path.resolve("lib/database.phase10a2.types.ts");
+const phase11cDatabaseTypesPath = path.resolve("lib/database.phase11c.types.ts");
 const baseDatabaseTypesPath = path.resolve("lib/database.types.ts");
 const workerControlRepositoryPath = path.resolve("lib/worker-control/repository.ts");
 const workerControlServerDependenciesPath = path.resolve("lib/worker-control/server-dependencies.ts");
@@ -44,10 +45,11 @@ describe("Phase 6C live database type contract", () => {
     }
   });
 
-  it("composes Phase 10A2 with the Phase 6D worker-control overlay", async () => {
-    const [phase6dSource, phase10a2Source, repositorySource, dependenciesSource] = await Promise.all([
+  it("composes the Phase 11C worker-control overlay on Phase 10A2 and Phase 6D", async () => {
+    const [phase6dSource, phase10a2Source, phase11cSource, repositorySource, dependenciesSource] = await Promise.all([
       readFile(phase6dDatabaseTypesPath, "utf8"),
       readFile(phase10a2DatabaseTypesPath, "utf8"),
+      readFile(phase11cDatabaseTypesPath, "utf8"),
       readFile(workerControlRepositoryPath, "utf8"),
       readFile(workerControlServerDependenciesPath, "utf8"),
     ]);
@@ -56,12 +58,13 @@ describe("Phase 6C live database type contract", () => {
     expect(phase10a2Source).toContain('import type { Phase6dDatabase } from "./database.phase6d.types";');
     expect(phase10a2Source).toContain('import type { Phase10a1Database } from "./database.phase10a1.types";');
     expect(phase10a2Source).toContain('Phase6dDatabase["public"]["Functions"]');
-    expect(repositorySource).toContain('import type { Phase10a2Database } from "@/lib/database.phase10a2.types";');
-    expect(repositorySource).toContain("client: SupabaseClient<Phase10a2Database>");
+    expect(phase11cSource).toContain('import type { Phase10a2Database } from "./database.phase10a2.types";');
+    expect(repositorySource).toContain('import type { Phase11cWorkerDatabase } from "@/lib/database.phase11c.types";');
+    expect(repositorySource).toContain("client: SupabaseClient<Phase11cWorkerDatabase>");
     expect(repositorySource).not.toContain("Phase6cWorkerRpc");
     expect(repositorySource).not.toContain("as unknown as");
-    expect(dependenciesSource).toContain('import type { Phase10a2Database } from "@/lib/database.phase10a2.types";');
-    expect(dependenciesSource).toContain("createAdminClient<Phase10a2Database>()");
+    expect(dependenciesSource).toContain('import type { Phase11cWorkerDatabase } from "@/lib/database.phase11c.types";');
+    expect(dependenciesSource).toContain("createAdminClient<Phase11cWorkerDatabase>()");
   });
 
   it("does not expose private worker or repository-scan implementation tables", async () => {

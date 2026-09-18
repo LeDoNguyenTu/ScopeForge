@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Phase10a2Database } from "@/lib/database.phase10a2.types";
+import type { Phase11cWorkerDatabase } from "@/lib/database.phase11c.types";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
 import type { WorkerExecutionBudget } from "@/packages/worker-contracts";
 import {
@@ -9,6 +9,7 @@ import {
   type RuntimeWorkerEnqueueInput,
   type RuntimeWorkerEnqueueResult,
   type RuntimeWorkerPersistenceClaimResult,
+  type Phase11HttpWorkerPersistenceClaimResult,
   type WorkerAuthenticationInput,
   type WorkerClaimInput,
   type WorkerControlExecutionClass,
@@ -35,6 +36,7 @@ type WorkerPersistenceExecutionClass =
 type RuntimeWorkerExecutionClass =
   | "passive_runtime_observation_v1"
   | "active_cors_validation_v1";
+type Phase11HttpWorkerExecutionClass = "phase11_http_discovery_v1";
 
 const PERSISTENCE_EXECUTION_CLASSES = new Set<WorkerPersistenceExecutionClass>([
   "foundation_no_egress_v1",
@@ -46,9 +48,13 @@ const RUNTIME_EXECUTION_CLASSES = new Set<RuntimeWorkerExecutionClass>([
   "passive_runtime_observation_v1",
   "active_cors_validation_v1",
 ]);
+const PHASE11_HTTP_EXECUTION_CLASSES = new Set<Phase11HttpWorkerExecutionClass>([
+  "phase11_http_discovery_v1",
+]);
 const ALL_EXECUTION_CLASSES = new Set<WorkerControlExecutionClass>([
   ...PERSISTENCE_EXECUTION_CLASSES,
   ...RUNTIME_EXECUTION_CLASSES,
+  ...PHASE11_HTTP_EXECUTION_CLASSES,
 ]);
 const OBJECT_KEY_PATTERN = /^repository-source\/[a-f0-9]{64}[.]tar[.]gz$/;
 const OWNER_REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
@@ -184,6 +190,7 @@ function parseRuntimeEnqueue(value: unknown, expectedClass: RuntimeWorkerExecuti
 function profileBudget(executionClass: WorkerControlExecutionClass): WorkerExecutionBudget {
   switch (executionClass) {
     case "repository_snapshot_github_private_v1": return workerExecutionProfile(executionClass).budget;
+    case "phase11_http_discovery_v1": return workerExecutionProfile(executionClass).budget;
     default: return workerExecutionProfile(executionClass).budget;
   }
 }
@@ -300,6 +307,38 @@ function parseRuntimeClaim(value: unknown): RuntimeWorkerPersistenceClaimResult 
   if (value.input.kind !== "active_cors_validation") throw new WorkerControlError("WORKER_CONTROL_FAILED");
   return Object.freeze({ ...common, executionClass, input: Object.freeze({ kind: "active_cors_validation" as const, domainJobId }) });
 }
+function parsePhase11HttpClaim(value: unknown): Phase11HttpWorkerPersistenceClaimResult {
+  if (value === null) return null;
+  if (!isRecord(value) || !isRecord(value.input)
+      || value.executionClass !== "phase11_http_discovery_v1"
+      || !hasExactKeys(value.input, ["kind", "runId", "actionId", "authorizationId"])
+      || value.input.kind !== "phase11_http_discovery") {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const runId = requiredUuid(value.input.runId);
+  const actionId = requiredString(value.input.actionId);
+  const authorizationId = requiredString(value.input.authorizationId);
+  if (!/^phase11-action:[0-9a-f]{64}$/.test(actionId)
+      || !/^phase11-authz:[0-9a-f]{64}$/.test(authorizationId)) {
+    throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  }
+  const leaseToken = requiredString(value.leaseToken);
+  if (!/^[a-f0-9]{64}$/.test(leaseToken)) throw new WorkerControlError("WORKER_CONTROL_FAILED");
+  return Object.freeze({
+    taskId: requiredUuid(value.taskId),
+    attemptId: requiredUuid(value.attemptId),
+    executionClass: "phase11_http_discovery_v1" as const,
+    leaseToken,
+    absoluteDeadlineAt: requiredString(value.absoluteDeadlineAt),
+    budget: parseBudget(value.budget, "phase11_http_discovery_v1"),
+    input: Object.freeze({
+      kind: "phase11_http_discovery" as const,
+      runId,
+      actionId,
+      authorizationId,
+    }),
+  });
+}
 function parseHeartbeat(value: unknown): WorkerHeartbeatResult {
   if (!isRecord(value) || typeof value.cancelRequested !== "boolean") throw new WorkerControlError("WORKER_CONTROL_FAILED");
   return Object.freeze({ cancelRequested: value.cancelRequested, leaseExpiresAt: requiredString(value.leaseExpiresAt) });
@@ -378,14 +417,16 @@ export interface WorkerControlRepository {
 export interface RuntimeWorkerControlRepository {
   registerPassiveRuntime(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   registerActiveCors(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
+  registerPhase11Http(input: WorkerRegistrationInput): Promise<WorkerRegistrationResult>;
   enqueuePassiveRuntime(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
   enqueueActiveCors(input: RuntimeWorkerEnqueueInput): Promise<RuntimeWorkerEnqueueResult>;
   claimRuntime(input: WorkerClaimInput): Promise<RuntimeWorkerPersistenceClaimResult>;
+  claimPhase11Http(input: WorkerClaimInput): Promise<Phase11HttpWorkerPersistenceClaimResult>;
 }
 export type CompleteWorkerControlRepository = WorkerControlRepository & RuntimeWorkerControlRepository;
 
 export function createWorkerControlRepository(
-  client: SupabaseClient<Phase10a2Database>,
+  client: SupabaseClient<Phase11cWorkerDatabase>,
 ): CompleteWorkerControlRepository {
   return Object.freeze<CompleteWorkerControlRepository>({
     async register(input) {
@@ -417,6 +458,12 @@ export function createWorkerControlRepository(
       return parseRegistration(await rpcData(client.rpc("register_active_cors_worker_node", {
         target_credential_hash: input.credentialHash, target_software_version: input.softwareVersion,
       })), "active_cors_validation_v1");
+    },
+    async registerPhase11Http(input) {
+      return parseRegistration(await rpcData(client.rpc("register_phase11_http_worker_node", {
+        target_credential_hash: input.credentialHash,
+        target_software_version: input.softwareVersion,
+      })), "phase11_http_discovery_v1");
     },
     async disable(workerId) {
       return parseDisable(await rpcData(client.rpc("disable_worker_node", { target_worker_id: workerId })));
@@ -451,6 +498,11 @@ export function createWorkerControlRepository(
     },
     async claimRuntime(input) {
       return parseRuntimeClaim(await rpcData(client.rpc("claim_runtime_worker_task", { target_worker_id: input.workerId })));
+    },
+    async claimPhase11Http(input) {
+      return parsePhase11HttpClaim(await rpcData(client.rpc("claim_phase11_http_worker_task", {
+        target_worker_id: input.workerId,
+      })));
     },
     async heartbeat(input) {
       return parseHeartbeat(await rpcData(client.rpc("heartbeat_worker_attempt", {

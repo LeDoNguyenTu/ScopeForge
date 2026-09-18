@@ -6,14 +6,17 @@ export type WorkerExecutionClass =
   | "repository_snapshot_github_public_v1"
   | "phase3_repository_scan_no_egress_v1"
   | "passive_runtime_observation_v1"
-  | "active_cors_validation_v1";
+  | "active_cors_validation_v1"
+  | "phase11_http_discovery_v1";
 export type PrivateRepositorySnapshotExecutionClass = "repository_snapshot_github_private_v1";
+export type Phase11HttpDiscoveryExecutionClass = "phase11_http_discovery_v1";
 export type WorkerNetworkPolicy =
   | "none"
   | "github_public_archive_and_attempt_artifact_put_v1"
   | "github_private_archive_lease_and_attempt_artifact_put_v1"
   | "passive_runtime_target_bound_v1"
-  | "active_cors_target_bound_v1";
+  | "active_cors_target_bound_v1"
+  | "phase11_http_discovery_target_bound_v1";
 export type WorkerTerminalOutcome = "succeeded" | "failed" | "cancelled";
 export type WorkerTerminalFailureCode =
   | "WORKER_LOST"
@@ -46,7 +49,12 @@ export type WorkerTerminalFailureCode =
   | "ACTIVE_CORS_REQUEST_TIMEOUT"
   | "ACTIVE_CORS_TOTAL_TIMEOUT"
   | "ACTIVE_CORS_NETWORK_ERROR"
-  | "ACTIVE_CORS_OBSERVATION_BUDGET";
+  | "ACTIVE_CORS_OBSERVATION_BUDGET"
+  | "HTTP_DISCOVERY_REQUEST_BUDGET"
+  | "HTTP_DISCOVERY_REQUEST_TIMEOUT"
+  | "HTTP_DISCOVERY_TOTAL_TIMEOUT"
+  | "HTTP_DISCOVERY_NETWORK_ERROR"
+  | "HTTP_DISCOVERY_PROFILE_INVALID";
 
 export interface WorkerExecutionBudget {
   maxWallTimeMs: number;
@@ -68,6 +76,12 @@ export interface WorkerExecutionProfile {
 export interface PrivateRepositorySnapshotExecutionProfile {
   executionClass: PrivateRepositorySnapshotExecutionClass;
   networkPolicy: "github_private_archive_lease_and_attempt_artifact_put_v1";
+  budget: WorkerExecutionBudget;
+}
+
+export interface Phase11HttpDiscoveryExecutionProfile {
+  executionClass: Phase11HttpDiscoveryExecutionClass;
+  networkPolicy: "phase11_http_discovery_target_bound_v1";
   budget: WorkerExecutionBudget;
 }
 
@@ -132,12 +146,20 @@ export interface ActiveCorsValidationInput {
   domainJobId: string;
 }
 
+export interface Phase11HttpDiscoveryInput {
+  kind: "phase11_http_discovery";
+  runId: string;
+  actionId: string;
+  authorizationId: string;
+}
+
 export type WorkerTaskInput =
   | FoundationProbeInput
   | RepositorySnapshotInput
   | RepositoryScanInput
   | PassiveRuntimeObservationInput
-  | ActiveCorsValidationInput;
+  | ActiveCorsValidationInput
+  | Phase11HttpDiscoveryInput;
 
 export interface WorkerTaskContract {
   taskId: string;
@@ -159,7 +181,20 @@ export interface PrivateRepositorySnapshotTaskContract {
   input: PrivateRepositorySnapshotInput;
 }
 
-export type AnyWorkerTaskContract = WorkerTaskContract | PrivateRepositorySnapshotTaskContract;
+export interface Phase11HttpDiscoveryTaskContract {
+  taskId: string;
+  attemptId: string;
+  executionClass: Phase11HttpDiscoveryExecutionClass;
+  leaseToken: string;
+  absoluteDeadlineAt: string;
+  budget: WorkerExecutionBudget;
+  input: Phase11HttpDiscoveryInput;
+}
+
+export type AnyWorkerTaskContract =
+  | WorkerTaskContract
+  | PrivateRepositorySnapshotTaskContract
+  | Phase11HttpDiscoveryTaskContract;
 
 export interface WorkerAttemptMetrics {
   wallTimeMs: number;
@@ -238,12 +273,39 @@ export interface ActiveCorsValidationResult {
   observation: CorsPolicyObservation;
 }
 
+export type Phase11HttpDiscoveryRouteKind =
+  | "root"
+  | "security-txt"
+  | "robots"
+  | "sitemap";
+
+export type Phase11HttpDiscoveryRedirectBlockedReason =
+  | "CROSS_HOST"
+  | "SCHEME"
+  | "PORT"
+  | "CREDENTIALS";
+
+export interface Phase11HttpDiscoveryRecord {
+  routeKind: Phase11HttpDiscoveryRouteKind;
+  status: number;
+  contentType?: string;
+  redirected: boolean;
+  redirectBlockedReason?: Phase11HttpDiscoveryRedirectBlockedReason;
+}
+
+export interface Phase11HttpDiscoveryResult {
+  kind: "phase11_http_discovery";
+  requestCount: number;
+  records: readonly Phase11HttpDiscoveryRecord[];
+}
+
 export type WorkerTerminalResult =
   | FoundationProbeResult
   | RepositorySnapshotResult
   | RepositoryScanResult
   | PassiveRuntimeObservationResult
-  | ActiveCorsValidationResult;
+  | ActiveCorsValidationResult
+  | Phase11HttpDiscoveryResult;
 
 export interface WorkerTerminalEnvelope {
   schemaVersion: 1;
@@ -267,7 +329,10 @@ export interface PrivateRepositorySnapshotTerminalEnvelope {
   result: PrivateRepositorySnapshotResult | null;
 }
 
-export type AnyWorkerTerminalEnvelope = WorkerTerminalEnvelope | PrivateRepositorySnapshotTerminalEnvelope;
+export type AnyWorkerTerminalEnvelope =
+  | WorkerTerminalEnvelope
+  | PrivateRepositorySnapshotTerminalEnvelope
+  | Phase11HttpDiscoveryTerminalEnvelope;
 
 export interface WorkerTerminalExpectation {
   taskId: string;
@@ -282,3 +347,20 @@ export interface PrivateRepositorySnapshotTerminalExpectation {
 }
 
 export type AnyWorkerTerminalExpectation = WorkerTerminalExpectation | PrivateRepositorySnapshotTerminalExpectation;
+
+
+export interface Phase11HttpDiscoveryTerminalEnvelope {
+  schemaVersion: 1;
+  taskId: string;
+  attemptId: string;
+  executionClass: Phase11HttpDiscoveryExecutionClass;
+  outcome: WorkerTerminalOutcome;
+  failureCode: WorkerTerminalFailureCode | null;
+  metrics: WorkerAttemptMetrics;
+  result: Phase11HttpDiscoveryResult | null;
+}
+
+export interface Phase11HttpDiscoveryTerminalExpectation {
+  taskId: string;
+  attemptId: string;
+}

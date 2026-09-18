@@ -19,14 +19,18 @@ import {
 } from "@/packages/runtime-worker-sandbox";
 import type { PreparedRuntimeWorkerExecution } from "./control-client";
 import type {
+  Phase11HttpWorkerPreparedInput,
   RuntimeWorkerPreparedInput,
   WorkerExecutor,
   WorkerExecutorContract,
 } from "./executor";
 
 export interface RuntimeNetworkPreparedContract extends WorkerExecutorContract {
-  executionClass: "passive_runtime_observation_v1" | "active_cors_validation_v1";
-  input: RuntimeWorkerPreparedInput;
+  executionClass:
+    | "passive_runtime_observation_v1"
+    | "active_cors_validation_v1"
+    | "phase11_http_discovery_v1";
+  input: RuntimeWorkerPreparedInput | Phase11HttpWorkerPreparedInput;
 }
 
 export interface PreparedRuntimeNetworkTask {
@@ -60,31 +64,62 @@ export interface RuntimeWorkerExecutorDependencies {
   now?: () => number;
 }
 
-function runtimeTaskInput(task: WorkerTaskContract): {
-  domainJobId: string;
-  executionClass: "passive_runtime_observation_v1" | "active_cors_validation_v1";
-} {
+type RuntimeClaimIdentity =
+  | Readonly<{
+      executionClass: "passive_runtime_observation_v1" | "active_cors_validation_v1";
+      domainJobId: string;
+    }>
+  | Readonly<{
+      executionClass: "phase11_http_discovery_v1";
+      runId: string;
+      actionId: string;
+      authorizationId: string;
+    }>;
+
+function runtimeTaskInput(task: WorkerTaskContract): RuntimeClaimIdentity {
   if (task.executionClass === "passive_runtime_observation_v1"
       && task.input.kind === "passive_runtime_observation") {
-    return { domainJobId: task.input.domainJobId, executionClass: task.executionClass };
+    return Object.freeze({ domainJobId: task.input.domainJobId, executionClass: task.executionClass });
   }
   if (task.executionClass === "active_cors_validation_v1"
       && task.input.kind === "active_cors_validation") {
-    return { domainJobId: task.input.domainJobId, executionClass: task.executionClass };
+    return Object.freeze({ domainJobId: task.input.domainJobId, executionClass: task.executionClass });
   }
-  throw new Error("Phase 6D preparation requires a closed runtime worker task.");
+  if (task.executionClass === "phase11_http_discovery_v1"
+      && task.input.kind === "phase11_http_discovery") {
+    return Object.freeze({
+      executionClass: task.executionClass,
+      runId: task.input.runId,
+      actionId: task.input.actionId,
+      authorizationId: task.input.authorizationId,
+    });
+  }
+  throw new Error("Runtime preparation requires a closed worker task.");
 }
 
-function mediatorProfile(prepared: PreparedRuntimeWorkerExecution): RuntimeMediatorPreparedProfile {
-  if (prepared.executionClass === "passive_runtime_observation_v1") {
+function mediatorProfile(
+  prepared: PreparedRuntimeWorkerExecution,
+  executionClass: RuntimeClaimIdentity["executionClass"],
+): RuntimeMediatorPreparedProfile {
+  if (executionClass === "phase11_http_discovery_v1") {
+    if (!("capabilityId" in prepared)) {
+      throw new Error("Prepared Phase 11 HTTP profile is invalid.");
+    }
     return Object.freeze({
-      executionClass: prepared.executionClass,
+      executionClass,
       target: prepared.target,
+      capabilityId: prepared.capabilityId,
+      discoveryProfile: prepared.discoveryProfile,
+      methodProfile: prepared.methodProfile,
+      followSameOriginRedirects: prepared.followSameOriginRedirects,
       budget: prepared.budget,
     });
   }
+  if (!("executionClass" in prepared) || prepared.executionClass !== executionClass) {
+    throw new Error("Prepared runtime profile does not match the claimed task.");
+  }
   return Object.freeze({
-    executionClass: prepared.executionClass,
+    executionClass,
     target: prepared.target,
     budget: prepared.budget,
   });
@@ -108,7 +143,17 @@ export function createRuntimeNetworkPreparer(
   return Object.freeze({
     async prepare({ task, prepared, signal, isCancelled }: RuntimeNetworkPrepareInput) {
       const claimed = runtimeTaskInput(task);
-      if (prepared.taskId !== task.taskId
+      if (prepared.taskId !== task.taskId) {
+        throw new Error("Prepared runtime profile does not match the claimed task.");
+      }
+      if (claimed.executionClass === "phase11_http_discovery_v1") {
+        if (!("capabilityId" in prepared)
+            || prepared.runId !== claimed.runId
+            || prepared.actionId !== claimed.actionId
+            || prepared.authorizationId !== claimed.authorizationId) {
+          throw new Error("Prepared Phase 11 HTTP profile does not match the claimed task.");
+        }
+      } else if (!("executionClass" in prepared)
           || prepared.attemptId !== task.attemptId
           || prepared.executionClass !== claimed.executionClass
           || prepared.domainJobId !== claimed.domainJobId) {
@@ -132,13 +177,14 @@ export function createRuntimeNetworkPreparer(
         attemptId: task.attemptId,
         executionClass: claimed.executionClass,
         expiresAt: prepared.expiresAt,
-        profile: mediatorProfile(prepared),
+        profile: mediatorProfile(prepared, claimed.executionClass),
       });
       const socketPath = runtimeMediatorHostSocketPath(secretHex(randomBytes));
       const mediator = createRuntimeMediatorService({
         registry,
         passive: { isCancelled: authoritativeCancellation, signal },
         activeCors: { isCancelled: authoritativeCancellation, signal },
+        httpDiscovery: { isCancelled: authoritativeCancellation, signal },
         now,
       });
       const server = createUnixServer({ socketPath, run: mediator.run });
@@ -160,12 +206,21 @@ export function createRuntimeNetworkPreparer(
         executionClass: claimed.executionClass,
         absoluteDeadlineAt: task.absoluteDeadlineAt,
         budget: task.budget,
-        input: Object.freeze({
-          kind: "runtime_worker_prepared" as const,
-          domainJobId: claimed.domainJobId,
-          mediatorSocketPath: socketPath,
-          mediatorSession,
-        }),
+        input: claimed.executionClass === "phase11_http_discovery_v1"
+          ? Object.freeze({
+              kind: "phase11_http_worker_prepared" as const,
+              runId: claimed.runId,
+              actionId: claimed.actionId,
+              authorizationId: claimed.authorizationId,
+              mediatorSocketPath: socketPath,
+              mediatorSession,
+            })
+          : Object.freeze({
+              kind: "runtime_worker_prepared" as const,
+              domainJobId: claimed.domainJobId,
+              mediatorSocketPath: socketPath,
+              mediatorSession,
+            }),
       });
 
       return Object.freeze({
@@ -179,14 +234,18 @@ export function createRuntimeNetworkPreparer(
 }
 
 function preparedRuntimeContract(value: WorkerExecutorContract): RuntimeNetworkPreparedContract {
-  if ((value.executionClass !== "passive_runtime_observation_v1"
-      && value.executionClass !== "active_cors_validation_v1")
-      || value.input.kind !== "runtime_worker_prepared") {
-    throw new Error("Runtime executor received an unprepared Phase 6D contract.");
+  const legacyRuntime = (value.executionClass === "passive_runtime_observation_v1"
+      || value.executionClass === "active_cors_validation_v1")
+    && value.input.kind === "runtime_worker_prepared";
+  const phase11Runtime = value.executionClass === "phase11_http_discovery_v1"
+    && value.input.kind === "phase11_http_worker_prepared";
+  if (!legacyRuntime && !phase11Runtime) {
+    throw new Error("Runtime executor received an unprepared runtime contract.");
   }
-  if (value.input.mediatorSession.taskId !== value.taskId
-      || value.input.mediatorSession.attemptId !== value.attemptId
-      || value.input.mediatorSession.executionClass !== value.executionClass) {
+  const input = value.input as RuntimeWorkerPreparedInput | Phase11HttpWorkerPreparedInput;
+  if (input.mediatorSession.taskId !== value.taskId
+      || input.mediatorSession.attemptId !== value.attemptId
+      || input.mediatorSession.executionClass !== value.executionClass) {
     throw new Error("Runtime executor mediator identity does not match the prepared task.");
   }
   return value as RuntimeNetworkPreparedContract;

@@ -31,13 +31,26 @@ export interface RuntimeWorkerPreparedInput {
   mediatorSession: RuntimeMediatorSessionIdentity;
 }
 
+export interface Phase11HttpWorkerPreparedInput {
+  kind: "phase11_http_worker_prepared";
+  runId: string;
+  actionId: string;
+  authorizationId: string;
+  mediatorSocketPath: string;
+  mediatorSession: RuntimeMediatorSessionIdentity;
+}
+
 export interface WorkerExecutorContract {
   taskId: string;
   attemptId: string;
   executionClass: WorkerExecutionClass;
   absoluteDeadlineAt: string;
   budget: WorkerExecutionBudget;
-  input: WorkerTaskInput | RepositoryScanPreparedInput | RuntimeWorkerPreparedInput;
+  input:
+    | WorkerTaskInput
+    | RepositoryScanPreparedInput
+    | RuntimeWorkerPreparedInput
+    | Phase11HttpWorkerPreparedInput;
 }
 
 export type AnyWorkerExecutorContract = WorkerExecutorContract | PrivateRepositorySnapshotExecutorContract;
@@ -63,11 +76,15 @@ export interface WorkerExecutorDispatcherDependencies {
   repositoryScan: WorkerExecutor;
   passiveRuntime?: WorkerExecutor;
   activeCors?: WorkerExecutor;
+  phase11Http?: WorkerExecutor;
 }
 
 function requiredRuntimeExecutor(
   executor: WorkerExecutor | undefined,
-  executionClass: "passive_runtime_observation_v1" | "active_cors_validation_v1",
+  executionClass:
+    | "passive_runtime_observation_v1"
+    | "active_cors_validation_v1"
+    | "phase11_http_discovery_v1",
 ): WorkerExecutor {
   if (!executor) throw new Error(`Worker executor is unavailable for ${executionClass}.`);
   return executor;
@@ -91,6 +108,8 @@ export function createWorkerExecutorDispatcher(
           return requiredRuntimeExecutor(dependencies.passiveRuntime, contract.executionClass).execute(contract, signal);
         case "active_cors_validation_v1":
           return requiredRuntimeExecutor(dependencies.activeCors, contract.executionClass).execute(contract, signal);
+        case "phase11_http_discovery_v1":
+          return requiredRuntimeExecutor(dependencies.phase11Http, contract.executionClass).execute(contract, signal);
       }
       const unreachable: never = contract;
       throw new Error(`Unsupported worker executor contract: ${String(unreachable)}`);

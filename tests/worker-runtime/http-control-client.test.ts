@@ -62,6 +62,104 @@ describe("worker HTTP control client", () => {
     await expect(oversized.claim()).rejects.toThrow(/response/);
   });
 
+  it("uses dedicated Phase 11 HTTP prepare and finalize endpoints with strict response parsing", async () => {
+    const requests: string[] = [];
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      requests.push(url);
+      if (url.endsWith("/api/internal/workers/phase11-http/prepare")) {
+        return response({
+          ok: true,
+          data: {
+            taskId: WORKER_ID,
+            workspaceId: "22222222-2222-4222-8222-222222222222",
+            runId: "33333333-3333-4333-8333-333333333333",
+            actionId: `phase11-action:${"a".repeat(64)}`,
+            authorizationId: `phase11-authz:${"b".repeat(64)}`,
+            authorizationSnapshotRef: "snapshot-1",
+            targetNodeId: "node-1",
+            target: {
+              assetRef: "node-1",
+              kind: "web_application",
+              canonicalUrl: "https://example.com/",
+              hostname: "example.com",
+            },
+            capabilityId: "web.http.probe.v1",
+            discoveryProfile: "root-only",
+            methodProfile: "GET_ONLY",
+            followSameOriginRedirects: false,
+            budget: {
+              maxRequests: 1,
+              perRequestTimeoutMs: 5000,
+              totalTimeoutMs: 5000,
+            },
+            expiresAt: "2099-09-19T00:00:20.000Z",
+          },
+        });
+      }
+      if (url.endsWith("/api/internal/workers/phase11-http/finalize")) {
+        expect(JSON.parse(String(init?.body))).toMatchObject({
+          taskId: WORKER_ID,
+          attemptId: "44444444-4444-4444-8444-444444444444",
+          leaseToken: SECRET,
+          terminal: { executionClass: "phase11_http_discovery_v1" },
+        });
+        return response({ ok: true, data: { outcome: "succeeded", replayed: false } });
+      }
+      throw new Error(`unexpected URL ${url}`);
+    });
+
+    const client = createWorkerHttpControlClient({
+      baseUrl: "https://scopeforge.dev",
+      workerId: WORKER_ID,
+      secret: SECRET,
+      expectedExecutionClass: "phase11_http_discovery_v1",
+      fetch,
+    });
+
+    await expect(client.phase11HttpPrepare?.({
+      taskId: WORKER_ID,
+      attemptId: "44444444-4444-4444-8444-444444444444",
+      leaseToken: SECRET,
+    })).resolves.toMatchObject({
+      taskId: WORKER_ID,
+      runId: "33333333-3333-4333-8333-333333333333",
+      capabilityId: "web.http.probe.v1",
+      target: { canonicalUrl: "https://example.com/", hostname: "example.com" },
+    });
+
+    await expect(client.phase11HttpFinalize?.({
+      taskId: WORKER_ID,
+      attemptId: "44444444-4444-4444-8444-444444444444",
+      leaseToken: SECRET,
+      terminal: {
+        schemaVersion: 1,
+        taskId: WORKER_ID,
+        attemptId: "44444444-4444-4444-8444-444444444444",
+        executionClass: "phase11_http_discovery_v1",
+        outcome: "succeeded",
+        failureCode: null,
+        metrics: {
+          wallTimeMs: 1,
+          cpuTimeMs: 0,
+          peakMemoryBytes: 0,
+          inputBytes: 0,
+          outputBytes: 1,
+        },
+        result: {
+          kind: "phase11_http_discovery",
+          requestCount: 1,
+          records: [{ routeKind: "root", status: 200, redirected: false }],
+        },
+      },
+    })).resolves.toEqual({ outcome: "succeeded", replayed: false });
+
+    expect(requests).toEqual([
+      "https://scopeforge.dev/api/internal/workers/phase11-http/prepare",
+      "https://scopeforge.dev/api/internal/workers/phase11-http/finalize",
+    ]);
+  });
+
   it("returns only the bounded server error code", async () => {
     const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => response({ error: { code: "WORKER_DISABLED" } }, 403));
     const client = createWorkerHttpControlClient({

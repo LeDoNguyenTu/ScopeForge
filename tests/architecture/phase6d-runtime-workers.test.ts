@@ -85,11 +85,14 @@ describe("Phase 6D authority architecture", () => {
     expect(sixC.filter(({ code }) => MEDIATOR_IMPORT.test(code) || RUNTIME_NETWORK_IMPORT.test(code)).map(({ file }) => file)).toEqual([]);
   });
 
-  it("does not expose a generic URL, fetch, HTTP, or proxy execution class in public worker contracts", async () => {
+  it("does not expose generic URL, fetch, HTTP, or proxy authority through worker class names", async () => {
     const code = await source("packages/worker-contracts/types.ts");
     const executionUnion = code.match(/export type WorkerExecutionClass\s*=([\s\S]*?);/)?.[1] ?? "";
     expect(executionUnion.length).toBeGreaterThan(0);
-    expect(executionUnion).not.toMatch(/generic|url|fetch|http|proxy/i);
+    expect(executionUnion).toContain("phase11_http_discovery_v1");
+
+    const withoutReviewedPhase11Http = executionUnion.replace(/\|\s*"phase11_http_discovery_v1"/, "");
+    expect(withoutReviewedPhase11Http).not.toMatch(/generic|url|fetch|http|proxy/i);
   });
 
   it("permanently keeps both scanner and runtime executor sandboxes network-disabled", async () => {
