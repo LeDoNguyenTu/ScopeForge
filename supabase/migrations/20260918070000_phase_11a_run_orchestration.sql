@@ -31,6 +31,7 @@ create table private.pentest_actions (
   action_id text not null,
   hypothesis_id text not null,
   capability_id text not null,
+  capability_version text not null,
   target_node_ids text[] not null,
   requested_mode text not null
     check (requested_mode in ('passive', 'safe_active', 'intrusive', 'validation')),
@@ -66,6 +67,7 @@ create table private.pentest_actions (
   check (char_length(action_id) between 1 and 1536),
   check (char_length(hypothesis_id) between 1 and 1024),
   check (char_length(capability_id) between 1 and 256),
+  check (char_length(capability_version) between 1 and 256),
   check (cardinality(target_node_ids) between 1 and 256),
   check (array_position(target_node_ids, '') is null),
   check (jsonb_typeof(closed_parameters) = 'object'),
@@ -742,6 +744,7 @@ create or replace function public.record_phase11_action_decision(
   target_action_id text,
   target_hypothesis_id text,
   target_capability_id text,
+  target_capability_version text,
   target_node_ids text[],
   target_requested_mode text,
   target_closed_parameters jsonb,
@@ -780,6 +783,8 @@ begin
     or char_length(target_hypothesis_id) not between 1 and 1024
     or target_capability_id is null
     or char_length(target_capability_id) not between 1 and 256
+    or target_capability_version is null
+    or char_length(target_capability_version) not between 1 and 256
     or target_node_ids is null
     or cardinality(target_node_ids) not between 1 and 256
     or array_position(target_node_ids, '') is not null
@@ -862,6 +867,7 @@ begin
   if found then
     if existing_action.hypothesis_id is distinct from target_hypothesis_id
       or existing_action.capability_id is distinct from target_capability_id
+      or existing_action.capability_version is distinct from target_capability_version
       or existing_action.target_node_ids is distinct from target_node_ids
       or existing_action.requested_mode is distinct from target_requested_mode
       or existing_action.closed_parameters is distinct from target_closed_parameters
@@ -917,6 +923,7 @@ begin
     action_id,
     hypothesis_id,
     capability_id,
+    capability_version,
     target_node_ids,
     requested_mode,
     closed_parameters,
@@ -941,6 +948,7 @@ begin
     target_action_id,
     target_hypothesis_id,
     target_capability_id,
+    target_capability_version,
     target_node_ids,
     target_requested_mode,
     target_closed_parameters,
@@ -1367,10 +1375,10 @@ grant execute on function public.load_phase11_pentest_run_state(uuid, uuid, text
   to service_role;
 
 revoke all on function public.record_phase11_action_decision(
-  uuid, uuid, text, text, text, text, text[], text, jsonb, text[], text, text[], text, integer, integer, timestamptz, text
+  uuid, uuid, text, text, text, text, text, text[], text, jsonb, text[], text, text[], text, integer, integer, timestamptz, text
 ) from public, anon, authenticated;
 grant execute on function public.record_phase11_action_decision(
-  uuid, uuid, text, text, text, text, text[], text, jsonb, text[], text, text[], text, integer, integer, timestamptz, text
+  uuid, uuid, text, text, text, text, text, text[], text, jsonb, text[], text, text[], text, integer, integer, timestamptz, text
 ) to service_role;
 
 revoke all on function public.mark_phase11_action_queued(uuid, uuid, text, uuid, text)
