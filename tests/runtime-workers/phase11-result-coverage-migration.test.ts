@@ -31,6 +31,24 @@ describe("Phase 11C result-to-coverage reconciliation migration", () => {
     expect(sql).toMatch(/revoke all on function private\.apply_phase11_attempt_coverage[\s\S]*?from public, anon, authenticated, service_role/i);
   });
 
+
+  it("caps finalization accounting to the HTTP execution-class request ceiling", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    const start = sql.indexOf(
+      "create or replace function public.get_phase11_http_worker_finalization_context",
+    );
+    const end = sql.indexOf(
+      "create or replace function public.finalize_phase11_http_worker_attempt",
+      start,
+    );
+    const context = sql.slice(start, end);
+
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(context).toContain(
+      "'maxRequests', least(action_record.max_requests, 12)",
+    );
+  });
+
   it("charges exact or conservative request usage during authenticated finalization", async () => {
     const sql = await readFile(migrationPath, "utf8");
     const start = sql.indexOf("create or replace function public.finalize_phase11_http_worker_attempt");
@@ -53,8 +71,12 @@ describe("Phase 11C result-to-coverage reconciliation migration", () => {
 
     expect(unleased).toMatch(/request_count[\s\S]*?0,/i);
     expect(unleased).not.toContain("apply_phase11_attempt_coverage");
-    expect(expired).toMatch(/request_count[\s\S]*?action_record\.max_requests/i);
-    expect(expired).toMatch(/perform private\.apply_phase11_attempt_coverage[\s\S]*?action_record\.max_requests/i);
+    expect(expired).toMatch(
+      /request_count[\s\S]*?least\(action_record\.max_requests, 12\)/i,
+    );
+    expect(expired).toMatch(
+      /perform private\.apply_phase11_attempt_coverage[\s\S]*?least\(action_record\.max_requests, 12\)/i,
+    );
   });
 
 
