@@ -43,4 +43,38 @@ describe("runtime mediator service", () => {
     expect(JSON.stringify(result)).not.toContain("nonce");
     expect(JSON.stringify(result)).not.toContain("canonicalUrl");
   });
+
+  it("dispatches HTTP discovery only from the consumed closed profile", async () => {
+    const profile = {
+      executionClass: "phase11_http_discovery_v1" as const,
+      target: passiveProfile.target,
+      capabilityId: "web.route.discover.v1" as const,
+      discoveryProfile: "root-only" as const,
+      methodProfile: "GET_ONLY" as const,
+      followSameOriginRedirects: false,
+      budget: { maxRequests: 1, perRequestTimeoutMs: 1_000, totalTimeoutMs: 2_000 },
+    };
+    const consume = vi.fn(() => profile);
+    const transport = vi.fn(async () => ({
+      status: 200,
+      headers: { "content-type": "text/html" },
+      tls: { protocol: "TLSv1.3", validFrom: null, validTo: null, subjectAltName: "DNS:example.com" },
+    }));
+    const service = createRuntimeMediatorService({
+      registry: { consume },
+      httpDiscovery: { transport },
+      now: () => new Date("2026-08-31T00:00:10.000Z"),
+    });
+    const request = {
+      operation: "run" as const,
+      session: { ...identity, executionClass: "phase11_http_discovery_v1" as const },
+    };
+
+    const result = await service.run(request);
+
+    expect(consume).toHaveBeenCalledWith(request, new Date("2026-08-31T00:00:10.000Z"));
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe("succeeded");
+    expect(JSON.stringify(result)).not.toContain("canonicalUrl");
+  });
 });
