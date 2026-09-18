@@ -65,8 +65,9 @@ export async function finalizeLeasedPhase11HttpWorker(
     fail("PHASE11_HTTP_WORKER_AUTHORIZATION_FAILED");
   }
   const outcome = context.cancelRequested ? "cancelled" : terminal.outcome;
+  const terminalRequestCount = terminal.result?.requestCount ?? null;
   let observations = [] as Awaited<ReturnType<ReturnType<typeof createHttpDiscoveryProvider>["normalize"]>>;
-  let requestCount = 0;
+  let requestCount = terminalRequestCount ?? context.maxRequests;
   if (outcome === "succeeded") {
     if (!terminal.result) fail("PHASE11_HTTP_WORKER_TERMINAL_INVALID");
     if (new Set(terminal.result.records.map((record) => record.routeKind)).size !== terminal.result.records.length) {
