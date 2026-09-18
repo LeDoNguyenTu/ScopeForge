@@ -789,3 +789,441 @@ begin
 end;
 $$;
 
+
+-- Reconcile graph writes with terminal-result counters so a stale graph snapshot
+-- cannot roll back request/failure usage or previously covered nodes.
+create or replace function public.persist_phase11_graph_state(
+  target_workspace_id uuid,
+  target_run_id uuid,
+  target_authorization_snapshot_ref text,
+  node_rows jsonb,
+  edge_rows jsonb,
+  hypothesis_rows jsonb,
+  coverage_row jsonb,
+  event_rows jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  run_record private.pentest_runs%rowtype;
+  node_row jsonb;
+  edge_row jsonb;
+  hypothesis_row jsonb;
+  event_row jsonb;
+  coverage_object jsonb;
+  persisted_coverage private.pentest_coverage%rowtype;
+  node_count integer;
+  edge_count integer;
+  hypothesis_count integer;
+  event_count integer;
+begin
+  if node_rows is null
+    or edge_rows is null
+    or hypothesis_rows is null
+    or coverage_row is null
+    or event_rows is null
+    or jsonb_typeof(node_rows) <> 'array'
+    or jsonb_typeof(edge_rows) <> 'array'
+    or jsonb_typeof(hypothesis_rows) <> 'array'
+    or jsonb_typeof(coverage_row) <> 'object'
+    or jsonb_typeof(event_rows) <> 'array'
+  then
+    raise exception 'PHASE11_GRAPH_PAYLOAD_INVALID';
+  end if;
+
+  node_count := jsonb_array_length(node_rows);
+  edge_count := jsonb_array_length(edge_rows);
+  hypothesis_count := jsonb_array_length(hypothesis_rows);
+  event_count := jsonb_array_length(event_rows);
+
+  if node_count > 1000 or edge_count > 2000 or hypothesis_count > 1000 or event_count > 500 then
+    raise exception 'PHASE11_GRAPH_PAYLOAD_TOO_LARGE';
+  end if;
+
+  select *
+  into run_record
+  from private.pentest_runs
+  where id = target_run_id
+    and workspace_id = target_workspace_id
+  for update;
+
+  if not found then
+    raise exception 'PHASE11_RUN_NOT_FOUND';
+  end if;
+  if run_record.authorization_snapshot_ref is distinct from target_authorization_snapshot_ref then
+    raise exception 'PHASE11_AUTHORIZATION_SNAPSHOT_MISMATCH';
+  end if;
+  if run_record.status in ('completed', 'cancelled', 'failed') then
+    raise exception 'PHASE11_RUN_TERMINAL';
+  end if;
+
+  for node_row in select value from jsonb_array_elements(node_rows)
+  loop
+    if coalesce(node_row->>'node_id', '') = ''
+      or coalesce(node_row->>'asset_type', '') = ''
+      or coalesce(node_row->>'canonical_locator', '') = ''
+      or coalesce(node_row->>'authorization_ref', '') = ''
+      or node_row->>'authorization_ref' <> target_authorization_snapshot_ref
+      or jsonb_typeof(node_row->'parent_node_ids') <> 'array'
+      or jsonb_typeof(node_row->'technology_tags') <> 'array'
+      or jsonb_typeof(node_row->'provenance_refs') <> 'array'
+      or jsonb_array_length(node_row->'provenance_refs') = 0
+      or coalesce((node_row->>'confidence')::double precision, -1) < 0
+      or coalesce((node_row->>'confidence')::double precision, 2) > 1
+    then
+      raise exception 'PHASE11_GRAPH_NODE_INVALID';
+    end if;
+
+    insert into private.pentest_graph_nodes (
+      workspace_id, run_id, node_id, asset_type, canonical_locator,
+      parent_node_ids, authorization_ref, technology_tags, confidence,
+      provenance_refs, updated_at
+    )
+    values (
+      target_workspace_id,
+      target_run_id,
+      node_row->>'node_id',
+      node_row->>'asset_type',
+      node_row->>'canonical_locator',
+      array(select jsonb_array_elements_text(node_row->'parent_node_ids')),
+      node_row->>'authorization_ref',
+      array(select jsonb_array_elements_text(node_row->'technology_tags')),
+      (node_row->>'confidence')::double precision,
+      array(select jsonb_array_elements_text(node_row->'provenance_refs')),
+      now()
+    )
+    on conflict (workspace_id, run_id, node_id) do update
+    set asset_type = excluded.asset_type,
+        canonical_locator = excluded.canonical_locator,
+        parent_node_ids = excluded.parent_node_ids,
+        authorization_ref = excluded.authorization_ref,
+        technology_tags = excluded.technology_tags,
+        confidence = excluded.confidence,
+        provenance_refs = excluded.provenance_refs,
+        updated_at = excluded.updated_at;
+
+    insert into public.pentest_graph_node_summaries (
+      workspace_id, run_id, node_id, asset_type, parent_node_ids,
+      technology_tags, confidence, updated_at
+    )
+    values (
+      target_workspace_id,
+      target_run_id,
+      node_row->>'node_id',
+      node_row->>'asset_type',
+      array(select jsonb_array_elements_text(node_row->'parent_node_ids')),
+      array(select jsonb_array_elements_text(node_row->'technology_tags')),
+      (node_row->>'confidence')::double precision,
+      now()
+    )
+    on conflict (workspace_id, run_id, node_id) do update
+    set asset_type = excluded.asset_type,
+        parent_node_ids = excluded.parent_node_ids,
+        technology_tags = excluded.technology_tags,
+        confidence = excluded.confidence,
+        updated_at = excluded.updated_at;
+  end loop;
+
+  for edge_row in select value from jsonb_array_elements(edge_rows)
+  loop
+    if coalesce(edge_row->>'edge_id', '') = ''
+      or coalesce(edge_row->>'from_node_id', '') = ''
+      or coalesce(edge_row->>'to_node_id', '') = ''
+      or coalesce(edge_row->>'relationship', '') = ''
+      or coalesce(edge_row->>'provenance_kind', '') = ''
+      or jsonb_typeof(edge_row->'provenance_refs') <> 'array'
+      or jsonb_array_length(edge_row->'provenance_refs') = 0
+      or coalesce(edge_row->>'authorization_ref', '') = ''
+      or edge_row->>'authorization_ref' <> target_authorization_snapshot_ref
+    then
+      raise exception 'PHASE11_GRAPH_EDGE_INVALID';
+    end if;
+
+    insert into private.pentest_graph_edges (
+      workspace_id, run_id, edge_id, from_node_id, to_node_id,
+      relationship, provenance_kind, provenance_refs, confidence,
+      observed_at, authorization_ref, stale, updated_at
+    )
+    values (
+      target_workspace_id,
+      target_run_id,
+      edge_row->>'edge_id',
+      edge_row->>'from_node_id',
+      edge_row->>'to_node_id',
+      edge_row->>'relationship',
+      edge_row->>'provenance_kind',
+      array(select jsonb_array_elements_text(edge_row->'provenance_refs')),
+      (edge_row->>'confidence')::double precision,
+      (edge_row->>'observed_at')::timestamptz,
+      edge_row->>'authorization_ref',
+      (edge_row->>'stale')::boolean,
+      now()
+    )
+    on conflict (workspace_id, run_id, edge_id) do update
+    set from_node_id = excluded.from_node_id,
+        to_node_id = excluded.to_node_id,
+        relationship = excluded.relationship,
+        provenance_kind = excluded.provenance_kind,
+        provenance_refs = excluded.provenance_refs,
+        confidence = excluded.confidence,
+        observed_at = excluded.observed_at,
+        authorization_ref = excluded.authorization_ref,
+        stale = excluded.stale,
+        updated_at = excluded.updated_at;
+
+    insert into public.pentest_graph_edge_summaries (
+      workspace_id, run_id, edge_id, from_node_id, to_node_id,
+      relationship, confidence, stale, updated_at
+    )
+    values (
+      target_workspace_id,
+      target_run_id,
+      edge_row->>'edge_id',
+      edge_row->>'from_node_id',
+      edge_row->>'to_node_id',
+      edge_row->>'relationship',
+      (edge_row->>'confidence')::double precision,
+      (edge_row->>'stale')::boolean,
+      now()
+    )
+    on conflict (workspace_id, run_id, edge_id) do update
+    set from_node_id = excluded.from_node_id,
+        to_node_id = excluded.to_node_id,
+        relationship = excluded.relationship,
+        confidence = excluded.confidence,
+        stale = excluded.stale,
+        updated_at = excluded.updated_at;
+  end loop;
+
+  for hypothesis_row in select value from jsonb_array_elements(hypothesis_rows)
+  loop
+    if coalesce(hypothesis_row->>'hypothesis_id', '') = ''
+      or coalesce(hypothesis_row->>'reasoning_source', '') = ''
+      or coalesce(hypothesis_row->>'statement', '') = ''
+      or jsonb_typeof(hypothesis_row->'target_node_ids') <> 'array'
+      or jsonb_array_length(hypothesis_row->'target_node_ids') = 0
+      or jsonb_typeof(hypothesis_row->'candidate_capability_ids') <> 'array'
+      or jsonb_array_length(hypothesis_row->'candidate_capability_ids') = 0
+      or jsonb_typeof(hypothesis_row->'expected_evidence_types') <> 'array'
+      or jsonb_array_length(hypothesis_row->'expected_evidence_types') = 0
+    then
+      raise exception 'PHASE11_HYPOTHESIS_INVALID';
+    end if;
+
+    if exists (
+      select 1
+      from jsonb_array_elements_text(hypothesis_row->'target_node_ids') target_node_id
+      where not exists (
+        select 1
+        from private.pentest_graph_nodes graph_node
+        where graph_node.workspace_id = target_workspace_id
+          and graph_node.run_id = target_run_id
+          and graph_node.node_id = target_node_id
+      )
+    ) then
+      raise exception 'PHASE11_HYPOTHESIS_TARGET_UNKNOWN';
+    end if;
+
+    insert into private.pentest_hypotheses (
+      workspace_id, run_id, hypothesis_id, reasoning_source,
+      target_node_ids, statement, preconditions, candidate_capability_ids,
+      expected_evidence_types, base_confidence, confidence, status,
+      evidence_refs, updated_at
+    )
+    values (
+      target_workspace_id,
+      target_run_id,
+      hypothesis_row->>'hypothesis_id',
+      hypothesis_row->>'reasoning_source',
+      array(select jsonb_array_elements_text(hypothesis_row->'target_node_ids')),
+      hypothesis_row->>'statement',
+      array(select jsonb_array_elements_text(coalesce(hypothesis_row->'preconditions', '[]'::jsonb))),
+      array(select jsonb_array_elements_text(hypothesis_row->'candidate_capability_ids')),
+      array(select jsonb_array_elements_text(hypothesis_row->'expected_evidence_types')),
+      (hypothesis_row->>'base_confidence')::double precision,
+      (hypothesis_row->>'confidence')::double precision,
+      hypothesis_row->>'status',
+      array(select jsonb_array_elements_text(coalesce(hypothesis_row->'evidence_refs', '[]'::jsonb))),
+      now()
+    )
+    on conflict (workspace_id, run_id, hypothesis_id) do update
+    set reasoning_source = excluded.reasoning_source,
+        target_node_ids = excluded.target_node_ids,
+        statement = excluded.statement,
+        preconditions = excluded.preconditions,
+        candidate_capability_ids = excluded.candidate_capability_ids,
+        expected_evidence_types = excluded.expected_evidence_types,
+        base_confidence = excluded.base_confidence,
+        confidence = excluded.confidence,
+        status = excluded.status,
+        evidence_refs = excluded.evidence_refs,
+        updated_at = excluded.updated_at;
+
+    insert into public.pentest_hypothesis_summaries (
+      workspace_id, run_id, hypothesis_id, target_node_ids,
+      candidate_capability_ids, confidence, status, updated_at
+    )
+    values (
+      target_workspace_id,
+      target_run_id,
+      hypothesis_row->>'hypothesis_id',
+      array(select jsonb_array_elements_text(hypothesis_row->'target_node_ids')),
+      array(select jsonb_array_elements_text(hypothesis_row->'candidate_capability_ids')),
+      (hypothesis_row->>'confidence')::double precision,
+      hypothesis_row->>'status',
+      now()
+    )
+    on conflict (workspace_id, run_id, hypothesis_id) do update
+    set target_node_ids = excluded.target_node_ids,
+        candidate_capability_ids = excluded.candidate_capability_ids,
+        confidence = excluded.confidence,
+        status = excluded.status,
+        updated_at = excluded.updated_at;
+  end loop;
+
+  coverage_object := coverage_row;
+  insert into private.pentest_coverage as current (
+    workspace_id, run_id, attempted_capability_ids, covered_node_ids,
+    untested_node_ids, request_count, graph_expansion_count,
+    provider_failure_count, started_at, deadline_at, updated_at
+  )
+  values (
+    target_workspace_id,
+    target_run_id,
+    array(select jsonb_array_elements_text(coalesce(coverage_object->'attempted_capability_ids', '[]'::jsonb))),
+    array(select jsonb_array_elements_text(coalesce(coverage_object->'covered_node_ids', '[]'::jsonb))),
+    array(select jsonb_array_elements_text(coalesce(coverage_object->'untested_node_ids', '[]'::jsonb))),
+    coalesce((coverage_object->>'request_count')::integer, 0),
+    coalesce((coverage_object->>'graph_expansion_count')::integer, 0),
+    coalesce((coverage_object->>'provider_failure_count')::integer, 0),
+    (coverage_object->>'started_at')::timestamptz,
+    (coverage_object->>'deadline_at')::timestamptz,
+    now()
+  )
+  on conflict (workspace_id, run_id) do update
+  set attempted_capability_ids = array(
+        select distinct capability_id
+        from unnest(
+          current.attempted_capability_ids || excluded.attempted_capability_ids
+        ) as capabilities(capability_id)
+        order by capability_id
+      ),
+      covered_node_ids = array(
+        select distinct node_id
+        from unnest(
+          current.covered_node_ids || excluded.covered_node_ids
+        ) as covered(node_id)
+        order by node_id
+      ),
+      untested_node_ids = array(
+        select distinct node_id
+        from unnest(
+          current.untested_node_ids || excluded.untested_node_ids
+        ) as untested(node_id)
+        where not (
+          node_id = any(
+            array(
+              select distinct covered_node_id
+              from unnest(
+                current.covered_node_ids || excluded.covered_node_ids
+              ) as covered_nodes(covered_node_id)
+            )
+          )
+        )
+        order by node_id
+      ),
+      request_count = greatest(current.request_count, excluded.request_count),
+      graph_expansion_count = greatest(
+        current.graph_expansion_count,
+        excluded.graph_expansion_count
+      ),
+      provider_failure_count = greatest(
+        current.provider_failure_count,
+        excluded.provider_failure_count
+      ),
+      started_at = current.started_at,
+      deadline_at = current.deadline_at,
+      updated_at = excluded.updated_at;
+
+  select *
+  into persisted_coverage
+  from private.pentest_coverage
+  where workspace_id = target_workspace_id
+    and run_id = target_run_id;
+
+  if persisted_coverage.run_id is null then
+    raise exception 'PHASE11_COVERAGE_NOT_FOUND';
+  end if;
+
+  insert into public.pentest_coverage_summaries (
+    workspace_id, run_id, attempted_capability_count, covered_node_count,
+    untested_node_count, request_count, graph_expansion_count,
+    provider_failure_count, started_at, deadline_at, updated_at
+  )
+  values (
+    target_workspace_id,
+    target_run_id,
+    cardinality(persisted_coverage.attempted_capability_ids),
+    cardinality(persisted_coverage.covered_node_ids),
+    cardinality(persisted_coverage.untested_node_ids),
+    persisted_coverage.request_count,
+    persisted_coverage.graph_expansion_count,
+    persisted_coverage.provider_failure_count,
+    persisted_coverage.started_at,
+    persisted_coverage.deadline_at,
+    now()
+  )
+  on conflict (workspace_id, run_id) do update
+  set attempted_capability_count = excluded.attempted_capability_count,
+      covered_node_count = excluded.covered_node_count,
+      untested_node_count = excluded.untested_node_count,
+      request_count = excluded.request_count,
+      graph_expansion_count = excluded.graph_expansion_count,
+      provider_failure_count = excluded.provider_failure_count,
+      started_at = excluded.started_at,
+      deadline_at = excluded.deadline_at,
+      updated_at = excluded.updated_at;
+
+  for event_row in select value from jsonb_array_elements(event_rows)
+  loop
+    if coalesce(event_row->>'id', '') = ''
+      or coalesce(event_row->>'event_type', '') = ''
+      or jsonb_typeof(coalesce(event_row->'metadata', '{}'::jsonb)) <> 'object'
+    then
+      raise exception 'PHASE11_RUN_EVENT_INVALID';
+    end if;
+
+    insert into private.pentest_run_events (
+      id, workspace_id, run_id, event_type, metadata, created_at
+    )
+    values (
+      (event_row->>'id')::uuid,
+      target_workspace_id,
+      target_run_id,
+      event_row->>'event_type',
+      coalesce(event_row->'metadata', '{}'::jsonb),
+      (event_row->>'created_at')::timestamptz
+    )
+    on conflict (id) do nothing;
+  end loop;
+
+  update private.pentest_runs
+  set updated_at = now()
+  where id = target_run_id and workspace_id = target_workspace_id;
+
+  update public.pentest_run_summaries
+  set updated_at = now()
+  where run_id = target_run_id and workspace_id = target_workspace_id;
+
+  return jsonb_build_object(
+    'nodeCount', node_count,
+    'edgeCount', edge_count,
+    'hypothesisCount', hypothesis_count,
+    'eventCount', event_count
+  );
+end;
+$$;
+
