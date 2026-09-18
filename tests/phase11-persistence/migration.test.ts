@@ -73,6 +73,10 @@ describe("Phase 11A planning persistence migration", () => {
     expect(sql).toContain("run_record.authorization_snapshot_ref is distinct from target_authorization_snapshot_ref");
     expect(sql).toContain("PHASE11_AUTHORIZATION_SNAPSHOT_MISMATCH");
     expect(sql).toContain("PHASE11_RUN_TERMINAL");
+    expect(sql).toContain("node_row->>'authorization_ref' <> target_authorization_snapshot_ref");
+    expect(sql).toContain("edge_row->>'authorization_ref' <> target_authorization_snapshot_ref");
+    expect(sql).toContain("PHASE11_HYPOTHESIS_TARGET_UNKNOWN");
+    expect(sql).toContain("PHASE11_OBSERVATION_TARGET_UNKNOWN");
   });
 
   it("bounds payload size and makes observation identity immutable/idempotent", async () => {
@@ -82,6 +86,9 @@ describe("Phase 11A planning persistence migration", () => {
     expect(sql).toContain("hypothesis_count > 1000");
     expect(sql).toContain("event_count > 500");
     expect(sql).toContain("jsonb_array_length(observation_rows) > 2000");
+    expect(sql).toContain("jsonb_typeof(fact.value) not in ('string', 'number', 'boolean')");
+    expect(sql).toContain("existing_record.observed_at is distinct from");
+    expect(sql).toContain("existing_record.confidence is distinct from");
     expect(sql).toMatch(/insert into private\.pentest_observations[\s\S]*on conflict \(workspace_id, run_id, observation_id\) do nothing/i);
     expect(sql).toContain("PHASE11_OBSERVATION_IDENTITY_CONFLICT");
     expect(sql).toContain("replayedCount");
