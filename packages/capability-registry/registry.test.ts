@@ -18,7 +18,7 @@ function provider(
     validateRequest: () => ({ ok: true }),
     execute: vi.fn(async () => ({})),
     normalize: vi.fn(async () => []),
-    cleanup: vi.fn(async () => ({ ok: true })),
+    cleanup: vi.fn(async () => ({ ok: true as const })),
   };
 }
 
