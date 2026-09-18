@@ -34,13 +34,16 @@ Review hardening:
 - run replay fully bound to immutable authority
 - action identity bound to capability version
 - fixed-size SHA-256 action/auth/cancellation IDs added
+- enqueue/cancel race closed with cancellation-aware queue-reference finalization
+- late stop requests cannot overwrite terminal public run summaries
 
 ## Validation
 
 - CI #1150 passed all 446 test files and 2,035 tests, then failed only four test typing errors.
 - Those typing errors are fixed.
 - CI #1151 passed the full pipeline on pre-hardening head `fda54dbf...`.
-- A new exact-head CI/Vercel run is required for the final hardened branch.
+- CI #1152 passed the full pipeline on `fe6f8794...`.
+- Cancellation-race hardening landed after #1152, so a new exact-head CI/Vercel run is required for the final branch.
 
 ## Supabase
 
