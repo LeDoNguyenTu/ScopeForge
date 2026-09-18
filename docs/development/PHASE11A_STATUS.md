@@ -7,6 +7,7 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live provider state wins.
 - Tasks 1 to 7: PR #125.
 - Task 8 persistence: PR #126.
 - Task 9 trusted run orchestration: PR #128, merge `fbab7d34bad504ecba7b883aba9f8013cc09b351`.
+- Task 11 first adaptive fixture: PR #130, merge `3677adeeb7a217c6eae5778b6d2f1240f486bea8`.
 - Main CI `35340050884` and production Vercel `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6` are READY/SUCCESS for the merge SHA.
 
 Task 9 includes immutable owner/admin authorization and policy snapshots, deterministic planner/policy evaluation, replay-safe queue reservations, explicit idempotency, approval-required intrusive work, cancellation propagation, privacy-reduced read models, private canonical state, service-role-only RPCs, and enqueue/cancellation race hardening.
@@ -25,4 +26,4 @@ Task 9 includes immutable owner/admin authorization and policy snapshots, determ
 
 ## Next task
 
-Task 11 adaptive end-to-end evaluation harness, before provider expansion. Use deterministic legal-lab fixtures and injected fake providers; do not widen hosted authority or apply production schema.
+Extend Task 11 with labeled coverage, expiry, replay, cancellation, budgets, and provider-failure cases. PR #130's fixture measured 2 passing tests, zero out-of-scope requests, zero leaked secrets, cleanup success, and zero cancellation latency. Continue using injected fake providers; do not widen hosted authority or apply production schema.

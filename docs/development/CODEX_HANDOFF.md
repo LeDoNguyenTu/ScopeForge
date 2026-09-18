@@ -4,11 +4,11 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Current resume point
 
-- Released `main`: `fbab7d34bad504ecba7b883aba9f8013cc09b351` (PR #128).
-- PR #128, Phase 11A trusted pentest run orchestration, is merged.
-- Production Vercel deployment: `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`, READY at `scopeforge.dev`, from the exact merge SHA.
-- Main CI: `35340050884`, SUCCESS.
-- Next implementation: Phase 11 Task 11 adaptive end-to-end evaluation harness.
+- Released `main`: `3677adeeb7a217c6eae5778b6d2f1240f486bea8` (PR #130 merged after PR #128).
+- PR #130 delivered the first deterministic Task 11 adaptive fixture.
+- Production Vercel remains READY at `scopeforge.dev`; recheck the deployment for the new merge SHA before the next release claim.
+- PR #130 exact CI and Vercel preview passed; post-merge main CI is the remaining verification.
+- Next implementation: extend Task 11 with labeled coverage, expiry, replay, cancellation, budgets, and provider-failure cases.
 
 ## Task 9 released behavior
 
@@ -36,6 +36,6 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Next exact task
 
-Build the deterministic adaptive end-to-end evaluation harness from `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md` Task 11. Keep it fixture-driven and injected-provider-only; do not apply Phase 11 migrations or enable hosted provider execution.
+Continue the deterministic adaptive harness from `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md` Task 11. The measured fixture has 2 passing tests, zero out-of-scope requests, zero leaked secrets, successful cleanup, and zero cancellation latency. Keep it injected-provider-only; do not apply Phase 11 migrations or enable hosted provider execution.
 
 Never expose secrets, weaken authorization/RLS/containment, rewrite deployed migrations, or confuse this project with `xwsergbpvkcsugexssmc`.
