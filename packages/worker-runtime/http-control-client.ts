@@ -5,7 +5,10 @@ import type {
   WorkerExecutionClass,
   WorkerTerminalEnvelope,
 } from "@/packages/worker-contracts";
-import type { WorkerSupervisorControlClient } from "@/packages/worker-supervisor";
+import type {
+  PreparedPhase11HttpWorkerExecution,
+  WorkerSupervisorControlClient,
+} from "@/packages/worker-supervisor";
 import type { RepositoryScanStagingArtifact } from "@/packages/worker-supervisor/repository-scan-stager";
 import { validateWorkerTaskContract } from "./task-contract";
 
@@ -100,6 +103,86 @@ function heartbeat(value: unknown): { cancelRequested: boolean; leaseExpiresAt: 
   return Object.freeze({ cancelRequested: candidate.cancelRequested, leaseExpiresAt: candidate.leaseExpiresAt });
 }
 
+function positiveInteger(value: unknown, maximum: number): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > maximum) {
+    throw new Error("Worker control response is invalid.");
+  }
+  return value as number;
+}
+
+function phase11Prepared(value: unknown): PreparedPhase11HttpWorkerExecution {
+  const candidate = object(value);
+  exact(candidate, [
+    "taskId", "workspaceId", "runId", "actionId", "authorizationId",
+    "authorizationSnapshotRef", "targetNodeId", "target", "capabilityId",
+    "discoveryProfile", "methodProfile", "followSameOriginRedirects",
+    "budget", "expiresAt",
+  ]);
+  if (typeof candidate.taskId !== "string" || !UUID.test(candidate.taskId)
+      || typeof candidate.workspaceId !== "string" || !UUID.test(candidate.workspaceId)
+      || typeof candidate.runId !== "string" || !UUID.test(candidate.runId)
+      || typeof candidate.actionId !== "string" || !/^phase11-action:[0-9a-f]{64}$/.test(candidate.actionId)
+      || typeof candidate.authorizationId !== "string" || !/^phase11-authz:[0-9a-f]{64}$/.test(candidate.authorizationId)
+      || typeof candidate.authorizationSnapshotRef !== "string" || candidate.authorizationSnapshotRef.length < 1
+      || candidate.authorizationSnapshotRef.length > 512
+      || typeof candidate.targetNodeId !== "string" || candidate.targetNodeId.length < 1 || candidate.targetNodeId.length > 1024
+      || (candidate.capabilityId !== "web.http.probe.v1" && candidate.capabilityId !== "web.route.discover.v1")
+      || (candidate.discoveryProfile !== "root-only" && candidate.discoveryProfile !== "well-known-safe")
+      || (candidate.methodProfile !== "GET_ONLY" && candidate.methodProfile !== "HEAD_THEN_GET")
+      || typeof candidate.followSameOriginRedirects !== "boolean"
+      || typeof candidate.expiresAt !== "string" || !Number.isFinite(Date.parse(candidate.expiresAt))) {
+    throw new Error("Worker control response is invalid.");
+  }
+  if (candidate.capabilityId === "web.http.probe.v1" && candidate.discoveryProfile !== "root-only") {
+    throw new Error("Worker control response is invalid.");
+  }
+
+  const target = object(candidate.target);
+  exact(target, ["assetRef", "kind", "canonicalUrl", "hostname"]);
+  if (typeof target.assetRef !== "string" || target.assetRef.length < 1 || target.assetRef.length > 1024
+      || (target.kind !== "web_application" && target.kind !== "api")
+      || typeof target.canonicalUrl !== "string"
+      || typeof target.hostname !== "string" || target.hostname.length < 1 || target.hostname.length > 253) {
+    throw new Error("Worker control response is invalid.");
+  }
+  let targetUrl: URL;
+  try { targetUrl = new URL(target.canonicalUrl); } catch { throw new Error("Worker control response is invalid."); }
+  if (targetUrl.protocol !== "https:" || (targetUrl.port && targetUrl.port !== "443")
+      || targetUrl.username || targetUrl.password || targetUrl.search || targetUrl.hash
+      || targetUrl.hostname.toLowerCase() !== target.hostname.toLowerCase()) {
+    throw new Error("Worker control response is invalid.");
+  }
+
+  const budget = object(candidate.budget);
+  exact(budget, ["maxRequests", "perRequestTimeoutMs", "totalTimeoutMs"]);
+  const maxRequests = positiveInteger(budget.maxRequests, 12);
+  const perRequestTimeoutMs = positiveInteger(budget.perRequestTimeoutMs, 5_000);
+  const totalTimeoutMs = positiveInteger(budget.totalTimeoutMs, 30_000);
+  if (perRequestTimeoutMs > totalTimeoutMs) throw new Error("Worker control response is invalid.");
+
+  return Object.freeze({
+    taskId: candidate.taskId,
+    workspaceId: candidate.workspaceId,
+    runId: candidate.runId,
+    actionId: candidate.actionId,
+    authorizationId: candidate.authorizationId,
+    authorizationSnapshotRef: candidate.authorizationSnapshotRef,
+    targetNodeId: candidate.targetNodeId,
+    target: Object.freeze({
+      assetRef: target.assetRef as PreparedPhase11HttpWorkerExecution["target"]["assetRef"],
+      kind: target.kind as PreparedPhase11HttpWorkerExecution["target"]["kind"],
+      canonicalUrl: targetUrl.toString(),
+      hostname: target.hostname.toLowerCase(),
+    }),
+    capabilityId: candidate.capabilityId,
+    discoveryProfile: candidate.discoveryProfile,
+    methodProfile: candidate.methodProfile,
+    followSameOriginRedirects: candidate.followSameOriginRedirects,
+    budget: Object.freeze({ maxRequests, perRequestTimeoutMs, totalTimeoutMs }),
+    expiresAt: candidate.expiresAt,
+  });
+}
+
 function artifact(value: unknown): RepositoryScanStagingArtifact {
   const candidate = object(value);
   exact(candidate, ["snapshotId", "storedArtifactBytes", "artifactDigest", "download"]);
@@ -179,6 +262,16 @@ export function createWorkerHttpControlClient(input: {
       const value = result(await call("/api/internal/workers/repository-scans/finalize", body));
       if (value.outcome !== "succeeded") throw new Error("Worker control response is invalid.");
       return value as { outcome: "succeeded"; replayed: boolean };
+    },
+    async phase11HttpPrepare(body: {
+      taskId: string; attemptId: string; leaseToken: string;
+    }) {
+      return phase11Prepared(await call("/api/internal/workers/phase11-http/prepare", body));
+    },
+    async phase11HttpFinalize(body: {
+      taskId: string; attemptId: string; leaseToken: string; terminal: WorkerTerminalEnvelope;
+    }) {
+      return result(await call("/api/internal/workers/phase11-http/finalize", body));
     },
   });
 }
