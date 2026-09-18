@@ -370,6 +370,13 @@ begin
     and run_id = target_run_id
     and action_id = target_action_id;
 
+  update public.pentest_action_summaries
+  set state = 'queued',
+      updated_at = request_now
+  where workspace_id = target_workspace_id
+    and run_id = target_run_id
+    and action_id = target_action_id;
+
   return jsonb_build_object(
     'taskId', new_task_id,
     'replayed', false
@@ -573,6 +580,13 @@ begin
   if not found then
     raise exception 'WORKER_JOB_STATE_CONFLICT';
   end if;
+
+  update public.pentest_action_summaries
+  set state = 'running',
+      updated_at = claim_now
+  where workspace_id = binding_record.workspace_id
+    and run_id = binding_record.run_id
+    and action_id = binding_record.action_id;
 
   update private.worker_nodes
   set last_seen_at = claim_now
