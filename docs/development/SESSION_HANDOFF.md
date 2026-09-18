@@ -4,8 +4,8 @@ Last refreshed: 2026-09-18, Asia/Singapore.
 
 ## Resume exactly here
 
-- Checkout baseline: `origin/main` at `fbab7d34bad504ecba7b883aba9f8013cc09b351`.
-- PR #128 is merged and released.
+- Checkout baseline: `origin/main` at `3677adeeb7a217c6eae5778b6d2f1240f486bea8`.
+- PR #128 and PR #130 are merged and released.
 - Main CI: `35340050884`, SUCCESS.
 - Production: `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`, READY at `scopeforge.dev`.
 - Supabase: `tdgpibrepzcvdivztkta`; Phase 11 migrations are unapplied and Phase 11 tables are absent.
@@ -19,4 +19,4 @@ Last refreshed: 2026-09-18, Asia/Singapore.
 
 ## Next action
 
-Implement the Task 11 adaptive evaluation harness from `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md`. Preserve injected execution boundaries, approval controls, deterministic evidence, and separate production schema/provider gates.
+Extend the Task 11 adaptive evaluation harness. PR #130 proves the two-stage discovery-to-API transition with deterministic safety metrics; preserve injected execution boundaries, approval controls, deterministic evidence, and separate production schema/provider gates.

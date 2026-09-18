@@ -4,10 +4,10 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `fbab7d34bad504ecba7b883aba9f8013cc09b351`.
+- `main`: `3677adeeb7a217c6eae5778b6d2f1240f486bea8` (PR #130 merged).
 - PR #125 released Phase 11 Tasks 1 to 7; PR #126 released Task 8 persistence; PR #128 released Task 9 orchestration.
-- Production Vercel: `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`, READY at `scopeforge.dev`.
-- Main CI: `35340050884`, SUCCESS.
+- Production Vercel remains READY at `scopeforge.dev`; the source release deployment was `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`.
+- PR #130 exact CI passed; post-merge main CI and production deployment must be rechecked from the new SHA.
 
 ## Task 9
 
@@ -21,4 +21,4 @@ Trusted run orchestration is released with immutable authority snapshots, determ
 
 ## Next
 
-Implement Task 11's adaptive evaluation harness with deterministic fixtures and fake providers, then measure coverage, evidence, stop conditions, cancellation, expiry, replay, and failure containment before any provider integration.
+PR #130 delivered the first Task 11 adaptive fixture: discovery must precede API validation, with measured zero out-of-scope requests, zero secret leakage, successful cleanup, and zero cancellation latency. Continue Task 11 with broader labeled coverage and failure/expiry/replay cases before any provider integration.

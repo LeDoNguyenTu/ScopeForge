@@ -4,7 +4,7 @@ Last reconciled: 2026-09-18, Asia/Singapore.
 
 ## Next implementation
 
-Phase 11 Task 11: adaptive end-to-end evaluation harness. Follow the approved plan and preserve deterministic fixtures, injected provider boundaries, auditable evidence, cancellation, authorization expiry, replay safety, runtime budgets, and no-out-of-scope request guarantees.
+Phase 11 Task 11: extend the adaptive end-to-end evaluation harness. PR #130 provides the first deterministic two-stage fixture and measured safety manifest; add the remaining labeled coverage, expiry, replay, cancellation, budget, and provider-failure cases.
 
 ## Separately gated
 
