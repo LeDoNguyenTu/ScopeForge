@@ -1584,3 +1584,369 @@ revoke all on function public.cancel_phase11_http_worker_task(uuid, uuid, text, 
   from public, anon, authenticated, service_role;
 grant execute on function public.cancel_phase11_http_worker_task(uuid, uuid, text, uuid)
   to service_role;
+
+
+create or replace function private.recover_phase11_http_unleased_worker_tasks(
+  target_now timestamptz
+)
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  task_record private.worker_tasks%rowtype;
+  binding_record private.phase11_http_worker_tasks%rowtype;
+  run_record private.pentest_runs%rowtype;
+  action_record private.pentest_actions%rowtype;
+  snapshot_record private.pentest_run_authorization_snapshots%rowtype;
+  effective_cancelled boolean;
+  recovered integer := 0;
+begin
+  for task_record in
+    select t.*
+    from private.worker_tasks t
+    join private.phase11_http_worker_tasks binding
+      on binding.task_id = t.id
+     and binding.workspace_id = t.workspace_id
+    join private.pentest_actions action
+      on action.workspace_id = binding.workspace_id
+     and action.run_id = binding.run_id
+     and action.action_id = binding.action_id
+    join private.pentest_runs run
+      on run.id = binding.run_id
+     and run.workspace_id = binding.workspace_id
+    left join private.pentest_run_authorization_snapshots snapshot
+      on snapshot.workspace_id = binding.workspace_id
+     and snapshot.run_id = binding.run_id
+     and snapshot.snapshot_ref = binding.authorization_snapshot_ref
+    where t.execution_class = 'phase11_http_discovery_v1'
+      and t.state in ('queued', 'retry_wait')
+      and (
+        run.status <> 'running'
+        or action.state <> 'queued'
+        or t.absolute_deadline_at <= target_now
+        or snapshot.snapshot_ref is null
+        or snapshot.expires_at <= target_now
+        or action.authorization_expires_at is null
+        or action.authorization_expires_at <= target_now
+      )
+    order by t.absolute_deadline_at asc, t.id asc
+    for update of t skip locked
+  loop
+    select *
+    into binding_record
+    from private.phase11_http_worker_tasks
+    where task_id = task_record.id;
+
+    select *
+    into run_record
+    from private.pentest_runs
+    where id = binding_record.run_id
+      and workspace_id = binding_record.workspace_id
+    for update;
+
+    select *
+    into action_record
+    from private.pentest_actions
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and action_id = binding_record.action_id
+    for update;
+
+    select *
+    into snapshot_record
+    from private.pentest_run_authorization_snapshots
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and snapshot_ref = binding_record.authorization_snapshot_ref;
+
+    effective_cancelled :=
+      run_record.status = 'cancelled'
+      or action_record.state = 'cancelled';
+
+    update private.worker_tasks
+    set state = case when effective_cancelled then 'cancelled' else 'dead_letter' end,
+        updated_at = target_now
+    where id = task_record.id
+      and state in ('queued', 'retry_wait');
+
+    if not found then
+      continue;
+    end if;
+
+    insert into private.pentest_action_attempts (
+      workspace_id,
+      run_id,
+      action_id,
+      authorization_id,
+      provider_id,
+      provider_version,
+      status,
+      observation_ids,
+      evidence_refs,
+      started_at,
+      completed_at,
+      error_code
+    ) values (
+      binding_record.workspace_id,
+      binding_record.run_id,
+      binding_record.action_id,
+      binding_record.authorization_id,
+      binding_record.provider_id,
+      binding_record.provider_version,
+      case when effective_cancelled then 'cancelled' else 'blocked' end,
+      '{}',
+      '{}',
+      binding_record.created_at,
+      target_now,
+      case when effective_cancelled then null else 'WORKER_CLASS_UNAVAILABLE' end
+    );
+
+    update private.pentest_actions
+    set state = case when effective_cancelled then 'cancelled' else 'terminal' end,
+        updated_at = target_now
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and action_id = binding_record.action_id
+      and state in ('queued', 'cancelled');
+
+    update public.pentest_action_summaries
+    set state = case when effective_cancelled then 'cancelled' else 'terminal' end,
+        updated_at = target_now
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and action_id = binding_record.action_id;
+
+    perform private.record_worker_event(
+      case when effective_cancelled then 'worker.cancelled' else 'worker.dead_lettered' end,
+      binding_record.workspace_id,
+      null,
+      task_record.id,
+      jsonb_build_object(
+        'runId', binding_record.run_id,
+        'actionId', binding_record.action_id,
+        'executionClass', 'phase11_http_discovery_v1',
+        'reason', case
+          when effective_cancelled then 'phase11_cancel_before_claim'
+          else 'phase11_deadline_or_authorization_before_claim'
+        end
+      )
+    );
+
+    recovered := recovered + 1;
+  end loop;
+
+  return recovered;
+end;
+$$;
+
+create or replace function private.recover_phase11_http_expired_worker_attempts(
+  target_now timestamptz
+)
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  attempt_record private.worker_attempts%rowtype;
+  task_record private.worker_tasks%rowtype;
+  binding_record private.phase11_http_worker_tasks%rowtype;
+  run_record private.pentest_runs%rowtype;
+  action_record private.pentest_actions%rowtype;
+  effective_cancelled boolean;
+  recovered integer := 0;
+begin
+  for attempt_record in
+    select attempt.*
+    from private.worker_attempts attempt
+    join private.worker_tasks task
+      on task.id = attempt.task_id
+    join private.phase11_http_worker_tasks binding
+      on binding.task_id = task.id
+    where task.execution_class = 'phase11_http_discovery_v1'
+      and task.state = 'leased'
+      and attempt.finished_at is null
+      and attempt.lease_expires_at <= target_now
+    order by attempt.lease_expires_at asc, attempt.id asc
+    for update of attempt skip locked
+  loop
+    select *
+    into task_record
+    from private.worker_tasks
+    where id = attempt_record.task_id
+    for update;
+
+    select *
+    into binding_record
+    from private.phase11_http_worker_tasks
+    where task_id = task_record.id;
+
+    select *
+    into run_record
+    from private.pentest_runs
+    where id = binding_record.run_id
+      and workspace_id = binding_record.workspace_id
+    for update;
+
+    select *
+    into action_record
+    from private.pentest_actions
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and action_id = binding_record.action_id
+    for update;
+
+    if task_record.state <> 'leased'
+      or attempt_record.finished_at is not null
+      or binding_record.task_id is null
+      or run_record.id is null
+      or action_record.action_id is null
+    then
+      continue;
+    end if;
+
+    effective_cancelled :=
+      run_record.status = 'cancelled'
+      or action_record.state = 'cancelled';
+
+    update private.worker_attempts
+    set finished_at = target_now,
+        outcome = case when effective_cancelled then 'cancelled' else 'failed' end,
+        failure_code = case
+          when effective_cancelled then null
+          else 'HTTP_DISCOVERY_TOTAL_TIMEOUT'
+        end
+    where id = attempt_record.id
+      and finished_at is null;
+
+    if not found then
+      continue;
+    end if;
+
+    update private.worker_tasks
+    set state = case when effective_cancelled then 'cancelled' else 'dead_letter' end,
+        updated_at = target_now
+    where id = task_record.id
+      and state = 'leased';
+
+    insert into private.pentest_action_attempts (
+      id,
+      workspace_id,
+      run_id,
+      action_id,
+      authorization_id,
+      provider_id,
+      provider_version,
+      status,
+      observation_ids,
+      evidence_refs,
+      started_at,
+      completed_at,
+      error_code
+    ) values (
+      attempt_record.id,
+      binding_record.workspace_id,
+      binding_record.run_id,
+      binding_record.action_id,
+      binding_record.authorization_id,
+      binding_record.provider_id,
+      binding_record.provider_version,
+      case when effective_cancelled then 'cancelled' else 'timed_out' end,
+      '{}',
+      '{}',
+      attempt_record.leased_at,
+      target_now,
+      case when effective_cancelled then null else 'HTTP_DISCOVERY_TOTAL_TIMEOUT' end
+    );
+
+    update private.pentest_actions
+    set state = case when effective_cancelled then 'cancelled' else 'terminal' end,
+        updated_at = target_now
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and action_id = binding_record.action_id
+      and state in ('running', 'cancelled');
+
+    update public.pentest_action_summaries
+    set state = case when effective_cancelled then 'cancelled' else 'terminal' end,
+        updated_at = target_now
+    where workspace_id = binding_record.workspace_id
+      and run_id = binding_record.run_id
+      and action_id = binding_record.action_id;
+
+    perform private.record_worker_event(
+      case when effective_cancelled then 'worker.cancelled' else 'worker.dead_lettered' end,
+      binding_record.workspace_id,
+      attempt_record.worker_id,
+      task_record.id,
+      jsonb_build_object(
+        'attemptId', attempt_record.id,
+        'runId', binding_record.run_id,
+        'actionId', binding_record.action_id,
+        'executionClass', 'phase11_http_discovery_v1',
+        'reason', case
+          when effective_cancelled then 'phase11_lease_expired_after_cancel'
+          else 'phase11_lease_expired'
+        end
+      )
+    );
+
+    recovered := recovered + 1;
+  end loop;
+
+  return recovered;
+end;
+$$;
+
+create or replace function public.recover_worker_state(
+  target_now timestamptz default null
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  effective_now timestamptz;
+  phase11_leased_count integer;
+  phase11_unleased_count integer;
+  runtime_cancelled_count integer;
+  leased_count integer;
+  unleased_count integer;
+  runtime_unleased_count integer;
+  runtime_reconciled_count integer;
+begin
+  perform pg_advisory_xact_lock(hashtextextended('scopeforge-worker-recovery-v1', 0));
+
+  effective_now := coalesce(target_now, clock_timestamp());
+
+  -- Phase 11 has no legacy scan_job row. Recover it first so the compatibility
+  -- leased-attempt helper never sees a Phase 11 lease.
+  phase11_leased_count := private.recover_phase11_http_expired_worker_attempts(effective_now);
+  phase11_unleased_count := private.recover_phase11_http_unleased_worker_tasks(effective_now);
+
+  runtime_cancelled_count := private.recover_cancelled_runtime_worker_tasks(effective_now);
+  leased_count := public.recover_expired_worker_attempts_leased_only(effective_now);
+  unleased_count := private.recover_expired_unleased_worker_tasks(effective_now);
+  runtime_unleased_count := private.recover_expired_runtime_worker_tasks(effective_now);
+  runtime_reconciled_count := private.reconcile_dead_letter_runtime_worker_jobs(effective_now);
+
+  return phase11_leased_count
+    + phase11_unleased_count
+    + runtime_cancelled_count
+    + leased_count
+    + unleased_count
+    + runtime_unleased_count
+    + runtime_reconciled_count;
+end;
+$$;
+
+revoke all on function private.recover_phase11_http_unleased_worker_tasks(timestamptz)
+  from public, anon, authenticated, service_role;
+revoke all on function private.recover_phase11_http_expired_worker_attempts(timestamptz)
+  from public, anon, authenticated, service_role;
+
+revoke all on function public.recover_worker_state(timestamptz)
+  from public, anon, authenticated, service_role;
+grant execute on function public.recover_worker_state(timestamptz)
+  to service_role;
