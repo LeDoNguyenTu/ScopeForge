@@ -138,6 +138,29 @@ describe("Phase 11C HTTP worker control migration", () => {
     }
   });
 
+  it("heartbeats Phase 11 leases without requiring a legacy scan job", async () => {
+    const sql = await readMigration();
+    const heartbeat = functionSql(sql, "heartbeat_worker_attempt");
+    expect(heartbeat).toMatch(/task_record\.execution_class = 'phase11_http_discovery_v1'[\s\S]*?from private\.phase11_http_worker_tasks/i);
+    expect(heartbeat).toMatch(/from private\.pentest_runs/i);
+    expect(heartbeat).toMatch(/from private\.pentest_actions/i);
+    expect(heartbeat).toMatch(/from private\.pentest_run_authorization_snapshots/i);
+    expect(heartbeat).toMatch(/phase11_run\.status <> 'running'[\s\S]*?phase11_action\.state <> 'running'/i);
+    expect(heartbeat).toMatch(/phase11_snapshot\.expires_at <= heartbeat_now/i);
+    expect(heartbeat).toMatch(/phase11_action\.authorization_expires_at <= heartbeat_now/i);
+
+    const phase11Branch = heartbeat.match(
+      /if task_record\.execution_class = 'phase11_http_discovery_v1' then([\s\S]*?)\n  else/i,
+    )?.[1] ?? "";
+    expect(phase11Branch.length).toBeGreaterThan(0);
+    expect(phase11Branch).not.toContain("public.scan_jobs");
+
+    const compact = sql.replace(/\s+/g, " ").toLowerCase();
+    const signature = "public.heartbeat_worker_attempt(uuid, uuid, uuid, text)";
+    expect(compact).toContain(`revoke all on function ${signature} from public, anon, authenticated, service_role;`);
+    expect(compact).toContain(`grant execute on function ${signature} to service_role;`);
+  });
+
   it("loads finalization authority through the exact worker lease without caller scope fields", async () => {
     const sql = await readMigration();
     const context = functionSql(sql, "get_phase11_http_worker_finalization_context");
