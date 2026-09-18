@@ -308,6 +308,8 @@ declare
   actor_role public.workspace_role;
   asset_record public.assets%rowtype;
   existing_run private.pentest_runs%rowtype;
+  existing_snapshot private.pentest_run_authorization_snapshots%rowtype;
+  existing_coverage private.pentest_coverage%rowtype;
   run_now timestamptz := now();
   root_asset_type text;
   provenance_ref text;
@@ -321,9 +323,10 @@ begin
     or target_root_node_id is null
     or char_length(target_root_node_id) not between 1 and 512
     or target_authorized_node_ids is null
-    or cardinality(target_authorized_node_ids) not between 1 and 1024
+    or cardinality(target_authorized_node_ids) <> 1
     or array_position(target_authorized_node_ids, '') is not null
-    or not (target_root_node_id = any(target_authorized_node_ids))
+    or target_authorized_node_ids[1] is distinct from target_root_node_id
+    or target_root_node_id <> format('asset:%s', target_asset_id::text)
     or target_max_execution_mode not in ('passive', 'safe_active', 'intrusive', 'validation')
     or target_authorization_expires_at is null
     or target_authorization_expires_at <= run_now
@@ -364,10 +367,30 @@ begin
   for update;
 
   if found then
+    select *
+    into existing_snapshot
+    from private.pentest_run_authorization_snapshots
+    where workspace_id = target_workspace_id
+      and run_id = target_run_id
+      and snapshot_ref = target_authorization_snapshot_ref;
+
+    select *
+    into existing_coverage
+    from private.pentest_coverage
+    where workspace_id = target_workspace_id
+      and run_id = target_run_id;
+
     if existing_run.workspace_id is distinct from target_workspace_id
       or existing_run.root_asset_id is distinct from target_asset_id
       or existing_run.authorization_snapshot_ref is distinct from target_authorization_snapshot_ref
       or existing_run.policy_snapshot is distinct from target_policy_snapshot
+      or existing_snapshot.run_id is null
+      or existing_snapshot.authorized_node_ids is distinct from target_authorized_node_ids
+      or existing_snapshot.max_execution_mode is distinct from target_max_execution_mode
+      or existing_snapshot.expires_at is distinct from target_authorization_expires_at
+      or existing_snapshot.created_by is distinct from target_actor_id
+      or existing_coverage.run_id is null
+      or existing_coverage.deadline_at is distinct from target_deadline_at
     then
       raise exception 'PHASE11_RUN_IDENTITY_CONFLICT';
     end if;
