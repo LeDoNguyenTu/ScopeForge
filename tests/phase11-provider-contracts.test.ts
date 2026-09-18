@@ -48,6 +48,43 @@ describe("Phase 11 external provider contracts", () => {
     }, executionContext, new AbortController().signal)).rejects.toThrow("NMAP_TARGET_BINDING_INVALID");
   });
 
+  it("rejects malformed Nmap protocol and state values from a runner", async () => {
+    const provider = createNmapProvider(nmapRunner({
+      capabilityId: "network.port.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      records: [],
+    }));
+
+    await expect(provider.normalize({
+      capabilityId: "network.port.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      records: [{
+        targetNodeId: "node-1",
+        port: 443,
+        protocol: "icmp",
+        state: "open",
+        evidenceRef: "e-bad-protocol",
+        observedAt: "2026-09-18T00:00:00Z",
+      }],
+    } as never, normalizationContext)).rejects.toThrow("NMAP_RESULT_PROTOCOL_INVALID");
+
+    await expect(provider.normalize({
+      capabilityId: "network.port.discover.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      records: [{
+        targetNodeId: "node-1",
+        port: 443,
+        protocol: "tcp",
+        state: "unknown",
+        evidenceRef: "e-bad-state",
+        observedAt: "2026-09-18T00:00:00Z",
+      }],
+    } as never, normalizationContext)).rejects.toThrow("NMAP_RESULT_STATE_INVALID");
+  });
+
   it("normalizes deterministic evidence-backed Nmap observations", async () => {
     const provider = createNmapProvider(nmapRunner({ capabilityId: "network.port.discover.v1", actionId: "action-1", targetNodeId: "node-1", records: [] }));
     const raw: NmapRawResult = {
