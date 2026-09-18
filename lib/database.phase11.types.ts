@@ -65,6 +65,19 @@ export interface PentestHypothesisSummaryRow {
   updated_at: string;
 }
 
+export interface PentestActionSummaryRow {
+  workspace_id: string;
+  run_id: string;
+  action_id: string;
+  hypothesis_id: string;
+  capability_id: string;
+  target_node_ids: string[];
+  requested_mode: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PentestCoverageSummaryRow {
   workspace_id: string;
   run_id: string;
@@ -98,7 +111,17 @@ export interface Phase11RpcError {
 
 export interface Phase11RpcClient {
   rpc(
-    functionName: "persist_phase11_graph_state" | "persist_phase11_observations",
+    functionName:
+      | "persist_phase11_graph_state"
+      | "persist_phase11_observations"
+      | "create_phase11_pentest_run"
+      | "load_phase11_pentest_run_state"
+      | "record_phase11_action_decision"
+      | "mark_phase11_action_queued"
+      | "release_phase11_action_enqueue"
+      | "approve_phase11_action"
+      | "cancel_phase11_pentest_run"
+      | "stop_phase11_pentest_run",
     args: Record<string, Json | undefined>,
   ): PromiseLike<{ data: Json | null; error: Phase11RpcError | null }>;
 }
@@ -108,9 +131,12 @@ export interface Phase11SelectQuery<T> {
   eq(column: string, value: string): Phase11SelectQuery<T>;
   order(column: string, options: { ascending: boolean }): Phase11SelectQuery<T>;
   limit(count: number): PromiseLike<{ data: T[] | null; error: Phase11RpcError | null }>;
+  maybeSingle(): PromiseLike<{ data: T | null; error: Phase11RpcError | null }>;
 }
 
 export interface Phase11ReadClient {
+  from(table: "pentest_run_summaries"): Phase11SelectQuery<PentestRunSummaryRow>;
+  from(table: "pentest_action_summaries"): Phase11SelectQuery<PentestActionSummaryRow>;
   from(table: "pentest_graph_node_summaries"): Phase11SelectQuery<PentestGraphNodeSummaryRow>;
   from(table: "pentest_graph_edge_summaries"): Phase11SelectQuery<PentestGraphEdgeSummaryRow>;
   from(table: "pentest_observation_summaries"): Phase11SelectQuery<PentestObservationSummaryRow>;

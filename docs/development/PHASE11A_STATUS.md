@@ -1,111 +1,73 @@
-# Phase 11A Planning Core Status
+# Phase 11A Status
 
-Last updated: 2026-09-18, Asia/Singapore.
+Last reconciled: 2026-09-18, Asia/Singapore. Live provider state wins if newer.
 
-## Baseline
+## Released baseline
 
-- Released baseline: `main` at `e493f1f339b8410793e94f61306715bfb05c6166` after Phase 10A3 release.
-- Active implementation PR: #125.
-- Superseded docs-only PR: #124, closed after its design/plan were reconciled onto the post-Phase-10A3 branch.
-- No Phase 11 production migration has been created or applied.
-- No new hosted execution class or runtime capability has been enabled.
-
-## Implemented in this checkpoint
-
-### Task 1 - planning domain contracts
-
-- Added closed provider-neutral contracts for execution modes, assets, observations, hypotheses, capabilities, action intents, authorizations, action results, coverage, and stop reasons.
-- Added runtime constructors that reject unknown planner-visible authority such as provider-native args, shell commands, arbitrary URLs, arbitrary headers, payload paths, or JavaScript.
-- Authorization construction rejects already-expired authority.
-- Observations require evidence references and normalized primitive facts.
-
-### Task 2 - security graph
-
-- Added deterministic node/edge insertion.
-- Duplicate observations collapse while provenance is preserved.
-- Edge identity is derived from normalized graph semantics.
-- Evidence-backed edges require known endpoints and explicit authorization/provenance references.
-- Stale edges are excluded from attack-path derivation.
-- Graph fingerprints are deterministic for equivalent normalized state.
-
-### Task 3 - hypothesis lifecycle and coverage
-
-- Added explicit deterministic hypothesis-rule registration and derivation.
-- Added reviewed state transitions with evidence required before supported/refuted terminal states.
-- Added bounded coverage accounting and deterministic stop conditions for cancellation, authorization expiry, deadline, request budget, graph growth, provider failures, approval waits, coverage completion, and hypothesis exhaustion.
-
-### Task 4 - deterministic policy gate
-
-- Unknown capabilities fail closed.
-- Target nodes must be inside the immutable authorization snapshot.
-- Workspace mode ceilings are enforced.
-- Intrusive actions require fresh owner/admin approval.
-- Validation actions require approval unless the workspace is explicitly configured as a lab.
-- Request/runtime budgets are narrowed to capability and workspace ceilings.
-- Approved authorizations bind exact workspace, nodes, snapshot, capability/version, mode, budgets, expiry, and cancellation key.
-- Architecture guards keep planning/policy packages free of application, database, worker, provider, model, network, process, and filesystem authority.
-
-### Task 5 - capability registry
-
-- Added closed static provider registration.
-- Duplicate providers are rejected.
-- Unknown capability, mode mismatch, disabled provider, and unavailable provider states fail explicitly.
-- Selection is deterministic by health, configured priority, then provider ID.
-- Unavailable providers fall back only to other explicitly registered compatible providers.
-- Registry code is included in the Phase 11 dependency-direction guard.
-
-### Task 6 - native ScopeForge observation adapters
-
-- Added pure adapters for existing hosted Phase 3 findings, passive runtime observations, and active CORS validation observations.
-- Adapters consume existing result contracts by type only and never invoke scanners, runtime networking, validators, workers, or persistence.
-- Normalized observations keep stable provider/capability provenance and canonical evidence references.
-- Phase 3 normalization deliberately omits descriptions, evidence summaries, remediation text, taxonomy, and repository URLs.
-- Runtime normalization deliberately omits target URLs and observed header values.
-- Architecture tests enforce the transformation-only boundary.
-
-### Task 7 - deterministic planner v1
-
-- Added explainable scoring for information gain, hypothesis confidence, validation value, provider reliability, normalized cost, and policy weight.
-- Added deterministic bounded next-iteration planning.
-- Hypothesis preconditions and capability preconditions are both evidence-gated.
-- Target node type support is checked against the current graph before scheduling.
-- The planner emits ActionIntent only. It never authorizes or executes an action.
-- Adaptive tests require API discovery evidence before an API-operation action becomes eligible.
-
-## Validation checkpoints
-
-- CI run #1141 on the Tasks 1 to 5 checkpoint reached `npm test` and reported 441 passing test files / 2,020 passing tests, with one architecture-guard failure.
-- The failure was a guard false positive: the guard scanned its own test fixture containing the literal rejected string `fetch('/admin')`. No implementation test failed.
-- The guard now inspects implementation sources only while keeping the same authority restrictions.
-- This documentation checkpoint intentionally does not use `[skip ci]` so the complete Tasks 1 to 7 pure Phase 11A slice receives one full repository CI run.
-
-## Next
-
-Require exact-head CI and Vercel success for the complete Tasks 1 to 7 slice. If green, review and merge PR #125 before beginning Task 8 persistence. Do not apply any Phase 11 production migration or enable any new hosted execution capability as part of this PR.
-
-## Task 8 - planning persistence foundation
-
-Implementation branch: `feat/phase-11a-persistence-20260918`, PR #126.
-
-Live schema reconciliation before implementation:
-
-- ScopeForge project is active and healthy on PostgreSQL 17.
-- The production migration ledger ends at the seven released Phase 10A3 migrations.
-- Existing member-readable tables use `private.is_workspace_member(workspace_id)`.
-- `private.is_workspace_member` is `SECURITY DEFINER`, pins `search_path = ''`, and is executable by `authenticated`.
-- Existing advisor backlog remains pre-existing Phase 10 work and is not mixed into this migration.
+- Released `main`: `e4af4d707a7a6139ad12a705e4c3b5ece726d3e0`.
+- PR #125 released Phase 11 Tasks 1 to 7.
+- PR #126 released Task 8 planning persistence.
+- Task 8 source head passed CI #1146 and Vercel.
 - No Phase 11 migration has been applied to production.
+- No Phase 11 external provider execution capability is enabled.
 
-Task 8 adds:
+## Active Task 9
 
-- private authoritative run, graph-node, graph-edge, observation, hypothesis, coverage, and run-event tables
-- RLS on every authoritative table with no direct grants to browser roles or `service_role`
-- privacy-reduced public summary tables with authenticated member SELECT only
-- no canonical locator, evidence reference, observation facts, hypothesis statement, or authorization reference in browser read models
-- service-role-only persistence RPCs with exact workspace/run/authorization-snapshot binding and pinned search paths
-- bounded payloads, graph-node target binding, primitive-only observation facts, and immutable/idempotent observation identity
-- trusted TypeScript persistence services with bounded summary reads and generic error surfaces
-- regression tests for migration authority and service serialization
+- PR: #128, `Phase 11A trusted pentest run orchestration`.
+- Branch: `feat/phase-11a-run-orchestration-20260918`.
+- Base migration: `supabase/migrations/20260918070000_phase_11a_run_orchestration.sql`, source-only and unapplied.
+- Hardening migration: `supabase/migrations/20260918070100_phase_11a_run_orchestration_hardening.sql`, source-only and unapplied.
 
-The migration file is forward-only and intentionally remains unapplied during implementation.
+Task 9 adds:
 
+- verified-asset owner/admin run creation
+- immutable authorization and run-policy snapshots
+- trusted planning-state loading
+- deterministic planner -> policy -> approved-action enqueue orchestration
+- exact enqueue reservation tokens and explicit queue idempotency keys
+- owner/admin intrusive and validation approval workflow
+- cancellation propagation through an injected queue boundary
+- privacy-reduced run/action read models
+- private authorization, action, attempt, and approval state
+- service-role-only `SECURITY DEFINER` orchestration RPCs with `search_path = ''`
+- an architecture guard that keeps provider, process, network, service-role-key, and worker-credential authority outside `lib/pentest-runs`
+
+## Review hardening completed
+
+Task 9 review found and fixed four important lifecycle/identity defects:
+
+1. Intrusive actions without approval previously became permanently `rejected`. They now enter `approval_required`, allowing the same deterministic action to resume after a fresh owner/admin approval.
+2. Run creation replay previously compared too little immutable authority. Replays now bind the stored authorization node set, execution-mode ceiling, authorization expiry, creator, policy snapshot, deadline, workspace, asset, and snapshot reference.
+3. Action persistence previously bound only capability ID. Actions and authorizations now also bind capability version, so approval cannot silently resume against a same-ID capability upgrade.
+4. Cancellation could race the gap between external enqueue and queue-reference finalization. Cancellation-aware finalization now preserves only the enqueue reservation needed to reconcile that queue reference, persists a late queue reference without reviving the action, and immediately cancels the external queue item. Late stop calls also cannot overwrite an already terminal public run summary.
+
+Phase 11 identifiers are now fixed-size deterministic SHA-256 identifiers:
+
+- action: `phase11-action:<64 hex>`
+- authorization / queue idempotency: `phase11-authz:<64 hex>`
+- cancellation: `phase11-cancel:<64 hex>`
+
+The stable identifier input is canonical bounded planning material, and the queue boundary receives the version-bound authorization ID as its idempotency key.
+
+## Validation history
+
+- CI #1150: all 446 test files and 2,035 tests passed; only four test-only TypeScript errors failed the run.
+- Those four typing errors were fixed.
+- CI #1151 on the earlier release-candidate head `fda54dbf...` passed the complete pipeline.
+- #1151 is no longer the exact-head release gate because the replay, capability-version, and bounded-identifier hardening landed afterward.
+- CI #1152 then passed the complete pipeline on `fe6f8794...`; the cancellation-race hardening landed afterward, so one final exact-head gate is still required.
+- New tests cover approval, replay identity, capability-version identity, stable IDs, queue idempotency, cancellation propagation, migration authority, and control-plane execution boundaries.
+
+GitNexus is required by repository guidance but is not exposed in this ChatGPT connector session. Do not claim a GitNexus result for this continuation.
+
+## Release gate
+
+Before merging PR #128:
+
+1. require exact-head full CI success
+2. require exact-head Vercel success
+3. confirm PR remains mergeable and review threads are clear
+4. keep both Phase 11 migrations unapplied to production
+5. keep all external Phase 11 provider execution disabled
+
+After Task 9 releases, continue the adaptive end-to-end evaluation harness before external provider expansion, following the approved Phase 11 implementation order.

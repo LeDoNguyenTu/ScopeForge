@@ -1,59 +1,49 @@
 # ScopeForge Unfinished Work
 
-## Current PR #77 release remainder
-
-Implementation, schema, provider activation, local validation, exact-source CI/Vercel, production deployment, private same-head recovery, live database verification, authenticated UI acceptance, and the focused security scan are complete.
-
-Source commit `37c3e68a6e188b30a1c23399449cc794fa776335` fixed the finalize-order defect. Production deployment `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV` settled head `f13f3d72...` to idle and successful without creating another snapshot.
-
-Remaining:
-
-- obtain exact-head CI/Vercel after the final documentation checkpoint
-- merge PR #77 normally
-- verify released `main`, main CI, production, workers, advisors, and authenticated browser behavior
-- then reconcile PR #124
-
-PR #76 and issue #79 are complete. Do not repeat their acceptance.
-
-Older unfinished-work sections below are historical.
 Last reconciled: 2026-09-18, Asia/Singapore.
 
-## Current release blocker
+## PR #128 release remainder
 
-### PR #77
+Task 9 implementation and hardening are present on `feat/phase-11a-run-orchestration-20260918`.
 
-Code hardening, exact local validation, final security review, Phase 10A3 schema deployment, and Vercel secret creation are complete.
+Remaining before merge:
 
-The GitHub App webhook URL/secret and required event subscriptions are configured. Successful `ping` and `installation.new_permissions_accepted` deliveries prove GitHub-to-production transport.
+- exact-head full CI
+- exact-head Vercel
+- final mergeability/review-thread check
+- final changed-file review
+- merge only after those gates pass
+- verify released main after merge
 
-Remaining:
+Do not:
 
-- run the remaining replay/lifecycle/coalescing/recovery/public-private and end-to-end production webhook/security acceptance matrix; deployment, provider transport, and non-mutating edge canaries are complete
-- confirm rapid private-canary head `f13f3d72d0782e4260898201d8dd2f08885a8088` is the terminal production scan; route logs prove the webhook and worker sequence but do not expose the bounded read-model SHA
-- obtain exact-head CI/Vercel after the final documentation checkpoint, merge, and verify released production
+- apply either Phase 11 migration to production
+- enable external Phase 11 provider execution
+- bypass the separate schema/provider operational gates
 
-PR #76 is merged/released and is no longer unfinished. Do not repeat issue #79 or Phase 10A2 acceptance.
+## Validation already completed
 
-## Release blocking
+- CI #1150: 446 test files and 2,035 tests passed; four test-only type errors were the only failure
+- test typing errors fixed
+- CI #1151: complete pipeline passed on an earlier release-candidate head
+- CI #1152: complete pipeline passed on `fe6f8794...`
+- later hardening added cancellation-aware queue reconciliation and terminal-summary race protection, so #1152 is not the final exact-head gate
 
-### PR #76
+## Next implementation after Task 9
 
-Code, schema, provider access, workers, containment, private canary, recovery, cleanup, production UI, and rollback evidence are complete.
+Follow the approved Phase 11 plan.
 
-Remaining: commit/push handoff, mark ready, obtain exact-head CI/Vercel, merge, and verify released `main` and production.
+Preferred sequence:
 
-### PR #77
+1. release trusted run orchestration
+2. build the adaptive end-to-end evaluation harness
+3. perform provider license/containment/execution-boundary review
+4. add external provider slices only after that review
+5. keep production schema/provider enablement separately gated
 
-Blocked until #76 releases. Then reconcile it and complete webhook schema, secret configuration, signed-delivery/replay/recovery/privacy canaries, end-to-end acceptance, CI, and release.
+## Completed and not to repeat
 
-## Non-blocking backlog
-
-- backup platform-admin delegation and access-control-management design
-- leaked-password protection
-- measured performance-advisor follow-up
-- PR #124 Phase 11 review
-- branch cleanup after reachability proof
-
-## Completed; do not repeat
-
-Issue #79 canaries, Phase 10A2 migrations/ACL review, Linux containment, legitimate private-canary selection, real private snapshot/scan/finding flow, recovery, cleanup, UI consolidation, and finding-detail route repair. Do not repeat Phase 6D Task 15 acceptance.
+- Phase 10A2 private repository scanning
+- Phase 10A3 GitHub webhook reconciliation
+- Phase 11 Tasks 1 to 7
+- Phase 11 Task 8 persistence implementation and source validation
