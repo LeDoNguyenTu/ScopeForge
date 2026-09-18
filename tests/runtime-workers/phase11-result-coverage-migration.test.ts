@@ -65,7 +65,7 @@ describe("Phase 11C result-to-coverage reconciliation migration", () => {
     const sql = await readFile(migrationPath, "utf8");
     const unleasedStart = sql.indexOf("create or replace function private.recover_phase11_http_unleased_worker_tasks");
     const expiredStart = sql.indexOf("create or replace function private.recover_phase11_http_expired_worker_attempts");
-    const end = sql.indexOf("create or replace function public.recover_worker_state");
+    const end = sql.indexOf("create or replace function public.persist_phase11_graph_state");
     const unleased = sql.slice(unleasedStart, expiredStart);
     const expired = sql.slice(expiredStart, end);
 
@@ -89,10 +89,10 @@ describe("Phase 11C result-to-coverage reconciliation migration", () => {
     expect(fn).toContain("insert into private.pentest_coverage as current");
     expect(fn).toContain("greatest(current.request_count, excluded.request_count)");
     expect(fn).toContain(
-      "greatest(\n        current.provider_failure_count,\n        excluded.provider_failure_count",
+      "greatest(current.provider_failure_count, excluded.provider_failure_count)",
     );
     expect(fn).toContain(
-      "greatest(\n        current.graph_expansion_count,\n        excluded.graph_expansion_count",
+      "greatest(current.graph_expansion_count, excluded.graph_expansion_count)",
     );
     expect(fn).toContain("current.attempted_capability_ids || excluded.attempted_capability_ids");
     expect(fn).toContain("current.covered_node_ids || excluded.covered_node_ids");
