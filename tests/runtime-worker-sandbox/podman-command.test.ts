@@ -76,4 +76,20 @@ describe.skipIf(process.platform === "win32")("Phase 6D runtime worker Podman co
       executionClass: "foundation_no_egress_v1" as never,
     })).toThrow();
   });
+
+  it("keeps Phase 11 HTTP discovery networkless with only mediator IPC", () => {
+    const command = buildRuntimeWorkerPodmanCreateCommand({
+      ...input,
+      executionClass: "phase11_http_discovery_v1",
+    });
+
+    expect(command.args).toContain("--network=none");
+    expect(command.args).toContain("--pids-limit=8");
+    expect(command.args).toContain("--memory=256m");
+    expect(command.args).toContain("--tmpfs=/tmp:rw,size=8388608,mode=1777,nosuid,nodev,noexec");
+    expect(command.args.filter((arg) => arg.startsWith("--mount="))).toEqual([
+      `--mount=type=bind,src=${input.mediatorSocketPath},dst=/run/scopeforge/mediator.sock,ro`,
+    ]);
+    expect(command.args.join(" ")).not.toMatch(/--network=host|--privileged|--device|docker[.]sock|podman[.]sock/);
+  });
 });
