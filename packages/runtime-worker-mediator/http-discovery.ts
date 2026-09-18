@@ -180,6 +180,7 @@ export async function executeHttpDiscoveryProfile(
       profile.budget.perRequestTimeoutMs,
       profile.budget.totalTimeoutMs - elapsed,
     );
+    requestCount += 1;
     try {
       const response = await transport({
         method,
@@ -187,7 +188,6 @@ export async function executeHttpDiscoveryProfile(
         timeoutMs,
         ...(signal ? { signal } : {}),
       });
-      requestCount += 1;
       return { ok: true, response };
     } catch (error) {
       if (isAbort(error) && await cancellationRequested()) {
