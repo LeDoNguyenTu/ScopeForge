@@ -29,13 +29,15 @@ type StopReason = "cancelled" | "lost" | "budget" | null;
 
 type RuntimeExecutionClass =
   | "passive_runtime_observation_v1"
-  | "active_cors_validation_v1";
+  | "active_cors_validation_v1"
+  | "phase11_http_discovery_v1";
 
 function isRuntimeExecutionClass(
   executionClass: AnyWorkerTaskContract["executionClass"],
 ): executionClass is RuntimeExecutionClass {
   return executionClass === "passive_runtime_observation_v1"
-    || executionClass === "active_cors_validation_v1";
+    || executionClass === "active_cors_validation_v1"
+    || executionClass === "phase11_http_discovery_v1";
 }
 
 function executorContract(task: AnyWorkerTaskContract): AnyWorkerExecutorContract {
@@ -143,6 +145,10 @@ function successfulOutputMatchesTask(
   if (task.executionClass === "active_cors_validation_v1") {
     return task.input.kind === "active_cors_validation"
       && terminal.result?.kind === "active_cors_validation";
+  }
+  if (task.executionClass === "phase11_http_discovery_v1") {
+    return task.input.kind === "phase11_http_discovery"
+      && terminal.result?.kind === "phase11_http_discovery";
   }
   return false;
 }
@@ -267,15 +273,19 @@ async function prepareRuntimeTask(
     (task.executionClass === "passive_runtime_observation_v1"
       && task.input.kind === "passive_runtime_observation")
     || (task.executionClass === "active_cors_validation_v1"
-      && task.input.kind === "active_cors_validation");
+      && task.input.kind === "active_cors_validation")
+    || (task.executionClass === "phase11_http_discovery_v1"
+      && task.input.kind === "phase11_http_discovery");
   if (!inputMatchesClass) {
-    throw new Error("Phase 6D claim input is invalid.");
+    throw new Error("Runtime claim input is invalid.");
   }
 
-  const prepare = dependencies.control.runtimePrepare;
+  const prepare = task.executionClass === "phase11_http_discovery_v1"
+    ? dependencies.control.phase11HttpPrepare
+    : dependencies.control.runtimePrepare;
   const preparer = dependencies.runtimeNetworkPreparer;
   if (!prepare || !preparer) {
-    throw new Error("Phase 6D preparation authority is unavailable.");
+    throw new Error("Runtime preparation authority is unavailable.");
   }
 
   const preparedProfile = await prepare({
@@ -284,7 +294,7 @@ async function prepareRuntimeTask(
     leaseToken: task.leaseToken,
   });
   if (signal.aborted) {
-    throw new DOMException("Phase 6D preparation was aborted.", "AbortError");
+    throw new DOMException("Runtime preparation was aborted.", "AbortError");
   }
   const prepared = await preparer.prepare({
     task,
@@ -315,6 +325,19 @@ async function finalizeThroughTrustedBoundary(
   terminal: AnyWorkerTerminalEnvelope,
   control: WorkerSupervisorControlClient,
 ): Promise<{ outcome: "succeeded" | "failed" | "cancelled"; replayed: boolean }> {
+  if (task.executionClass === "phase11_http_discovery_v1") {
+    const finalizePhase11Http = control.phase11HttpFinalize;
+    if (!finalizePhase11Http) {
+      throw new Error("Phase 11 HTTP finalization authority is unavailable.");
+    }
+    return finalizePhase11Http({
+      taskId: task.taskId,
+      attemptId: task.attemptId,
+      leaseToken: task.leaseToken,
+      terminal: terminal as WorkerTerminalEnvelope,
+    });
+  }
+
   if (isRuntimeExecutionClass(task.executionClass)) {
     const finalizeRuntime = control.runtimeFinalize;
     if (!finalizeRuntime) {
