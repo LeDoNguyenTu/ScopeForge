@@ -6,7 +6,9 @@ const NONCE_PATTERN = /^[a-f0-9]{64}$/;
 const MEDIATOR_TIMEOUT_MS = 30_000;
 
 function executionClass(value: string): RuntimeMediatorExecutionClass {
-  if (value === "passive_runtime_observation_v1" || value === "active_cors_validation_v1") {
+  if (value === "passive_runtime_observation_v1"
+      || value === "active_cors_validation_v1"
+      || value === "phase11_http_discovery_v1") {
     return value;
   }
   throw new Error("Runtime execution class is invalid.");
