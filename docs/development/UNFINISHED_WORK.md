@@ -25,8 +25,9 @@ Do not:
 
 - CI #1150: 446 test files and 2,035 tests passed; four test-only type errors were the only failure
 - test typing errors fixed
-- CI #1151: complete pipeline passed on earlier release-candidate head
-- later hardening added replay identity, capability-version identity, stable SHA-256 identifiers, and explicit queue idempotency, so #1151 is not the final exact-head gate
+- CI #1151: complete pipeline passed on an earlier release-candidate head
+- CI #1152: complete pipeline passed on `fe6f8794...`
+- later hardening added cancellation-aware queue reconciliation and terminal-summary race protection, so #1152 is not the final exact-head gate
 
 ## Next implementation after Task 9
 
