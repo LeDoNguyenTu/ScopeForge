@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { validateWorkerTaskContract } from "@/packages/worker-runtime/task-contract";
 import {
   validatePhase11HttpDiscoveryTaskInput,
   validatePhase11HttpDiscoveryTerminalEnvelope,
+  validateWorkerTerminalEnvelope,
   workerExecutionProfile,
 } from "@/packages/worker-contracts";
 
@@ -26,6 +28,26 @@ describe("Phase 11C HTTP discovery worker contract", () => {
         maxScratchBytes: 8_388_608,
         maxOutputBytes: 32_768,
       },
+    });
+  });
+
+  it("accepts the Phase 11 claim through the generic runtime task parser", () => {
+    expect(validateWorkerTaskContract({
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1",
+      leaseToken: "c".repeat(64),
+      absoluteDeadlineAt: "2099-09-19T00:00:30.000Z",
+      budget: workerExecutionProfile("phase11_http_discovery_v1").budget,
+      input: {
+        kind: "phase11_http_discovery",
+        runId,
+        actionId,
+        authorizationId,
+      },
+    }, "phase11_http_discovery_v1")).toMatchObject({
+      executionClass: "phase11_http_discovery_v1",
+      input: { kind: "phase11_http_discovery", runId, actionId, authorizationId },
     });
   });
 
@@ -79,6 +101,54 @@ describe("Phase 11C HTTP discovery worker contract", () => {
       actionId,
       authorizationId: "auth-1",
     })).toThrow(/authorization/i);
+  });
+
+  it("keeps the dedicated validator authoritative through the generic terminal entry point", () => {
+    expect(validateWorkerTerminalEnvelope({
+      schemaVersion: 1,
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1",
+      outcome: "failed",
+      failureCode: "HTTP_DISCOVERY_NETWORK_ERROR",
+      metrics: {
+        wallTimeMs: 1,
+        cpuTimeMs: 0,
+        peakMemoryBytes: 0,
+        inputBytes: 0,
+        outputBytes: 0,
+      },
+      result: null,
+    }, {
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1",
+    })).toMatchObject({
+      executionClass: "phase11_http_discovery_v1",
+      outcome: "failed",
+      failureCode: "HTTP_DISCOVERY_NETWORK_ERROR",
+    });
+
+    expect(() => validateWorkerTerminalEnvelope({
+      schemaVersion: 1,
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1",
+      outcome: "failed",
+      failureCode: "PASSIVE_RUNTIME_NETWORK_ERROR",
+      metrics: {
+        wallTimeMs: 1,
+        cpuTimeMs: 0,
+        peakMemoryBytes: 0,
+        inputBytes: 0,
+        outputBytes: 0,
+      },
+      result: null,
+    }, {
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1",
+    })).toThrow(/failure code/i);
   });
 
   it("validates only privacy-reduced HTTP discovery terminal records", () => {
