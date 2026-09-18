@@ -49,3 +49,17 @@ The forward-only migration is:
 - No browser/user-controlled URL, method, headers, body, argv, network policy, worker budget, or direct target authority.
 - No external Nmap/Nuclei/httpx process runner is enabled.
 - No AI co-author metadata.
+
+
+## Release-candidate validation history
+
+CI #1199 ran against an earlier PR #145 head and reached the full test suite. It reported two release-candidate issues:
+
+- the new migration had not yet restated explicit revokes for the two replaced private recovery functions and the graph-persistence RPC, which violated the permanent Phase 9C future-function ACL guard
+- the new PGlite prerequisite fixture had malformed dollar-quoted stub bodies caused by generation-time string replacement
+
+The current head fixes both:
+- every created/replaced public or private function in the migration has an explicit same-migration revoke, with only the reviewed service-role grants restored where required
+- the PGlite stubs use literal balanced `$$...$$` bodies and the migration itself has one balanced body per intended function
+
+CI #1199 otherwise reported 484 passing test files and 2,254 passing tests before those two failures. Require a fresh exact-head CI after these fixes before merge.
