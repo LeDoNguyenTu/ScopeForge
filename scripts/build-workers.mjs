@@ -20,6 +20,11 @@ await build({
 });
 await build({
   ...shared,
+  entryPoints: ["packages/runtime-worker-runner/container-entry.ts"],
+  outfile: `${outdir}/runtime-worker-entry.js`,
+});
+await build({
+  ...shared,
   entryPoints: ["packages/hosted-scanner-runner/container-entry.ts"],
   outfile: `${outdir}/hosted-scanner-entry.js`,
   external: [
