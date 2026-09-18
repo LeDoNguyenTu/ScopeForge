@@ -79,3 +79,10 @@ The current candidate additionally:
 - reuses the existing single-use Unix mediator and `--network=none` runtime sandbox
 - injects the Phase 11 HTTP runtime executor explicitly rather than falling through to legacy runtime behavior
 - keeps the normal hosted worker runtime configuration unable to select the class before Linux acceptance
+
+
+## Release-candidate validation
+
+- Diagnostic CI #1191 identified two stale architecture assertions from the pre-wiring state.
+- Both were updated to permit only the exact reviewed `phase11_http_discovery_v1` class while preserving the prohibition on generic URL/fetch/proxy execution authority.
+- A fresh exact-head full CI is required after this release-candidate commit.
