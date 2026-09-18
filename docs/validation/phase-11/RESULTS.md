@@ -46,3 +46,32 @@ Measured locally on 2026-09-18 with Node 24 and one Vitest worker:
 ```
 
 The matrix validates pre-execution containment against the committed fake provider. It does not report unmeasured vulnerability accuracy or live/provider/container behavior.
+
+## Labeled evaluation fixture
+
+Measured locally on 2026-09-18 with Node 24 and one Vitest worker:
+
+```json
+{
+  "suite": "phase-11-labeled-adaptive-evaluation",
+  "passed": true,
+  "testFiles": 1,
+  "tests": 2,
+  "elapsedMs": 1661,
+  "catastrophicCeilingMs": 5000,
+  "precision": 0.6666666666666666,
+  "recall": 1,
+  "falsePositiveRate": 0.5,
+  "f1": 0.8,
+  "validatedFindingRate": 0.6666666666666666,
+  "duplicateCorrelationRate": 0.25,
+  "attackPathCorrect": true,
+  "remediationRetestAccuracy": 1,
+  "outOfScopeRequests": 0,
+  "leakedSecrets": 0,
+  "cleanupSucceeded": true,
+  "cancellationLatencyMs": 0
+}
+```
+
+The counts are two true positives, zero false negatives, one false positive, and one true negative in a four-label synthetic fixture. One duplicate correlation key appears among four raw reported results. The expected provenance-backed `entrypoint -> API -> data` path is present, and both synthetic remediation retests are classified correctly. These values are limited to the committed fixture and do not characterize production coverage, provider behavior, or the prevalence of vulnerabilities.
