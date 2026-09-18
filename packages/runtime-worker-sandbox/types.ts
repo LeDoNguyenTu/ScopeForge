@@ -1,6 +1,7 @@
 export type RuntimeWorkerExecutionClass =
   | "passive_runtime_observation_v1"
-  | "active_cors_validation_v1";
+  | "active_cors_validation_v1"
+  | "phase11_http_discovery_v1";
 
 export interface RuntimeWorkerPodmanCommandInput {
   taskId: string;
