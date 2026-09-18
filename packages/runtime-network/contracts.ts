@@ -20,7 +20,7 @@ export interface RuntimeNetworkResponse {
 export type RuntimeRequester = (options: RequestOptions) => Promise<RuntimeNetworkResponse>;
 
 export interface TrustedRuntimeRequestPlan {
-  readonly method: "GET";
+  readonly method: "GET" | "HEAD";
   readonly url: URL;
   readonly timeoutMs: number;
   readonly headers: Readonly<{
