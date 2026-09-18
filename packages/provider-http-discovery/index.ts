@@ -74,6 +74,7 @@ function normalizeRequest(request: unknown): Readonly<HttpDiscoveryRequest> | nu
   if (!HTTP_DISCOVERY_CAPABILITIES.includes(request.capabilityId as HttpDiscoveryCapabilityId)) return null;
   if (typeof request.targetNodeId !== "string" || !request.targetNodeId.trim()) return null;
   if (!PROFILES.has(request.discoveryProfile as HttpDiscoveryProfile)) return null;
+  if (request.capabilityId === "web.http.probe.v1" && request.discoveryProfile !== "root-only") return null;
   if (!METHODS.has(request.methodProfile as HttpMethodProfile)) return null;
   if (typeof request.followSameOriginRedirects !== "boolean") return null;
   return Object.freeze({
@@ -130,6 +131,9 @@ export function createHttpDiscoveryProvider(
       if (raw.actionId !== context.actionId) throw new Error("HTTP_DISCOVERY_RESULT_ACTION_MISMATCH");
       if (!raw.targetNodeId.trim()) throw new Error("HTTP_DISCOVERY_RESULT_TARGET_REQUIRED");
       if (!PROFILES.has(raw.discoveryProfile)) throw new Error("HTTP_DISCOVERY_RESULT_PROFILE_INVALID");
+      if (raw.capabilityId === "web.http.probe.v1" && raw.discoveryProfile !== "root-only") {
+        throw new Error("HTTP_DISCOVERY_RESULT_PROFILE_OUTSIDE_CAPABILITY");
+      }
       if (!Array.isArray(raw.records) || raw.records.length > (raw.discoveryProfile === "root-only" ? 1 : MAX_HTTP_RECORDS)) {
         throw new Error("HTTP_DISCOVERY_RESULT_RECORD_LIMIT_EXCEEDED");
       }
