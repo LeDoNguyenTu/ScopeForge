@@ -35,13 +35,16 @@ Important hardening already incorporated:
 - authorization identity is capability-version-bound
 - action, authorization, and cancellation identifiers use deterministic SHA-256 stable IDs
 - queue idempotency uses the version-bound authorization ID
+- cancellation-aware queue finalization closes the enqueue/cancel race and preserves a late queue reference for deterministic cancellation retry
+- terminal run state cannot be overwritten by a late stop-summary update
 
 ## Validation evidence
 
 - CI #1150: 446 test files and 2,035 tests passed; only four Task 9 test typing errors failed typecheck.
 - Those four typing errors were fixed.
 - CI #1151 passed the full pipeline on earlier head `fda54dbf...`.
-- Later security hardening means a new exact-head CI/Vercel gate is still required before merge.
+- CI #1152 passed the full pipeline on later head `fe6f8794...`.
+- The cancellation-race hardening migration and tests landed after #1152, so a new exact-head CI/Vercel gate is still required before merge.
 
 ## Database/runtime state
 
@@ -49,6 +52,7 @@ Important hardening already incorporated:
 - Never use `xwsergbpvkcsugexssmc` for this repository.
 - `20260918061500_phase_11a_planning_graph.sql` is not applied to production.
 - `20260918070000_phase_11a_run_orchestration.sql` is not applied to production.
+- `20260918070100_phase_11a_run_orchestration_hardening.sql` is not applied to production.
 - No Phase 11 external provider execution is enabled.
 
 ## Immediate next actions
