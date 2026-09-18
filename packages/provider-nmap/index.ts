@@ -55,6 +55,8 @@ export interface NmapRunner {
 const REQUEST_KEYS = new Set(["capabilityId", "targetNodeId", "portProfile", "ports", "timingProfile"]);
 const PORT_PROFILES = new Set<NmapPortProfile>(["top-100", "top-1000", "reviewed-explicit"]);
 const TIMING_PROFILES = new Set<NmapTimingProfile>(["polite", "normal"]);
+const PROTOCOLS = new Set<NmapPortRecord["protocol"]>(["tcp", "udp"]);
+const STATES = new Set<NmapPortRecord["state"]>(["open", "closed", "filtered", "open|filtered"]);
 const MAX_EXPLICIT_PORTS = 64;
 const MAX_NMAP_RECORDS = 2048;
 
@@ -104,6 +106,8 @@ function compactFacts(input: Record<string, string | number | undefined>): Primi
 function validateRawRecord(record: NmapPortRecord, expectedNodeId: string): void {
   if (record.targetNodeId !== expectedNodeId) throw new Error("NMAP_RESULT_TARGET_OUT_OF_SCOPE");
   if (!Number.isInteger(record.port) || record.port < 1 || record.port > 65535) throw new Error("NMAP_RESULT_PORT_INVALID");
+  if (!PROTOCOLS.has(record.protocol)) throw new Error("NMAP_RESULT_PROTOCOL_INVALID");
+  if (!STATES.has(record.state)) throw new Error("NMAP_RESULT_STATE_INVALID");
   if (!record.evidenceRef.trim()) throw new Error("NMAP_RESULT_EVIDENCE_REQUIRED");
   if (!Number.isFinite(Date.parse(record.observedAt))) throw new Error("NMAP_RESULT_TIMESTAMP_INVALID");
 }
