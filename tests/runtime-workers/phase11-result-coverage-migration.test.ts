@@ -65,7 +65,7 @@ describe("Phase 11C result-to-coverage reconciliation migration", () => {
     const sql = await readFile(migrationPath, "utf8");
     const unleasedStart = sql.indexOf("create or replace function private.recover_phase11_http_unleased_worker_tasks");
     const expiredStart = sql.indexOf("create or replace function private.recover_phase11_http_expired_worker_attempts");
-    const end = sql.indexOf("create or replace function private.recover_worker_state");
+    const end = sql.indexOf("create or replace function public.recover_worker_state");
     const unleased = sql.slice(unleasedStart, expiredStart);
     const expired = sql.slice(expiredStart, end);
 
