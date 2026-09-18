@@ -4,7 +4,7 @@ import type {
   ProviderNormalizationContext,
   ProviderPolicyContext,
 } from "../capability-registry/types";
-import type { Observation, PrimitiveFacts } from "../security-planning";
+import { phase11StableId, type Observation, type PrimitiveFacts } from "../security-planning";
 
 export const NMAP_PROVIDER_ID = "nmap";
 export const NMAP_PROVIDER_VERSION = "7.991";
@@ -138,11 +138,23 @@ export function createNmapProvider(runner: NmapRunner): CapabilityProvider<NmapP
       if (!NMAP_CAPABILITIES.includes(raw.capabilityId)) throw new Error("NMAP_RESULT_CAPABILITY_INVALID");
       if (raw.actionId !== context.actionId) throw new Error("NMAP_RESULT_ACTION_MISMATCH");
       if (!raw.targetNodeId.trim()) throw new Error("NMAP_RESULT_TARGET_REQUIRED");
-      const observations = raw.records.map((record: NmapPortRecord): Observation => {
+      const records = [...raw.records].sort((a, b) =>
+        a.port - b.port
+        || a.protocol.localeCompare(b.protocol)
+        || a.state.localeCompare(b.state)
+        || a.evidenceRef.localeCompare(b.evidenceRef)
+      );
+      const observations = records.map((record: NmapPortRecord): Observation => {
         validateRawRecord(record, raw.targetNodeId);
-        const fingerprint = [record.targetNodeId, record.protocol, record.port].map(encodeURIComponent).join(":");
         return Object.freeze({
-          observationId: `phase11:nmap:${encodeURIComponent(context.actionId)}:${fingerprint}`,
+          observationId: phase11StableId("phase11-obs-nmap", [
+            context.actionId,
+            record.targetNodeId,
+            record.protocol,
+            String(record.port),
+            record.state,
+            record.evidenceRef,
+          ]),
           runId: context.runId,
           providerId: NMAP_PROVIDER_ID,
           providerVersion: NMAP_PROVIDER_VERSION,
