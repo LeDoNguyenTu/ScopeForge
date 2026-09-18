@@ -57,6 +57,28 @@ describe("Phase 11C result-to-coverage reconciliation migration", () => {
     expect(expired).toMatch(/perform private\.apply_phase11_attempt_coverage[\s\S]*?action_record\.max_requests/i);
   });
 
+
+  it("prevents stale graph persistence from rolling coverage counters backward", async () => {
+    const sql = await readFile(migrationPath, "utf8");
+    const start = sql.indexOf("create or replace function public.persist_phase11_graph_state");
+    const fn = sql.slice(start);
+
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(fn).toContain("insert into private.pentest_coverage as current");
+    expect(fn).toContain("greatest(current.request_count, excluded.request_count)");
+    expect(fn).toContain(
+      "greatest(\n        current.provider_failure_count,\n        excluded.provider_failure_count",
+    );
+    expect(fn).toContain(
+      "greatest(\n        current.graph_expansion_count,\n        excluded.graph_expansion_count",
+    );
+    expect(fn).toContain("current.attempted_capability_ids || excluded.attempted_capability_ids");
+    expect(fn).toContain("current.covered_node_ids || excluded.covered_node_ids");
+    expect(fn).toContain("into persisted_coverage");
+    expect(fn).toContain("persisted_coverage.request_count");
+    expect(fn).toContain("persisted_coverage.provider_failure_count");
+  });
+
   it("does not grant browser roles mutation authority", async () => {
     const sql = await readFile(migrationPath, "utf8");
     expect(sql).not.toMatch(/grant\s+(?:insert|update|delete|all)[\s\S]*?to\s+(?:anon|authenticated)/i);
