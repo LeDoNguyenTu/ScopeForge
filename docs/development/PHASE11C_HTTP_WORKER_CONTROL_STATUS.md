@@ -105,3 +105,18 @@ No production migration or hosted enablement was performed.
 
 - CI #1193 passed the complete test suite but failed TypeScript on two implicit queue-repository input parameter types.
 - The queue repository inputs are now explicitly derived from the repository interface. Exact-head CI after this fix is the current release gate.
+
+
+## Request-accounting hardening
+
+A final security review found that failed or cancelled HTTP executions could previously reach Phase 11 finalization with a zero request count even after network activity had occurred. That could undercount the run request budget.
+
+The source now fails safe on accounting:
+- successful mediator results persist their exact request count
+- cancellation that races a successful mediator result preserves that exact count
+- failed or cancelled attempts without an exact mediator count conservatively persist the action authorization's `maxRequests`
+- the database finalizer no longer zeroes request count for non-success outcomes
+
+This is intentionally conservative: uncertainty may consume more budget, but it cannot make attempted network work disappear from accounting.
+
+Exact current-head CI is required after this hardening before PR #143 can merge.
