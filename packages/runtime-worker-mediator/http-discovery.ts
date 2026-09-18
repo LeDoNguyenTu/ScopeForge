@@ -1,5 +1,5 @@
 import {
-  PASSIVE_RUNTIME_USER_AGENT,
+  ACTIVE_RUNTIME_USER_AGENT,
   requestPinnedHttps,
   type RuntimeNetworkResponse,
 } from "@/packages/runtime-network";
@@ -77,7 +77,7 @@ const defaultTransport: HttpDiscoveryTransport = (input) => requestPinnedHttps({
   timeoutMs: input.timeoutMs,
   headers: {
     accept: "*/*",
-    "user-agent": PASSIVE_RUNTIME_USER_AGENT,
+    "user-agent": ACTIVE_RUNTIME_USER_AGENT,
   },
 }, input.signal ? { signal: input.signal } : {});
 
