@@ -19,6 +19,7 @@ export interface Phase11HttpWorkerFinalizationContext {
   providerId: "scopeforge.http-discovery";
   providerVersion: "1.0.0";
   discoveryProfile: HttpDiscoveryProfile;
+  maxRequests: number;
   leasedAt: string;
   leaseExpiresAt: string;
   cancelRequested: boolean;
@@ -81,7 +82,7 @@ function parseContext(value: unknown): Phase11HttpWorkerFinalizationContext {
   exact(data, [
     "taskId", "attemptId", "workspaceId", "runId", "actionId", "authorizationId",
     "authorizationSnapshotRef", "targetNodeId", "capabilityId", "providerId", "providerVersion",
-    "discoveryProfile", "leasedAt", "leaseExpiresAt", "cancelRequested", "finishedAt",
+    "discoveryProfile", "maxRequests", "leasedAt", "leaseExpiresAt", "cancelRequested", "finishedAt",
     "priorOutcome", "priorTerminalDigest",
   ]);
   const capabilityId = requiredString(data.capabilityId);
@@ -91,6 +92,9 @@ function parseContext(value: unknown): Phase11HttpWorkerFinalizationContext {
       || (discoveryProfile !== "root-only" && discoveryProfile !== "well-known-safe")
       || data.providerId !== "scopeforge.http-discovery"
       || data.providerVersion !== "1.0.0"
+      || !Number.isInteger(data.maxRequests)
+      || (data.maxRequests as number) < 1
+      || (data.maxRequests as number) > 12
       || typeof data.cancelRequested !== "boolean"
       || (priorOutcome !== null && !["succeeded", "failed", "cancelled"].includes(priorOutcome))) fail();
   return Object.freeze({
@@ -106,6 +110,7 @@ function parseContext(value: unknown): Phase11HttpWorkerFinalizationContext {
     providerId: "scopeforge.http-discovery",
     providerVersion: "1.0.0",
     discoveryProfile: discoveryProfile as HttpDiscoveryProfile,
+    maxRequests: data.maxRequests as number,
     leasedAt: iso(data.leasedAt),
     leaseExpiresAt: iso(data.leaseExpiresAt),
     cancelRequested: data.cancelRequested,
