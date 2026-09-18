@@ -3,7 +3,8 @@ import type { CorsPolicyObservation } from "@/packages/runtime-validator";
 
 export type RuntimeMediatorExecutionClass =
   | "passive_runtime_observation_v1"
-  | "active_cors_validation_v1";
+  | "active_cors_validation_v1"
+  | "phase11_http_discovery_v1";
 
 export interface RuntimeMediatorSessionIdentity {
   taskId: string;
@@ -30,9 +31,24 @@ export interface RuntimeMediatorActiveCorsResult {
   observation: CorsPolicyObservation;
 }
 
+export interface RuntimeMediatorHttpDiscoveryRecord {
+  routeKind: "root" | "security-txt" | "robots" | "sitemap";
+  status: number;
+  contentType?: string;
+  redirected: boolean;
+  redirectBlockedReason?: "CROSS_HOST" | "SCHEME" | "PORT" | "CREDENTIALS";
+}
+
+export interface RuntimeMediatorHttpDiscoveryResult {
+  kind: "phase11_http_discovery";
+  requestCount: number;
+  records: readonly RuntimeMediatorHttpDiscoveryRecord[];
+}
+
 export type RuntimeMediatorResult =
   | RuntimeMediatorPassiveResult
-  | RuntimeMediatorActiveCorsResult;
+  | RuntimeMediatorActiveCorsResult
+  | RuntimeMediatorHttpDiscoveryResult;
 
 export type RuntimeMediatorProtocolErrorCode =
   | "MEDIATOR_REQUEST_INVALID"
