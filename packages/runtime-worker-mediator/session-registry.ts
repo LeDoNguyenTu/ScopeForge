@@ -39,7 +39,8 @@ function assertRegistration<TProfile>(input: RuntimeMediatorSessionRegistration<
   if (!UUID_PATTERN.test(input.taskId)
       || !UUID_PATTERN.test(input.attemptId)
       || (input.executionClass !== "passive_runtime_observation_v1"
-        && input.executionClass !== "active_cors_validation_v1")) {
+        && input.executionClass !== "active_cors_validation_v1"
+        && input.executionClass !== "phase11_http_discovery_v1")) {
     throw new RuntimeMediatorProtocolError("MEDIATOR_SESSION_INVALID");
   }
   const expiresAtMs = Date.parse(input.expiresAt);
