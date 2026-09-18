@@ -47,3 +47,5 @@ Before merge:
 5. keep all new hosted execution capabilities disabled
 
 After Task 8 merges, continue with Task 9 run orchestration from the Phase 11 implementation plan. Production schema rollout remains a separate reviewed gate.
+
+This checkpoint intentionally triggers full CI on the complete Task 8 candidate before any merge or production schema action.
