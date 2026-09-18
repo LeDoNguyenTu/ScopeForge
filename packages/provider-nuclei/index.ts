@@ -64,6 +64,7 @@ const PROFILES = new Set<NucleiTemplateProfile>([
   "known-cve-reviewed",
 ]);
 const SEVERITIES = new Set<NucleiSeverity>(["info", "low", "medium", "high", "critical"]);
+const TEMPLATE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/;
 const MAX_NUCLEI_MATCHES = 4096;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -91,7 +92,15 @@ function normalizeRequest(request: unknown): Readonly<NucleiProviderRequest> | n
 function validateConfig(config: NucleiProviderConfig): Readonly<NucleiProviderConfig> {
   const profiles = {} as Record<NucleiTemplateProfile, readonly string[]>;
   for (const profile of PROFILES) {
-    const templates = uniqueSorted(config.profiles[profile] ?? []);
+    const inputTemplates = config.profiles[profile] ?? [];
+    if (inputTemplates.some((templateId) =>
+      typeof templateId !== "string"
+      || templateId !== templateId.trim()
+      || !TEMPLATE_ID_PATTERN.test(templateId)
+    )) {
+      throw new Error(`NUCLEI_TEMPLATE_ID_INVALID:${profile}`);
+    }
+    const templates = uniqueSorted(inputTemplates);
     if (templates.length === 0) throw new Error(`NUCLEI_PROFILE_EMPTY:${profile}`);
     profiles[profile] = templates;
   }
