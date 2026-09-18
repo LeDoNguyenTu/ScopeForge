@@ -4,8 +4,8 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live repository/provider state wins
 
 ## Baseline
 
-- PR #139 released the default-off external provider contracts.
-- This branch is stacked from the exact PR #139 release-candidate head and should be compared against current `main` before merge.
+- PR #141 released the hardened default-off external provider contracts at merge `100b8ad92e835ad4c985b78b36c53a99fce2999e`.
+- This branch was rebuilt cleanly from the exact hardened PR #141 provider head. It contains only the HTTP runtime foundation and its tests/docs.
 - No Phase 11 production migration is applied.
 - No Phase 11 external provider feature flag is enabled.
 
@@ -55,6 +55,7 @@ The mediator:
 - follows at most one redirect for a fixed route and only when the redirect remains inside the authorized hostname/scheme/port boundary
 - re-runs DNS/IP safety through the pinned HTTPS transport for each request
 - caps the total request budget at 12
+- counts every transport attempt, including timeout/network-error attempts, against the request budget
 - caps per-request timeout at 5 seconds
 - caps total execution timeout at 30 seconds
 - returns at most four privacy-reduced records
