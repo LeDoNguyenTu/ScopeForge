@@ -36,16 +36,18 @@ Implemented so far:
 - dedicated service-role-only worker registration and claim RPCs for `phase11_http_discovery_v1`
 - claim-time revalidation of run/action/snapshot expiry and exact binding identity before the one-attempt lease is created
 - server worker-control repository/service routing for authenticated Phase 11 nodes, without widening the generic worker-runtime parser or terminal finalizer
+- a dedicated authenticated internal preparation route that accepts only task/attempt/lease identity
+- strict parsing of the lease-bound authoritative preparation context before trusted HTTPS/443 target derivation
+- typed Phase 11C worker RPC definitions, preserving the repository source-hygiene rule against unsafe RPC casts
 
 The new class intentionally remains outside the generic production `WorkerExecutionClass` union at this checkpoint. It cannot be registered, claimed, or dispatched by the production fleet yet.
 
 ## Next source work
 
-1. wire the internal trusted prepare route to the lease-bound preparation-context RPC
-2. add terminal finalization/observation persistence with exact action and authorization revalidation
-3. widen the generic worker-runtime parser, dispatcher, and terminal types only when preparation and finalization are complete together
-4. keep hosted enablement default-off
-5. perform real Linux containment acceptance before any enablement release
+1. add terminal finalization/observation persistence with exact action and authorization revalidation
+2. widen the generic worker-runtime parser, dispatcher, and terminal types only when preparation and finalization are complete together
+3. keep hosted enablement default-off
+4. perform real Linux containment acceptance before any enablement release
 
 ## Production boundary
 

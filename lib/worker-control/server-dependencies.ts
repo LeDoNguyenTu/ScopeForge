@@ -1,4 +1,4 @@
-import type { Phase10a2Database } from "@/lib/database.phase10a2.types";
+import type { Phase11cWorkerDatabase } from "@/lib/database.phase11c.types";
 import { getGitHubAppConfig } from "@/lib/github-app/config";
 import { createPrivateRepositorySourceLease } from "@/lib/repository-snapshots/private-source-broker";
 import { createRepositorySnapshotObjectStore } from "@/lib/repository-snapshots/server-store";
@@ -11,7 +11,7 @@ import type {
 } from "./service";
 
 export function createWorkerControlServerDependencies(): WorkerControlServiceDependencies {
-  const admin = createAdminClient<Phase10a2Database>();
+  const admin = createAdminClient<Phase11cWorkerDatabase>();
   const repository = createWorkerControlRepository(admin);
   let repositorySnapshotObjectStore: ReturnType<typeof createRepositorySnapshotObjectStore> | undefined;
   return Object.freeze({

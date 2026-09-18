@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Phase10a2Database } from "@/lib/database.phase10a2.types";
+import type { Phase11cWorkerDatabase } from "@/lib/database.phase11c.types";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
 import type { WorkerExecutionBudget } from "@/packages/worker-contracts";
 import {
@@ -426,12 +426,8 @@ export interface RuntimeWorkerControlRepository {
 export type CompleteWorkerControlRepository = WorkerControlRepository & RuntimeWorkerControlRepository;
 
 export function createWorkerControlRepository(
-  client: SupabaseClient<Phase10a2Database>,
+  client: SupabaseClient<Phase11cWorkerDatabase>,
 ): CompleteWorkerControlRepository {
-  const phase11Rpc = client.rpc.bind(client) as unknown as (
-    name: "register_phase11_http_worker_node" | "claim_phase11_http_worker_task",
-    args: Record<string, string>,
-  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
   return Object.freeze<CompleteWorkerControlRepository>({
     async register(input) {
       return parseRegistration(await rpcData(client.rpc("register_worker_node", {
@@ -464,7 +460,7 @@ export function createWorkerControlRepository(
       })), "active_cors_validation_v1");
     },
     async registerPhase11Http(input) {
-      return parseRegistration(await rpcData(phase11Rpc("register_phase11_http_worker_node", {
+      return parseRegistration(await rpcData(client.rpc("register_phase11_http_worker_node", {
         target_credential_hash: input.credentialHash,
         target_software_version: input.softwareVersion,
       })), "phase11_http_discovery_v1");
@@ -504,7 +500,7 @@ export function createWorkerControlRepository(
       return parseRuntimeClaim(await rpcData(client.rpc("claim_runtime_worker_task", { target_worker_id: input.workerId })));
     },
     async claimPhase11Http(input) {
-      return parsePhase11HttpClaim(await rpcData(phase11Rpc("claim_phase11_http_worker_task", {
+      return parsePhase11HttpClaim(await rpcData(client.rpc("claim_phase11_http_worker_task", {
         target_worker_id: input.workerId,
       })));
     },
