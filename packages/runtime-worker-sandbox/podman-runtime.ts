@@ -33,9 +33,13 @@ function runtimeLimits(executionClass: RuntimeWorkerExecutionClass): {
   timeoutMs: number;
   maxOutputBytes: number;
 } {
-  return executionClass === "passive_runtime_observation_v1"
-    ? { timeoutMs: 30_000, maxOutputBytes: 131_072 }
-    : { timeoutMs: 20_000, maxOutputBytes: 65_536 };
+  if (executionClass === "passive_runtime_observation_v1") {
+    return { timeoutMs: 30_000, maxOutputBytes: 131_072 };
+  }
+  if (executionClass === "phase11_http_discovery_v1") {
+    return { timeoutMs: 30_000, maxOutputBytes: 32_768 };
+  }
+  return { timeoutMs: 20_000, maxOutputBytes: 65_536 };
 }
 
 function fixedEnvironment(): NodeJS.ProcessEnv {
