@@ -215,6 +215,22 @@ describe("Phase 11 external provider contracts", () => {
     }, normalizationContext)).rejects.toThrow("HTTP_DISCOVERY_RESULT_RECORD_LIMIT_EXCEEDED");
   });
 
+  it("rejects unsafe Nuclei template identifiers in trusted configuration", () => {
+    expect(() => createNucleiProvider(nucleiRunner({
+      capabilityId: "web.template.validate.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      templateProfile: "baseline-http",
+      minimumSeverity: "low",
+      matches: [],
+    }), {
+      profiles: {
+        ...nucleiProfiles,
+        "baseline-http": ["--template", "../outside"],
+      },
+    })).toThrow("NUCLEI_TEMPLATE_ID_INVALID");
+  });
+
   it("keeps Nuclei selection on reviewed code-owned profiles", async () => {
     let received: readonly string[] = [];
     const provider = createNucleiProvider({
@@ -239,6 +255,34 @@ describe("Phase 11 external provider contracts", () => {
     }), { profiles: nucleiProfiles });
     const raw = await provider.execute({ capabilityId: "web.template.validate.v1", targetNodeId: "node-1", templateProfile: "baseline-http", minimumSeverity: "low" }, executionContext, new AbortController().signal);
     await expect(provider.normalize(raw, normalizationContext)).rejects.toThrow("NUCLEI_TEMPLATE_NOT_APPROVED");
+  });
+
+  it("rejects HTTP probe profiles that would execute routes outside the capability", async () => {
+    const provider = createHttpDiscoveryProvider(httpRunner({
+      capabilityId: "web.http.probe.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      discoveryProfile: "root-only",
+      records: [],
+    }));
+
+    const request = {
+      capabilityId: "web.http.probe.v1",
+      targetNodeId: "node-1",
+      discoveryProfile: "well-known-safe",
+      methodProfile: "HEAD_THEN_GET",
+      followSameOriginRedirects: false,
+    } as const;
+
+    expect(provider.validateRequest(request, safeActivePolicy)).toEqual({
+      ok: false,
+      code: "HTTP_DISCOVERY_REQUEST_INVALID",
+    });
+    await expect(provider.execute(
+      request,
+      executionContext,
+      new AbortController().signal,
+    )).rejects.toThrow("HTTP_DISCOVERY_REQUEST_INVALID");
   });
 
   it("rejects HTTP planner URLs and normalizes only privacy-reduced route facts", async () => {
