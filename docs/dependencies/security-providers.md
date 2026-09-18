@@ -101,6 +101,8 @@ Nuclei's engine license and the template corpus are reviewed separately.
 - Template repository: `projectdiscovery/nuclei-templates`
 - Reviewed license: MIT
 - Runtime decision: never execute a moving `main` checkout
+- Current upstream corpus release observed during 2026-09-18 re-review: `v10.4.7`
+- This observed release is not an enablement pin. Hosted execution still requires an exact reviewed commit/tag, upstream checksum, and ScopeForge allowlist digest.
 - Required before enablement:
   - pin an exact template repository commit
   - record upstream `templates-checksum.txt`
