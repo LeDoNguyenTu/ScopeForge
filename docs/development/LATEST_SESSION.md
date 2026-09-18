@@ -4,26 +4,25 @@ Date: 2026-09-18, Asia/Singapore
 
 ## Outcome
 
-PR #77's production same-head recovery blocker is fixed and accepted. Source commit `37c3e68a6e188b30a1c23399449cc794fa776335` passed exact-head CI `35286439598`, Vercel, production deployment, authenticated browser acceptance, and live database verification.
+PR #134 released the second Phase 11 Task 11 adaptive evaluation fixture. It is test, benchmark, and documentation work only; production code, schema, provider execution, and authority boundaries did not change.
 
-## What changed
+## Released change
 
-- Both repository-scan finalize routes now run automatic/manual-aware terminal settlement before legacy generic connected-project cleanup.
-- A retry-required automatic reconciliation exits before cleanup, preserving exact recovery state.
-- A two-route ordering regression was witnessed RED, then passed with the minimal route reorder.
-- No schema change was needed; existing Phase 10A3 functions already had the correct exact-task settlement behavior.
+- PR: #134, `test: add labeled Phase 11 evaluation fixtures`
+- Source head: `1cdf4cf73eba4423ccca7d36cc8c795bae557cf6`
+- Merge: `aaada713296ec70f0a6497b4828939bc6b88e7fb`
+- Corpus: two fictional vulnerable cases and two clean cases, with deterministic precision/recall/FPR/F1, validation/correlation rates, attack path, remediation retests, reproducibility, and safety counters.
+- TDD evidence: the new focused test first failed on the intended labeled-metrics assertion, then passed after the fixture implementation.
 
-## Evidence
+## Exact evidence
 
-- Production deployment: `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV`, READY at `scopeforge.dev`.
-- Production private head: `f13f3d72d0782e4260898201d8dd2f08885a8088`.
-- Before repair acceptance: retry pending, successful watermark null, 3 same-head snapshots, 2 successful same-head scans.
-- After one accepted resume: project and intent `idle`, automatic `pending=false`, desired SHA equals successful SHA, no error, still 3 same-head snapshots, 3 successful same-head scans.
-- Authenticated UI returned to **Scan project** and displays the newest successful 3-file/533-byte scan.
-- Full suite: 437 files passed, 4 skipped; 1,996 tests passed, 24 skipped.
-- Audit, typecheck, CLI/worker/Next builds, benchmarks, Linux CI browser smoke, and production diagnostic passed.
-- Codex Security scan `7231ee4e-2c72-4014-8f8f-15b055638982`: zero findings.
+- PR CI: `35351118308`, SUCCESS for `1cdf4cf...`.
+- Main CI: `35351673275`, SUCCESS for `aaada713...`.
+- Vercel production GitHub deployment: `6525534937`, success for `aaada713...`.
+- Local full suite: 463 passed files, 4 skipped; 2,108 passed tests, 24 skipped.
+- Local labeled benchmark: 1.616 s under its 5 s catastrophic ceiling.
+- Audit, typecheck, CLI/version, worker and Next builds, CSP/security architecture tests, browser smoke, and production UI/Turnstile diagnostic passed.
 
-Detailed evidence: `docs/development/PR_77_RELEASE_ACCEPTANCE.md`.
+## Next
 
-Next: push this documentation checkpoint, require exact-head CI/Vercel, merge PR #77, and verify released `main` and production. PR #124 remains next after the Phase 10A3 release.
+Add the remaining deterministic Task 11 graph-expansion and policy/approval fixture coverage. Keep Phase 11 migrations unapplied and external providers disabled.
