@@ -46,7 +46,8 @@ describe("Phase 11C result-to-coverage reconciliation migration", () => {
     expect(fn).toContain("attempted_capability_ids");
     expect(fn).toContain("covered_node_ids");
     expect(fn).toContain("untested_node_ids");
-    expect(fn).toMatch(/status in \('succeeded', 'no_signal', 'timed_out', 'provider_failed'\)/i);
+    expect(fn).toMatch(/counts_as_attempt := target_status in \('succeeded', 'no_signal', 'timed_out', 'provider_failed'\)/i);
+    expect(fn).toMatch(/counts_as_coverage := target_status in \('succeeded', 'no_signal'\)/i);
     expect(fn).toMatch(/target_status = 'provider_failed'/i);
     expect(sql).toMatch(/revoke all on function private\.apply_phase11_attempt_coverage[\s\S]*?from public, anon, authenticated, service_role/i);
   });
