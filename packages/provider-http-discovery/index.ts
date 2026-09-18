@@ -63,6 +63,7 @@ const REQUEST_KEYS = new Set([
 const PROFILES = new Set<HttpDiscoveryProfile>(["root-only", "well-known-safe"]);
 const METHODS = new Set<HttpMethodProfile>(["HEAD_THEN_GET", "GET_ONLY"]);
 const ROUTE_KINDS = new Set<HttpDiscoveryRouteKind>(["root", "security-txt", "robots", "sitemap"]);
+const MAX_HTTP_RECORDS = 4;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -119,12 +120,19 @@ export function createHttpDiscoveryProvider(
       if (raw.actionId !== context.actionId) throw new Error("HTTP_DISCOVERY_RESULT_ACTION_MISMATCH");
       if (raw.targetNodeId !== normalized.targetNodeId) throw new Error("HTTP_DISCOVERY_RESULT_TARGET_MISMATCH");
       if (raw.discoveryProfile !== normalized.discoveryProfile) throw new Error("HTTP_DISCOVERY_RESULT_PROFILE_MISMATCH");
+      if (!Array.isArray(raw.records) || raw.records.length > (normalized.discoveryProfile === "root-only" ? 1 : MAX_HTTP_RECORDS)) {
+        throw new Error("HTTP_DISCOVERY_RESULT_RECORD_LIMIT_EXCEEDED");
+      }
       return raw;
     },
     async normalize(raw: HttpDiscoveryRawResult, context: ProviderNormalizationContext) {
       if (!HTTP_DISCOVERY_CAPABILITIES.includes(raw.capabilityId)) throw new Error("HTTP_DISCOVERY_RESULT_CAPABILITY_INVALID");
       if (raw.actionId !== context.actionId) throw new Error("HTTP_DISCOVERY_RESULT_ACTION_MISMATCH");
       if (!raw.targetNodeId.trim()) throw new Error("HTTP_DISCOVERY_RESULT_TARGET_REQUIRED");
+      if (!PROFILES.has(raw.discoveryProfile)) throw new Error("HTTP_DISCOVERY_RESULT_PROFILE_INVALID");
+      if (!Array.isArray(raw.records) || raw.records.length > (raw.discoveryProfile === "root-only" ? 1 : MAX_HTTP_RECORDS)) {
+        throw new Error("HTTP_DISCOVERY_RESULT_RECORD_LIMIT_EXCEEDED");
+      }
       const observations = raw.records.map((record: HttpDiscoveryRecord): Observation => {
         if (record.targetNodeId !== raw.targetNodeId) throw new Error("HTTP_DISCOVERY_RESULT_TARGET_OUT_OF_SCOPE");
         if (!ROUTE_KINDS.has(record.routeKind)) throw new Error("HTTP_DISCOVERY_RESULT_ROUTE_KIND_INVALID");
