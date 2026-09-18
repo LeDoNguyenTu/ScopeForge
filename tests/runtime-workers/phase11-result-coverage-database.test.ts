@@ -243,7 +243,7 @@ beforeAll(async () => {
     );
 
     create function extensions.digest(bytea, text)
-    returns bytea language sql immutable as $ select $1 $;
+    returns bytea language sql immutable as $$ select $1 $$;
 
     create function private.assert_phase11_run_scope(uuid, uuid, text)
     returns void language plpgsql as $$ begin return; end; $$;
