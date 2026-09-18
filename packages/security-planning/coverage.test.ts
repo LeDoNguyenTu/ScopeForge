@@ -66,6 +66,26 @@ describe("Phase 11 coverage and stop conditions", () => {
     });
   });
 
+
+  it.each(["blocked", "cancelled", "policy_rejected"] as const)(
+    "charges request usage without claiming coverage for %s actions",
+    (status) => {
+      const updated = updateCoverage(coverage(), actionResult(status), {
+        capabilityId: "web.http.probe.v1",
+        nodeIds: ["node-a"],
+        requestCount: 2,
+      });
+
+      expect(updated).toMatchObject({
+        attemptedCapabilityIds: [],
+        coveredNodeIds: [],
+        untestedNodeIds: ["node-a", "node-b"],
+        requestCount: 2,
+        providerFailureCount: 0,
+      });
+    },
+  );
+
   it.each([
     ["cancelled", { cancelled: true }],
     ["authorization_expired", { authorizationExpiresAt: "2026-09-17T23:59:59.000Z" }],
