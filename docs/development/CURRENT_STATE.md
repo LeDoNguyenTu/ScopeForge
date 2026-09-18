@@ -40,8 +40,15 @@ The dedicated Phase 11 input and terminal validators remain authoritative after 
 
 ## Next
 
-1. finish exact-head PR #143 CI and correct any regression
+1. finish exact-head PR #143 CI after the request-accounting hardening and correct any regression
 2. merge the source-only slice only when its exact head is green
 3. prepare the immutable runtime image candidate
 4. run real Linux rootless-Podman/cgroup-v2 containment acceptance for `phase11_http_discovery_v1`
 5. keep production migration application and hosted enablement as separate reviewed gates
+
+
+### Latest PR #143 hardening
+
+The final release review fixed two issues before merge:
+- the concrete Supabase queue repository now has explicit typed enqueue/cancel inputs after CI #1193 found test-only-clean TypeScript implicit-any errors
+- failed/cancelled HTTP attempts can no longer erase consumed request budget; exact counts are retained when available and otherwise the authorized maximum is charged conservatively
