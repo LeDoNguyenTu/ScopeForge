@@ -15,7 +15,7 @@ async function listTypeScriptFiles(directory: string): Promise<string[]> {
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) files.push(...await listTypeScriptFiles(absolute));
-    else if (entry.isFile() && entry.name.endsWith(".ts")) files.push(absolute);
+    else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts")) files.push(absolute);
   }
   return files;
 }
