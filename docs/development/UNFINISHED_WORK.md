@@ -1,59 +1,42 @@
 # ScopeForge Unfinished Work
 
-## Current PR #77 release remainder
-
-Implementation, schema, provider activation, local validation, exact-source CI/Vercel, production deployment, private same-head recovery, live database verification, authenticated UI acceptance, and the focused security scan are complete.
-
-Source commit `37c3e68a6e188b30a1c23399449cc794fa776335` fixed the finalize-order defect. Production deployment `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV` settled head `f13f3d72...` to idle and successful without creating another snapshot.
-
-Remaining:
-
-- obtain exact-head CI/Vercel after the final documentation checkpoint
-- merge PR #77 normally
-- verify released `main`, main CI, production, workers, advisors, and authenticated browser behavior
-- then reconcile PR #124
-
-PR #76 and issue #79 are complete. Do not repeat their acceptance.
-
-Older unfinished-work sections below are historical.
 Last reconciled: 2026-09-18, Asia/Singapore.
 
-## Current release blocker
+## Release-blocking for PR #128
 
-### PR #77
+Task 9 implementation and regression fixes are present on `feat/phase-11a-run-orchestration-20260918`.
 
-Code hardening, exact local validation, final security review, Phase 10A3 schema deployment, and Vercel secret creation are complete.
+Remaining before merge:
 
-The GitHub App webhook URL/secret and required event subscriptions are configured. Successful `ping` and `installation.new_permissions_accepted` deliveries prove GitHub-to-production transport.
+- exact-head full CI must pass
+- exact-head Vercel must pass
+- final PR diff/review threads must be clean
+- keep Phase 11 migrations unapplied in production
+- keep external provider execution disabled
 
-Remaining:
+Known previous gate:
 
-- run the remaining replay/lifecycle/coalescing/recovery/public-private and end-to-end production webhook/security acceptance matrix; deployment, provider transport, and non-mutating edge canaries are complete
-- confirm rapid private-canary head `f13f3d72d0782e4260898201d8dd2f08885a8088` is the terminal production scan; route logs prove the webhook and worker sequence but do not expose the bounded read-model SHA
-- obtain exact-head CI/Vercel after the final documentation checkpoint, merge, and verify released production
+- CI #1150 passed 446 test files and 2,035 tests
+- it failed only on four test-only TypeScript errors
+- those errors are fixed after #1150
+- additional approval and authority-boundary tests are present
 
-PR #76 is merged/released and is no longer unfinished. Do not repeat issue #79 or Phase 10A2 acceptance.
+## Next implementation after Task 9
 
-## Release blocking
+Follow `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md`.
 
-### PR #76
+Preferred sequence in the plan:
 
-Code, schema, provider access, workers, containment, private canary, recovery, cleanup, production UI, and rollback evidence are complete.
+1. merge trusted run orchestration
+2. build the adaptive end-to-end evaluation harness before provider expansion
+3. perform provider-specific license, containment, and execution-boundary review
+4. only then add reviewed external provider slices
 
-Remaining: commit/push handoff, mark ready, obtain exact-head CI/Vercel, merge, and verify released `main` and production.
+Production Phase 11 schema rollout remains separately gated.
 
-### PR #77
+## Completed and not to repeat
 
-Blocked until #76 releases. Then reconcile it and complete webhook schema, secret configuration, signed-delivery/replay/recovery/privacy canaries, end-to-end acceptance, CI, and release.
-
-## Non-blocking backlog
-
-- backup platform-admin delegation and access-control-management design
-- leaked-password protection
-- measured performance-advisor follow-up
-- PR #124 Phase 11 review
-- branch cleanup after reachability proof
-
-## Completed; do not repeat
-
-Issue #79 canaries, Phase 10A2 migrations/ACL review, Linux containment, legitimate private-canary selection, real private snapshot/scan/finding flow, recovery, cleanup, UI consolidation, and finding-detail route repair. Do not repeat Phase 6D Task 15 acceptance.
+- Phase 10A2 private repository scanning
+- Phase 10A3 GitHub webhook reconciliation
+- Phase 11 Tasks 1 to 7
+- Phase 11 Task 8 persistence implementation
