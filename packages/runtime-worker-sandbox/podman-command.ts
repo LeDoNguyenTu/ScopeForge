@@ -20,7 +20,9 @@ function safeUuid(value: string, label: string): string {
 }
 
 function safeExecutionClass(value: RuntimeWorkerExecutionClass): RuntimeWorkerExecutionClass {
-  if (value !== "passive_runtime_observation_v1" && value !== "active_cors_validation_v1") {
+  if (value !== "passive_runtime_observation_v1"
+      && value !== "active_cors_validation_v1"
+      && value !== "phase11_http_discovery_v1") {
     throw new Error("Runtime worker execution class is invalid.");
   }
   return value;

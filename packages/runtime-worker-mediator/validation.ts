@@ -12,6 +12,9 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const NONCE_PATTERN = /^[a-f0-9]{64}$/;
 const PASSIVE_RESULT_MAX_BYTES = 131_072;
 const ACTIVE_RESULT_MAX_BYTES = 65_536;
+const HTTP_DISCOVERY_RESULT_MAX_BYTES = 32_768;
+const HTTP_DISCOVERY_ROUTE_KINDS = new Set(["root", "security-txt", "robots", "sitemap"]);
+const HTTP_DISCOVERY_REDIRECT_REASONS = new Set(["CROSS_HOST", "SCHEME", "PORT", "CREDENTIALS"]);
 const SELECTED_HEADERS = new Set([
   "content-type",
   "strict-transport-security",
@@ -90,7 +93,8 @@ export function validateRuntimeMediatorSessionIdentity(
       || typeof value.attemptId !== "string"
       || !UUID_PATTERN.test(value.attemptId)
       || (value.executionClass !== "passive_runtime_observation_v1"
-        && value.executionClass !== "active_cors_validation_v1")
+        && value.executionClass !== "active_cors_validation_v1"
+        && value.executionClass !== "phase11_http_discovery_v1")
       || typeof value.nonce !== "string"
       || !NONCE_PATTERN.test(value.nonce)) {
     invalidRequest();
@@ -249,6 +253,30 @@ function validateCorsObservation(value: unknown): CorsPolicyObservation {
   });
 }
 
+function validateHttpDiscoveryRecord(value: unknown) {
+  if (!isRecord(value)
+      || !exactKeys(value, ["routeKind", "status", "redirected"], ["contentType", "redirectBlockedReason"])
+      || typeof value.routeKind !== "string"
+      || !HTTP_DISCOVERY_ROUTE_KINDS.has(value.routeKind)
+      || !finiteInteger(value.status, 100, 599)
+      || typeof value.redirected !== "boolean"
+      || (value.contentType !== undefined
+        && (!boundedString(value.contentType, 160) || /[\r\n\0]/.test(value.contentType)))
+      || (value.redirectBlockedReason !== undefined
+        && (typeof value.redirectBlockedReason !== "string"
+          || !HTTP_DISCOVERY_REDIRECT_REASONS.has(value.redirectBlockedReason)))) {
+    invalidResult();
+  }
+  if (value.redirected && value.redirectBlockedReason !== undefined) invalidResult();
+  return Object.freeze({
+    routeKind: value.routeKind as "root" | "security-txt" | "robots" | "sitemap",
+    status: value.status,
+    ...(value.contentType === undefined ? {} : { contentType: value.contentType }),
+    redirected: value.redirected,
+    ...(value.redirectBlockedReason === undefined ? {} : { redirectBlockedReason: value.redirectBlockedReason as "CROSS_HOST" | "SCHEME" | "PORT" | "CREDENTIALS" }),
+  });
+}
+
 function ensureResultSize(value: unknown, maximum: number): void {
   let bytes: number;
   try {
@@ -285,15 +313,31 @@ export function validateRuntimeMediatorResult(
     });
   }
 
-  ensureResultSize(value, ACTIVE_RESULT_MAX_BYTES);
-  if (!exactKeys(value, ["kind", "requestCount", "observation"])
-      || value.kind !== "active_cors_validation"
-      || value.requestCount !== 1) {
+  if (executionClass === "active_cors_validation_v1") {
+    ensureResultSize(value, ACTIVE_RESULT_MAX_BYTES);
+    if (!exactKeys(value, ["kind", "requestCount", "observation"])
+        || value.kind !== "active_cors_validation"
+        || value.requestCount !== 1) {
+      invalidResult();
+    }
+    return Object.freeze({
+      kind: "active_cors_validation" as const,
+      requestCount: 1 as const,
+      observation: validateCorsObservation(value.observation),
+    });
+  }
+
+  ensureResultSize(value, HTTP_DISCOVERY_RESULT_MAX_BYTES);
+  if (!exactKeys(value, ["kind", "requestCount", "records"])
+      || value.kind !== "phase11_http_discovery"
+      || !finiteInteger(value.requestCount, 0, 12)
+      || !Array.isArray(value.records)
+      || value.records.length > 4) {
     invalidResult();
   }
   return Object.freeze({
-    kind: "active_cors_validation" as const,
-    requestCount: 1 as const,
-    observation: validateCorsObservation(value.observation),
+    kind: "phase11_http_discovery" as const,
+    requestCount: value.requestCount,
+    records: Object.freeze(value.records.map(validateHttpDiscoveryRecord)),
   });
 }

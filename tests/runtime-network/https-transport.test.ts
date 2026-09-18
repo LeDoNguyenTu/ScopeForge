@@ -34,7 +34,7 @@ function passivePlan(url = "https://example.com/app?view=1", timeoutMs = 3_000):
 }
 
 describe("trusted runtime HTTPS transport", () => {
-  it("builds a GET-only request pinned to the validated address while preserving SNI", async () => {
+  it("builds a GET request pinned to the validated address while preserving SNI", async () => {
     const options = buildPinnedHttpsRequestOptions({
       plan: passivePlan(),
       address: "1.1.1.1",
@@ -67,6 +67,35 @@ describe("trusted runtime HTTPS transport", () => {
         resolve();
       });
     });
+  });
+
+  it("allows HEAD only through the same pinned HTTPS contract", () => {
+    const options = buildPinnedHttpsRequestOptions({
+      plan: {
+        ...passivePlan("https://example.com/.well-known/security.txt", 1_000),
+        method: "HEAD",
+      },
+      address: "1.1.1.1",
+      family: 4,
+    });
+
+    expect(options.method).toBe("HEAD");
+    expect(options.hostname).toBe("example.com");
+    expect(options.port).toBe(443);
+    expect(options.path).toBe("/.well-known/security.txt");
+  });
+
+  it("still rejects methods outside GET and HEAD", () => {
+    const unsafe = {
+      ...passivePlan(),
+      method: "POST",
+    } as unknown as TrustedRuntimeRequestPlan;
+
+    expect(() => buildPinnedHttpsRequestOptions({
+      plan: unsafe,
+      address: "1.1.1.1",
+      family: 4,
+    })).toThrow(/GET or HEAD/i);
   });
 
   it("pins the approved address family so Node family autoselection is disabled", () => {
