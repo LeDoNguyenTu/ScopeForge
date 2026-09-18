@@ -43,7 +43,8 @@ export function updateCoverage(
     || result.status === "no_signal"
     || result.status === "timed_out"
     || result.status === "provider_failed";
-  const coveredNodeIds = countsAsAttempt
+  const countsAsCoverage = result.status === "succeeded" || result.status === "no_signal";
+  const coveredNodeIds = countsAsCoverage
     ? uniqueSorted([...coverage.coveredNodeIds, ...update.nodeIds])
     : coverage.coveredNodeIds;
   const covered = new Set(coveredNodeIds);
@@ -53,7 +54,7 @@ export function updateCoverage(
       ? uniqueSorted([...coverage.attemptedCapabilityIds, update.capabilityId])
       : coverage.attemptedCapabilityIds,
     coveredNodeIds,
-    untestedNodeIds: countsAsAttempt
+    untestedNodeIds: countsAsCoverage
       ? Object.freeze(coverage.untestedNodeIds.filter((nodeId) => !covered.has(nodeId)).sort())
       : coverage.untestedNodeIds,
     requestCount: coverage.requestCount + update.requestCount,
