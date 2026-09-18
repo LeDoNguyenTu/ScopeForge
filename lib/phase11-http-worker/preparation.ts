@@ -1,22 +1,15 @@
 import { assetRef } from "@/packages/security-domain";
 import type { AuthorizedRuntimeTarget } from "@/packages/runtime-observer";
-import type {
-  HttpDiscoveryMethodProfile,
-  HttpDiscoveryProfile,
-} from "@/packages/runtime-worker-mediator/http-discovery";
+import {
+  parsePhase11HttpClosedParameters,
+  phase11HttpRequiredRequestCapacity,
+} from "./closed-parameters";
 import type {
   Phase11HttpWorkerAuthoritativeState,
   PreparePhase11HttpWorkerDependencies,
   PreparedPhase11HttpWorkerExecution,
 } from "./types";
 
-const CLOSED_PARAMETER_KEYS = new Set([
-  "discoveryProfile",
-  "methodProfile",
-  "followSameOriginRedirects",
-]);
-const DISCOVERY_PROFILES = new Set<HttpDiscoveryProfile>(["root-only", "well-known-safe"]);
-const METHOD_PROFILES = new Set<HttpDiscoveryMethodProfile>(["GET_ONLY", "HEAD_THEN_GET"]);
 const WEB_NODE_TYPES = new Set(["domain", "hostname", "http_service", "api", "api_operation"]);
 const MAX_REQUESTS = 12;
 const MAX_PER_REQUEST_TIMEOUT_MS = 5_000;
@@ -24,50 +17,6 @@ const MAX_TOTAL_TIMEOUT_MS = 30_000;
 
 function fail(code: string): never {
   throw new Error(code);
-}
-
-function exactClosedParameters(
-  value: Readonly<Record<string, string | number | boolean>>,
-  capabilityId: "web.http.probe.v1" | "web.route.discover.v1",
-): {
-  discoveryProfile: HttpDiscoveryProfile;
-  methodProfile: HttpDiscoveryMethodProfile;
-  followSameOriginRedirects: boolean;
-} {
-  const keys = Object.keys(value);
-  if (keys.length !== CLOSED_PARAMETER_KEYS.size || keys.some((key) => !CLOSED_PARAMETER_KEYS.has(key))) {
-    fail("PHASE11_HTTP_CLOSED_PARAMETERS_INVALID");
-  }
-  if (typeof value.discoveryProfile !== "string"
-      || !DISCOVERY_PROFILES.has(value.discoveryProfile as HttpDiscoveryProfile)) {
-    fail("PHASE11_HTTP_DISCOVERY_PROFILE_INVALID");
-  }
-  if (capabilityId === "web.http.probe.v1" && value.discoveryProfile !== "root-only") {
-    fail("PHASE11_HTTP_DISCOVERY_PROFILE_INVALID");
-  }
-  if (typeof value.methodProfile !== "string"
-      || !METHOD_PROFILES.has(value.methodProfile as HttpDiscoveryMethodProfile)) {
-    fail("PHASE11_HTTP_METHOD_PROFILE_INVALID");
-  }
-  if (typeof value.followSameOriginRedirects !== "boolean") {
-    fail("PHASE11_HTTP_REDIRECT_POLICY_INVALID");
-  }
-  return Object.freeze({
-    discoveryProfile: value.discoveryProfile as HttpDiscoveryProfile,
-    methodProfile: value.methodProfile as HttpDiscoveryMethodProfile,
-    followSameOriginRedirects: value.followSameOriginRedirects,
-  });
-}
-
-function requiredRequestCapacity(input: {
-  discoveryProfile: HttpDiscoveryProfile;
-  methodProfile: HttpDiscoveryMethodProfile;
-  followSameOriginRedirects: boolean;
-}): number {
-  const routes = input.discoveryProfile === "root-only" ? 1 : 4;
-  const perRoute = (input.methodProfile === "HEAD_THEN_GET" ? 2 : 1)
-    + (input.followSameOriginRedirects ? 1 : 0);
-  return routes * perRoute;
 }
 
 function parseTarget(state: Phase11HttpWorkerAuthoritativeState): AuthorizedRuntimeTarget {
@@ -187,11 +136,11 @@ export async function preparePhase11HttpWorker(
   assertBinding(state, input);
   assertAuthority(state, now);
 
-  const params = exactClosedParameters(
+  const params = parsePhase11HttpClosedParameters(
     state.action.closedParameters,
     state.binding.capabilityId,
   );
-  const requiredRequests = requiredRequestCapacity(params);
+  const requiredRequests = phase11HttpRequiredRequestCapacity(params);
   const authorizedRequests = Math.min(MAX_REQUESTS, state.action.maxRequests as number);
   if (requiredRequests > authorizedRequests) fail("PHASE11_HTTP_REQUEST_BUDGET_INSUFFICIENT");
 
