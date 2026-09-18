@@ -4,7 +4,7 @@ Last reconciled: 2026-09-18, Asia/Singapore.
 
 ## Next implementation
 
-Phase 11 Task 11: extend the adaptive end-to-end evaluation harness. PR #130 provides the first deterministic two-stage fixture and measured safety manifest; add the remaining labeled coverage, expiry, replay, cancellation, budget, and provider-failure cases.
+Phase 11 Task 11: extend the adaptive end-to-end evaluation harness. PR #132 covers the first deterministic two-stage fixture, replay, cancellation, expiry, budget, and provider-failure cases; add labeled vulnerability/attack-path, policy/approval, and remediation-retest evidence.
 
 ## Separately gated
 

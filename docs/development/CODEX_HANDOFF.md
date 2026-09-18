@@ -4,11 +4,10 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Current resume point
 
-- Released `main`: `3677adeeb7a217c6eae5778b6d2f1240f486bea8` (PR #130 merged after PR #128).
-- PR #130 delivered the first deterministic Task 11 adaptive fixture.
-- Production Vercel remains READY at `scopeforge.dev`; recheck the deployment for the new merge SHA before the next release claim.
-- PR #130 exact CI and Vercel preview passed; post-merge main CI is the remaining verification.
-- Next implementation: extend Task 11 with labeled coverage, expiry, replay, cancellation, budgets, and provider-failure cases.
+- Released `main`: `eb0b7ac9126feaa3ac9bb1c49e571ccc0a937653` (PR #132 merged after PR #130).
+- PR #132 extends Task 11 with a deterministic evaluation matrix.
+- Exact-head CI `35345875888` and Vercel preview passed for `89fe9fb0dfcd5e570ff874fa5fb404a0882c085b`. Post-merge main CI `35346334325` passed, and Vercel production `dpl_33dJ29vMvFy7wbMKQEeKsNbKx6t6` is READY for `eb0b7ac...` at `scopeforge.dev`.
+- Next implementation: add labeled vulnerability/attack-path and remediation-retest fixture coverage before any provider integration.
 
 ## Task 9 released behavior
 
@@ -36,6 +35,6 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Next exact task
 
-Continue the deterministic adaptive harness from `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md` Task 11. The measured fixture has 2 passing tests, zero out-of-scope requests, zero leaked secrets, successful cleanup, and zero cancellation latency. Keep it injected-provider-only; do not apply Phase 11 migrations or enable hosted provider execution.
+Continue the deterministic adaptive harness from `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md` Task 11. PR #132 records 5 passing tests across 2 fixtures with a 5-second local catastrophic ceiling; it proves evidence-gated discovery, replay stability, cancellation, expiry, budget and provider-failure containment, zero out-of-scope requests, zero leaked secrets, successful cleanup, and zero cancellation latency. Keep it injected-provider-only; do not apply Phase 11 migrations or enable hosted provider execution.
 
 Never expose secrets, weaken authorization/RLS/containment, rewrite deployed migrations, or confuse this project with `xwsergbpvkcsugexssmc`.
