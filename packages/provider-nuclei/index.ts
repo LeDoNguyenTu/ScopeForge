@@ -4,7 +4,7 @@ import type {
   ProviderNormalizationContext,
   ProviderPolicyContext,
 } from "../capability-registry/types";
-import type { Observation, PrimitiveFacts } from "../security-planning";
+import { phase11StableId, type Observation, type PrimitiveFacts } from "../security-planning";
 
 export const NUCLEI_PROVIDER_ID = "nuclei";
 export const NUCLEI_PROVIDER_VERSION = "3.11.1";
@@ -154,13 +154,13 @@ export function createNucleiProvider(
         if (!match.evidenceRef.trim()) throw new Error("NUCLEI_RESULT_EVIDENCE_REQUIRED");
         if (!Number.isFinite(Date.parse(match.observedAt))) throw new Error("NUCLEI_RESULT_TIMESTAMP_INVALID");
         return Object.freeze({
-          observationId: [
-            "phase11",
-            "nuclei",
-            encodeURIComponent(context.actionId),
-            encodeURIComponent(match.targetNodeId),
-            encodeURIComponent(match.templateId),
-          ].join(":"),
+          observationId: phase11StableId("phase11-obs-nuclei", [
+            context.actionId,
+            match.targetNodeId,
+            match.templateId,
+            match.severity,
+            match.evidenceRef,
+          ]),
           runId: context.runId,
           providerId: NUCLEI_PROVIDER_ID,
           providerVersion: NUCLEI_PROVIDER_VERSION,
