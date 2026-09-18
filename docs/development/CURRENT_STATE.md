@@ -12,7 +12,7 @@ Last reconciled: 2026-09-19, Asia/Singapore. Live provider state wins.
 
 ## Active implementation
 
-Branch `feat/phase-11c-result-coverage-reconciliation-20260919` is the active source-only follow-up.
+PR #145, branch `feat/phase-11c-result-coverage-reconciliation-20260919`, is the active source-only follow-up.
 
 It adds:
 
