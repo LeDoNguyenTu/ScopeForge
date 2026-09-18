@@ -501,6 +501,7 @@ begin
 
   if target_asset_node_id is null
      or char_length(target_asset_node_id) not between 1 and 512
+     or target_asset_type is null
      or target_asset_type not in (
        'repository', 'domain', 'hostname', 'ip_endpoint', 'http_service', 'api',
        'api_operation', 'cloud_account', 'cloud_resource', 'container_image',
@@ -558,7 +559,7 @@ begin
   )
   on conflict (run_id, asset_node_id) do update
     set parent_node_ids = (
-          select array_agg(distinct value order by value)
+          select coalesce(array_agg(distinct value order by value), '{}'::text[])
           from unnest(public.pentest_graph_nodes.parent_node_ids || excluded.parent_node_ids) value
         ),
         technology_tags = (
@@ -617,10 +618,12 @@ begin
      or target_from_node_id is null
      or target_to_node_id is null
      or target_from_node_id = target_to_node_id
+     or target_relationship is null
      or target_relationship not in (
        'exposes', 'depends_on', 'authenticates_to', 'trusts', 'deploys_to',
        'contains', 'reachable_from', 'affected_by', 'enables'
      )
+     or target_provenance_kind is null
      or target_provenance_kind not in ('observed', 'scanner-derived', 'user-confirmed')
      or target_provenance_refs is null
      or cardinality(target_provenance_refs) < 1
