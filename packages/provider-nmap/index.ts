@@ -175,7 +175,7 @@ export function createNmapProvider(runner: NmapRunner): CapabilityProvider<NmapP
           executionMode: "safe_active",
         });
       });
-      return Object.freeze(observations.sort((a: Observation, b: Observation) => a.observationId.localeCompare(b.observationId)));
+      return Object.freeze(observations);
     },
     async cleanup() {
       return { ok: true as const };
