@@ -431,7 +431,12 @@ declare
   hypothesis_count integer;
   event_count integer;
 begin
-  if jsonb_typeof(node_rows) <> 'array'
+  if node_rows is null
+    or edge_rows is null
+    or hypothesis_rows is null
+    or coverage_row is null
+    or event_rows is null
+    or jsonb_typeof(node_rows) <> 'array'
     or jsonb_typeof(edge_rows) <> 'array'
     or jsonb_typeof(hypothesis_rows) <> 'array'
     or jsonb_typeof(coverage_row) <> 'object'
@@ -472,6 +477,7 @@ begin
       or coalesce(node_row->>'asset_type', '') = ''
       or coalesce(node_row->>'canonical_locator', '') = ''
       or coalesce(node_row->>'authorization_ref', '') = ''
+      or node_row->>'authorization_ref' <> target_authorization_snapshot_ref
       or jsonb_typeof(node_row->'parent_node_ids') <> 'array'
       or jsonb_typeof(node_row->'technology_tags') <> 'array'
       or jsonb_typeof(node_row->'provenance_refs') <> 'array'
@@ -542,6 +548,7 @@ begin
       or jsonb_typeof(edge_row->'provenance_refs') <> 'array'
       or jsonb_array_length(edge_row->'provenance_refs') = 0
       or coalesce(edge_row->>'authorization_ref', '') = ''
+      or edge_row->>'authorization_ref' <> target_authorization_snapshot_ref
     then
       raise exception 'PHASE11_GRAPH_EDGE_INVALID';
     end if;
@@ -615,6 +622,20 @@ begin
       or jsonb_array_length(hypothesis_row->'expected_evidence_types') = 0
     then
       raise exception 'PHASE11_HYPOTHESIS_INVALID';
+    end if;
+
+    if exists (
+      select 1
+      from jsonb_array_elements_text(hypothesis_row->'target_node_ids') target_node_id
+      where not exists (
+        select 1
+        from private.pentest_graph_nodes graph_node
+        where graph_node.workspace_id = target_workspace_id
+          and graph_node.run_id = target_run_id
+          and graph_node.node_id = target_node_id
+      )
+    ) then
+      raise exception 'PHASE11_HYPOTHESIS_TARGET_UNKNOWN';
     end if;
 
     insert into private.pentest_hypotheses (
@@ -792,7 +813,8 @@ declare
   replayed_count integer := 0;
   inserted_rows integer;
 begin
-  if jsonb_typeof(observation_rows) <> 'array'
+  if observation_rows is null
+    or jsonb_typeof(observation_rows) <> 'array'
     or jsonb_array_length(observation_rows) > 2000
   then
     raise exception 'PHASE11_OBSERVATION_PAYLOAD_INVALID';
@@ -826,9 +848,28 @@ begin
       or jsonb_typeof(observation_row->'evidence_refs') <> 'array'
       or jsonb_array_length(observation_row->'evidence_refs') = 0
       or jsonb_typeof(observation_row->'facts') <> 'object'
+      or exists (
+        select 1
+        from jsonb_each(observation_row->'facts') fact
+        where jsonb_typeof(fact.value) not in ('string', 'number', 'boolean')
+      )
       or coalesce(observation_row->>'authorization_snapshot_ref', '') <> target_authorization_snapshot_ref
     then
       raise exception 'PHASE11_OBSERVATION_INVALID';
+    end if;
+
+    if exists (
+      select 1
+      from jsonb_array_elements_text(observation_row->'asset_node_ids') target_node_id
+      where not exists (
+        select 1
+        from private.pentest_graph_nodes graph_node
+        where graph_node.workspace_id = target_workspace_id
+          and graph_node.run_id = target_run_id
+          and graph_node.node_id = target_node_id
+      )
+    ) then
+      raise exception 'PHASE11_OBSERVATION_TARGET_UNKNOWN';
     end if;
 
     insert into private.pentest_observations (
@@ -868,6 +909,8 @@ begin
         or existing_record.asset_node_ids is distinct from array(select jsonb_array_elements_text(observation_row->'asset_node_ids'))
         or existing_record.evidence_refs is distinct from array(select jsonb_array_elements_text(observation_row->'evidence_refs'))
         or existing_record.facts is distinct from observation_row->'facts'
+        or existing_record.observed_at is distinct from (observation_row->>'observed_at')::timestamptz
+        or existing_record.confidence is distinct from (observation_row->>'confidence')::double precision
         or existing_record.authorization_snapshot_ref is distinct from observation_row->>'authorization_snapshot_ref'
         or existing_record.execution_mode is distinct from observation_row->>'execution_mode'
       then
