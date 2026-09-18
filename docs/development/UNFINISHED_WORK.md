@@ -2,41 +2,47 @@
 
 Last reconciled: 2026-09-18, Asia/Singapore.
 
-## Release-blocking for PR #128
+## PR #128 release remainder
 
-Task 9 implementation and regression fixes are present on `feat/phase-11a-run-orchestration-20260918`.
+Task 9 implementation and hardening are present on `feat/phase-11a-run-orchestration-20260918`.
 
 Remaining before merge:
 
-- exact-head full CI must pass
-- exact-head Vercel must pass
-- final PR diff/review threads must be clean
-- keep Phase 11 migrations unapplied in production
-- keep external provider execution disabled
+- exact-head full CI
+- exact-head Vercel
+- final mergeability/review-thread check
+- final changed-file review
+- merge only after those gates pass
+- verify released main after merge
 
-Known previous gate:
+Do not:
 
-- CI #1150 passed 446 test files and 2,035 tests
-- it failed only on four test-only TypeScript errors
-- those errors are fixed after #1150
-- additional approval and authority-boundary tests are present
+- apply either Phase 11 migration to production
+- enable external Phase 11 provider execution
+- bypass the separate schema/provider operational gates
+
+## Validation already completed
+
+- CI #1150: 446 test files and 2,035 tests passed; four test-only type errors were the only failure
+- test typing errors fixed
+- CI #1151: complete pipeline passed on earlier release-candidate head
+- later hardening added replay identity, capability-version identity, stable SHA-256 identifiers, and explicit queue idempotency, so #1151 is not the final exact-head gate
 
 ## Next implementation after Task 9
 
-Follow `docs/superpowers/plans/2026-09-17-phase-11-autonomous-security-validation.md`.
+Follow the approved Phase 11 plan.
 
-Preferred sequence in the plan:
+Preferred sequence:
 
-1. merge trusted run orchestration
-2. build the adaptive end-to-end evaluation harness before provider expansion
-3. perform provider-specific license, containment, and execution-boundary review
-4. only then add reviewed external provider slices
-
-Production Phase 11 schema rollout remains separately gated.
+1. release trusted run orchestration
+2. build the adaptive end-to-end evaluation harness
+3. perform provider license/containment/execution-boundary review
+4. add external provider slices only after that review
+5. keep production schema/provider enablement separately gated
 
 ## Completed and not to repeat
 
 - Phase 10A2 private repository scanning
 - Phase 10A3 GitHub webhook reconciliation
 - Phase 11 Tasks 1 to 7
-- Phase 11 Task 8 persistence implementation
+- Phase 11 Task 8 persistence implementation and source validation
