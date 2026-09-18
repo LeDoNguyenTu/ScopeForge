@@ -1,59 +1,43 @@
 # ScopeForge Unfinished Work
 
-## Current PR #77 release remainder
-
-Implementation, schema, provider activation, local validation, exact-source CI/Vercel, production deployment, private same-head recovery, live database verification, authenticated UI acceptance, and the focused security scan are complete.
-
-Source commit `37c3e68a6e188b30a1c23399449cc794fa776335` fixed the finalize-order defect. Production deployment `dpl_HkfuaAJ33qY8cs3xbWJFAPKqRTzV` settled head `f13f3d72...` to idle and successful without creating another snapshot.
-
-Remaining:
-
-- obtain exact-head CI/Vercel after the final documentation checkpoint
-- merge PR #77 normally
-- verify released `main`, main CI, production, workers, advisors, and authenticated browser behavior
-- then reconcile PR #124
-
-PR #76 and issue #79 are complete. Do not repeat their acceptance.
-
-Older unfinished-work sections below are historical.
 Last reconciled: 2026-09-18, Asia/Singapore.
 
-## Current release blocker
+## Release-blocking for PR #127
 
-### PR #77
+Phase 11A Task 8 implementation is present on `feat/phase-11a-planning-persistence-20260918`.
 
-Code hardening, exact local validation, final security review, Phase 10A3 schema deployment, and Vercel secret creation are complete.
+Remaining before merge:
 
-The GitHub App webhook URL/secret and required event subscriptions are configured. Successful `ping` and `installation.new_permissions_accepted` deliveries prove GitHub-to-production transport.
+- exact-head full CI must pass
+- exact-head Vercel preview must be READY
+- final PR diff and review threads must be clean
+- do not apply the Phase 11A migration to production during this gate
+- do not enable any new Phase 11 execution capability
 
-Remaining:
+The deliberate RED TDD checkpoint is CI #1148. It failed only the six new Task 8 contract assertions before the implementation existed.
 
-- run the remaining replay/lifecycle/coalescing/recovery/public-private and end-to-end production webhook/security acceptance matrix; deployment, provider transport, and non-mutating edge canaries are complete
-- confirm rapid private-canary head `f13f3d72d0782e4260898201d8dd2f08885a8088` is the terminal production scan; route logs prove the webhook and worker sequence but do not expose the bounded read-model SHA
-- obtain exact-head CI/Vercel after the final documentation checkpoint, merge, and verify released production
+## Next implementation after Task 8
 
-PR #76 is merged/released and is no longer unfinished. Do not repeat issue #79 or Phase 10A2 acceptance.
+Task 9 from the approved Phase 11 plan:
 
-## Release blocking
+- run creation with immutable policy and authorization snapshots
+- orchestration loop over graph, observations, hypotheses, planner, policy gate, and capability router
+- action lifecycle persistence
+- bounded retry/cancellation semantics
+- append-oriented run events and deterministic replay manifest
+- no direct planner execution authority
 
-### PR #76
-
-Code, schema, provider access, workers, containment, private canary, recovery, cleanup, production UI, and rollback evidence are complete.
-
-Remaining: commit/push handoff, mark ready, obtain exact-head CI/Vercel, merge, and verify released `main` and production.
-
-### PR #77
-
-Blocked until #76 releases. Then reconcile it and complete webhook schema, secret configuration, signed-delivery/replay/recovery/privacy canaries, end-to-end acceptance, CI, and release.
+Production schema rollout remains separately reviewed. Do not assume merge of Task 8 authorizes database deployment.
 
 ## Non-blocking backlog
 
-- backup platform-admin delegation and access-control-management design
-- leaked-password protection
-- measured performance-advisor follow-up
-- PR #124 Phase 11 review
-- branch cleanup after reachability proof
+- later Phase 11 external-provider design and licensing reviews
+- browser/authenticated testing architecture
+- bounded exploit-validation worker design
+- continuous validation and longitudinal confidence work
+- existing account-level Supabase leaked-password-protection setting
+- measured performance-advisor follow-up where still applicable
 
-## Completed; do not repeat
+## Completed and not to repeat
 
-Issue #79 canaries, Phase 10A2 migrations/ACL review, Linux containment, legitimate private-canary selection, real private snapshot/scan/finding flow, recovery, cleanup, UI consolidation, and finding-detail route repair. Do not repeat Phase 6D Task 15 acceptance.
+Phase 10A2 private repository scanning, Phase 10A3 GitHub webhook reconciliation, private same-head recovery, PR #76/#77 acceptance, and Phase 11 Tasks 1 to 7 are complete.
