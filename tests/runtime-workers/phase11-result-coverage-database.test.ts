@@ -252,7 +252,7 @@ beforeAll(async () => {
     returns jsonb language sql as $$ select '{}'::jsonb $$;
 
     create function private.record_worker_event(text, uuid, uuid, uuid, jsonb)
-    returns void language sql as $$ select $$;
+    returns void language plpgsql as $ begin return; end; $;
   `);
 
   await db.exec(await readFile(migrationPath, "utf8"));
