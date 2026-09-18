@@ -20,6 +20,9 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live repository/provider state wins
 - Provider observation IDs use the bounded deterministic Phase 11 SHA-256 stable-ID helper.
 - Nmap normalization uses deterministic numeric port ordering rather than lexicographic identifier ordering.
 - Raw provider envelopes are cardinality-bounded before normalization: Nmap 2048 records, HTTP discovery 4 records or 1 for `root-only`, and Nuclei 4096 matches.
+- Nmap runner output is runtime-validated for protocol and state enums instead of trusting TypeScript-only unions.
+- `web.http.probe.v1` is bound to the `root-only` discovery profile before any runner can execute, so route-discovery scope cannot leak into a probe action.
+- Nuclei reviewed template IDs are runtime-validated as bounded non-option identifiers before they can cross into a future runner.
 - Empty malformed Nuclei/HTTP raw profiles fail closed before per-record iteration.
 - Nuclei reviewed-template profile output is rejected if any template ID falls outside the code-owned allowlist.
 - The provider dependency register was re-checked on 2026-09-18: Nmap 7.991 and Nuclei 3.11.1 remain current pins; nuclei-templates review now records v10.4.7 as the current upstream corpus observed during review.
