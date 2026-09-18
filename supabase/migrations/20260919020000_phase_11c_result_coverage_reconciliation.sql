@@ -30,6 +30,7 @@ declare
   next_request_count bigint;
   next_provider_failure_count bigint;
   counts_as_attempt boolean;
+  counts_as_coverage boolean;
 begin
   if target_workspace_id is null
     or target_run_id is null
@@ -72,6 +73,7 @@ begin
   end if;
 
   counts_as_attempt := target_status in ('succeeded', 'no_signal', 'timed_out', 'provider_failed');
+  counts_as_coverage := target_status in ('succeeded', 'no_signal');
 
   if counts_as_attempt then
     select array(
@@ -80,7 +82,11 @@ begin
         as capabilities(capability_id)
       order by capability_id
     ) into next_attempted_capability_ids;
+  else
+    next_attempted_capability_ids := coverage_record.attempted_capability_ids;
+  end if;
 
+  if counts_as_coverage then
     select array(
       select distinct node_id
       from unnest(coverage_record.covered_node_ids || action_record.target_node_ids)
@@ -95,7 +101,6 @@ begin
       order by node_id
     ) into next_untested_node_ids;
   else
-    next_attempted_capability_ids := coverage_record.attempted_capability_ids;
     next_covered_node_ids := coverage_record.covered_node_ids;
     next_untested_node_ids := coverage_record.untested_node_ids;
   end if;
