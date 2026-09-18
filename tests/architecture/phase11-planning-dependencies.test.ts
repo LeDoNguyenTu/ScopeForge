@@ -6,6 +6,7 @@ const roots = [
   path.resolve(process.cwd(), "packages/security-planning"),
   path.resolve(process.cwd(), "packages/pentest-policy"),
   path.resolve(process.cwd(), "packages/capability-registry"),
+  path.resolve(process.cwd(), "packages/pentest-planner"),
 ];
 
 async function listTypeScriptFiles(directory: string): Promise<string[]> {
