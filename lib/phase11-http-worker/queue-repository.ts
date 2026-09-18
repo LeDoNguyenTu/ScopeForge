@@ -45,7 +45,7 @@ export function createPhase11HttpWorkerQueueRepository(
   client: SupabaseClient<Phase11cWorkerDatabase>,
 ): Phase11HttpWorkerQueueRepository {
   return Object.freeze({
-    async enqueue(input) {
+    async enqueue(input: Parameters<Phase11HttpWorkerQueueRepository["enqueue"]>[0]) {
       const { data, error } = await client.rpc("enqueue_phase11_http_worker_task", {
         target_workspace_id: input.workspaceId,
         target_run_id: input.runId,
@@ -56,7 +56,7 @@ export function createPhase11HttpWorkerQueueRepository(
       return parseEnqueue(data);
     },
 
-    async cancel(input) {
+    async cancel(input: Parameters<Phase11HttpWorkerQueueRepository["cancel"]>[0]) {
       const { data, error } = await client.rpc("cancel_phase11_http_worker_task", {
         target_workspace_id: input.workspaceId,
         target_run_id: input.runId,
