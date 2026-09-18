@@ -4,25 +4,31 @@ Last reconciled: 2026-09-19, Asia/Singapore.
 
 ## Active
 
-Finish PR #143, the Phase 11C HTTP worker-control source slice.
+Finish the Phase 11C result-to-coverage reconciliation branch:
 
-Remaining release work:
+`feat/phase-11c-result-coverage-reconciliation-20260919`
 
+Release gates:
+
+- focused/domain/migration regression tests
 - exact-head full GitHub CI
-- fix any test/typecheck/build/security regression
+- typecheck, worker bundle, benchmarks, application build, CSP/browser diagnostics
 - final review-thread and mergeability check
-- merge source-only if all gates pass
-- verify merged `main` CI and production Vercel health
+- source-only merge if all gates pass
+- production Vercel health check after merge
+- confirm Phase 11/11C migrations remain unapplied
 
-## Next implementation gate
+## Next external gate
 
-After PR #143:
+After the source reconciliation slice is released:
 
-1. build/pin the exact runtime image candidate for the released source
-2. run real Linux rootless-Podman and cgroup-v2 acceptance for `phase11_http_discovery_v1`
-3. prove target-only mediator authority, container `--network=none`, cancellation, process cleanup, PID/CPU/memory/scratch/output ceilings, no control-socket escape, and secret-safe logs
-4. record the exact image digest and acceptance evidence
-5. only then design a separately reviewed hosted enablement release
+1. use an exact clean `main` checkout on the dedicated Linux worker host
+2. build `.scopeforge-worker-build/runtime-worker-entry.js`
+3. build `deploy/worker/Containerfile.runtime` with rootless Podman and `--network=none`
+4. record the immutable `localhost/scopeforge-runtime-worker@sha256:<digest>` candidate
+5. run the affected Phase 11 HTTP containment acceptance
+6. prove target-only mediator authority, direct-egress denial, redirect reauthorization, cancellation/process cleanup, PID/CPU/memory/scratch/output ceilings, socket isolation, and secret-safe logs
+7. keep hosted runtime configuration disabled unless that exact candidate passes
 
 ## Separately gated
 
@@ -32,11 +38,13 @@ After PR #143:
 - Do not weaken Phase 11 authorization, worker authentication, RLS, service-role-only RPC boundaries, or runtime containment.
 - Keep ScopeForge Supabase `tdgpibrepzcvdivztkta` separate from Job Command Center `xwsergbpvkcsugexssmc`.
 
-## Completed; do not repeat
+## Completed - do not repeat
 
 - Phase 11 Tasks 1 through 9.
-- Task 11 deterministic evaluation slices, including graph expansion and approval fixtures.
+- Task 11 deterministic evaluation slices released to date.
 - Phase 11C provider dependency/threat-model review.
-- Hardened provider contracts released through PR #141.
-- Bounded HTTP discovery mediator/runtime foundation released through PR #142.
+- PR #141 provider contracts.
+- PR #142 bounded HTTP mediator/runtime foundation.
+- PR #143 trusted HTTP worker control.
+- PR #144 reproducible runtime-image candidate source/build gate.
 - Vercel Hobby deployment-budget filtering.

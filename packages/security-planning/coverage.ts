@@ -39,13 +39,24 @@ export function updateCoverage(
     throw new Error("COVERAGE_GRAPH_EXPANSION_INVALID");
   }
 
-  const coveredNodeIds = uniqueSorted([...coverage.coveredNodeIds, ...update.nodeIds]);
+  const countsAsAttempt = result.status === "succeeded"
+    || result.status === "no_signal"
+    || result.status === "timed_out"
+    || result.status === "provider_failed";
+  const countsAsCoverage = result.status === "succeeded" || result.status === "no_signal";
+  const coveredNodeIds = countsAsCoverage
+    ? uniqueSorted([...coverage.coveredNodeIds, ...update.nodeIds])
+    : coverage.coveredNodeIds;
   const covered = new Set(coveredNodeIds);
   return Object.freeze({
     ...coverage,
-    attemptedCapabilityIds: uniqueSorted([...coverage.attemptedCapabilityIds, update.capabilityId]),
+    attemptedCapabilityIds: countsAsAttempt
+      ? uniqueSorted([...coverage.attemptedCapabilityIds, update.capabilityId])
+      : coverage.attemptedCapabilityIds,
     coveredNodeIds,
-    untestedNodeIds: Object.freeze(coverage.untestedNodeIds.filter((nodeId) => !covered.has(nodeId)).sort()),
+    untestedNodeIds: countsAsCoverage
+      ? Object.freeze(coverage.untestedNodeIds.filter((nodeId) => !covered.has(nodeId)).sort())
+      : coverage.untestedNodeIds,
     requestCount: coverage.requestCount + update.requestCount,
     graphExpansionCount: coverage.graphExpansionCount + graphExpansionCount,
     providerFailureCount: coverage.providerFailureCount + (result.status === "provider_failed" ? 1 : 0),
