@@ -56,6 +56,7 @@ const REQUEST_KEYS = new Set(["capabilityId", "targetNodeId", "portProfile", "po
 const PORT_PROFILES = new Set<NmapPortProfile>(["top-100", "top-1000", "reviewed-explicit"]);
 const TIMING_PROFILES = new Set<NmapTimingProfile>(["polite", "normal"]);
 const MAX_EXPLICIT_PORTS = 64;
+const MAX_NMAP_RECORDS = 2048;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -128,6 +129,7 @@ export function createNmapProvider(runner: NmapRunner): CapabilityProvider<NmapP
       if (raw.capabilityId !== normalized.capabilityId) throw new Error("NMAP_RESULT_CAPABILITY_MISMATCH");
       if (raw.actionId !== context.actionId) throw new Error("NMAP_RESULT_ACTION_MISMATCH");
       if (raw.targetNodeId !== normalized.targetNodeId) throw new Error("NMAP_RESULT_TARGET_MISMATCH");
+      if (!Array.isArray(raw.records) || raw.records.length > MAX_NMAP_RECORDS) throw new Error("NMAP_RESULT_RECORD_LIMIT_EXCEEDED");
       if (normalized.portProfile === "reviewed-explicit") {
         const approved = new Set(normalized.ports ?? []);
         if (raw.records.some((record) => !approved.has(record.port))) throw new Error("NMAP_RESULT_PORT_OUTSIDE_PROFILE");
@@ -138,6 +140,7 @@ export function createNmapProvider(runner: NmapRunner): CapabilityProvider<NmapP
       if (!NMAP_CAPABILITIES.includes(raw.capabilityId)) throw new Error("NMAP_RESULT_CAPABILITY_INVALID");
       if (raw.actionId !== context.actionId) throw new Error("NMAP_RESULT_ACTION_MISMATCH");
       if (!raw.targetNodeId.trim()) throw new Error("NMAP_RESULT_TARGET_REQUIRED");
+      if (!Array.isArray(raw.records) || raw.records.length > MAX_NMAP_RECORDS) throw new Error("NMAP_RESULT_RECORD_LIMIT_EXCEEDED");
       const records = [...raw.records].sort((a, b) =>
         a.port - b.port
         || a.protocol.localeCompare(b.protocol)
