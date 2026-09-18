@@ -54,10 +54,31 @@ Last updated: 2026-09-18, Asia/Singapore.
 - Unavailable providers fall back only to other explicitly registered compatible providers.
 - Registry code is included in the Phase 11 dependency-direction guard.
 
-## Validation checkpoint
+### Task 6 - native ScopeForge observation adapters
 
-This commit intentionally does not use `[skip ci]` so PR #125 receives one full repository CI run after Tasks 1 to 5 are coherent.
+- Added pure adapters for existing hosted Phase 3 findings, passive runtime observations, and active CORS validation observations.
+- Adapters consume existing result contracts by type only and never invoke scanners, runtime networking, validators, workers, or persistence.
+- Normalized observations keep stable provider/capability provenance and canonical evidence references.
+- Phase 3 normalization deliberately omits descriptions, evidence summaries, remediation text, taxonomy, and repository URLs.
+- Runtime normalization deliberately omits target URLs and observed header values.
+- Architecture tests enforce the transformation-only boundary.
+
+### Task 7 - deterministic planner v1
+
+- Added explainable scoring for information gain, hypothesis confidence, validation value, provider reliability, normalized cost, and policy weight.
+- Added deterministic bounded next-iteration planning.
+- Hypothesis preconditions and capability preconditions are both evidence-gated.
+- Target node type support is checked against the current graph before scheduling.
+- The planner emits ActionIntent only. It never authorizes or executes an action.
+- Adaptive tests require API discovery evidence before an API-operation action becomes eligible.
+
+## Validation checkpoints
+
+- CI run #1141 on the Tasks 1 to 5 checkpoint reached `npm test` and reported 441 passing test files / 2,020 passing tests, with one architecture-guard failure.
+- The failure was a guard false positive: the guard scanned its own test fixture containing the literal rejected string `fetch('/admin')`. No implementation test failed.
+- The guard now inspects implementation sources only while keeping the same authority restrictions.
+- This documentation checkpoint intentionally does not use `[skip ci]` so the complete Tasks 1 to 7 pure Phase 11A slice receives one full repository CI run.
 
 ## Next
 
-If this checkpoint is green, continue with Task 6 native ScopeForge observation adapters, then Task 7 deterministic planner v1. Keep both pure and authority-free. Do not begin Phase 11 persistence or provider execution until the pure planning slice is accepted.
+Require exact-head CI and Vercel success for the complete Tasks 1 to 7 slice. If green, review and merge PR #125 before beginning Task 8 persistence. Do not apply any Phase 11 production migration or enable any new hosted execution capability as part of this PR.
