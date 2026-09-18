@@ -26,8 +26,9 @@ The Phase 11-specific closed validators remain authoritative.
 ## Immediate work
 
 1. inspect the live #143 head and its newest CI
-2. fix any failures using TDD
-3. run full exact-head CI
+2. preserve the request-accounting hardening: non-success HTTP attempts must never be finalized as zero requests merely because exact mediator accounting is unavailable
+3. fix any failures using TDD
+4. run full exact-head CI
 4. verify no review threads and that the PR remains mergeable
 5. merge only when the exact candidate is green
 6. verify post-merge main CI and Vercel production
@@ -43,3 +44,12 @@ The Phase 11-specific closed validators remain authoritative.
 - Preserve `--network=none` in the executor and host-mediator-only network authority.
 - No browser/user-controlled URL, method, headers, body, argv, network policy, worker budget, or direct target authority.
 - No AI co-author metadata.
+
+
+## Latest release review
+
+CI #1193 passed the complete test suite but failed typecheck on two implicit queue-repository input parameters; those inputs are now explicitly typed.
+
+A subsequent security review found a request-budget accounting gap for failed/cancelled HTTP attempts. The fix preserves exact counts when available and otherwise charges the authorized `maxRequests` conservatively. The SQL finalizer no longer resets non-success request counts to zero.
+
+Do not merge PR #143 without a fresh exact-head CI after these fixes.
