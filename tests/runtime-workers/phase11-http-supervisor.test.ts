@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { runWorkerOnce } from "@/packages/worker-supervisor";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
+import { assetRef } from "@/packages/security-domain";
 
 const taskId = "11111111-1111-4111-8111-111111111111";
 const attemptId = "22222222-2222-4222-8222-222222222222";
@@ -35,7 +36,7 @@ describe("Phase 11C HTTP supervisor routing", () => {
       authorizationSnapshotRef: "snapshot-1",
       targetNodeId: "node-1",
       target: {
-        assetRef: "node-1",
+        assetRef: assetRef("node-1"),
         kind: "web_application" as const,
         canonicalUrl: "https://example.com/",
         hostname: "example.com",
