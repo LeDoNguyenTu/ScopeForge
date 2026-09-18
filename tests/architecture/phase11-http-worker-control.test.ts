@@ -31,14 +31,23 @@ describe("Phase 11C HTTP worker control authority", () => {
     }
   });
 
-  it("keeps the new execution class outside the production worker claimant until persistence exists", async () => {
+  it("widens the generic worker claimant only after trusted persistence and finalization exist", async () => {
     const workerTypes = await read("packages/worker-contracts/types.ts");
     const globalUnion = workerTypes.match(/export type WorkerExecutionClass\s*=([\s\S]*?);/)?.[1] ?? "";
-    expect(globalUnion).not.toContain("phase11_http_discovery_v1");
-    expect(workerTypes).toContain('export type Phase11HttpDiscoveryExecutionClass = "phase11_http_discovery_v1"');
+    expect(globalUnion).toContain("phase11_http_discovery_v1");
 
     const runtimeTaskContract = await read("packages/worker-runtime/task-contract.ts");
-    expect(runtimeTaskContract).not.toContain('"phase11_http_discovery_v1"');
+    expect(runtimeTaskContract).toContain('"phase11_http_discovery_v1"');
+
+    const migration = await read("supabase/migrations/20260919010000_phase_11c_http_worker_control.sql");
+    expect(migration).toContain("claim_phase11_http_worker_task");
+    expect(migration).toContain("finalize_phase11_http_worker_attempt");
+  });
+
+  it("keeps hosted Phase 11 HTTP execution default-off after generic wiring", async () => {
+    const environment = await read("docs/ENVIRONMENT.md");
+    expect(environment).not.toContain("HOSTED_PHASE11_HTTP_DISCOVERY");
+    expect(environment).not.toContain("PHASE11_HTTP_DISCOVERY_WORKER_ENABLED");
   });
 
   it("keeps claimed input identity-only", async () => {
