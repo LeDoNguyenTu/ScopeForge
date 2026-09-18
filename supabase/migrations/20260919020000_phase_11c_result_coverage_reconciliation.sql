@@ -1359,3 +1359,15 @@ begin
 end;
 $$;
 
+-- Restate the reviewed function ACLs for every replacement in this forward migration.
+revoke all on function private.recover_phase11_http_unleased_worker_tasks(timestamptz)
+  from public, anon, authenticated, service_role;
+revoke all on function private.recover_phase11_http_expired_worker_attempts(timestamptz)
+  from public, anon, authenticated, service_role;
+
+revoke all on function public.persist_phase11_graph_state(
+  uuid, uuid, text, jsonb, jsonb, jsonb, jsonb, jsonb
+) from public, anon, authenticated;
+grant execute on function public.persist_phase11_graph_state(
+  uuid, uuid, text, jsonb, jsonb, jsonb, jsonb, jsonb
+) to service_role;
