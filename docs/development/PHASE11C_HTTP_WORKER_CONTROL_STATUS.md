@@ -99,3 +99,9 @@ The release-candidate review found and fixed three additional control-plane issu
 The queue adapter also now has a concrete Supabase-backed repository, a service-role-only cancellation RPC, and reusable server dependencies. Queued work cancels immediately. Leased work preserves the live lease and lets authoritative heartbeat cancellation drive normal worker finalization.
 
 No production migration or hosted enablement was performed.
+
+
+## Validation
+
+- CI #1193 passed the complete test suite but failed TypeScript on two implicit queue-repository input parameter types.
+- The queue repository inputs are now explicitly derived from the repository interface. Exact-head CI after this fix is the current release gate.
