@@ -82,3 +82,30 @@ Last updated: 2026-09-18, Asia/Singapore.
 ## Next
 
 Require exact-head CI and Vercel success for the complete Tasks 1 to 7 slice. If green, review and merge PR #125 before beginning Task 8 persistence. Do not apply any Phase 11 production migration or enable any new hosted execution capability as part of this PR.
+
+## Task 8 - planning persistence foundation
+
+Implementation branch: `feat/phase-11a-persistence-20260918`, PR #126.
+
+Live schema reconciliation before implementation:
+
+- ScopeForge project is active and healthy on PostgreSQL 17.
+- The production migration ledger ends at the seven released Phase 10A3 migrations.
+- Existing member-readable tables use `private.is_workspace_member(workspace_id)`.
+- `private.is_workspace_member` is `SECURITY DEFINER`, pins `search_path = ''`, and is executable by `authenticated`.
+- Existing advisor backlog remains pre-existing Phase 10 work and is not mixed into this migration.
+- No Phase 11 migration has been applied to production.
+
+Task 8 adds:
+
+- private authoritative run, graph-node, graph-edge, observation, hypothesis, coverage, and run-event tables
+- RLS on every authoritative table with no direct grants to browser roles or `service_role`
+- privacy-reduced public summary tables with authenticated member SELECT only
+- no canonical locator, evidence reference, observation facts, hypothesis statement, or authorization reference in browser read models
+- service-role-only persistence RPCs with exact workspace/run/authorization-snapshot binding and pinned search paths
+- bounded payloads, graph-node target binding, primitive-only observation facts, and immutable/idempotent observation identity
+- trusted TypeScript persistence services with bounded summary reads and generic error surfaces
+- regression tests for migration authority and service serialization
+
+The migration file is forward-only and intentionally remains unapplied during implementation.
+
