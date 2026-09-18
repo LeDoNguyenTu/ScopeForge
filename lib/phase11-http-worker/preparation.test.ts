@@ -194,7 +194,7 @@ describe("Phase 11C trusted HTTP worker preparation", () => {
   });
 
   it("rejects arbitrary or capability-incompatible HTTP parameters", async () => {
-    const invalidParameters = [
+    const invalidParameters: Array<Record<string, string | number | boolean>> = [
       {
         discoveryProfile: "well-known-safe",
         methodProfile: "GET_ONLY",
