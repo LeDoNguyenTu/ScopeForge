@@ -130,6 +130,28 @@ describe("Phase 11 HTTP discovery mediator", () => {
     });
   });
 
+  it("counts timed-out and failed network attempts against the request budget", async () => {
+    const timeoutTransport = vi.fn<HttpDiscoveryTransport>(async () => {
+      throw Object.assign(new Error("timeout"), { name: "TimeoutError" });
+    });
+    const timedOut = await executeHttpDiscoveryProfile(baseProfile, { transport: timeoutTransport });
+    expect(timedOut).toEqual({
+      status: "failed",
+      failureCode: "HTTP_DISCOVERY_REQUEST_TIMEOUT",
+      requestCount: 1,
+    });
+
+    const failedTransport = vi.fn<HttpDiscoveryTransport>(async () => {
+      throw new Error("network");
+    });
+    const failed = await executeHttpDiscoveryProfile(baseProfile, { transport: failedTransport });
+    expect(failed).toEqual({
+      status: "failed",
+      failureCode: "HTTP_DISCOVERY_NETWORK_ERROR",
+      requestCount: 1,
+    });
+  });
+
   it("stops before the first request when cancellation is authoritative", async () => {
     const transport = vi.fn<HttpDiscoveryTransport>(async () => response());
 
