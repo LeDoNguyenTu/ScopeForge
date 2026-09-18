@@ -46,13 +46,17 @@ Implemented so far:
 - one atomic service-role-only finalization RPC that revalidates lease/action/snapshot scope, persists normalized observations and the Phase 11 action attempt, then terminalizes the action
 - successful, failed, and cancelled terminal paths with observations prohibited outside success
 
-The new class intentionally remains outside the generic production `WorkerExecutionClass` union at this checkpoint. It cannot be registered, claimed, or dispatched by the production fleet yet.
+The new class is now wired through the generic worker contract/parser and supervisor dispatcher because its immutable queue binding, authenticated preparation, and atomic finalization boundaries are complete. The dedicated Phase 11 validators remain authoritative for its closed claim and terminal shapes.
+
+Hosted enablement is still default-off: the standard worker runtime configuration does not accept `phase11_http_discovery_v1`, no production worker is registered for the class, and the Phase 11/Phase 11C migrations remain unapplied.
 
 ## Next source work
 
-1. widen the generic worker-runtime parser, dispatcher, and terminal types now that preparation and finalization are complete together
+1. complete exact-head CI and fix any regression found by the generic wiring
 2. keep hosted enablement default-off
-3. perform real Linux containment acceptance before any enablement release
+3. update the runtime image candidate only after source validation is green
+4. perform real Linux rootless-Podman/cgroup-v2 containment acceptance for `phase11_http_discovery_v1`
+5. only after that acceptance, design a separately reviewed enablement release
 
 ## Production boundary
 
@@ -61,3 +65,17 @@ The new class intentionally remains outside the generic production `WorkerExecut
 - No external HTTP provider binary is enabled.
 - No Nmap or Nuclei runner is enabled.
 - No browser role receives canonical worker or Phase 11 DML authority.
+
+
+## Generic wiring checkpoint
+
+The current candidate additionally:
+
+- adds `phase11_http_discovery_v1` to the generic worker execution-class union
+- validates generic claims through the dedicated Phase 11 HTTP input validator
+- validates generic terminals through the dedicated Phase 11 HTTP terminal validator
+- adds strict HTTP control-client parsing for the dedicated prepare response
+- routes supervisor preparation and finalization through the Phase 11-specific endpoints
+- reuses the existing single-use Unix mediator and `--network=none` runtime sandbox
+- injects the Phase 11 HTTP runtime executor explicitly rather than falling through to legacy runtime behavior
+- keeps the normal hosted worker runtime configuration unable to select the class before Linux acceptance
