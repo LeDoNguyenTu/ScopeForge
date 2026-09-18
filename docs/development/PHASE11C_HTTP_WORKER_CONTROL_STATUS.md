@@ -28,20 +28,23 @@ Implemented so far:
 - replay-safe orchestration queue adapter keyed by the version-bound Phase 11 authorization ID
 - opaque queue references with cancellation routed back through the trusted repository boundary
 - architecture guard keeping queue/preparation free of direct database, process, and network authority
+- forward-only source migration for an immutable private worker-task binding keyed by the stable Phase 11 authorization ID
+- a replay-safe service-role-only enqueue RPC that reloads and locks authoritative run/action state
+- fail-closed queue validation for run state, decision state, authorization expiry, snapshot identity, execution mode, capability/version, target scope, closed parameters, and budgets
+- a service-role-only preparation-context RPC bound to the exact authenticated worker lease and immutable Phase 11 binding
+- the shared worker-task table can represent this class only with null legacy scan-job/asset fields, one attempt, and an exact 30-second deadline
+- the worker-node execution-class constraint and production claimant remain unchanged, so no worker can register for or claim the new class yet
 
 The new class intentionally remains outside the generic production `WorkerExecutionClass` union at this checkpoint. It cannot be registered, claimed, or dispatched by the production fleet yet.
 
 ## Next source work
 
-1. finalize migration/RPC design against the current worker and Phase 11 schemas
-   - production migration ledger was rechecked and still ends at Phase 10A3
-   - the local execution environment does not currently provide a usable Supabase CLI, so no migration file has been fabricated or applied
-2. create a private immutable worker-task binding keyed by Phase 11 authorization identity
-3. add a service-role-only replay-safe enqueue RPC
-4. add trusted load/preparation/finalization RPCs with pinned search paths and revoked browser execution
-5. only then widen the production claimant/dispatcher types to the new class
-6. keep hosted enablement default-off
-7. perform real Linux containment acceptance before any enablement release
+1. add the dedicated Phase 11 claim contract and claimant repository wiring
+2. wire the internal trusted prepare route to the lease-bound preparation-context RPC
+3. add terminal finalization/observation persistence with exact action and authorization revalidation
+4. widen dispatcher/runtime types only as each route and executor becomes complete
+5. keep hosted enablement default-off
+6. perform real Linux containment acceptance before any enablement release
 
 ## Production boundary
 
