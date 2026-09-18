@@ -2,110 +2,52 @@
 
 Last updated: 2026-09-18, Asia/Singapore.
 
-## Baseline
+## Live checkpoint
 
-- Released baseline: `main` at `e493f1f339b8410793e94f61306715bfb05c6166` after Phase 10A3 release.
-- Active implementation PR: #125.
-- Superseded docs-only PR: #124, closed after its design/plan were reconciled onto the post-Phase-10A3 branch.
-- No Phase 11 production migration has been created or applied.
-- No new hosted execution class or runtime capability has been enabled.
+- Released main: `e4af4d707a7a6139ad12a705e4c3b5ece726d3e0`, merged through PR #126.
+- Active Task 9 PR: #128 on `feat/phase-11a-run-orchestration-20260918`.
+- Task 8 persistence is merged. Its source head passed CI #1146 and Vercel.
+- The Phase 11 Task 8 and Task 9 migrations remain source-only and have not been applied to production.
+- No Phase 11 external provider execution capability is enabled.
 
-## Implemented in this checkpoint
+## Task 9 - trusted run orchestration
 
-### Task 1 - planning domain contracts
+PR #128 currently adds:
 
-- Added closed provider-neutral contracts for execution modes, assets, observations, hypotheses, capabilities, action intents, authorizations, action results, coverage, and stop reasons.
-- Added runtime constructors that reject unknown planner-visible authority such as provider-native args, shell commands, arbitrary URLs, arbitrary headers, payload paths, or JavaScript.
-- Authorization construction rejects already-expired authority.
-- Observations require evidence references and normalized primitive facts.
+- owner/admin verified-asset run creation
+- immutable run policy and authorization snapshots
+- trusted planning-state loading
+- deterministic planner to policy to approved-action enqueue orchestration
+- exact enqueue reservation tokens and replay-safe queue finalization
+- owner/admin intrusive and validation approval workflow
+- cancellation propagation through an injected queue cancellation boundary
+- privacy-reduced run and action read models
+- private action, attempt, authorization, and approval persistence
+- service-role-only SECURITY DEFINER orchestration RPCs with empty search paths
+- architecture coverage preventing direct provider, process, network, service-role-key, or worker-credential authority inside `lib/pentest-runs`
 
-### Task 2 - security graph
+A lifecycle defect was found during review: intrusive actions without approval were being persisted as `rejected`, but the approval RPC accepts only `approval_required`. The policy now returns `approval_required` for intrusive work without a fresh owner/admin approval, making the approval-resume path reachable.
 
-- Added deterministic node/edge insertion.
-- Duplicate observations collapse while provenance is preserved.
-- Edge identity is derived from normalized graph semantics.
-- Evidence-backed edges require known endpoints and explicit authorization/provenance references.
-- Stale edges are excluded from attack-path derivation.
-- Graph fingerprints are deterministic for equivalent normalized state.
+## Validation evidence
 
-### Task 3 - hypothesis lifecycle and coverage
+- CI #1150 ran against the RED/diagnostic Task 9 checkpoint.
+- All 446 test files and all 2,035 tests passed.
+- CI #1150 failed only in TypeScript checking because of four test-only typing errors in the new create/cancel tests.
+- Those test-only type errors are fixed after #1150.
+- Focused approval and orchestration authority regression tests have been added after #1150.
+- A new exact-head full CI/Vercel gate is required before merge.
 
-- Added explicit deterministic hypothesis-rule registration and derivation.
-- Added reviewed state transitions with evidence required before supported/refuted terminal states.
-- Added bounded coverage accounting and deterministic stop conditions for cancellation, authorization expiry, deadline, request budget, graph growth, provider failures, approval waits, coverage completion, and hypothesis exhaustion.
+GitNexus is required by repository guidance, but the GitNexus MCP tool is not exposed in this ChatGPT connector session. Do not claim a GitNexus report exists for this Task 9 continuation.
 
-### Task 4 - deterministic policy gate
+## Release boundary
 
-- Unknown capabilities fail closed.
-- Target nodes must be inside the immutable authorization snapshot.
-- Workspace mode ceilings are enforced.
-- Intrusive actions require fresh owner/admin approval.
-- Validation actions require approval unless the workspace is explicitly configured as a lab.
-- Request/runtime budgets are narrowed to capability and workspace ceilings.
-- Approved authorizations bind exact workspace, nodes, snapshot, capability/version, mode, budgets, expiry, and cancellation key.
-- Architecture guards keep planning/policy packages free of application, database, worker, provider, model, network, process, and filesystem authority.
+Before merge:
 
-### Task 5 - capability registry
+1. require exact-head full CI success
+2. require exact-head Vercel success
+3. review the final PR diff and unresolved review threads
+4. keep both Phase 11 migrations unapplied in production
+5. keep external provider execution disabled
 
-- Added closed static provider registration.
-- Duplicate providers are rejected.
-- Unknown capability, mode mismatch, disabled provider, and unavailable provider states fail explicitly.
-- Selection is deterministic by health, configured priority, then provider ID.
-- Unavailable providers fall back only to other explicitly registered compatible providers.
-- Registry code is included in the Phase 11 dependency-direction guard.
-
-### Task 6 - native ScopeForge observation adapters
-
-- Added pure adapters for existing hosted Phase 3 findings, passive runtime observations, and active CORS validation observations.
-- Adapters consume existing result contracts by type only and never invoke scanners, runtime networking, validators, workers, or persistence.
-- Normalized observations keep stable provider/capability provenance and canonical evidence references.
-- Phase 3 normalization deliberately omits descriptions, evidence summaries, remediation text, taxonomy, and repository URLs.
-- Runtime normalization deliberately omits target URLs and observed header values.
-- Architecture tests enforce the transformation-only boundary.
-
-### Task 7 - deterministic planner v1
-
-- Added explainable scoring for information gain, hypothesis confidence, validation value, provider reliability, normalized cost, and policy weight.
-- Added deterministic bounded next-iteration planning.
-- Hypothesis preconditions and capability preconditions are both evidence-gated.
-- Target node type support is checked against the current graph before scheduling.
-- The planner emits ActionIntent only. It never authorizes or executes an action.
-- Adaptive tests require API discovery evidence before an API-operation action becomes eligible.
-
-## Validation checkpoints
-
-- CI run #1141 on the Tasks 1 to 5 checkpoint reached `npm test` and reported 441 passing test files / 2,020 passing tests, with one architecture-guard failure.
-- The failure was a guard false positive: the guard scanned its own test fixture containing the literal rejected string `fetch('/admin')`. No implementation test failed.
-- The guard now inspects implementation sources only while keeping the same authority restrictions.
-- This documentation checkpoint intentionally does not use `[skip ci]` so the complete Tasks 1 to 7 pure Phase 11A slice receives one full repository CI run.
-
-## Next
-
-Require exact-head CI and Vercel success for the complete Tasks 1 to 7 slice. If green, review and merge PR #125 before beginning Task 8 persistence. Do not apply any Phase 11 production migration or enable any new hosted execution capability as part of this PR.
-
-## Task 8 - planning persistence foundation
-
-Implementation branch: `feat/phase-11a-persistence-20260918`, PR #126.
-
-Live schema reconciliation before implementation:
-
-- ScopeForge project is active and healthy on PostgreSQL 17.
-- The production migration ledger ends at the seven released Phase 10A3 migrations.
-- Existing member-readable tables use `private.is_workspace_member(workspace_id)`.
-- `private.is_workspace_member` is `SECURITY DEFINER`, pins `search_path = ''`, and is executable by `authenticated`.
-- Existing advisor backlog remains pre-existing Phase 10 work and is not mixed into this migration.
-- No Phase 11 migration has been applied to production.
-
-Task 8 adds:
-
-- private authoritative run, graph-node, graph-edge, observation, hypothesis, coverage, and run-event tables
-- RLS on every authoritative table with no direct grants to browser roles or `service_role`
-- privacy-reduced public summary tables with authenticated member SELECT only
-- no canonical locator, evidence reference, observation facts, hypothesis statement, or authorization reference in browser read models
-- service-role-only persistence RPCs with exact workspace/run/authorization-snapshot binding and pinned search paths
-- bounded payloads, graph-node target binding, primitive-only observation facts, and immutable/idempotent observation identity
-- trusted TypeScript persistence services with bounded summary reads and generic error surfaces
-- regression tests for migration authority and service serialization
-
-The migration file is forward-only and intentionally remains unapplied during implementation.
+After Task 9 merges, the implementation plan places the adaptive evaluation harness before external-provider expansion in the preferred release order. Provider-specific execution remains separately reviewed and gated.
 
