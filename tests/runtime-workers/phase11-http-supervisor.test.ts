@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { runWorkerOnce } from "@/packages/worker-supervisor";
+import {
+  createWorkerExecutorDispatcher,
+  runWorkerOnce,
+} from "@/packages/worker-supervisor";
 import { workerExecutionProfile } from "@/packages/worker-contracts";
 import { assetRef } from "@/packages/security-domain";
 
@@ -11,6 +14,59 @@ const authorizationId = "phase11-authz:" + "b".repeat(64);
 const leaseToken = "c".repeat(64);
 
 describe("Phase 11C HTTP supervisor routing", () => {
+  it("dispatches the class only to the explicit Phase 11 HTTP executor", async () => {
+    const phase11Execute = vi.fn(async () => ({
+      schemaVersion: 1 as const,
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1" as const,
+      outcome: "failed" as const,
+      failureCode: "RUNTIME_WORKER_EXECUTION_FAILED" as const,
+      metrics: {
+        wallTimeMs: 0,
+        cpuTimeMs: 0,
+        peakMemoryBytes: 0,
+        inputBytes: 0,
+        outputBytes: 0,
+      },
+      result: null,
+    }));
+    const wrongExecute = vi.fn(async () => { throw new Error("wrong executor"); });
+    const dispatcher = createWorkerExecutorDispatcher({
+      foundation: { execute: wrongExecute },
+      repositorySnapshot: { execute: wrongExecute },
+      privateRepositorySnapshot: { execute: wrongExecute } as never,
+      repositoryScan: { execute: wrongExecute },
+      passiveRuntime: { execute: wrongExecute },
+      activeCors: { execute: wrongExecute },
+      phase11Http: { execute: phase11Execute },
+    });
+
+    await dispatcher.execute({
+      taskId,
+      attemptId,
+      executionClass: "phase11_http_discovery_v1",
+      absoluteDeadlineAt: "2099-09-19T00:00:30.000Z",
+      budget: workerExecutionProfile("phase11_http_discovery_v1").budget,
+      input: {
+        kind: "phase11_http_worker_prepared",
+        runId,
+        actionId,
+        authorizationId,
+        mediatorSocketPath: "/run/scopeforge/test.sock",
+        mediatorSession: {
+          taskId,
+          attemptId,
+          executionClass: "phase11_http_discovery_v1",
+          nonce: "d".repeat(64),
+        },
+      },
+    }, new AbortController().signal);
+
+    expect(phase11Execute).toHaveBeenCalledTimes(1);
+    expect(wrongExecute).not.toHaveBeenCalled();
+  });
+
   it("uses the dedicated prepare/finalize path and runtime mediator executor", async () => {
     const task = {
       taskId,
