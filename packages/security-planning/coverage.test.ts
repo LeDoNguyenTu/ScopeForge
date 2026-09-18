@@ -58,14 +58,48 @@ describe("Phase 11 coverage and stop conditions", () => {
 
     expect(updated).toMatchObject({
       attemptedCapabilityIds: ["web.http.probe.v1"],
-      coveredNodeIds: ["node-a"],
-      untestedNodeIds: ["node-b"],
+      coveredNodeIds: [],
+      untestedNodeIds: ["node-a", "node-b"],
       requestCount: 2,
       graphExpansionCount: 1,
       providerFailureCount: 1,
     });
   });
 
+
+  it.each(["succeeded", "no_signal"] as const)(
+    "marks targets covered only after a completed %s action",
+    (status) => {
+      const updated = updateCoverage(coverage(), actionResult(status), {
+        capabilityId: "web.http.probe.v1",
+        nodeIds: ["node-a"],
+        requestCount: 1,
+      });
+
+      expect(updated).toMatchObject({
+        attemptedCapabilityIds: ["web.http.probe.v1"],
+        coveredNodeIds: ["node-a"],
+        untestedNodeIds: ["node-b"],
+        requestCount: 1,
+      });
+    },
+  );
+
+  it("records a timeout as attempted without claiming target coverage", () => {
+    const updated = updateCoverage(coverage(), actionResult("timed_out"), {
+      capabilityId: "web.http.probe.v1",
+      nodeIds: ["node-a"],
+      requestCount: 2,
+    });
+
+    expect(updated).toMatchObject({
+      attemptedCapabilityIds: ["web.http.probe.v1"],
+      coveredNodeIds: [],
+      untestedNodeIds: ["node-a", "node-b"],
+      requestCount: 2,
+      providerFailureCount: 0,
+    });
+  });
 
   it.each(["blocked", "cancelled", "policy_rejected"] as const)(
     "charges request usage without claiming coverage for %s actions",
