@@ -1456,3 +1456,131 @@ revoke all on function public.heartbeat_worker_attempt(uuid, uuid, uuid, text)
   from public, anon, authenticated, service_role;
 grant execute on function public.heartbeat_worker_attempt(uuid, uuid, uuid, text)
   to service_role;
+
+
+create or replace function public.cancel_phase11_http_worker_task(
+  target_workspace_id uuid,
+  target_run_id uuid,
+  target_action_id text,
+  target_task_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  cancel_now timestamptz := clock_timestamp();
+  task_record private.worker_tasks%rowtype;
+  binding_record private.phase11_http_worker_tasks%rowtype;
+  action_record private.pentest_actions%rowtype;
+  was_replayed boolean := false;
+begin
+  if target_workspace_id is null
+    or target_run_id is null
+    or target_action_id is null
+    or target_action_id !~ '^phase11-action:[0-9a-f]{64}$'
+    or target_task_id is null
+  then
+    raise exception 'PHASE11_HTTP_QUEUE_IDENTITY_INVALID';
+  end if;
+
+  select *
+  into task_record
+  from private.worker_tasks
+  where id = target_task_id
+  for update;
+
+  select *
+  into binding_record
+  from private.phase11_http_worker_tasks
+  where task_id = target_task_id;
+
+  select *
+  into action_record
+  from private.pentest_actions
+  where workspace_id = target_workspace_id
+    and run_id = target_run_id
+    and action_id = target_action_id
+  for update;
+
+  if task_record.id is null
+    or binding_record.task_id is null
+    or action_record.action_id is null
+    or task_record.execution_class <> 'phase11_http_discovery_v1'
+    or task_record.workspace_id is distinct from target_workspace_id
+    or binding_record.workspace_id is distinct from target_workspace_id
+    or binding_record.run_id is distinct from target_run_id
+    or binding_record.action_id is distinct from target_action_id
+    or action_record.authorization_id is distinct from binding_record.authorization_id
+    or action_record.queue_reference is distinct from
+      'phase11-http-worker:' || target_task_id::text
+  then
+    raise exception 'PHASE11_HTTP_WORKER_BINDING_MISMATCH';
+  end if;
+
+  if task_record.state = 'cancelled' then
+    was_replayed := true;
+  elsif task_record.state in ('queued', 'retry_wait') then
+    update private.worker_tasks
+    set state = 'cancelled',
+        updated_at = cancel_now
+    where id = target_task_id
+      and state in ('queued', 'retry_wait');
+  elsif task_record.state = 'leased' then
+    -- Keep the live lease intact. The authorization-aware heartbeat observes
+    -- the action cancellation and the worker finalizes through the normal
+    -- authenticated Phase 11 finalization path.
+    null;
+  else
+    return jsonb_build_object(
+      'cancelled', false,
+      'replayed', true
+    );
+  end if;
+
+  if action_record.state not in ('terminal', 'rejected', 'cancelled') then
+    update private.pentest_actions
+    set state = 'cancelled',
+        enqueue_token = null,
+        updated_at = cancel_now
+    where workspace_id = target_workspace_id
+      and run_id = target_run_id
+      and action_id = target_action_id;
+  elsif action_record.state = 'cancelled' then
+    was_replayed := true;
+  else
+    raise exception 'PHASE11_HTTP_ACTION_STATE_INVALID';
+  end if;
+
+  update public.pentest_action_summaries
+  set state = 'cancelled',
+      updated_at = cancel_now
+  where workspace_id = target_workspace_id
+    and run_id = target_run_id
+    and action_id = target_action_id
+    and state <> 'cancelled';
+
+  perform private.record_worker_event(
+    'worker.cancel_requested',
+    target_workspace_id,
+    null,
+    target_task_id,
+    jsonb_build_object(
+      'runId', target_run_id,
+      'actionId', target_action_id,
+      'executionClass', 'phase11_http_discovery_v1'
+    )
+  );
+
+  return jsonb_build_object(
+    'cancelled', true,
+    'replayed', was_replayed
+  );
+end;
+$$;
+
+revoke all on function public.cancel_phase11_http_worker_task(uuid, uuid, text, uuid)
+  from public, anon, authenticated, service_role;
+grant execute on function public.cancel_phase11_http_worker_task(uuid, uuid, text, uuid)
+  to service_role;
