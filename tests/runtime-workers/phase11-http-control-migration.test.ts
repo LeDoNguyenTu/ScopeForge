@@ -67,6 +67,25 @@ describe("Phase 11C HTTP worker control migration", () => {
     expect(enqueue).toMatch(/update public\.pentest_action_summaries[\s\S]*?set state = 'queued'/i);
   });
 
+  it("cancels queued work immediately and leased work through authoritative heartbeat propagation", async () => {
+    const sql = await readMigration();
+    const cancel = functionSql(sql, "cancel_phase11_http_worker_task");
+    expect(cancel).toMatch(/target_workspace_id uuid,\s*target_run_id uuid,\s*target_action_id text,\s*target_task_id uuid/i);
+    expect(cancel).toMatch(/from private\.worker_tasks[\s\S]*?for update/i);
+    expect(cancel).toMatch(/from private\.phase11_http_worker_tasks/i);
+    expect(cancel).toMatch(/from private\.pentest_actions[\s\S]*?for update/i);
+    expect(cancel).toMatch(/task_record\.state in \('queued', 'retry_wait'\)[\s\S]*?set state = 'cancelled'/i);
+    expect(cancel).toMatch(/task_record\.state = 'leased'[\s\S]*?null;/i);
+    expect(cancel).toMatch(/update private\.pentest_actions[\s\S]*?set state = 'cancelled'/i);
+    expect(cancel).toMatch(/update public\.pentest_action_summaries[\s\S]*?set state = 'cancelled'/i);
+    expect(cancel).toContain("'worker.cancel_requested'");
+
+    const compact = sql.replace(/\s+/g, " ").toLowerCase();
+    const signature = "public.cancel_phase11_http_worker_task(uuid, uuid, text, uuid)";
+    expect(compact).toContain(`revoke all on function ${signature} from public, anon, authenticated, service_role;`);
+    expect(compact).toContain(`grant execute on function ${signature} to service_role;`);
+  });
+
   it("keeps the queue RPC service-role-only with a pinned search path", async () => {
     const sql = await readMigration();
     const enqueue = functionSql(sql, "enqueue_phase11_http_worker_task");
