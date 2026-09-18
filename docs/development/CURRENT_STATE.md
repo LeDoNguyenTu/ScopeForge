@@ -4,10 +4,10 @@ Last reconciled: 2026-09-18, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `3677adeeb7a217c6eae5778b6d2f1240f486bea8` (PR #130 merged).
+- `main`: `eb0b7ac9126feaa3ac9bb1c49e571ccc0a937653` (PR #132 merged).
 - PR #125 released Phase 11 Tasks 1 to 7; PR #126 released Task 8 persistence; PR #128 released Task 9 orchestration.
 - Production Vercel remains READY at `scopeforge.dev`; the source release deployment was `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`.
-- PR #130 exact CI passed; post-merge main CI and production deployment must be rechecked from the new SHA.
+- PR #132 exact CI `35345875888` and post-merge main CI `35346334325` passed. Production Vercel `dpl_33dJ29vMvFy7wbMKQEeKsNbKx6t6` is READY at `scopeforge.dev` for the merge SHA.
 
 ## Task 9
 
@@ -21,4 +21,4 @@ Trusted run orchestration is released with immutable authority snapshots, determ
 
 ## Next
 
-PR #130 delivered the first Task 11 adaptive fixture: discovery must precede API validation, with measured zero out-of-scope requests, zero secret leakage, successful cleanup, and zero cancellation latency. Continue Task 11 with broader labeled coverage and failure/expiry/replay cases before any provider integration.
+PR #132 adds the Task 11 matrix: evidence-gated discovery, replay stability, cancellation, authorization expiry, request budget, and provider-failure containment, with zero out-of-scope requests, zero secret leakage, successful cleanup, and zero cancellation latency. Continue Task 11 with broader labeled vulnerability, attack-path, and remediation-retest coverage before any provider integration.

@@ -4,10 +4,10 @@ Last refreshed: 2026-09-18, Asia/Singapore.
 
 ## Resume exactly here
 
-- Checkout baseline: `origin/main` at `3677adeeb7a217c6eae5778b6d2f1240f486bea8`.
-- PR #128 and PR #130 are merged and released.
-- Main CI: `35340050884`, SUCCESS.
-- Production: `dpl_E4JJhctqaANC8dTxbfCm3oRvCBU6`, READY at `scopeforge.dev`.
+- Checkout baseline: `origin/main` at `eb0b7ac9126feaa3ac9bb1c49e571ccc0a937653`.
+- PR #128, PR #130, and PR #132 are merged and released.
+- Main CI: `35346334325`, SUCCESS for the PR #132 merge.
+- Production: `dpl_33dJ29vMvFy7wbMKQEeKsNbKx6t6`, READY at `scopeforge.dev` for the PR #132 merge.
 - Supabase: `tdgpibrepzcvdivztkta`; Phase 11 migrations are unapplied and Phase 11 tables are absent.
 - External Phase 11 provider execution is disabled.
 
@@ -19,4 +19,4 @@ Last refreshed: 2026-09-18, Asia/Singapore.
 
 ## Next action
 
-Extend the Task 11 adaptive evaluation harness. PR #130 proves the two-stage discovery-to-API transition with deterministic safety metrics; preserve injected execution boundaries, approval controls, deterministic evidence, and separate production schema/provider gates.
+Extend the Task 11 adaptive evaluation harness. PR #132 adds deterministic replay and stop-condition coverage; next add labeled vulnerability/attack-path and remediation-retest fixture evidence while preserving injected execution boundaries, approval controls, deterministic evidence, and separate production schema/provider gates.
