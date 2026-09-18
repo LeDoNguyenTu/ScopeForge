@@ -948,6 +948,23 @@ begin
       enqueue_token = excluded.enqueue_token,
       updated_at = excluded.updated_at;
 
+  if new_state = 'enqueueing' then
+    update private.pentest_runs
+    set status = 'running',
+        stop_reason = null,
+        updated_at = now()
+    where id = target_run_id
+      and workspace_id = target_workspace_id
+      and status in ('created', 'waiting_approval');
+
+    update public.pentest_run_summaries
+    set status = 'running',
+        stop_reason = null,
+        updated_at = now()
+    where run_id = target_run_id
+      and workspace_id = target_workspace_id;
+  end if;
+
   insert into public.pentest_action_summaries (
     workspace_id,
     run_id,
