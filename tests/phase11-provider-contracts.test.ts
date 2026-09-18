@@ -60,6 +60,41 @@ describe("Phase 11 external provider contracts", () => {
     const first = await provider.normalize(raw, normalizationContext);
     expect(await provider.normalize(raw, normalizationContext)).toEqual(first);
     expect(first.map((item) => item.facts.port)).toEqual([80, 443]);
+    expect(first.every((item) => /^phase11-obs-nmap:[0-9a-f]{64}$/.test(item.observationId))).toBe(true);
+  });
+
+  it("uses bounded stable IDs for approved Nuclei observations", async () => {
+    const provider = createNucleiProvider(nucleiRunner({
+      capabilityId: "web.template.validate.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      templateProfile: "baseline-http",
+      minimumSeverity: "low",
+      matches: [{
+        targetNodeId: "node-1",
+        templateId: "http-missing-security-headers",
+        severity: "medium",
+        evidenceRef: "e-approved",
+        observedAt: "2026-09-18T00:00:00Z",
+      }],
+    }), { profiles: nucleiProfiles });
+
+    const observations = await provider.normalize({
+      capabilityId: "web.template.validate.v1",
+      actionId: "action-1",
+      targetNodeId: "node-1",
+      templateProfile: "baseline-http",
+      minimumSeverity: "low",
+      matches: [{
+        targetNodeId: "node-1",
+        templateId: "http-missing-security-headers",
+        severity: "medium",
+        evidenceRef: "e-approved",
+        observedAt: "2026-09-18T00:00:00Z",
+      }],
+    }, normalizationContext);
+
+    expect(observations[0]?.observationId).toMatch(/^phase11-obs-nuclei:[0-9a-f]{64}$/);
   });
 
   it("keeps Nuclei selection on reviewed code-owned profiles", async () => {
@@ -100,6 +135,7 @@ describe("Phase 11 external provider contracts", () => {
       records: [{ targetNodeId: "node-1", routeKind: "security-txt", status: 200, contentType: "text/plain", evidenceRef: "e-security", observedAt: "2026-09-18T00:00:00Z" }],
     }, normalizationContext);
     expect(observations[0]).toMatchObject({ providerId: "scopeforge.http-discovery", capabilityId: "web.route.discover.v1", evidenceRefs: ["e-security"], executionMode: "safe_active" });
+    expect(observations[0]?.observationId).toMatch(/^phase11-obs-http:[0-9a-f]{64}$/);
     expect(JSON.stringify(observations)).not.toMatch(/https?:\/\//);
   });
 });
