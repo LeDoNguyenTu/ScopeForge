@@ -1272,3 +1272,187 @@ revoke all on function public.finalize_phase11_http_worker_attempt(
 grant execute on function public.finalize_phase11_http_worker_attempt(
   uuid, uuid, uuid, text, text, text, text, integer, jsonb, jsonb
 ) to service_role;
+
+
+-- Phase 11 HTTP tasks intentionally have no scan_job row. Replace the shared
+-- heartbeat with a class-aware implementation so legacy workers preserve their
+-- existing scan-job cancellation semantics while Phase 11 cancellation and
+-- authorization expiry are derived only from trusted Phase 11 state.
+create or replace function public.heartbeat_worker_attempt(
+  target_worker_id uuid,
+  target_task_id uuid,
+  target_attempt_id uuid,
+  target_lease_token text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  worker_record private.worker_nodes%rowtype;
+  task_record private.worker_tasks%rowtype;
+  attempt_record private.worker_attempts%rowtype;
+  job_record public.scan_jobs%rowtype;
+  phase11_binding private.phase11_http_worker_tasks%rowtype;
+  phase11_run private.pentest_runs%rowtype;
+  phase11_action private.pentest_actions%rowtype;
+  phase11_snapshot private.pentest_run_authorization_snapshots%rowtype;
+  heartbeat_now timestamptz;
+  calculated_hash text;
+  next_expiry timestamptz;
+  cancellation_requested boolean;
+begin
+  if target_lease_token is null or target_lease_token !~ '^[a-f0-9]{64}$' then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  calculated_hash := encode(
+    extensions.digest(decode(target_lease_token, 'hex'), 'sha256'),
+    'hex'
+  );
+
+  perform pg_advisory_xact_lock(hashtextextended('scopeforge-worker-recovery-v1', 0));
+
+  select * into worker_record
+  from private.worker_nodes
+  where id = target_worker_id
+  for update;
+
+  if worker_record.id is null or worker_record.disabled_at is not null then
+    raise exception 'WORKER_DISABLED';
+  end if;
+
+  select * into task_record
+  from private.worker_tasks
+  where id = target_task_id
+  for update;
+
+  select * into attempt_record
+  from private.worker_attempts
+  where id = target_attempt_id
+    and task_id = target_task_id
+  for update;
+
+  heartbeat_now := clock_timestamp();
+
+  if task_record.id is null
+    or attempt_record.id is null
+    or attempt_record.worker_id <> target_worker_id
+    or attempt_record.lease_token_hash <> calculated_hash
+    or attempt_record.finished_at is not null
+    or task_record.state <> 'leased'
+    or attempt_record.lease_expires_at <= heartbeat_now
+  then
+    raise exception 'WORKER_LEASE_INVALID';
+  end if;
+
+  if task_record.execution_class = 'phase11_http_discovery_v1' then
+    if worker_record.execution_class <> 'phase11_http_discovery_v1'
+      or task_record.scan_job_id is not null
+      or task_record.asset_id is not null
+    then
+      raise exception 'WORKER_LEASE_INVALID';
+    end if;
+
+    select * into phase11_binding
+    from private.phase11_http_worker_tasks
+    where task_id = task_record.id;
+
+    if phase11_binding.task_id is null
+      or task_record.workspace_id is distinct from phase11_binding.workspace_id
+    then
+      raise exception 'WORKER_LEASE_INVALID';
+    end if;
+
+    select * into phase11_run
+    from private.pentest_runs
+    where id = phase11_binding.run_id
+      and workspace_id = phase11_binding.workspace_id;
+
+    select * into phase11_action
+    from private.pentest_actions
+    where workspace_id = phase11_binding.workspace_id
+      and run_id = phase11_binding.run_id
+      and action_id = phase11_binding.action_id;
+
+    select * into phase11_snapshot
+    from private.pentest_run_authorization_snapshots
+    where workspace_id = phase11_binding.workspace_id
+      and run_id = phase11_binding.run_id
+      and snapshot_ref = phase11_binding.authorization_snapshot_ref;
+
+    if phase11_run.id is null
+      or phase11_action.action_id is null
+      or phase11_snapshot.snapshot_ref is null
+      or phase11_action.authorization_id is distinct from phase11_binding.authorization_id
+      or phase11_action.authorization_snapshot_ref is distinct from phase11_binding.authorization_snapshot_ref
+      or phase11_run.authorization_snapshot_ref is distinct from phase11_binding.authorization_snapshot_ref
+    then
+      raise exception 'PHASE11_HTTP_WORKER_BINDING_MISMATCH';
+    end if;
+
+    cancellation_requested :=
+      phase11_run.status <> 'running'
+      or phase11_action.state <> 'running'
+      or phase11_snapshot.expires_at <= heartbeat_now
+      or phase11_action.authorization_expires_at is null
+      or phase11_action.authorization_expires_at <= heartbeat_now
+      or phase11_action.authorization_expires_at > phase11_snapshot.expires_at;
+
+    if cancellation_requested then
+      next_expiry := attempt_record.lease_expires_at;
+    else
+      next_expiry := least(
+        heartbeat_now + interval '90 seconds',
+        task_record.absolute_deadline_at,
+        phase11_snapshot.expires_at,
+        phase11_action.authorization_expires_at
+      );
+    end if;
+  else
+    select * into job_record
+    from public.scan_jobs
+    where id = task_record.scan_job_id
+      and workspace_id = task_record.workspace_id
+      and asset_id = task_record.asset_id
+    for update;
+
+    if job_record.id is null then
+      raise exception 'WORKER_JOB_NOT_AVAILABLE';
+    end if;
+
+    cancellation_requested := job_record.cancel_requested_at is not null
+      or job_record.status = 'cancelled'::public.scan_job_status;
+
+    if cancellation_requested then
+      next_expiry := attempt_record.lease_expires_at;
+    else
+      next_expiry := least(
+        heartbeat_now + interval '90 seconds',
+        task_record.absolute_deadline_at
+      );
+    end if;
+  end if;
+
+  update private.worker_attempts
+  set last_heartbeat_at = heartbeat_now,
+      lease_expires_at = next_expiry
+  where id = attempt_record.id
+  returning * into attempt_record;
+
+  update private.worker_nodes
+  set last_seen_at = heartbeat_now
+  where id = worker_record.id;
+
+  return jsonb_build_object(
+    'cancelRequested', cancellation_requested,
+    'leaseExpiresAt', attempt_record.lease_expires_at
+  );
+end;
+$$;
+
+revoke all on function public.heartbeat_worker_attempt(uuid, uuid, uuid, text)
+  from public, anon, authenticated, service_role;
+grant execute on function public.heartbeat_worker_attempt(uuid, uuid, uuid, text)
+  to service_role;
