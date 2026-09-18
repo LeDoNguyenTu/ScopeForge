@@ -8,6 +8,10 @@ import {
   validateRedirectTarget,
   type AuthorizedRuntimeTarget,
 } from "@/packages/runtime-observer";
+import type {
+  RuntimeMediatorHttpDiscoveryRecord,
+  RuntimeMediatorHttpDiscoveryResult,
+} from "./contracts";
 
 export type HttpDiscoveryRouteKind = "root" | "security-txt" | "robots" | "sitemap";
 export type HttpDiscoveryProfile = "root-only" | "well-known-safe";
@@ -30,20 +34,6 @@ export interface HttpDiscoveryMediatorProfile {
   budget: Readonly<HttpDiscoveryMediatorBudget>;
 }
 
-export interface HttpDiscoveryMediatorRecord {
-  routeKind: HttpDiscoveryRouteKind;
-  status: number;
-  contentType?: string;
-  redirected: boolean;
-  redirectBlockedReason?: "CROSS_HOST" | "SCHEME" | "PORT" | "CREDENTIALS";
-}
-
-export interface HttpDiscoveryMediatorResult {
-  kind: "phase11_http_discovery";
-  requestCount: number;
-  records: readonly HttpDiscoveryMediatorRecord[];
-}
-
 export type HttpDiscoveryMediatorFailureCode =
   | "HTTP_DISCOVERY_REQUEST_BUDGET"
   | "HTTP_DISCOVERY_REQUEST_TIMEOUT"
@@ -52,7 +42,7 @@ export type HttpDiscoveryMediatorFailureCode =
   | "HTTP_DISCOVERY_PROFILE_INVALID";
 
 export type HttpDiscoveryMediatorExecution =
-  | Readonly<{ status: "succeeded"; result: HttpDiscoveryMediatorResult }>
+  | Readonly<{ status: "succeeded"; result: RuntimeMediatorHttpDiscoveryResult }>
   | Readonly<{ status: "cancelled"; requestCount: number }>
   | Readonly<{ status: "failed"; failureCode: HttpDiscoveryMediatorFailureCode; requestCount: number }>;
 
@@ -168,7 +158,7 @@ export async function executeHttpDiscoveryProfile(
   const signal = dependencies.signal;
   const startedAt = now();
   let requestCount = 0;
-  const records: HttpDiscoveryMediatorRecord[] = [];
+  const records: RuntimeMediatorHttpDiscoveryRecord[] = [];
 
   const cancellationRequested = async () => signal?.aborted === true || await isCancelled();
 
@@ -234,7 +224,7 @@ export async function executeHttpDiscoveryProfile(
 
     let response = attempted.response;
     let redirected = false;
-    let redirectBlockedReason: HttpDiscoveryMediatorRecord["redirectBlockedReason"];
+    let redirectBlockedReason: RuntimeMediatorHttpDiscoveryRecord["redirectBlockedReason"];
     const location = firstHeader(response.headers, "location");
 
     if (profile.followSameOriginRedirects
