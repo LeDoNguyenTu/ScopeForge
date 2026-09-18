@@ -26,6 +26,7 @@ function context(): Phase11HttpWorkerFinalizationContext {
     providerId: "scopeforge.http-discovery",
     providerVersion: "1.0.0",
     discoveryProfile: "well-known-safe",
+    maxRequests: 12,
     leasedAt: "2026-09-19T01:00:00.000Z",
     leaseExpiresAt: "2026-09-19T01:00:30.000Z",
     cancelRequested: false,
@@ -93,7 +94,7 @@ describe("Phase 11 HTTP worker finalization", () => {
     expect(JSON.stringify(finalize.mock.calls[0]?.[0])).not.toMatch(/https?:\/\//);
   });
 
-  it("persists failed and cancelled terminals without observations", async () => {
+  it("conservatively charges failed and cancelled terminals against the authorized request budget", async () => {
     for (const outcome of ["failed", "cancelled"] as const) {
       const finalize = vi.fn(async (_input: unknown) => ({ outcome, replayed: false }));
       await finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal(outcome) }, {
@@ -104,7 +105,7 @@ describe("Phase 11 HTTP worker finalization", () => {
       expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
         outcome,
         observations: [],
-        requestCount: 0,
+        requestCount: 12,
       }));
     }
   });
@@ -120,6 +121,7 @@ describe("Phase 11 HTTP worker finalization", () => {
       outcome: "cancelled",
       failureCode: null,
       observations: [],
+      requestCount: 2,
     }));
   });
 
