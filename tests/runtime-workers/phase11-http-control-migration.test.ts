@@ -188,6 +188,7 @@ describe("Phase 11C HTTP worker control migration", () => {
     expect(context).toMatch(/attempt_record\.worker_id is distinct from target_worker_id/i);
     expect(context).toContain("'authorizationSnapshotRef'");
     expect(context).toContain("'discoveryProfile'");
+    expect(context).toContain("'maxRequests', action_record.max_requests");
     expect(context).toContain("'priorTerminalDigest'");
   });
 
@@ -207,6 +208,8 @@ describe("Phase 11C HTTP worker control migration", () => {
     expect(finalize).toMatch(/action_record\.authorization_id is distinct from binding_record\.authorization_id/i);
     expect(finalize).toContain("PHASE11_HTTP_AUTHORIZATION_EXPIRED");
     expect(finalize).toMatch(/target_outcome <> 'succeeded'[\s\S]*?jsonb_array_length\(observation_rows\) <> 0/i);
+    expect(finalize).not.toMatch(/target_request_count\s*:=\s*0/i);
+    expect(finalize).toContain("conservative upper bound");
   });
 
   it("recovers unclaimed and expired Phase 11 work without legacy scan-job authority", async () => {
