@@ -23,6 +23,7 @@ PRs #143 through #145 released the Phase 11C trusted HTTP worker path, reproduci
 - terminal host state: no containers or mediator sockets; exact candidate checkout clean
 - source branch: `feat/phase-11c-worker-enablement-config-20260919`
 - source commit: `dda81ea878b19aa77943e3874de0ccd4230bd8de`
+- PR #147: open; exact-head CI required before merge
 - TDD RED: 4 intended assertions failed because the class, immutable runtime image, and entry wiring were absent
 - focused GREEN: 3 files/12 tests; worker runtime/supervisor batch: 8 files/25 tests; typecheck, audit, CLI, worker build, benchmark suite, and Next production build passed
 - full local rerun: 482 files and 2,236 tests passed; 4 files and 26 tests skipped by their existing gates
@@ -33,4 +34,4 @@ Phase 11A/11C migrations remain unapplied and hosted `phase11_http_discovery_v1`
 
 ## Next
 
-Publish the source slice and require exact-candidate CI. After merge, install only the accepted immutable image on the dedicated host and prove authenticated idle operation plus class-scoped rollback before applying Phase 11 migrations or enabling production execution.
+Merge PR #147 only after exact-candidate CI. After merge, install only the accepted immutable image on the dedicated host and prove authenticated idle operation plus class-scoped rollback before applying Phase 11 migrations or enabling production execution.

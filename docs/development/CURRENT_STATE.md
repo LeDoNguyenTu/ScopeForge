@@ -49,12 +49,13 @@ See `docs/development/PHASE11C_LINUX_ACCEPTANCE.md`.
 - Hosted `phase11_http_discovery_v1` execution remains disabled.
 - Production worker configuration still does not select the Phase 11 HTTP class.
 - Pending source commit `dda81ea878b19aa77943e3874de0ccd4230bd8de` permits a dedicated worker host to select the class only when both an absolute Podman path and immutable `SCOPEFORGE_RUNTIME_IMAGE` digest are supplied.
+- PR #147 carries that source slice and remains subject to exact-head CI.
 - The reproducible runtime image has passed its exact-image Linux containment acceptance.
 - No external Nmap, Nuclei, or httpx process runner is enabled.
 
 ## Next
 
-1. publish and merge the default-off worker configuration slice after exact-candidate CI
+1. merge PR #147 after exact-candidate CI
 2. prove authenticated idle registration/claim/heartbeat and rollback before enabling the class
 3. apply only the reviewed absent Phase 11 migrations during that separately recorded release gate
 4. keep Nmap, Nuclei, and external httpx process execution disabled

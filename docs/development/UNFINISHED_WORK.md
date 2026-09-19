@@ -4,7 +4,7 @@ Last reconciled: 2026-09-19, Asia/Singapore.
 
 ## Active
 
-Publish and merge the separately reviewed default-off worker-host configuration slice. PR #146 already released the exact Phase 11C Linux acceptance record.
+Merge PR #147 after exact-head CI. PR #146 already released the exact Phase 11C Linux acceptance record.
 
 ## Completed external gate
 

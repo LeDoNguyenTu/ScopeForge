@@ -12,6 +12,7 @@ Last reconciled: 2026-09-19, Asia/Singapore. Live GitHub/provider state wins.
 - PR #146 released the exact-image Linux acceptance record after exact-head CI `35408781659` passed.
 - Active source branch: `feat/phase-11c-worker-enablement-config-20260919`.
 - Source commit `dda81ea878b19aa77943e3874de0ccd4230bd8de` adds explicit, default-off worker-host selection of `phase11_http_discovery_v1` using an immutable runtime-image digest.
+- PR #147 is open; require exact-head CI before merging.
 
 ## Released reconciliation slice
 
@@ -33,7 +34,7 @@ The forward-only migration is:
 
 ## Immediate work
 
-1. publish and merge the source branch after exact-candidate CI
+1. merge PR #147 after exact-candidate CI
 2. deploy only the accepted immutable image digest
 3. prove authenticated idle worker operation and a class-scoped rollback
 4. re-read the production migration ledger, then apply only the reviewed absent Phase 11 migrations as a separate release action
