@@ -169,6 +169,8 @@ Record all of the following:
 
 A succeeded or no-signal result is acceptable if accounting and evidence semantics are correct. Do not manufacture a finding to make the canary look successful.
 
+The released worker finalizer must also invoke the trusted run orchestrator after terminal persistence. This invocation is retry-safe: an exact terminal replay repeats only the idempotent parent-run advancement, while terminal evidence and accounting remain single-write. For the one-request canary, the follow-up advance should stop the run at the exhausted request budget.
+
 ## Failure response
 
 If any of these occur, stop the Phase 11 worker and keep the class disabled:

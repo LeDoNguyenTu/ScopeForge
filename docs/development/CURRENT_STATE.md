@@ -4,14 +4,15 @@ Last reconciled: 2026-09-20, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `e972ef6d9a9cacbd3f403398754886d4b7ce4bd1`; exact-main CI `35438329301` passed.
+- `main`: `d92698ae118fb5aa0af7d9db6589348b89576d2e`; exact-main CI `35460959197` passed.
 - PR #143 released the trusted Phase 11C HTTP worker control path.
 - PR #144 released the reproducible Phase 11C runtime-image candidate source and permanent `npm run build:workers` CI gate.
 - PR #145 released bounded Phase 11 request/result/coverage reconciliation.
 - PR #146 released the exact-image Linux acceptance record.
 - PR #147 released explicit default-off worker-host selection for `phase11_http_discovery_v1`.
 - PR #147 exact-head CI run `35409821247` passed.
-- Vercel production deployment `dpl_3UGR4KQ8Qcj59pR962ubNGTEg5T2` is READY and built from the exact current `main` SHA.
+- PR #150 released the fixed-parameter platform-admin Phase 11 canary control and passed exact-head CI run `35460749698`.
+- Vercel production deployment `dpl_49mavQuJxwksw1AcaZzmZfaAdvSA` is READY and contains `/admin/phase11`.
 - Vercel reported no production runtime errors in the latest 24-hour check.
 - Vercel Hobby deployment filtering remains active for ordinary feature branches.
 
@@ -63,7 +64,7 @@ See `docs/development/PHASE11C_LINUX_ACCEPTANCE.md`.
 
 - Authenticated idle operation and class-scoped rollback are proven on the dedicated host.
 - Production canary acceptance has not yet been run.
-- The active source slice adds the missing closed HTTP planner parameters and a platform-admin-only verified-asset canary entry point.
+- The active follow-up source slice advances the parent run after fresh or replayed terminal HTTP finalization, preserving retry safety.
 - The accepted immutable runtime image must be used unchanged for the enablement gate.
 - External Nmap, Nuclei, and external httpx process runners remain disabled.
 
@@ -75,7 +76,7 @@ The public workspace collaborator `SECURITY DEFINER` RPCs are intentionally auth
 
 ## Next
 
-1. release the canary-control source slice
+1. release the post-finalization run advancement slice
 2. run one bounded authorized production canary from `/admin/phase11`
 3. verify accounting, terminal state, cleanup, and logs
 4. keep Nmap, Nuclei, and external httpx process execution disabled until separately reviewed

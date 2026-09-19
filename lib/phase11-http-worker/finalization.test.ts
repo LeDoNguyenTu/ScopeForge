@@ -60,6 +60,38 @@ function terminal(outcome: "succeeded" | "failed" | "cancelled" = "succeeded") {
 }
 
 describe("Phase 11 HTTP worker finalization", () => {
+  it("advances the parent run after a new terminal result and an exact replay", async () => {
+    const advanceRun = vi.fn(async () => undefined);
+    const firstFinalize = vi.fn(async (_input: unknown) => ({ outcome: "succeeded" as const, replayed: false }));
+    await finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal() }, {
+      getContext: async () => context(),
+      finalize: firstFinalize,
+      advanceRun,
+      now: () => observedAt,
+    });
+    expect(advanceRun).toHaveBeenCalledWith({
+      workspaceId: context().workspaceId,
+      runId: context().runId,
+      authorizationSnapshotRef: context().authorizationSnapshotRef,
+    });
+
+    const digest = (firstFinalize.mock.calls[0]?.[0] as { terminalDigest: string }).terminalDigest;
+    advanceRun.mockClear();
+    await finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal() }, {
+      getContext: async () => ({
+        ...context(), finishedAt: observedAt.toISOString(), priorOutcome: "succeeded", priorTerminalDigest: digest,
+      }),
+      finalize: vi.fn(),
+      advanceRun,
+      now: () => observedAt,
+    });
+    expect(advanceRun).toHaveBeenCalledWith({
+      workspaceId: context().workspaceId,
+      runId: context().runId,
+      authorizationSnapshotRef: context().authorizationSnapshotRef,
+    });
+  });
+
   it("normalizes successful results using only authoritative target and authorization identity", async () => {
     const finalize = vi.fn(async (_input: unknown) => ({ outcome: "succeeded" as const, replayed: false }));
     const getContext = vi.fn(async () => context());
@@ -67,6 +99,7 @@ describe("Phase 11 HTTP worker finalization", () => {
     await expect(finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal() }, {
       getContext,
       finalize,
+      advanceRun: async () => undefined,
       now: () => observedAt,
     })).resolves.toEqual({ outcome: "succeeded", replayed: false });
 
@@ -100,6 +133,7 @@ describe("Phase 11 HTTP worker finalization", () => {
       await finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal(outcome) }, {
         getContext: async () => context(),
         finalize,
+        advanceRun: async () => undefined,
         now: () => observedAt,
       });
       expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
@@ -115,6 +149,7 @@ describe("Phase 11 HTTP worker finalization", () => {
     await finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal() }, {
       getContext: async () => ({ ...context(), cancelRequested: true }),
       finalize,
+      advanceRun: async () => undefined,
       now: () => observedAt,
     });
     expect(finalize).toHaveBeenCalledWith(expect.objectContaining({
@@ -129,6 +164,7 @@ describe("Phase 11 HTTP worker finalization", () => {
     const firstFinalize = vi.fn(async (_input: unknown) => ({ outcome: "succeeded" as const, replayed: false }));
     await finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal() }, {
       getContext: async () => context(), finalize: firstFinalize, now: () => observedAt,
+      advanceRun: async () => undefined,
     });
     const firstCall = firstFinalize.mock.calls[0]?.[0] as { terminalDigest: string } | undefined;
     expect(firstCall).toBeDefined();
@@ -139,6 +175,7 @@ describe("Phase 11 HTTP worker finalization", () => {
         ...context(), finishedAt: observedAt.toISOString(), priorOutcome: "succeeded", priorTerminalDigest: digest,
       }),
       finalize: replayFinalize,
+      advanceRun: async () => undefined,
       now: () => observedAt,
     })).resolves.toEqual({ outcome: "succeeded", replayed: true });
     expect(replayFinalize).not.toHaveBeenCalled();
@@ -147,14 +184,14 @@ describe("Phase 11 HTTP worker finalization", () => {
   it("fails closed for expired leases and conflicting completed attempts", async () => {
     await expect(finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal() }, {
       getContext: async () => ({ ...context(), leaseExpiresAt: observedAt.toISOString() }),
-      finalize: vi.fn(), now: () => observedAt,
+      finalize: vi.fn(), advanceRun: async () => undefined, now: () => observedAt,
     })).rejects.toThrow("PHASE11_HTTP_WORKER_AUTHORIZATION_FAILED");
 
     await expect(finalizeLeasedPhase11HttpWorker({ ...identity, terminal: terminal() }, {
       getContext: async () => ({
         ...context(), finishedAt: observedAt.toISOString(), priorOutcome: "succeeded", priorTerminalDigest: "0".repeat(64),
       }),
-      finalize: vi.fn(), now: () => observedAt,
+      finalize: vi.fn(), advanceRun: async () => undefined, now: () => observedAt,
     })).rejects.toThrow("PHASE11_HTTP_WORKER_TERMINAL_CONFLICT");
   });
 
@@ -164,7 +201,7 @@ describe("Phase 11 HTTP worker finalization", () => {
       duplicate.result.records.push({ routeKind: "security-txt", status: 404, contentType: "text/plain", redirected: false });
     }
     await expect(finalizeLeasedPhase11HttpWorker({ ...identity, terminal: duplicate }, {
-      getContext: async () => context(), finalize: vi.fn(), now: () => observedAt,
+      getContext: async () => context(), finalize: vi.fn(), advanceRun: async () => undefined, now: () => observedAt,
     })).rejects.toThrow("PHASE11_HTTP_WORKER_TERMINAL_INVALID");
   });
 });

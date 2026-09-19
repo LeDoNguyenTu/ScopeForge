@@ -13,41 +13,14 @@ import type {
 } from "@/lib/pentest-runs/types";
 import { persistPentestGraphState, type PersistGraphStateInput } from "@/lib/pentest-graph/persistence";
 import { createPhase11HttpWorkerQueueServerDependencies } from "@/lib/phase11-http-worker/queue-server-dependencies";
+import { HTTP_CANARY_CAPABILITY } from "@/lib/phase11-http-worker/capabilities";
 import { requirePlatformAdmin } from "@/lib/platform-admin/authorization";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  makeCapabilityDescriptor,
-  phase11StableId,
-  type CapabilityDescriptor,
-} from "@/packages/security-planning";
+import { phase11StableId } from "@/packages/security-planning";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const AUTHORIZATION_TTL_MS = 5 * 60_000;
 const RUN_DEADLINE_MS = 30_000;
-
-const capabilityResult = makeCapabilityDescriptor({
-  capabilityId: "web.http.probe.v1",
-  version: "1.0.0",
-  supportedAssetTypes: ["http_service", "api"],
-  requiredObservationTypes: [],
-  mode: "safe_active",
-  expectedEffects: ["root_response_observed"],
-  evidenceTypes: ["http.response.metadata"],
-  maxRequestBudget: 1,
-  maxRuntimeMs: 5_000,
-  stateMutationClass: "none",
-  credentialClasses: [],
-  sessionClasses: [],
-  cleanupRequired: false,
-  providerIds: ["scopeforge.http-discovery"],
-  closedParameters: {
-    discoveryProfile: "root-only",
-    methodProfile: "GET_ONLY",
-    followSameOriginRedirects: false,
-  },
-});
-if (!capabilityResult.ok) throw new Error(capabilityResult.error.message);
-const HTTP_CANARY_CAPABILITY: CapabilityDescriptor = capabilityResult.value;
 
 export interface Phase11CanaryAsset {
   id: string;

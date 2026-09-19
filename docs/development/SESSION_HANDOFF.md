@@ -4,10 +4,9 @@ Last refreshed: 2026-09-20, Asia/Singapore.
 
 ## Resume exactly here
 
-- Runtime implementation baseline is PR #147 at `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`.
-- PR #147 released explicit immutable Phase 11 worker-host configuration and passed exact-head CI `35409821247`.
-- Subsequent reconciliation/runbook changes are documentation-only and do not change the runtime implementation baseline.
-- Vercel production is READY on the PR #147 implementation baseline and `scopeforge.dev` returns HTTP 200.
+- Released `main` is `d92698ae118fb5aa0af7d9db6589348b89576d2e`, merge of PR #150; post-merge CI `35460959197` passed.
+- PR #150 released `/admin/phase11` with a fixed root-only GET canary for existing verified HTTPS assets.
+- Vercel deployment `dpl_49mavQuJxwksw1AcaZzmZfaAdvSA` is READY and contains the Phase 11 admin route.
 - Supabase is `tdgpibrepzcvdivztkta`, ACTIVE_HEALTHY on PostgreSQL 17.
 - Phase 11A and Phase 11C migrations are already present in production. Do not reapply them.
 - The accepted runtime image remains `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`.
@@ -18,7 +17,7 @@ Last refreshed: 2026-09-20, Asia/Singapore.
 
 ## Next action
 
-1. finish and release branch `feat/phase11-production-canary-control-20260920`
+1. finish and release branch `ops/phase11-production-canary-evidence-20260920`, which advances the parent run after terminal worker finalization and exact replay
 2. use `/admin/phase11` to select an existing verified HTTPS web/API asset owned/administered by the signed-in operator
 3. run exactly one fixed root-GET canary through the normal planner/policy/authorization/queue path
 4. verify terminal task/action state, observations, request/coverage accounting, host cleanup, and logs

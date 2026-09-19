@@ -6,7 +6,7 @@ Last reconciled: 2026-09-20, Asia/Singapore.
 
 Phase 11C source, production schema, worker identity registration, exact-image Linux containment acceptance, and Vercel deployment are complete.
 
-The worker's authenticated idle operation and class-scoped rollback are complete. The remaining release blocker is one real canary through the normal planner/policy/authorization/queue path. Branch `feat/phase11-production-canary-control-20260920` adds the required fixed-parameter admin entry point.
+The worker's authenticated idle operation, class-scoped rollback, and fixed-parameter admin canary entry point are complete. Before the one real canary, branch `ops/phase11-production-canary-evidence-20260920` must release retry-safe parent-run advancement after terminal worker finalization.
 
 ## Completed external gate
 
@@ -14,7 +14,7 @@ Image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab908
 
 ## Next release gate
 
-1. release the fixed-parameter canary control
+1. release the post-finalization parent-run advancement slice
 2. run one bounded authorized production canary
 3. verify request accounting, result-to-coverage reconciliation, logs, and terminal cleanup
 4. keep external Nmap, Nuclei, and external httpx process execution disabled
@@ -22,6 +22,7 @@ Image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab908
 ## Production state already complete - do not repeat
 
 - PR #147 is merged into `main`.
+- PR #150 is merged into `main`; exact-head and post-merge CI passed.
 - PR #147 exact-head CI passed.
 - Vercel production is READY on the exact current `main` SHA.
 - Production Supabase already contains the reviewed Phase 11A/11C migrations.
