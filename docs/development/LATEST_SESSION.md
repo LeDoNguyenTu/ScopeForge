@@ -4,14 +4,14 @@ Date: 2026-09-19, Asia/Singapore
 
 ## Outcome
 
-Phase 11C source, schema, worker identity registration, Linux containment acceptance, and Vercel production deployment are now reconciled.
+Phase 11C source, schema, worker identity registration, Linux containment acceptance, Vercel production deployment, and release handoff documentation are reconciled.
 
 ## Exact live evidence
 
-- current `main`: `e972ef6d9a9cacbd3f403398754886d4b7ce4bd1` after documentation reconciliation PR #148
-- implementation baseline before docs-only reconciliation: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`, merge of PR #147
+- implementation baseline: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`, merge of PR #147
 - PR #147 exact-head CI `35409821247`: success
-- Vercel production deployment `dpl_3UGR4KQ8Qcj59pR962ubNGTEg5T2`: READY, built from `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`
+- subsequent documentation-only reconciliation does not change the runtime implementation baseline
+- Vercel production deployment `dpl_3UGR4KQ8Qcj59pR962ubNGTEg5T2`: READY, built from the PR #147 implementation baseline
 - Vercel runtime errors in latest 24-hour check: none
 - `scopeforge.dev`: HTTP 200 with nonce-based CSP and expected security headers
 - Supabase `tdgpibrepzcvdivztkta`: ACTIVE_HEALTHY, PostgreSQL 17
