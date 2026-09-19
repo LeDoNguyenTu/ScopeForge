@@ -1,10 +1,10 @@
 # ScopeForge Codex handoff
 
-Last reconciled: 2026-09-19, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-09-20, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Resume point
 
-- Released `main`: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`, merge of PR #147.
+- Released `main`: `e972ef6d9a9cacbd3f403398754886d4b7ce4bd1`, merge of PR #148; exact-main CI `35438329301` passed.
 - PR #147 exact-head CI run `35409821247` passed.
 - Vercel production deployment `dpl_3UGR4KQ8Qcj59pR962ubNGTEg5T2` is READY and is built from the exact current `main` SHA.
 - PR #143 released trusted Phase 11C HTTP worker control.
@@ -16,7 +16,9 @@ Last reconciled: 2026-09-19, Asia/Singapore. Live GitHub/provider state wins.
 - Production Supabase project `tdgpibrepzcvdivztkta` is ACTIVE_HEALTHY on PostgreSQL 17.
 - Live migration history now includes Phase 11A planning/orchestration, Phase 11C HTTP worker control, and Phase 11C result coverage reconciliation. Do not reapply them.
 - A dedicated `phase11_http_discovery_v1` worker identity is already registered for software version `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`.
-- That Phase 11 worker has not heartbeated yet and there are zero Phase 11 worker tasks, so the remaining release work is host-side enablement and bounded production acceptance.
+- The worker is deployed as `scopeforge-worker@phase11-http`; authenticated empty claims and class-scoped stop/start rollback passed without changing the existing snapshot/scan workers.
+- Idle claims intentionally do not update `last_seen_at`; it advances only for leased task heartbeats.
+- Active branch `feat/phase11-production-canary-control-20260920` adds the missing planner-owned closed HTTP parameters and a platform-admin verified-asset canary control.
 
 ## Released reconciliation slice
 
@@ -40,14 +42,11 @@ It is already represented in the live production migration history.
 
 ## Immediate work
 
-1. on the dedicated Oracle worker host, install/use only the accepted immutable runtime image digest
-2. configure and start only the registered `phase11_http_discovery_v1` worker
-3. prove authenticated idle claim/heartbeat behavior
-4. exercise a class-scoped rollback that stops/disables only the Phase 11 HTTP worker
-5. run one bounded authorized production canary
-6. verify terminal cleanup, request accounting, result-to-coverage reconciliation, logs, cancellation/recovery, and rollback
-7. only after the canary succeeds, decide whether the class remains enabled
-8. keep external Nmap, Nuclei, and external httpx process execution disabled until their separately reviewed gates are complete
+1. release the canary-control source slice after exact-candidate validation
+2. run exactly one verified-asset canary from `/admin/phase11`
+3. verify terminal task/action state, request accounting, result-to-coverage reconciliation, logs, and host cleanup
+4. record exact evidence and close the operational runbook
+5. keep external Nmap, Nuclei, and external httpx process execution disabled until their separately reviewed gates are complete
 
 ## Hard boundaries
 

@@ -84,6 +84,7 @@ export interface CapabilityDescriptor {
   sessionClasses: readonly string[];
   cleanupRequired: boolean;
   providerIds: readonly string[];
+  closedParameters?: PrimitiveFacts;
 }
 
 export interface ActionIntent {
@@ -269,6 +270,7 @@ export function makeCapabilityDescriptor(input: unknown): DomainConstructionResu
     "sessionClasses",
     "cleanupRequired",
     "providerIds",
+    "closedParameters",
   ]);
   const extra = unknownField(input, allowed);
   if (extra) return failure("UNKNOWN_FIELD", `Capability descriptor field "${extra}" is not allowed.`);
@@ -290,6 +292,7 @@ export function makeCapabilityDescriptor(input: unknown): DomainConstructionResu
   const credentialClasses = stringArray(input.credentialClasses ?? []);
   const sessionClasses = stringArray(input.sessionClasses ?? []);
   const providerIds = stringArray(input.providerIds ?? []);
+  const closedParameters = primitiveFacts(input.closedParameters ?? {});
   const maxRequestBudget = positiveInteger(input.maxRequestBudget, 1);
   const maxRuntimeMs = positiveInteger(input.maxRuntimeMs, 30_000);
   const stateMutationClass = input.stateMutationClass === undefined
@@ -303,6 +306,7 @@ export function makeCapabilityDescriptor(input: unknown): DomainConstructionResu
   if (!supportedAssetTypes || !requiredObservationTypes || !expectedEffects || !evidenceTypes || !credentialClasses || !sessionClasses || !providerIds) {
     return failure("INVALID_ARRAY", "Capability descriptor list fields must contain only non-empty strings or supported asset types.");
   }
+  if (!closedParameters) return failure("INVALID_PARAMETERS", "Capability closedParameters must contain primitive bounded values only.");
   if (!maxRequestBudget || !maxRuntimeMs) return failure("INVALID_NUMBER", "Capability budgets must be positive integers.");
   if (!stateMutationClass) return failure("INVALID_INPUT", "stateMutationClass is invalid.");
   if (typeof cleanupRequired !== "boolean") return failure("INVALID_INPUT", "cleanupRequired must be boolean.");
@@ -324,6 +328,7 @@ export function makeCapabilityDescriptor(input: unknown): DomainConstructionResu
       sessionClasses: Object.freeze([...sessionClasses]),
       cleanupRequired,
       providerIds: Object.freeze([...providerIds]),
+      closedParameters,
     }),
   };
 }

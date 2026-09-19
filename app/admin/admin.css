@@ -37,10 +37,11 @@
 .adminStatusGood { color: var(--accent); }
 .adminStatusWarn { color: var(--medium); }
 .adminSearch { margin-bottom: 14px; display: flex; gap: 9px; }
-.adminSearch input, .adminForm input, .adminForm textarea { width: 100%; border: 1px solid #293648; border-radius: 10px; color: var(--text); background: #090e15; outline: none; }
+.adminSearch input, .adminForm input, .adminForm textarea, .adminForm select { width: 100%; border: 1px solid #293648; border-radius: 10px; color: var(--text); background: #090e15; outline: none; }
 .adminSearch input, .adminForm input { min-height: 42px; padding: 0 12px; }
+.adminForm select { min-height: 42px; padding: 0 12px; }
 .adminForm textarea { min-height: 92px; padding: 11px 12px; resize: vertical; }
-.adminSearch input:focus, .adminForm input:focus, .adminForm textarea:focus { border-color: rgba(115,239,188,.62); box-shadow: 0 0 0 3px rgba(115,239,188,.06); }
+.adminSearch input:focus, .adminForm input:focus, .adminForm textarea:focus, .adminForm select:focus { border-color: rgba(115,239,188,.62); box-shadow: 0 0 0 3px rgba(115,239,188,.06); }
 .adminButton { min-height: 40px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: #111925; font-size: 11px; font-weight: 750; }
 .adminButton:hover { border-color: #35465c; }
 .adminButtonPrimary { color: #06120e; border-color: var(--accent); background: var(--accent); }
@@ -88,7 +89,7 @@
   .platformAdminMobileBrand .scopeforgeWordmarkText { font-size: 13px; }
   .platformAdminMobileBrand > span:last-child { color: var(--muted-2); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
   .platformAdminMobileBack { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: rgba(17, 25, 37, .72); }
-  .platformAdminMobileNav { position: fixed; left: 10px; right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 40; min-height: 58px; padding: 6px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; border: 1px solid rgba(136, 179, 184, .20); border-radius: 18px; background: rgba(8, 14, 20, .96); box-shadow: 0 18px 46px rgba(0, 0, 0, .46); backdrop-filter: blur(20px); }
+  .platformAdminMobileNav { position: fixed; left: 10px; right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 40; min-height: 58px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; border: 1px solid rgba(136, 179, 184, .20); border-radius: 18px; background: rgba(8, 14, 20,.96); box-shadow: 0 18px 46px rgba(0, 0, 0, .46); backdrop-filter: blur(20px); }
   .platformAdminMobileNav a { min-width: 0; min-height: 46px; display: grid; place-items: center; align-content: center; gap: 3px; border-radius: 12px; color: var(--muted-2); font-size: 9px; line-height: 1; }
   .platformAdminMobileNav a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .platformAdminMobileNav a.isActive { color: #89ead3; background: rgba(115, 239, 188, .09); }

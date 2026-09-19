@@ -1,10 +1,10 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-19, Asia/Singapore. Live provider state wins.
+Last reconciled: 2026-09-20, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`.
+- `main`: `e972ef6d9a9cacbd3f403398754886d4b7ce4bd1`; exact-main CI `35438329301` passed.
 - PR #143 released the trusted Phase 11C HTTP worker control path.
 - PR #144 released the reproducible Phase 11C runtime-image candidate source and permanent `npm run build:workers` CI gate.
 - PR #145 released bounded Phase 11 request/result/coverage reconciliation.
@@ -55,14 +55,15 @@ See `docs/development/PHASE11C_LINUX_ACCEPTANCE.md`.
   - `phase_11c_result_coverage_reconciliation`
 - Do not reapply these migrations.
 - One `phase11_http_discovery_v1` worker identity is registered against the current `main` software version.
-- The registered Phase 11 worker has `last_seen_at = null`.
+- The registered Phase 11 worker is deployed and authenticated empty claims passed. Idle claims leave `last_seen_at = null` by design; it advances only for leased task heartbeats.
 - There are zero Phase 11 HTTP worker tasks.
 - Phase 11 worker-control RPCs checked in production are executable by `service_role` only.
 
 ## Production boundary
 
-- The Phase 11 database foundation is present, but the dedicated host worker has not yet demonstrated authenticated idle heartbeat.
+- Authenticated idle operation and class-scoped rollback are proven on the dedicated host.
 - Production canary acceptance has not yet been run.
+- The active source slice adds the missing closed HTTP planner parameters and a platform-admin-only verified-asset canary entry point.
 - The accepted immutable runtime image must be used unchanged for the enablement gate.
 - External Nmap, Nuclei, and external httpx process runners remain disabled.
 
@@ -74,8 +75,7 @@ The public workspace collaborator `SECURITY DEFINER` RPCs are intentionally auth
 
 ## Next
 
-1. start the registered Phase 11 worker on the dedicated Oracle host using only the accepted immutable image
-2. prove authenticated idle claim/heartbeat and class-scoped rollback
-3. run one bounded authorized production canary
-4. verify accounting, cleanup, cancellation/recovery, logs, and rollback
-5. keep Nmap, Nuclei, and external httpx process execution disabled until separately reviewed
+1. release the canary-control source slice
+2. run one bounded authorized production canary from `/admin/phase11`
+3. verify accounting, terminal state, cleanup, and logs
+4. keep Nmap, Nuclei, and external httpx process execution disabled until separately reviewed

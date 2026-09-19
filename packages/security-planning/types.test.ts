@@ -28,6 +28,32 @@ describe("Phase 11 planning domain contracts", () => {
     });
   });
 
+  it("accepts only primitive planner-owned closed capability parameters", () => {
+    const result = makeCapabilityDescriptor({
+      capabilityId: "web.http.probe.v1",
+      mode: "safe_active",
+      closedParameters: {
+        discoveryProfile: "root-only",
+        methodProfile: "GET_ONLY",
+        followSameOriginRedirects: false,
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.closedParameters).toEqual({
+      discoveryProfile: "root-only",
+      methodProfile: "GET_ONLY",
+      followSameOriginRedirects: false,
+    });
+
+    expect(makeCapabilityDescriptor({
+      capabilityId: "web.http.probe.v1",
+      mode: "safe_active",
+      closedParameters: { headers: { authorization: "secret" } },
+    }).ok).toBe(false);
+  });
+
   it.each([
     { providerNativeArgs: ["-A"] },
     { command: "nmap" },
