@@ -4,84 +4,66 @@ Last reconciled: 2026-09-19, Asia/Singapore.
 
 ## Purpose
 
-This source slice makes the existing networkless runtime worker entry reproducibly buildable as an immutable OCI image candidate for the Phase 11 HTTP containment gate.
+This source slice makes the networkless runtime worker entry reproducibly buildable as an immutable OCI image for the Phase 11 HTTP containment boundary.
 
-The image-source slice did not enable `phase11_http_discovery_v1` in the normal hosted worker runtime. After the exact image passed Linux containment acceptance, PR #147 separately added explicit worker-host configuration while leaving production disabled.
+The exact image has passed real Linux rootless-Podman/cgroup-v2 acceptance. PR #147 subsequently released explicit worker-host configuration for `phase11_http_discovery_v1`.
 
 ## Source artifacts
 
-`npm run build:workers` now produces:
+`npm run build:workers` produces:
 
 - `.scopeforge-worker-build/scopeforge-worker.cjs`
 - `.scopeforge-worker-build/hosted-scanner-entry.js`
 - `.scopeforge-worker-build/runtime-worker-entry.js`
 - `.scopeforge-worker-build/main.wasm.gz`
 
-The runtime image source is:
+Runtime image source:
 
 - `deploy/worker/Containerfile.runtime`
 
-The image contains only the bundled runtime mediator client entry and the reviewed digest-pinned Node base. It uses uid/gid 65532 and has no image-build package installation or network fetch step.
+The image contains the bundled runtime worker entry and reviewed digest-pinned Node base, uses uid/gid 65532, and performs no image-build package installation/network fetch.
 
-## Build on the accepted Linux worker host
+## Accepted immutable image
 
-From an exact clean release candidate:
+`localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`
 
-```text
-npm ci --ignore-scripts --no-audit --no-fund
-npm run build:workers
+Runtime bundle SHA-256:
 
-mkdir -p /var/tmp/scopeforge-phase11-runtime-image
-cp .scopeforge-worker-build/runtime-worker-entry.js /var/tmp/scopeforge-phase11-runtime-image/
-cp deploy/worker/Containerfile.runtime /var/tmp/scopeforge-phase11-runtime-image/Containerfile
+`05dd6f00bb5a1bf9be6b8046d3c7aeff79b4b78a7b73dba5d72acb095cee8153`
 
-cd /var/tmp/scopeforge-phase11-runtime-image
-podman build --network=none -f Containerfile -t localhost/scopeforge-runtime-worker:phase11-candidate .
-podman image inspect localhost/scopeforge-runtime-worker:phase11-candidate
-```
+Do not substitute a mutable tag or a newly rebuilt image without repeating the affected containment acceptance.
 
-Record and use only the resulting immutable digest form:
+## Acceptance evidence
 
-`localhost/scopeforge-runtime-worker@sha256:<digest>`
-
-Do not use the mutable build tag for acceptance execution.
-
-## Containment acceptance
-
-The Phase 6D Task 15 evidence is historical precedent, not acceptance for this rebuilt image. Repeat the affected checks against the exact new source SHA and exact image digest.
-
-At minimum prove:
+The accepted image proved:
 
 - rootless Podman and delegated cgroup v2
-- exact generated production command starts
-- `--pull=never`
+- production command generation with `--pull=never`
 - `--network=none`
 - read-only root filesystem
-- capabilities dropped
-- no-new-privileges
-- pids limit 8 remains viable for the current pinned Node image
+- capability drop and no-new-privileges
+- pids ceiling 8
 - 256 MiB memory and zero swap
 - 0.5 CPU ceiling
-- 8 MiB noexec/nosuid/nodev scratch for Phase 11 HTTP
-- only the exact mediator Unix socket is mounted
-- the socket bind remains read-only and connectable
-- direct DNS, public TCP/HTTPS, loopback and unrelated Unix sockets are unavailable from the container
-- authorized HTTPS succeeds only through the trusted mediator
-- private/link-local/metadata/multicast/reserved target classes fail closed
-- same-host redirect reauthorization remains enforced
-- cancellation aborts in-flight HTTPS and removes the container before mediator cleanup
-- wall-time and output ceilings force termination and cleanup
-- no mediator nonce, worker secret, authorization token, URL credential, response body or unrestricted header set appears in logs
-- terminal cleanup leaves no container or mediator socket
+- 8 MiB noexec/nosuid/nodev scratch
+- exact mediator Unix socket only
+- direct DNS/public TCP/HTTPS/loopback denial
+- real authorized HTTPS only through the trusted mediator
+- cross-host redirect rejection
+- cancellation cleanup
+- wall-time cleanup
+- output ceiling cleanup
+- clean terminal state with no remaining container or mediator socket
 
-## Production remains disabled
+See `PHASE11C_LINUX_ACCEPTANCE.md` for the exact host evidence.
 
-PR #147 permits the normal worker runtime to select the class only when a dedicated host provides an absolute Podman path and immutable runtime image digest. It does not:
+## Current production state
 
-- add a production worker environment variable for the runtime image
-- apply any Phase 11 or Phase 11C migration
-- register a production Phase 11 worker node
-- enable a hosted feature flag
-- enable Nmap, Nuclei or external httpx process execution
+- Production Phase 11A/11C migrations are already applied.
+- A `phase11_http_discovery_v1` worker identity is already registered for current `main`.
+- The registered worker has not heartbeated yet.
+- No Phase 11 HTTP worker task has run.
+- Vercel production is READY on current `main`.
+- The remaining gate is host-side worker start, idle authentication proof, rollback proof, and one bounded authorized canary.
 
-The exact image passed real Linux containment acceptance. A separate operational release must still install the accepted digest, register and authenticate a dedicated worker, prove idle operation and class-scoped rollback, recheck the migration ledger, and complete a bounded authorized canary before hosted execution remains enabled.
+See `PHASE11C_PRODUCTION_ENABLEMENT.md` for the operational release procedure.
