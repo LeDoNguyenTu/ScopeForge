@@ -6,7 +6,7 @@ Last reconciled: 2026-09-19, Asia/Singapore.
 
 This source slice makes the existing networkless runtime worker entry reproducibly buildable as an immutable OCI image candidate for the Phase 11 HTTP containment gate.
 
-It does not enable `phase11_http_discovery_v1` in the normal hosted worker runtime.
+The image-source slice did not enable `phase11_http_discovery_v1` in the normal hosted worker runtime. After the exact image passed Linux containment acceptance, PR #147 separately added explicit worker-host configuration while leaving production disabled.
 
 ## Source artifacts
 
@@ -74,15 +74,14 @@ At minimum prove:
 - no mediator nonce, worker secret, authorization token, URL credential, response body or unrestricted header set appears in logs
 - terminal cleanup leaves no container or mediator socket
 
-## Deliberately still disabled
+## Production remains disabled
 
-This source slice does not:
+PR #147 permits the normal worker runtime to select the class only when a dedicated host provides an absolute Podman path and immutable runtime image digest. It does not:
 
-- add `phase11_http_discovery_v1` to `packages/worker-runtime/config.ts`
 - add a production worker environment variable for the runtime image
 - apply any Phase 11 or Phase 11C migration
 - register a production Phase 11 worker node
 - enable a hosted feature flag
 - enable Nmap, Nuclei or external httpx process execution
 
-The normal long-running worker must remain unable to select the Phase 11 HTTP class until the exact image passes real Linux containment acceptance and a separate enablement review authorizes the configuration change.
+The exact image passed real Linux containment acceptance. A separate operational release must still install the accepted digest, register and authenticate a dedicated worker, prove idle operation and class-scoped rollback, recheck the migration ledger, and complete a bounded authorized canary before hosted execution remains enabled.
