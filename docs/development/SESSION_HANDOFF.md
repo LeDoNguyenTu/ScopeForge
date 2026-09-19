@@ -4,9 +4,10 @@ Last refreshed: 2026-09-19, Asia/Singapore.
 
 ## Resume exactly here
 
-- Current `main` includes PR #147 and documentation reconciliation PR #148.
+- Runtime implementation baseline is PR #147 at `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`.
 - PR #147 released explicit immutable Phase 11 worker-host configuration and passed exact-head CI `35409821247`.
-- Vercel production is READY on the PR #147 implementation SHA and `scopeforge.dev` returns HTTP 200.
+- Subsequent reconciliation/runbook changes are documentation-only and do not change the runtime implementation baseline.
+- Vercel production is READY on the PR #147 implementation baseline and `scopeforge.dev` returns HTTP 200.
 - Supabase is `tdgpibrepzcvdivztkta`, ACTIVE_HEALTHY on PostgreSQL 17.
 - Phase 11A and Phase 11C migrations are already present in production. Do not reapply them.
 - The accepted runtime image remains `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`.
