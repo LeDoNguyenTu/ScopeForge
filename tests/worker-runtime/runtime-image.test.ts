@@ -24,10 +24,11 @@ describe("runtime worker image candidate", () => {
     expect(containerfile).not.toMatch(/https?:\/\//);
   });
 
-  it("matches the immutable Podman sandbox entry path without widening hosted worker configuration", async () => {
-    const [command, config] = await Promise.all([
+  it("matches the immutable Podman sandbox entry path and wires only explicit hosted runtime authority", async () => {
+    const [command, config, entry] = await Promise.all([
       readFile("packages/runtime-worker-sandbox/podman-command.ts", "utf8"),
       readFile("packages/worker-runtime/config.ts", "utf8"),
+      readFile("packages/worker-runtime/entry.ts", "utf8"),
     ]);
     expect(command).toContain('"/app/runtime-worker-entry.js"');
     expect(command).toContain('"--pull=never"');
@@ -36,7 +37,11 @@ describe("runtime worker image candidate", () => {
     expect(command).toContain('"--cap-drop=all"');
     expect(command).toContain('"--security-opt=no-new-privileges"');
 
-    const configUnion = config.match(/export type WorkerRuntimeConfig =([\s\S]*?);\n/)?.[1] ?? "";
-    expect(configUnion).not.toContain("phase11_http_discovery_v1");
+    const configUnion = config.match(/export type WorkerRuntimeConfig =([\s\S]*?);\r?\n\r?\nfunction required/)?.[1] ?? "";
+    expect(configUnion).toContain("phase11_http_discovery_v1");
+    expect(configUnion).toContain("runtimeImage: string");
+    expect(entry).toContain("createRuntimeWorkerExecutor");
+    expect(entry).toContain("createRuntimeNetworkPreparer");
+    expect(entry).toContain("runtimeNetworkPreparer");
   });
 });

@@ -2,6 +2,8 @@ import {
   createPrivateRepositorySnapshotExecutor,
   createRepositoryScanExecutor,
   createRepositoryScanPreparer,
+  createRuntimeNetworkPreparer,
+  createRuntimeWorkerExecutor,
   runWorkerOnce,
   type AnyWorkerExecutor,
   type AnyWorkerExecutorContract,
@@ -34,6 +36,9 @@ async function main(): Promise<void> {
   const scanExecutor = config.executionClass === "phase3_repository_scan_no_egress_v1"
     ? createRepositoryScanExecutor({ podmanBinary: config.podmanBinary, scannerImage: config.scannerImage })
     : null;
+  const runtimeExecutor = config.executionClass === "phase11_http_discovery_v1"
+    ? createRuntimeWorkerExecutor({ podmanBinary: config.podmanBinary, runtimeImage: config.runtimeImage })
+    : null;
   const executor: AnyWorkerExecutor = Object.freeze({
     async execute(contract: AnyWorkerExecutorContract, signal: AbortSignal): Promise<AnyWorkerTerminalEnvelope> {
       if (contract.executionClass === "repository_snapshot_github_private_v1" && privateExecutor) {
@@ -42,11 +47,17 @@ async function main(): Promise<void> {
       if (contract.executionClass === "phase3_repository_scan_no_egress_v1" && scanExecutor) {
         return await scanExecutor.execute(contract, signal);
       }
+      if (contract.executionClass === "phase11_http_discovery_v1" && runtimeExecutor) {
+        return await runtimeExecutor.execute(contract, signal);
+      }
       throw new Error("Worker received a task outside its configured execution class.");
     },
   });
   const repositoryScanPreparer = config.executionClass === "phase3_repository_scan_no_egress_v1"
     ? createRepositoryScanPreparer({ workRoot: config.workRoot, expectedHost: config.expectedR2Host })
+    : undefined;
+  const runtimeNetworkPreparer = config.executionClass === "phase11_http_discovery_v1"
+    ? createRuntimeNetworkPreparer()
     : undefined;
 
   log({ event: "worker_runtime_started", executionClass: config.executionClass });
@@ -58,6 +69,7 @@ async function main(): Promise<void> {
       control,
       executor,
       ...(repositoryScanPreparer ? { repositoryScanPreparer } : {}),
+      ...(runtimeNetworkPreparer ? { runtimeNetworkPreparer } : {}),
     }),
   });
   log({ event: "worker_runtime_stopped", executionClass: config.executionClass });
