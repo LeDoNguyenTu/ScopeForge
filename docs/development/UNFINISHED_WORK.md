@@ -1,12 +1,12 @@
 # ScopeForge Unfinished Work
 
-Last reconciled: 2026-09-19, Asia/Singapore.
+Last reconciled: 2026-09-20, Asia/Singapore.
 
 ## Active
 
 Phase 11C source, production schema, worker identity registration, exact-image Linux containment acceptance, and Vercel deployment are complete.
 
-The remaining release blocker is dedicated Oracle-host operation. The registered `phase11_http_discovery_v1` worker has not heartbeated yet and no production Phase 11 canary has run.
+The worker's authenticated idle operation and class-scoped rollback are complete. The remaining release blocker is one real canary through the normal planner/policy/authorization/queue path. Branch `feat/phase11-production-canary-control-20260920` adds the required fixed-parameter admin entry point.
 
 ## Completed external gate
 
@@ -14,14 +14,10 @@ Image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab908
 
 ## Next release gate
 
-1. on the dedicated Oracle host, install/use only the accepted immutable image digest
-2. configure/start the already registered `phase11_http_discovery_v1` worker
-3. prove authenticated idle claim/heartbeat without creating a target task
-4. exercise class-scoped rollback so only the Phase 11 HTTP worker is disabled/stopped
-5. run one bounded authorized production canary
-6. verify request accounting, result-to-coverage reconciliation, cancellation/recovery, logs, and terminal cleanup
-7. leave the class enabled only after the bounded canary and rollback checks pass
-8. keep external Nmap, Nuclei, and external httpx process execution disabled
+1. release the fixed-parameter canary control
+2. run one bounded authorized production canary
+3. verify request accounting, result-to-coverage reconciliation, logs, and terminal cleanup
+4. keep external Nmap, Nuclei, and external httpx process execution disabled
 
 ## Production state already complete - do not repeat
 

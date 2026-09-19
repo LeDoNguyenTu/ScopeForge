@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   ArrowLeft,
+  FlaskConical,
   LayoutDashboard,
   ScrollText,
   Settings,
@@ -16,6 +17,7 @@ const navigation = [
   ["/admin", "Overview", LayoutDashboard],
   ["/admin/users", "Users", Users],
   ["/admin/workspaces", "Workspaces", Activity],
+  ["/admin/phase11", "Phase 11", FlaskConical],
   ["/admin/audit", "Audit", ScrollText],
   ["/admin/settings", "Settings", Settings],
 ] as const;
