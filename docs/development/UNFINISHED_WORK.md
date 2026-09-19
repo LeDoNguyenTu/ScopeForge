@@ -4,28 +4,42 @@ Last reconciled: 2026-09-19, Asia/Singapore.
 
 ## Active
 
-Merge PR #147 after exact-head CI. PR #146 already released the exact Phase 11C Linux acceptance record.
+Phase 11C source, production schema, worker identity registration, exact-image Linux containment acceptance, and Vercel deployment are complete.
+
+The remaining release blocker is dedicated Oracle-host operation. The registered `phase11_http_discovery_v1` worker has not heartbeated yet and no production Phase 11 canary has run.
 
 ## Completed external gate
 
-Exact `main` SHA `4f388834cec38aef335f4dbf5657101171416c9e` and image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a` passed the affected Linux containment gate. See `PHASE11C_LINUX_ACCEPTANCE.md`.
+Image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a` passed the affected Linux containment gate. See `PHASE11C_LINUX_ACCEPTANCE.md`.
 
 ## Next release gate
 
-1. require exact-candidate CI for source commit `dda81ea878b19aa77943e3874de0ccd4230bd8de` plus its handoff documentation
-2. deploy only the accepted immutable image digest
-3. register a dedicated class-specific worker identity and prove authenticated idle claim/heartbeat
-4. document and exercise rollback by disabling the class and stopping only that worker
-5. apply the reviewed Phase 11A/11C migrations only after a final live-ledger check
-6. enable a bounded acceptance window and prove one authorized production run plus cancellation/recovery/cleanup
-7. keep external Nmap, Nuclei, and httpx processes disabled
+1. on the dedicated Oracle host, install/use only the accepted immutable image digest
+2. configure/start the already registered `phase11_http_discovery_v1` worker
+3. prove authenticated idle claim/heartbeat without creating a target task
+4. exercise class-scoped rollback so only the Phase 11 HTTP worker is disabled/stopped
+5. run one bounded authorized production canary
+6. verify request accounting, result-to-coverage reconciliation, cancellation/recovery, logs, and terminal cleanup
+7. leave the class enabled only after the bounded canary and rollback checks pass
+8. keep external Nmap, Nuclei, and external httpx process execution disabled
+
+## Production state already complete - do not repeat
+
+- PR #147 is merged into `main`.
+- PR #147 exact-head CI passed.
+- Vercel production is READY on the exact current `main` SHA.
+- Production Supabase already contains the reviewed Phase 11A/11C migrations.
+- A Phase 11 HTTP worker identity is already registered.
+- Phase 11 worker-control RPCs are service-role only.
+- There are currently zero Phase 11 HTTP worker tasks.
 
 ## Separately gated
 
-- Do not apply Phase 11A or Phase 11C migrations to production yet.
-- Do not configure or start a production `phase11_http_discovery_v1` worker before the separate enablement release proves authentication and rollback.
-- Do not enable external Nmap, Nuclei, or httpx process execution.
-- Do not weaken Phase 11 authorization, worker authentication, RLS, service-role-only RPC boundaries, or runtime containment.
+- Do not reapply Phase 11A or Phase 11C migrations that are already present in production.
+- Do not use a mutable runtime image tag.
+- Do not enable external Nmap, Nuclei, or external httpx process execution.
+- Do not weaken Phase 11 authorization, worker authentication, RPC ACLs, or runtime containment.
+- Do not blindly enable RLS on existing private worker tables without a separately tested policy design.
 - Keep ScopeForge Supabase `tdgpibrepzcvdivztkta` separate from Job Command Center `xwsergbpvkcsugexssmc`.
 
 ## Completed - do not repeat
@@ -37,4 +51,7 @@ Exact `main` SHA `4f388834cec38aef335f4dbf5657101171416c9e` and image `localhost
 - PR #142 bounded HTTP mediator/runtime foundation.
 - PR #143 trusted HTTP worker control.
 - PR #144 reproducible runtime-image candidate source/build gate.
+- PR #145 result-to-coverage reconciliation.
+- PR #146 Linux acceptance record.
+- PR #147 default-off worker-host runtime selection.
 - Vercel Hobby deployment-budget filtering.

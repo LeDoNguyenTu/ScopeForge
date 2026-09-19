@@ -4,13 +4,15 @@ Last reconciled: 2026-09-19, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `54c347e5f989711624e0acfd65bf86b3008ddb8f`.
-- PR #143 released the source-only trusted Phase 11C HTTP worker control path.
+- `main`: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`.
+- PR #143 released the trusted Phase 11C HTTP worker control path.
 - PR #144 released the reproducible Phase 11C runtime-image candidate source and permanent `npm run build:workers` CI gate.
 - PR #145 released bounded Phase 11 request/result/coverage reconciliation.
-- Exact post-merge CI run `35406951340` passed and Vercel production deployment `6534790299` succeeded.
-- PR #146 released the exact-image Linux acceptance record after exact-head CI `35408781659` passed.
-- Exact post-merge CI `35409209893` passed for `54c347e5f989711624e0acfd65bf86b3008ddb8f`, including browser/security acceptance.
+- PR #146 released the exact-image Linux acceptance record.
+- PR #147 released explicit default-off worker-host selection for `phase11_http_discovery_v1`.
+- PR #147 exact-head CI run `35409821247` passed.
+- Vercel production deployment `dpl_3UGR4KQ8Qcj59pR962ubNGTEg5T2` is READY and built from the exact current `main` SHA.
+- Vercel reported no production runtime errors in the latest 24-hour check.
 - Vercel Hobby deployment filtering remains active for ordinary feature branches.
 
 ## Released Phase 11C source
@@ -27,12 +29,11 @@ It adds:
 - replay-safe accounting through the existing terminal replay boundary
 - monotonic graph persistence so stale graph snapshots cannot roll committed request/failure coverage backward
 - coverage semantics that charge consumed requests without falsely marking blocked/cancelled/policy-rejected actions as covered
-
-The new migration is `20260919020000_phase_11c_result_coverage_reconciliation.sql`. It remains unapplied.
+- dedicated worker-host selection requiring an absolute Podman path and immutable runtime-image digest
 
 ## Linux runtime acceptance
 
-The exact `main` SHA above passed the affected real-Linux rootless-Podman/cgroup-v2 containment gate on the dedicated Oracle host.
+The accepted source/image combination passed the affected real-Linux rootless-Podman/cgroup-v2 containment gate on the dedicated Oracle host.
 
 - runtime bundle SHA-256: `05dd6f00bb5a1bf9be6b8046d3c7aeff79b4b78a7b73dba5d72acb095cee8153`
 - accepted image: `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`
@@ -41,21 +42,40 @@ The exact `main` SHA above passed the affected real-Linux rootless-Podman/cgroup
 
 See `docs/development/PHASE11C_LINUX_ACCEPTANCE.md`.
 
-## Production boundary
+## Production database state
 
 - ScopeForge Supabase: `tdgpibrepzcvdivztkta`.
-- Production migration history still ends at Phase 10A3.
-- Phase 11 and Phase 11C migrations remain source-only and unapplied.
-- Hosted `phase11_http_discovery_v1` execution remains disabled.
-- Production worker configuration still does not select the Phase 11 HTTP class.
-- Pending source commit `dda81ea878b19aa77943e3874de0ccd4230bd8de` permits a dedicated worker host to select the class only when both an absolute Podman path and immutable `SCOPEFORGE_RUNTIME_IMAGE` digest are supplied.
-- PR #147 carries that source slice and remains subject to exact-head CI.
-- The reproducible runtime image has passed its exact-image Linux containment acceptance.
-- No external Nmap, Nuclei, or httpx process runner is enabled.
+- Project state: ACTIVE_HEALTHY.
+- PostgreSQL: 17.
+- Live migration history includes:
+  - `phase_11a_planning_graph`
+  - `phase_11a_run_orchestration`
+  - `phase_11a_run_orchestration_hardening`
+  - `phase_11c_http_worker_control`
+  - `phase_11c_result_coverage_reconciliation`
+- Do not reapply these migrations.
+- One `phase11_http_discovery_v1` worker identity is registered against the current `main` software version.
+- The registered Phase 11 worker has `last_seen_at = null`.
+- There are zero Phase 11 HTTP worker tasks.
+- Phase 11 worker-control RPCs checked in production are executable by `service_role` only.
+
+## Production boundary
+
+- The Phase 11 database foundation is present, but the dedicated host worker has not yet demonstrated authenticated idle heartbeat.
+- Production canary acceptance has not yet been run.
+- The accepted immutable runtime image must be used unchanged for the enablement gate.
+- External Nmap, Nuclei, and external httpx process runners remain disabled.
+
+## Security-advisor note
+
+Supabase flags RLS-disabled private worker tables. Direct checks show the inspected worker tables are not granted to `anon` or `authenticated`, and the Phase 11 RPC boundary is service-role only. Do not auto-enable RLS without a separate policy design and regression gate because doing so without policies would break trusted worker access.
+
+The public workspace collaborator `SECURITY DEFINER` RPCs are intentionally authenticated endpoints with explicit `auth.uid()` and owner/admin authorization checks.
 
 ## Next
 
-1. merge PR #147 after exact-candidate CI
-2. prove authenticated idle registration/claim/heartbeat and rollback before enabling the class
-3. apply only the reviewed absent Phase 11 migrations during that separately recorded release gate
-4. keep Nmap, Nuclei, and external httpx process execution disabled
+1. start the registered Phase 11 worker on the dedicated Oracle host using only the accepted immutable image
+2. prove authenticated idle claim/heartbeat and class-scoped rollback
+3. run one bounded authorized production canary
+4. verify accounting, cleanup, cancellation/recovery, logs, and rollback
+5. keep Nmap, Nuclei, and external httpx process execution disabled until separately reviewed
