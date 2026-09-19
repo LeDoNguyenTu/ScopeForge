@@ -4,14 +4,14 @@ Date: 2026-09-20, Asia/Singapore
 
 ## Outcome
 
-Phase 11C worker installation, authenticated idle operation, and class-scoped rollback are proven. The active source slice adds the missing normal planner-to-HTTP closed-parameter bridge and a narrow platform-admin canary control.
+PR #150 released the normal planner-to-HTTP closed-parameter bridge and narrow platform-admin canary control. A follow-up TDD slice now advances the parent run after terminal HTTP worker finalization so the bounded production canary can reach a deterministic terminal run state.
 
 ## Exact live evidence
 
-- implementation baseline: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`, merge of PR #147
-- PR #147 exact-head CI `35409821247`: success
-- subsequent documentation-only reconciliation does not change the runtime implementation baseline
-- Vercel production deployment `dpl_3UGR4KQ8Qcj59pR962ubNGTEg5T2`: READY, built from the PR #147 implementation baseline
+- released `main`: `d92698ae118fb5aa0af7d9db6589348b89576d2e`, merge of PR #150
+- PR #150 exact-head CI `35460749698`: success
+- post-merge CI `35460959197`: success
+- Vercel production deployment `dpl_49mavQuJxwksw1AcaZzmZfaAdvSA`: READY and contains `/admin/phase11`
 - Vercel runtime errors in latest 24-hour check: none
 - `scopeforge.dev`: HTTP 200 with nonce-based CSP and expected security headers
 - Supabase `tdgpibrepzcvdivztkta`: ACTIVE_HEALTHY, PostgreSQL 17
@@ -26,6 +26,6 @@ Phase 11C worker installation, authenticated idle operation, and class-scoped ro
 
 ## Remaining blocker
 
-Production has no released entry point that can create a safe HTTP action through the Phase 11 planner, policy, authorization, and queue path. Branch `feat/phase11-production-canary-control-20260920` closes that gap with TDD evidence and a platform-admin-only, verified-asset selector. After exact-candidate CI and deployment, run one canary and record accounting/cleanup evidence.
+The canary entry point is released. Review found that worker finalization reconciled task/action/coverage state but did not trigger the next trusted orchestration step, which could leave the parent run `running`. Branch `ops/phase11-production-canary-evidence-20260920` adds retry-safe post-finalization advancement. Its focused 68-test batch, typecheck, audit, CLI/worker/Next builds, benchmarks, and full 2,241-test run pass locally. Release it through exact-candidate CI, then run one canary and record accounting/cleanup evidence.
 
 External Nmap, Nuclei, and external httpx process execution remains disabled.

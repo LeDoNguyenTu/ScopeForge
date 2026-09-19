@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-20, Asia/Singapore.
 
-1. Release `feat/phase11-production-canary-control-20260920` after exact-candidate CI.
+1. Release `ops/phase11-production-canary-evidence-20260920` after exact-candidate CI.
 2. Run exactly one verified-asset canary from `/admin/phase11`.
 3. Verify terminal task/action state, request accounting, result-to-coverage reconciliation, host cleanup, and logs.
 4. Record exact production evidence and close the Phase 11C operational runbook.
@@ -11,6 +11,7 @@ Last reconciled: 2026-09-20, Asia/Singapore.
 Already complete and not to be repeated:
 
 - PR #147 merged and passed exact-head CI.
+- PR #150 merged, passed exact-head and post-merge CI, and deployed the canary control.
 - Vercel production is READY on current `main`.
 - The reviewed Phase 11A/11C migrations are already present in production Supabase.
 - A Phase 11 HTTP worker identity is already registered.

@@ -15,7 +15,20 @@ export interface FinalizeLeasedPhase11HttpWorkerInput extends Phase11HttpWorkerL
 export interface FinalizeLeasedPhase11HttpWorkerDependencies {
   getContext: Phase11HttpWorkerFinalizationRepository["getContext"];
   finalize: Phase11HttpWorkerFinalizationRepository["finalize"];
+  advanceRun(input: {
+    workspaceId: string;
+    runId: string;
+    authorizationSnapshotRef: string;
+  }): Promise<unknown>;
   now?: () => Date;
+}
+
+function runIdentity(context: Phase11HttpWorkerFinalizationContext) {
+  return Object.freeze({
+    workspaceId: context.workspaceId,
+    runId: context.runId,
+    authorizationSnapshotRef: context.authorizationSnapshotRef,
+  });
 }
 
 function digest(value: unknown): string {
@@ -58,7 +71,10 @@ export async function finalizeLeasedPhase11HttpWorker(
   }
   const terminalDigest = digest(terminal);
   const replayed = replay(context, terminalDigest);
-  if (replayed) return replayed;
+  if (replayed) {
+    await dependencies.advanceRun(runIdentity(context));
+    return replayed;
+  }
 
   const now = (dependencies.now ?? (() => new Date()))();
   if (Date.parse(context.leaseExpiresAt) <= now.getTime()) {
@@ -101,7 +117,7 @@ export async function finalizeLeasedPhase11HttpWorker(
     }
   }
 
-  return dependencies.finalize({
+  const result = await dependencies.finalize({
     workerId: input.workerId,
     taskId: input.taskId,
     attemptId: input.attemptId,
@@ -118,4 +134,6 @@ export async function finalizeLeasedPhase11HttpWorker(
     metrics: terminal.metrics,
     observations,
   });
+  await dependencies.advanceRun(runIdentity(context));
+  return result;
 }
