@@ -4,7 +4,7 @@ Last reconciled: 2026-09-19, Asia/Singapore.
 
 ## Active
 
-Release the exact Phase 11C Linux acceptance record, then implement the separately reviewed hosted enablement slice.
+Publish and merge the separately reviewed default-off worker-host configuration slice. PR #146 already released the exact Phase 11C Linux acceptance record.
 
 ## Completed external gate
 
@@ -12,7 +12,7 @@ Exact `main` SHA `4f388834cec38aef335f4dbf5657101171416c9e` and image `localhost
 
 ## Next release gate
 
-1. add `phase11_http_discovery_v1` to normal worker configuration without enabling it by default
+1. require exact-candidate CI for source commit `dda81ea878b19aa77943e3874de0ccd4230bd8de` plus its handoff documentation
 2. deploy only the accepted immutable image digest
 3. register a dedicated class-specific worker identity and prove authenticated idle claim/heartbeat
 4. document and exercise rollback by disabling the class and stopping only that worker

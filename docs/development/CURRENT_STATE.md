@@ -4,11 +4,13 @@ Last reconciled: 2026-09-19, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `4f388834cec38aef335f4dbf5657101171416c9e`.
+- `main`: `54c347e5f989711624e0acfd65bf86b3008ddb8f`.
 - PR #143 released the source-only trusted Phase 11C HTTP worker control path.
 - PR #144 released the reproducible Phase 11C runtime-image candidate source and permanent `npm run build:workers` CI gate.
 - PR #145 released bounded Phase 11 request/result/coverage reconciliation.
 - Exact post-merge CI run `35406951340` passed and Vercel production deployment `6534790299` succeeded.
+- PR #146 released the exact-image Linux acceptance record after exact-head CI `35408781659` passed.
+- Exact post-merge CI `35409209893` passed for `54c347e5f989711624e0acfd65bf86b3008ddb8f`, including browser/security acceptance.
 - Vercel Hobby deployment filtering remains active for ordinary feature branches.
 
 ## Released Phase 11C source
@@ -45,14 +47,14 @@ See `docs/development/PHASE11C_LINUX_ACCEPTANCE.md`.
 - Production migration history still ends at Phase 10A3.
 - Phase 11 and Phase 11C migrations remain source-only and unapplied.
 - Hosted `phase11_http_discovery_v1` execution remains disabled.
-- The normal worker runtime configuration still cannot select the Phase 11 HTTP class.
+- Production worker configuration still does not select the Phase 11 HTTP class.
+- Pending source commit `dda81ea878b19aa77943e3874de0ccd4230bd8de` permits a dedicated worker host to select the class only when both an absolute Podman path and immutable `SCOPEFORGE_RUNTIME_IMAGE` digest are supplied.
 - The reproducible runtime image has passed its exact-image Linux containment acceptance.
 - No external Nmap, Nuclei, or httpx process runner is enabled.
 
 ## Next
 
-1. release this acceptance record
-2. prepare a separate default-off hosted enablement slice using only the accepted immutable image digest
-3. prove authenticated idle registration/claim/heartbeat and rollback before enabling the class
-4. apply only the reviewed absent Phase 11 migrations during that separately recorded release gate
-5. keep Nmap, Nuclei, and external httpx process execution disabled
+1. publish and merge the default-off worker configuration slice after exact-candidate CI
+2. prove authenticated idle registration/claim/heartbeat and rollback before enabling the class
+3. apply only the reviewed absent Phase 11 migrations during that separately recorded release gate
+4. keep Nmap, Nuclei, and external httpx process execution disabled
