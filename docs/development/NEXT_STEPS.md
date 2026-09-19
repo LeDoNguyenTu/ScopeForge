@@ -1,10 +1,10 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-18, Asia/Singapore.
+Last reconciled: 2026-09-19, Asia/Singapore.
 
-1. Extend Task 11 with deterministic graph-expansion and policy/approval fixture evidence.
-2. Keep all metrics corpus-scoped, reproducible, auditable, and backed by injected fake providers only.
-3. Review provider license, supply-chain, adapter, and Linux containment requirements before any external provider slice.
-4. Keep all three Phase 11 migrations unapplied and all hosted Phase 11 provider execution disabled until their separate release gates pass.
+1. Release the Phase 11C exact-image Linux acceptance record.
+2. Add a separate default-off hosted worker configuration for `phase11_http_discovery_v1` using only the accepted immutable image digest.
+3. Prove class-specific worker authentication, idle operation, rollback, and production migration ordering before a bounded enablement window.
+4. Keep external Nmap, Nuclei, and httpx process execution disabled.
 
 Issue #79 is closed; Phase 10A2 PR #76 and Phase 10A3 PR #77 are released. Do not re-run their completed production acceptance as ordinary follow-up work.
