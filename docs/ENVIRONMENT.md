@@ -113,6 +113,8 @@ Phase 6C hosted repository scanning remains disabled until a real production Lin
 
 Private GitHub snapshot workers remain a separate network-enabled execution class. They do not authorize generic target egress or repository scan egress and do not receive provider credentials.
 
+The Phase 11 HTTP discovery worker is configured only on its dedicated worker host. Set `SCOPEFORGE_WORKER_EXECUTION_CLASS=phase11_http_discovery_v1`, `SCOPEFORGE_PODMAN_BINARY` to the absolute Podman executable path, and `SCOPEFORGE_RUNTIME_IMAGE` to the accepted runtime image by immutable `@sha256:` digest. The worker refuses a missing or mutable image reference. These variables provide no browser or Vercel capability and do not enable the hosted class by themselves; production also requires the reviewed database migrations, worker registration, and a separate default-off capability activation.
+
 ## Environment consistency
 
 Production public and server Supabase values must refer to the same dedicated ScopeForge project. Do not mix credentials from another application or Supabase project.

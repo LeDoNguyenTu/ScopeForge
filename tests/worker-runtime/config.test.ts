@@ -34,6 +34,43 @@ describe("worker runtime configuration", () => {
     expect(config).toMatchObject({ pollMs: 2_000, podmanBinary: "/usr/bin/podman" });
   });
 
+  it("accepts the Phase 11 HTTP discovery class only with Podman and an immutable runtime image", () => {
+    expect(readWorkerRuntimeConfig({
+      ...BASE,
+      SCOPEFORGE_WORKER_EXECUTION_CLASS: "phase11_http_discovery_v1",
+      SCOPEFORGE_PODMAN_BINARY: "/usr/bin/podman",
+      SCOPEFORGE_RUNTIME_IMAGE: `localhost/scopeforge-runtime-worker@sha256:${"d".repeat(64)}`,
+    })).toEqual({
+      baseUrl: "https://scopeforge.dev",
+      workerId: BASE.SCOPEFORGE_WORKER_ID,
+      secret: BASE.SCOPEFORGE_WORKER_SECRET,
+      executionClass: "phase11_http_discovery_v1",
+      pollMs: 2_000,
+      podmanBinary: "/usr/bin/podman",
+      runtimeImage: `localhost/scopeforge-runtime-worker@sha256:${"d".repeat(64)}`,
+    });
+  });
+
+  it("rejects incomplete or mutable Phase 11 HTTP discovery runtime authority", () => {
+    expect(() => readWorkerRuntimeConfig({
+      ...BASE,
+      SCOPEFORGE_WORKER_EXECUTION_CLASS: "phase11_http_discovery_v1",
+      SCOPEFORGE_PODMAN_BINARY: "/usr/bin/podman",
+    })).toThrow(/runtime image|required/i);
+    expect(() => readWorkerRuntimeConfig({
+      ...BASE,
+      SCOPEFORGE_WORKER_EXECUTION_CLASS: "phase11_http_discovery_v1",
+      SCOPEFORGE_PODMAN_BINARY: "/usr/local/bin/not-podman",
+      SCOPEFORGE_RUNTIME_IMAGE: `localhost/scopeforge-runtime-worker@sha256:${"d".repeat(64)}`,
+    })).toThrow(/Podman binary/);
+    expect(() => readWorkerRuntimeConfig({
+      ...BASE,
+      SCOPEFORGE_WORKER_EXECUTION_CLASS: "phase11_http_discovery_v1",
+      SCOPEFORGE_PODMAN_BINARY: "/usr/bin/podman",
+      SCOPEFORGE_RUNTIME_IMAGE: "localhost/scopeforge-runtime-worker:latest",
+    })).toThrow(/immutable/);
+  });
+
   it("rejects unsupported classes and mutable scanner images", () => {
     expect(() => readWorkerRuntimeConfig({
       ...BASE,

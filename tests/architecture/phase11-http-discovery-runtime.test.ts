@@ -47,16 +47,17 @@ describe("Phase 11C HTTP discovery runtime authority", () => {
     expect(command).not.toMatch(/--network=host|--privileged|docker[.]sock|podman[.]sock/);
   });
 
-  it("allows the reviewed class in generic contracts while hosted execution remains default-off", async () => {
+  it("allows the reviewed class through explicit immutable hosted runtime configuration", async () => {
     const workerTypes = await source("packages/worker-contracts/types.ts");
     const workerUnion = workerTypes.match(/export type WorkerExecutionClass\s*=([\s\S]*?);/)?.[1] ?? "";
     expect(workerUnion).toContain("phase11_http_discovery_v1");
 
     const runtimeConfig = await source("packages/worker-runtime/config.ts");
-    expect(runtimeConfig).not.toContain('executionClass: "phase11_http_discovery_v1"');
+    expect(runtimeConfig).toContain('executionClass: "phase11_http_discovery_v1"');
+    expect(runtimeConfig).toContain('required(env, "SCOPEFORGE_RUNTIME_IMAGE")');
 
     const environment = await source("docs/ENVIRONMENT.md");
-    expect(environment).not.toContain("HOSTED_PHASE11_HTTP_DISCOVERY");
-    expect(environment).not.toContain("PHASE11_HTTP_DISCOVERY_WORKER_ENABLED");
+    expect(environment).toContain("SCOPEFORGE_RUNTIME_IMAGE");
+    expect(environment).toContain("phase11_http_discovery_v1");
   });
 });

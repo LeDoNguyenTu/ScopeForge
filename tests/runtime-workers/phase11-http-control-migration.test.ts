@@ -196,7 +196,9 @@ describe("Phase 11C HTTP worker control migration", () => {
     const sql = await readMigration();
     const finalize = functionSql(sql, "finalize_phase11_http_worker_attempt");
     expect(finalize).toMatch(/target_worker_id uuid,\s*target_task_id uuid,\s*target_attempt_id uuid,\s*target_lease_token text/i);
-    const signature = finalize.slice(0, finalize.indexOf(")\nreturns"));
+    const signatureEnd = finalize.search(/\)\r?\nreturns/i);
+    expect(signatureEnd).toBeGreaterThan(0);
+    const signature = finalize.slice(0, signatureEnd);
     for (const forbidden of ["target_workspace_id", "target_run_id", "target_action_id", "target_authorization_id", "target_node_id"]) {
       expect(signature).not.toContain(forbidden);
     }

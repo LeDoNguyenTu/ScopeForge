@@ -19,6 +19,10 @@ export type WorkerRuntimeConfig = (BaseConfig & {
   expectedR2Host: string;
   podmanBinary: string;
   scannerImage: string;
+}) | (BaseConfig & {
+  executionClass: "phase11_http_discovery_v1";
+  podmanBinary: string;
+  runtimeImage: string;
 });
 
 function required(env: Readonly<Record<string, string | undefined>>, key: string): string {
@@ -57,6 +61,13 @@ export function readWorkerRuntimeConfig(env: Readonly<Record<string, string | un
   const executionClass = required(env, "SCOPEFORGE_WORKER_EXECUTION_CLASS");
   if (executionClass === "repository_snapshot_github_private_v1") {
     return Object.freeze({ baseUrl, workerId, secret, executionClass, pollMs });
+  }
+  if (executionClass === "phase11_http_discovery_v1") {
+    const podmanBinary = absolute(required(env, "SCOPEFORGE_PODMAN_BINARY"), "Worker Podman binary");
+    if (path.posix.basename(podmanBinary) !== "podman") throw new Error("Worker Podman binary is invalid.");
+    const runtimeImage = required(env, "SCOPEFORGE_RUNTIME_IMAGE");
+    if (!IMAGE.test(runtimeImage)) throw new Error("Worker runtime image must be an immutable digest reference.");
+    return Object.freeze({ baseUrl, workerId, secret, executionClass, pollMs, podmanBinary, runtimeImage });
   }
   if (executionClass !== "phase3_repository_scan_no_egress_v1") {
     throw new Error("Worker runtime execution class is unsupported.");

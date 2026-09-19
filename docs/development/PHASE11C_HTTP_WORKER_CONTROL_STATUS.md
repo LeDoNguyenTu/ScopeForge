@@ -48,15 +48,16 @@ Implemented so far:
 
 The new class is now wired through the generic worker contract/parser and supervisor dispatcher because its immutable queue binding, authenticated preparation, and atomic finalization boundaries are complete. The dedicated Phase 11 validators remain authoritative for its closed claim and terminal shapes.
 
-Hosted enablement is still default-off: the standard worker runtime configuration does not accept `phase11_http_discovery_v1`, no production worker is registered for the class, and the Phase 11/Phase 11C migrations remain unapplied.
+Hosted enablement is still default-off. PR #147 adds explicit worker-host configuration for `phase11_http_discovery_v1` after exact-image Linux acceptance, but no production worker environment or identity exists and the Phase 11/Phase 11C migrations remain unapplied.
 
 ## Next source work
 
-1. complete exact-head CI and fix any regression found by the generic wiring
+1. require exact-head CI and merge PR #147
 2. keep hosted enablement default-off
-3. update the runtime image candidate only after source validation is green
-4. perform real Linux rootless-Podman/cgroup-v2 containment acceptance for `phase11_http_discovery_v1`
-5. only after that acceptance, design a separately reviewed enablement release
+3. install only the accepted immutable image digest on the dedicated worker host
+4. prove authenticated idle claim/heartbeat and class-scoped rollback
+5. recheck and apply only the reviewed absent migrations in a separately recorded operational release
+6. run one bounded authorized production canary before leaving the class enabled
 
 ## Production boundary
 
@@ -78,7 +79,7 @@ The current candidate additionally:
 - routes supervisor preparation and finalization through the Phase 11-specific endpoints
 - reuses the existing single-use Unix mediator and `--network=none` runtime sandbox
 - injects the Phase 11 HTTP runtime executor explicitly rather than falling through to legacy runtime behavior
-- keeps the normal hosted worker runtime configuration unable to select the class before Linux acceptance
+- kept the normal hosted worker runtime configuration unable to select the class before Linux acceptance; PR #147 adds the separately reviewed post-acceptance configuration
 
 
 ## Release-candidate validation

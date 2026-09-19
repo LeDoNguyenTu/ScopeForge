@@ -4,12 +4,15 @@ Last reconciled: 2026-09-19, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Resume point
 
-- Released `main`: `4f388834cec38aef335f4dbf5657101171416c9e` from PR #145.
+- Released `main`: `54c347e5f989711624e0acfd65bf86b3008ddb8f` from documentation PR #146; exact post-merge CI `35409209893` passed.
 - PR #143 released trusted Phase 11C HTTP worker control.
 - PR #144 released reproducible runtime-image source plus the worker-bundle CI gate.
 - PR #145 released result-to-coverage reconciliation and passed post-merge CI `35406951340`.
 - Exact-image Linux containment acceptance passed for `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`.
-- Active branch: `docs/phase-11c-linux-acceptance-20260919` records that evidence.
+- PR #146 released the exact-image Linux acceptance record after exact-head CI `35408781659` passed.
+- Active source branch: `feat/phase-11c-worker-enablement-config-20260919`.
+- Source commit `dda81ea878b19aa77943e3874de0ccd4230bd8de` adds explicit, default-off worker-host selection of `phase11_http_discovery_v1` using an immutable runtime-image digest.
+- PR #147 is open; require exact-head CI before merging.
 
 ## Released reconciliation slice
 
@@ -31,18 +34,18 @@ The forward-only migration is:
 
 ## Immediate work
 
-1. release the acceptance documentation after exact-head CI
-2. create a separate source slice that permits normal worker configuration for the Phase 11 HTTP class while keeping it absent/default-off in production
-3. use only the accepted immutable image digest
-4. prove authenticated idle worker operation and a class-scoped rollback
-5. re-read the production migration ledger, then apply only the reviewed absent Phase 11 migrations as a separate release action
-6. run one bounded authorized production acceptance before leaving the class enabled
+1. merge PR #147 after exact-candidate CI
+2. deploy only the accepted immutable image digest
+3. prove authenticated idle worker operation and a class-scoped rollback
+4. re-read the production migration ledger, then apply only the reviewed absent Phase 11 migrations as a separate release action
+5. run one bounded authorized production acceptance before leaving the class enabled
 
 ## Hard boundaries
 
 - ScopeForge Supabase is `tdgpibrepzcvdivztkta`.
 - Production migration ledger still ends at Phase 10A3 until a separately approved migration gate.
 - Source merge does not authorize Phase 11 migration application.
+- The new worker configuration remains inert until a dedicated host environment is installed and started; no production Phase 11 worker environment has been created.
 - Use only the accepted immutable Phase 11 HTTP image digest in any enablement release.
 - Preserve `--network=none`, immutable OCI digest use, and host-mediator-only network authority.
 - No browser/user-controlled URL, method, headers, body, argv, network policy, worker budget, or direct target authority.
