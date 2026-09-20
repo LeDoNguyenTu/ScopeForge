@@ -4,6 +4,8 @@ Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
+- Current live main before the socket-length follow-up: `a04d90d10cd073161b59bb6d9b6466b58c3e5923`.
+- PR #162 released the human-readable findings UI. Exact-head CI `35537866841` and post-merge main CI `35538297419` passed; Vercel deployment `dpl_9WuwE3sxs4gbc9BqY2doxHBuZuUQ` is READY on `scopeforge.dev`.
 - Phase 11 source baseline: `81282bf786b3b7f82b2f9ebb8427117c2a51912a` after PR #160. PR #161 then reconciled handoff/status documentation only. Always resolve live `main` before starting work.
 - PR #155 released bounded Phase 11E web/API discovery.
 - PR #156 released Phase 11F session/browser authority.
@@ -69,7 +71,7 @@ One bounded production canary was run through the normal admin/planner/policy/au
 
 This proves the control path reached the dedicated worker and request accounting/finalization worked. It is not a successful operational acceptance.
 
-## Canary failure root cause and released fix
+## Canary failure evidence and corrected diagnosis
 
 The dedicated worker is hardened with `ProtectSystem=strict` and `RuntimeDirectory=scopeforge-worker`, making `/run/scopeforge-worker` the declared writable runtime path.
 
@@ -83,7 +85,15 @@ That path is outside the service writable set. PR #159 changed only the host med
 
 The in-container mediator path remains `/run/scopeforge/mediator.sock`. Podman network isolation, sandbox limits, authorization, and target scope were not widened.
 
-The PR #159 application deployment is verified READY. The corrected worker bundle still has to be built/deployed to the dedicated Oracle Linux worker host before the canary can be rerun.
+The PR #159 bundle was deployed to the dedicated host and a second bounded canary preserved the same fail-closed result:
+
+- run `dd90af93-9f9e-4168-8a2a-067302210f85`
+- action `phase11-action:dfe0443e9f0f41f1012054da78ad4e2cc466242013b4fb0344c41bd09f774c8b`
+- task `f59e0413-27ef-43b2-bf32-d11d3d54a77e`
+- attempt `913086b3-52f1-4405-b613-025830cb2d38`
+- one request charged; `provider_failed`; `WORKER_EXECUTION_FAILED`; no observation
+
+The deeper cause is the generated host socket pathname length. `/run/scopeforge-worker/runtime-mediator/<64-hex>.sock` is 109 bytes and fails with `listen EINVAL` on the accepted Oracle Linux host. The active branch `fix/phase11-unix-socket-path-length-20260921` changes only the host subdirectory to `/run/scopeforge-worker/mediator`, producing a 101-byte path while retaining the 256-bit random filename, service-owned runtime directory, container path, sandbox limits, and authorization boundary.
 
 ## Immutable runtime boundary
 
@@ -95,8 +105,8 @@ Do not replace it with a mutable tag or enable additional execution classes to c
 
 ## Remaining Phase 11 operational gate
 
-1. Recheck post-merge CI and Vercel production for exact main `81282bf786b3b7f82b2f9ebb8427117c2a51912a`.
-2. On the accepted Oracle Linux host, build/deploy the current `scopeforge-worker.cjs` using Node 24 and the released source.
+1. Release the Unix-socket path-length regression fix after exact-head CI.
+2. On the accepted Oracle Linux host, build/deploy `scopeforge-worker.cjs` from that exact released main using Node 24.
 3. Preserve the existing Phase 11 worker identity/credential and immutable runtime image.
 4. Restart only `scopeforge-worker@phase11-http`.
 5. Prove idle authentication and no leftover container/socket.

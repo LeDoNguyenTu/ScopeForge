@@ -1,6 +1,6 @@
 # Phase 11C Production Enablement Runbook
 
-Last reconciled: 2026-09-19, Asia/Singapore.
+Last reconciled: 2026-09-21, Asia/Singapore.
 
 This runbook covers the remaining operational release gate for `phase11_http_discovery_v1`.
 
@@ -86,7 +86,7 @@ test -f .scopeforge-worker-build/scopeforge-worker.cjs
 
 The host must still be rootless Podman on cgroup v2. Do not relax the accepted container boundary to make startup easier.
 
-The supervisor mediator socket is created under `/run/scopeforge-worker/runtime-mediator`, inside the systemd-owned `RuntimeDirectory=scopeforge-worker`. The host-side socket root must never point at `/run/scopeforge/runtime-mediator`, which is outside the service's declared writable paths under `ProtectSystem=strict`.
+The supervisor mediator socket is created under `/run/scopeforge-worker/mediator`, inside the systemd-owned `RuntimeDirectory=scopeforge-worker`. This shorter root keeps the complete 64-hex filename within Linux's pathname Unix-socket limit. The host-side socket root must never point at `/run/scopeforge/runtime-mediator`, which is outside the service's declared writable paths under `ProtectSystem=strict`.
 
 ## Idle authentication proof
 
