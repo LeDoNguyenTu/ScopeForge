@@ -19,7 +19,7 @@ These are project-management estimates, not computed coverage metrics. Update th
 
 ## Start here
 
-1. Inspect current `main`; at handoff it is `81282bf786b3b7f82b2f9ebb8427117c2a51912a` (PR #160 merge).
+1. Resolve current `main` first. The Phase 11 source baseline is `81282bf786b3b7f82b2f9ebb8427117c2a51912a` (PR #160); PR #161 and any later commits may be documentation/closure follow-through.
 2. Check open PRs/CI/deployments before assuming this SHA is still current.
 3. Read:
    - `docs/development/CURRENT_STATE.md`
