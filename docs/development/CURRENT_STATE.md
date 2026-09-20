@@ -4,7 +4,7 @@ Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `81282bf786b3b7f82b2f9ebb8427117c2a51912a` after PR #160.
+- Phase 11 source baseline: `81282bf786b3b7f82b2f9ebb8427117c2a51912a` after PR #160. PR #161 then reconciled handoff/status documentation only. Always resolve live `main` before starting work.
 - PR #155 released bounded Phase 11E web/API discovery.
 - PR #156 released Phase 11F session/browser authority.
 - PR #157 released Phase 11G proof-only validation.
