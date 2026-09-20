@@ -17,6 +17,40 @@ Working estimate at handoff:
 
 These are project-management estimates, not computed coverage metrics. Update them only when release gates materially change.
 
+## 2026-09-21 findings UI continuation
+
+Live reconciliation before this slice:
+
+- `origin/main` was `0b96b76c74a0f74a35cc4ed8fbb33491b8a1ac0b`
+- no open pull requests or issues
+- latest completed main CI was run `35535126964`, green on source SHA `94a6a93e78236eaff04cb806ad7092638f4e4065`
+- local branch: `fix/findings-human-readable-ui-20260921`
+
+The branch improves the findings list/detail presentation without changing canonical finding rows, lifecycle authorization, remediation authorization, RLS, or worker behavior:
+
+- raw hosted scanner IDs are replaced in primary copy with human-readable analysis-source names
+- canonical rule/source identifiers remain available in a collapsed technical-identifiers section
+- the security story is grouped into what happened, recommended fix, and how to verify
+- owner/admin remediation assignment uses the existing authorized collaborator roster instead of accepting a raw user UUID
+- member self-assignment and viewer read-only behavior remain unchanged
+- detail rows, evidence/history rows, severity treatment, form spacing, wrapping, contrast, and mobile layout are tightened
+
+TDD evidence and local validation:
+
+- RED: the new presentation module was missing and the existing remediation form exposed `Assignee user ID`
+- focused findings tests: 7 passed
+- focused findings plus prior full-suite timeout cases: 11 passed
+- typecheck passed
+- CLI build passed
+- worker build passed after restoring lockfile dev dependencies with `npm ci --include=dev`
+- Next production build passed
+- `npm audit --audit-level=high`: zero vulnerabilities
+- full suite reached 2,267 passed / 26 skipped; two Windows timing-bound tests failed only by timeout and both passed when rerun in isolation
+
+Rendered authenticated visual acceptance remains pending. The browser-only local attempt was blocked before rendering because this checkout has no local Supabase public URL/key, and the available browser inventory did not expose the user's authenticated Chrome-extension session. Do not request or paste secrets to work around this. Use an authenticated browser extension or an exact-candidate deployment for desktop/mobile screenshots.
+
+This UI slice is independent of the remaining Phase 11 production-worker canary below. Do not treat it as Phase 11 operational acceptance.
+
 ## Start here
 
 1. Resolve current `main` first. The Phase 11 source baseline is `81282bf786b3b7f82b2f9ebb8427117c2a51912a` (PR #160); PR #161 and any later commits may be documentation/closure follow-through.

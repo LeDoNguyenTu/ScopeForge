@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Bug, CircleCheck, Clock3, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
+import { findingSourceLabel, humanizeSecurityValue } from "@/lib/security-findings/presentation";
 import { createSecurityFindingRepository } from "@/lib/security-findings/repository";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 const FINDINGS_PAGE_SIZE = 100;
 
 function label(value: string): string {
-  return value.replaceAll("_", " ");
+  return humanizeSecurityValue(value);
 }
 
 function formatDate(value: string): string {
@@ -109,7 +110,7 @@ export default async function FindingsPage({
                 <span className="assetKind">{label(finding.severity)} · {label(finding.confidence)}</span>
                 <div className="assetState">
                   <strong>{label(finding.lifecycle_state)}</strong>
-                  <small>{label(finding.validation_state)} · {finding.source_id}</small>
+                  <small>{label(finding.validation_state)} · {findingSourceLabel(finding.source_id, finding.source_kind)}</small>
                 </div>
                 <div className="assetState">
                   <strong>Last {formatDate(finding.last_seen_at)}</strong>
