@@ -75,3 +75,10 @@ Measured locally on 2026-09-18 with Node 24 and one Vitest worker:
 ```
 
 The counts are two true positives, zero false negatives, one false positive, and one true negative in a four-label synthetic fixture. One duplicate correlation key appears among four raw reported results. The expected provenance-backed `entrypoint -> API -> data` path is present, and both synthetic remediation retests are classified correctly. These values are limited to the committed fixture and do not characterize production coverage, provider behavior, or the prevalence of vulnerabilities.
+
+
+## Task 11 legal-lab harness acceptance
+
+The Task 11 closure slice adds regression-tested lab definitions and an executable first-party loopback API fixture. The normal test suite verifies pinned third-party identities, loopback-only publication, an internal container network, no published DVWA database port, the first-party discovery contract, and a deterministic external-redirect fixture.
+
+No Juice Shop or DVWA vulnerability result is recorded here because the current Task 11 closure does not run external providers against them. Provider-specific lab measurements belong to the separately reviewed provider gates and must be added only after those runs occur.
