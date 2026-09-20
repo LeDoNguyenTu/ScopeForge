@@ -21,3 +21,12 @@ node benchmarks/pentest/run-labeled.mjs
 ```
 
 Each command emits a JSON run manifest and exits non-zero if its adaptive assertions or ceiling fail.
+
+
+## Legal-lab harness
+
+Task 11 also includes an opt-in legal-lab layer under `tests/pentest/labs/`. It provides a first-party deterministic ScopeForge API plus pinned definitions for OWASP Juice Shop and DVWA. The first-party API is exercised in the normal Vitest suite on an ephemeral `127.0.0.1` port. The intentionally vulnerable third-party applications are not started by normal CI.
+
+The third-party Compose profile publishes only loopback ports and uses an internal Docker network. Tests reject mutable `latest` image references, missing source revisions, non-loopback published ports, a published database port, or removal of the internal-network boundary.
+
+The legal labs exist so later provider-specific evaluations can measure real behavior against explicitly authorized targets. Their presence does not itself claim Nmap, Nuclei, external httpx, broad DAST, production attack-path coverage, or real-world vulnerability accuracy. See `LABS.md`.

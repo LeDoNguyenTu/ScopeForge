@@ -42,7 +42,7 @@ Image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab908
 ## Completed - do not repeat
 
 - Phase 11 Tasks 1 through 9.
-- Task 11 deterministic evaluation slices released to date.
+- Phase 11 Task 11 adaptive evaluation harness is complete, including deterministic/labeled fixtures, graph-policy coverage, catastrophic ceilings, and pinned legal-lab definitions.
 - Phase 11C provider dependency/threat-model review.
 - PR #141 provider contracts.
 - PR #142 bounded HTTP mediator/runtime foundation.

@@ -11,6 +11,7 @@ Last reconciled: 2026-09-20, Asia/Singapore. Live provider state wins.
 - Task 11 evaluation matrix: PR #132.
 - Task 11 labeled evaluation fixture: PR #134.
 - Task 11 graph-expansion and approval fixtures: PR #136.
+- Task 11 legal-lab harness closure: pinned loopback-only Juice Shop/DVWA definitions plus an exercised first-party ScopeForge test API.
 - Phase 11C provider/runtime/control follow-through: PRs #141 through #147.
 
 ## Production state
@@ -25,7 +26,7 @@ Last reconciled: 2026-09-20, Asia/Singapore. Live provider state wins.
 
 ## Current boundary
 
-The planning, policy, persistence, bounded HTTP provider, trusted queue/control plane, containment image, and worker-host selection are released.
+The planning, policy, persistence, bounded HTTP provider, trusted queue/control plane, containment image, worker-host selection, and Task 11 adaptive evaluation harness are complete in source.
 
 The remaining release gate is operational:
 
