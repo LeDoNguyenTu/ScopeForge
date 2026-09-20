@@ -252,7 +252,7 @@ export function createWebDastProvider(runner: ReturnType<typeof createBoundedWeb
       if (context.executionMode !== "safe_active") return { ok: false as const, code: "WEB_DAST_MODE_UNSUPPORTED" };
       return { ok: true as const };
     },
-    async execute(request, context, signal) {
+    async execute(request: WebDastRequest, context: ProviderExecutionContext, signal: AbortSignal) {
       const normalized = normalizedRequest(request);
       if (!normalized) throw new Error("WEB_DAST_REQUEST_INVALID");
       if (!context.targetNodeIds.includes(normalized.targetNodeId)) throw new Error("WEB_DAST_TARGET_BINDING_INVALID");
@@ -263,7 +263,7 @@ export function createWebDastProvider(runner: ReturnType<typeof createBoundedWeb
       if (raw.requestCount > 2) throw new Error("WEB_DAST_REQUEST_LIMIT_EXCEEDED");
       return raw;
     },
-    async normalize(raw, context: ProviderNormalizationContext) {
+    async normalize(raw: WebDastRawResult, context: ProviderNormalizationContext) {
       if (!WEB_DAST_CAPABILITIES.includes(raw.capabilityId)) throw new Error("WEB_DAST_RESULT_CAPABILITY_INVALID");
       if (raw.actionId !== context.actionId || !raw.targetNodeId.trim()) throw new Error("WEB_DAST_RESULT_BINDING_INVALID");
       if (raw.discoveryProfile !== "root-openapi-v1" || raw.requestCount < 0 || raw.requestCount > 2) {
