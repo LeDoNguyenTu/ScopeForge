@@ -39,7 +39,7 @@ function authoritativeState(): Phase11HttpWorkerAuthoritativeState {
       expiresAt: "2026-09-19T00:05:00.000Z",
     },
     action: {
-      state: "queued",
+      state: "running",
       decisionStatus: "approved",
       authorizationId,
       authorizationSnapshotRef: snapshotRef,
@@ -109,14 +109,16 @@ describe("Phase 11C trusted HTTP worker preparation", () => {
     });
   });
 
-  it("accepts the enqueueing state but rejects state, decision, and execution-mode drift", async () => {
-    await expect(preparePhase11HttpWorker(input, {
-      repository: repository({
-        ...authoritativeState(),
-        action: { ...authoritativeState().action, state: "enqueueing" },
-      }),
-      now: () => NOW,
-    })).resolves.toMatchObject({ actionId });
+  it("accepts leased and pre-lease states but rejects state, decision, and execution-mode drift", async () => {
+    for (const state of ["enqueueing", "queued"] as const) {
+      await expect(preparePhase11HttpWorker(input, {
+        repository: repository({
+          ...authoritativeState(),
+          action: { ...authoritativeState().action, state },
+        }),
+        now: () => NOW,
+      })).resolves.toMatchObject({ actionId });
+    }
 
     for (const actionPatch of [
       { state: "authorized" as const },
