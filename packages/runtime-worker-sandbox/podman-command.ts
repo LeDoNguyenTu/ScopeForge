@@ -5,7 +5,7 @@ import type {
   RuntimeWorkerPodmanCreateCommand,
 } from "./types";
 
-export const RUNTIME_MEDIATOR_HOST_SOCKET_ROOT = "/run/scopeforge/runtime-mediator" as const;
+export const RUNTIME_MEDIATOR_HOST_SOCKET_ROOT = "/run/scopeforge-worker/runtime-mediator" as const;
 export const RUNTIME_MEDIATOR_CONTAINER_SOCKET_PATH = "/run/scopeforge/mediator.sock" as const;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
