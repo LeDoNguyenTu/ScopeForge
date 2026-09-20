@@ -9,7 +9,7 @@ import {
   RUNTIME_MEDIATOR_RESPONSE_MAX_BYTES,
 } from "./unix-client";
 
-export const RUNTIME_MEDIATOR_HOST_SOCKET_ROOT = "/run/scopeforge/runtime-mediator" as const;
+export const RUNTIME_MEDIATOR_HOST_SOCKET_ROOT = "/run/scopeforge-worker/runtime-mediator" as const;
 const SOCKET_NAME_PATTERN = /^[a-f0-9]{64}[.]sock$/;
 
 function safeSocketPath(value: string): string {
