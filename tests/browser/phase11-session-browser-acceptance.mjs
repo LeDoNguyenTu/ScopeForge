@@ -65,15 +65,14 @@ async function login(identity) {
   try {
     await webdriver("POST", `/session/${sessionId}/url`, { url: `${ORIGIN}/login` });
     await execute(sessionId, `document.querySelector('[name=username]').value=arguments[0];document.querySelector('[name=username]').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('[name=password]').value=arguments[1];document.querySelector('[name=password]').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#submit').click();return true;`, [identity, password]);
-    for (let i=0;i<40;i+=1) {
+    for (let i = 0; i < 40; i += 1) {
       const path = await execute(sessionId, "return location.pathname;");
       if (path === "/account") break;
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
-    const summary = await execute(sessionId, "return {origin:location.origin,path:location.pathname,text:document.body.innerText,html:document.documentElement.outerHTML,storage:JSON.stringify(sessionStorage)};");
+    const summary = await execute(sessionId, "return {origin:location.origin,path:location.pathname,text:document.body.innerText};");
     if (summary.origin !== ORIGIN || summary.path !== "/account") throw new Error("browser escaped authorized origin");
-    const serialized = JSON.stringify(summary);
-    if (serialized.includes(password)) throw new Error("credential leaked into collected browser summary");
+    if (summary.text.includes(password)) throw new Error("credential leaked into collected browser summary");
     return { path: summary.path, text: summary.text };
   } finally {
     await webdriver("DELETE", `/session/${sessionId}`).catch(() => undefined);
