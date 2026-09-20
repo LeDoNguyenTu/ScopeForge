@@ -34,6 +34,9 @@ jobs:
       - run: npm run build:workers
       - run: npm run benchmark:scanner
       - run: npm run benchmark:matrix
+      - run: node benchmarks/pentest/run-suite.mjs
+      - run: node benchmarks/pentest/run-matrix.mjs
+      - run: node benchmarks/pentest/run-labeled.mjs
       - run: node benchmarks/pentest/run-legal-lab.mjs
       - run: npm run build
         env:
