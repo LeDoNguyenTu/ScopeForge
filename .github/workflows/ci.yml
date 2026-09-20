@@ -83,6 +83,7 @@ jobs:
           done
 
           node tests/browser/csp-browser-smoke.mjs
+          node tests/browser/phase11-session-browser-acceptance.mjs
       - name: Run production V5 and Turnstile diagnostic
         continue-on-error: true
         env:
