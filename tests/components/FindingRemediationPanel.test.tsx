@@ -29,4 +29,23 @@ describe("FindingRemediationPanel", () => {
     expect(screen.getByRole("textbox", { name: /remediation note/i })).toHaveAttribute("maxlength", "2000");
     expect(screen.getByRole("button", { name: /save remediation/i })).toBeInTheDocument();
   });
+
+  it("offers workspace members by name instead of asking for a user ID", () => {
+    render(
+      <FindingRemediationPanel
+        assignees={[
+          { userId: "user-1", label: "Brian", detail: "brian@example.com" },
+          { userId: "user-2", label: "Meo", detail: "214nsa@gmail.com" },
+        ]}
+        currentUserId="user-1"
+        findingId="finding-1"
+        role="owner"
+        work={null}
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Assignee" })).toHaveValue("");
+    expect(screen.getByRole("option", { name: "Brian (brian@example.com)" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Assignee user ID")).not.toBeInTheDocument();
+  });
 });

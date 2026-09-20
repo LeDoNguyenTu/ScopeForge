@@ -425,3 +425,53 @@
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; }
 }
+
+/* Findings prioritize plain-language guidance while retaining auditable identifiers. */
+.findingSummaryGrid .statCard { min-height: 112px; padding: 18px 20px; }
+.findingSummaryGrid .statCard strong { font-size: 26px; margin: 10px 0; text-transform: capitalize; }
+.findingSeverityBadge-high, .findingSeverityBadge-critical { color: #ffc2a8; border-color: #8e573e; background: #4c2d225c; }
+.findingSeverityBadge-medium { color: #f4d58d; border-color: #6f6038; background: #453c2052; }
+.findingSeverityBadge-low, .findingSeverityBadge-info { color: #b9dff1; border-color: #436878; background: #203d4852; }
+.workspaceContent .findingDetailList > div { min-height: 48px; align-items: flex-start; padding: 12px 0; }
+.workspaceContent .findingDetailList > div > span { flex: 0 0 145px; color: #9fb0bc; font-size: 12px; line-height: 1.55; }
+.workspaceContent .findingDetailList > div > strong { min-width: 0; max-width: 72%; color: #e1e8ed; font-size: 13px; font-weight: 550; line-height: 1.55; overflow-wrap: anywhere; text-align: right; text-transform: none; }
+.findingTechnicalDetails { margin-top: 16px; border-top: 1px solid var(--line-soft); }
+.findingTechnicalDetails summary { min-height: 42px; display: flex; align-items: center; color: #91aaa9; font-size: 11px; cursor: pointer; }
+.findingTechnicalDetails dl { display: grid; gap: 10px; margin: 0; padding: 4px 0 8px; }
+.findingTechnicalDetails dl > div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 14px; }
+.findingTechnicalDetails dt { color: #82949f; font-size: 10px; }
+.findingTechnicalDetails dd { margin: 0; color: #aebcc5; font: 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.findingStoryPanel { margin-top: 13px; }
+.findingStorySummary { max-width: 900px; margin: -2px 0 18px; color: #a9bac2; font-size: 12px; line-height: 1.65; }
+.findingStoryGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.findingStoryGrid > div { min-width: 0; padding: 18px; border: 1px solid #314047; border-radius: 10px; background: #0c171e; }
+.findingStoryGrid > div > span { display: block; margin-bottom: 10px; color: #85bbae; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.findingStoryGrid > div > strong { display: block; color: #dbe5e9; font-size: 13px; font-weight: 500; line-height: 1.7; overflow-wrap: anywhere; }
+.findingStoryMeta { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 22px; }
+.findingStoryMeta > span { padding: 5px 8px; border: 1px solid #314148; border-radius: 999px; color: #91a5af; font-size: 9px; }
+.findingRemediationPanel .verificationPanel { display: grid; gap: 18px; }
+.findingRemediationPanel .findingNoteField { display: grid; gap: 8px; min-width: 0; color: #cbd5db; font-size: 12px; font-weight: 650; }
+.findingRemediationPanel .findingNoteField input:not([type="checkbox"]),
+.findingRemediationPanel .findingNoteField select,
+.findingRemediationPanel .findingNoteField textarea { width: 100%; min-width: 0; border: 1px solid #3a4c56; border-radius: 8px; background: #0a141b; color: #e6edf0; font-size: 13px; outline: none; }
+.findingRemediationPanel .findingNoteField select { min-height: 44px; padding: 0 12px; }
+.findingRemediationPanel .findingNoteField textarea { min-height: 112px; padding: 12px; resize: vertical; line-height: 1.5; }
+.findingRemediationPanel .findingNoteField input:focus,
+.findingRemediationPanel .findingNoteField select:focus,
+.findingRemediationPanel .findingNoteField textarea:focus { border-color: #68cdb3; box-shadow: 0 0 0 3px #68cdb31a; }
+.findingRemediationPanel .findingNoteField small { color: #8499a5; font-size: 10px; font-weight: 400; }
+.findingRemediationPanel .heroActions { margin-top: 0; }
+.workspaceContent .auditRow { align-items: flex-start; min-height: 62px; padding: 12px 0; }
+.workspaceContent .auditRow > div { min-width: 0; flex: 1; }
+.workspaceContent .auditRow strong { color: #d9e2e7; font-size: 12px; font-weight: 550; line-height: 1.45; }
+.workspaceContent .auditRow p { margin: 5px 0 0; color: #9aadb8; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.workspaceContent .auditRow .modulePhase { margin-left: auto; padding-left: 12px; line-height: 1.5; text-align: right; }
+
+@media (max-width: 700px) {
+  .findingStoryGrid { grid-template-columns: 1fr; }
+  .workspaceContent .findingDetailList > div { display: grid; gap: 5px; }
+  .workspaceContent .findingDetailList > div > span,
+  .workspaceContent .findingDetailList > div > strong { max-width: none; text-align: left; }
+  .workspaceContent .auditRow { display: grid; grid-template-columns: 34px minmax(0, 1fr); }
+  .workspaceContent .auditRow .modulePhase { grid-column: 2; margin: 0; padding: 0; text-align: left; }
+}

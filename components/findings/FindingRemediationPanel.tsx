@@ -5,6 +5,7 @@ import { updateFindingRemediationAction } from "@/app/dashboard/findings/[findin
 import type { SecurityFindingWorkRow, WorkspaceRole } from "@/lib/database.types";
 
 export interface FindingRemediationPanelProps {
+  assignees?: Array<{ userId: string; label: string; detail?: string }>;
   findingId: string;
   role: WorkspaceRole;
   work: SecurityFindingWorkRow | null;
@@ -12,6 +13,7 @@ export interface FindingRemediationPanelProps {
 }
 
 export default function FindingRemediationPanel({
+  assignees = [],
   findingId,
   role,
   work,
@@ -27,13 +29,13 @@ export default function FindingRemediationPanel({
 
   if (role === "viewer") {
     return (
-      <article className="panel">
+      <article className="panel findingRemediationPanel">
         <div className="panelTitle"><div><span>Operator workflow</span><h2>Remediation work</h2></div></div>
         <div className="guardrail">
           <p><strong>Read-only.</strong> Your workspace role can review remediation work but cannot modify it.</p>
         </div>
         <div className="detailList">
-          <div><span>Assignee</span><strong>{work?.assignee_user_id ?? "Unassigned"}</strong></div>
+          <div><span>Assignee</span><strong>{work?.assignee_user_id === currentUserId ? "You" : work?.assignee_user_id ? "Workspace member" : "Unassigned"}</strong></div>
           <div><span>Remediation note</span><strong>{work?.remediation_note ?? "No operator note yet."}</strong></div>
         </div>
       </article>
@@ -64,7 +66,7 @@ export default function FindingRemediationPanel({
   }
 
   return (
-    <article className="panel">
+    <article className="panel findingRemediationPanel">
       <div className="panelTitle"><div><span>Operator workflow</span><h2>Remediation work</h2></div></div>
       <div className="verificationPanel">
         {role === "member" ? (
@@ -82,14 +84,19 @@ export default function FindingRemediationPanel({
           ) : null
         ) : (
           <label className="findingNoteField">
-            <span>Assignee user ID</span>
-            <input
-              aria-label="Assignee user ID"
+            <span>Assignee</span>
+            <select
+              aria-label="Assignee"
               onChange={(event) => setAssigneeUserId(event.target.value)}
-              placeholder="Workspace member user ID or blank"
-              type="text"
               value={assigneeUserId}
-            />
+            >
+              <option value="">Unassigned</option>
+              {assignees.map((assignee) => (
+                <option key={assignee.userId} value={assignee.userId}>
+                  {assignee.label}{assignee.detail ? ` (${assignee.detail})` : ""}
+                </option>
+              ))}
+            </select>
           </label>
         )}
 

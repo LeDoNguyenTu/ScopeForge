@@ -7,6 +7,11 @@ import FindingRemediationPanel from "@/components/findings/FindingRemediationPan
 import FindingRetestPanel from "@/components/findings/FindingRetestPanel";
 import SecurityStoryPanel from "@/components/findings/SecurityStoryPanel";
 import type { Json } from "@/lib/database.types";
+import {
+  findingSourceLabel,
+  findingTechnicalRuleLabel,
+  humanizeSecurityValue,
+} from "@/lib/security-findings/presentation";
 import { createSecurityFindingRepository } from "@/lib/security-findings/repository";
 import { decodeFindingRouteId } from "@/lib/security-findings/route-param";
 import { resolveRetestSource } from "@/lib/security-remediation/source-registry";
@@ -16,7 +21,7 @@ import { getDashboardContext } from "@/lib/workspaces/current";
 export const dynamic = "force-dynamic";
 
 function label(value: string): string {
-  return value.replaceAll("_", " ");
+  return humanizeSecurityValue(value);
 }
 
 function formatDate(value: string): string {
@@ -67,6 +72,20 @@ export default async function FindingDetailPage({
   if (!detail) notFound();
   const workflow = await repository.loadWorkspaceFindingWorkflowDetail(workspace.id, findingId);
 
+  const collaboratorRoster = role === "owner" || role === "admin"
+    ? await supabase.rpc("list_workspace_collaborators", { target_workspace_id: workspace.id })
+    : null;
+  if (collaboratorRoster?.error) throw new Error("Unable to load workspace assignees.");
+  const assignees = (collaboratorRoster?.data ?? []).map((member) => ({
+    userId: member.user_id,
+    label: member.display_name?.trim() || member.email,
+    detail: member.display_name?.trim() ? member.email : undefined,
+  }));
+  const currentAssignee = assignees.find((member) => member.userId === workflow.work?.assignee_user_id);
+  const assigneeLabel = workflow.work?.assignee_user_id === user.id
+    ? "you"
+    : currentAssignee?.label ?? null;
+
   const { data: asset, error: assetError } = await supabase
     .from("assets")
     .select("id,name,canonical_target")
@@ -78,6 +97,7 @@ export default async function FindingDetailPage({
   const taxonomy = scalarEntries(detail.finding.taxonomy);
   const remediation = scalarEntries(detail.finding.remediation);
   const retestSource = resolveRetestSource(detail.finding);
+  const sourceLabel = findingSourceLabel(detail.finding.source_id, detail.finding.source_kind);
   const story = buildSecurityStoryV1({
     finding: detail.finding,
     evidence: detail.evidence,
@@ -95,10 +115,10 @@ export default async function FindingDetailPage({
           <h1>{detail.finding.title}</h1>
           <p>{detail.finding.description}</p>
         </div>
-        <div className="healthBadge"><Bug size={16} /> {label(detail.finding.severity)} severity</div>
+        <div className={`healthBadge findingSeverityBadge findingSeverityBadge-${detail.finding.severity}`}><Bug size={16} /> {label(detail.finding.severity)} severity</div>
       </section>
 
-      <section className="grid4 assetSummaryGrid">
+      <section className="grid4 assetSummaryGrid findingSummaryGrid">
         <article className="statCard"><div><span>Lifecycle</span><Clock3 size={18} /></div><strong>{label(detail.finding.lifecycle_state)}</strong><small>Current canonical state</small></article>
         <article className="statCard"><div><span>Validation</span><ShieldCheck size={18} /></div><strong>{label(detail.finding.validation_state)}</strong><small>{label(detail.finding.confidence)} confidence</small></article>
         <article className="statCard"><div><span>Occurrences</span><FileClock size={18} /></div><strong>{detail.occurrences.length}</strong><small>Recorded observations</small></article>
@@ -106,18 +126,25 @@ export default async function FindingDetailPage({
       </section>
 
       <section className="dashboardGrid">
-        <article className="panel">
-          <div className="panelTitle"><div><span>Finding identity</span><h2>Security context</h2></div></div>
-          <div className="detailList">
+        <article className="panel findingContextPanel">
+          <div className="panelTitle"><div><span>Finding details</span><h2>Where this was detected</h2></div></div>
+          <div className="detailList findingDetailList">
             <div><span>Asset</span><strong>{asset?.name ?? detail.finding.asset_id}</strong></div>
             {asset?.canonical_target ? <div><span>Authorized target</span><strong>{asset.canonical_target}</strong></div> : null}
-            <div><span>Rule</span><strong>{detail.finding.rule_ref}</strong></div>
-            <div><span>Source</span><strong>{detail.finding.source_id}</strong></div>
+            <div><span>Detection</span><strong>{detail.finding.title}</strong></div>
+            <div><span>Analysis source</span><strong>{sourceLabel}</strong></div>
             <div><span>Severity</span><strong>{label(detail.finding.severity)}</strong></div>
             <div><span>Confidence</span><strong>{label(detail.finding.confidence)}</strong></div>
             <div><span>First seen</span><strong>{formatDate(detail.finding.first_seen_at)}</strong></div>
             <div><span>Last seen</span><strong>{formatDate(detail.finding.last_seen_at)}</strong></div>
           </div>
+          <details className="findingTechnicalDetails">
+            <summary>Technical identifiers</summary>
+            <dl>
+              <div><dt>Rule</dt><dd>{findingTechnicalRuleLabel(detail.finding.rule_ref)}</dd></div>
+              <div><dt>Source ID</dt><dd>{detail.finding.source_id}</dd></div>
+            </dl>
+          </details>
         </article>
 
         <article className="panel">
@@ -132,6 +159,7 @@ export default async function FindingDetailPage({
 
       <section className="dashboardGrid">
         <FindingRemediationPanel
+          assignees={assignees}
           currentUserId={user.id}
           findingId={detail.finding.finding_id}
           role={role}
@@ -146,7 +174,7 @@ export default async function FindingDetailPage({
         />
       </section>
 
-      <SecurityStoryPanel story={story} />
+      <SecurityStoryPanel assigneeLabel={assigneeLabel} story={story} />
 
       <section className="dashboardGrid">
         <article className="panel">
@@ -191,7 +219,7 @@ export default async function FindingDetailPage({
               {detail.occurrences.map((occurrence) => (
                 <div className="auditRow" key={occurrence.id}>
                   <span className="moduleIcon"><FileClock size={15} /></span>
-                  <div><strong>{formatDate(occurrence.observed_at)}</strong><p>{occurrence.source_id} · {label(occurrence.validation_state)}</p></div>
+                  <div><strong>{formatDate(occurrence.observed_at)}</strong><p>{findingSourceLabel(occurrence.source_id, detail.finding.source_kind)} · {label(occurrence.validation_state)}</p></div>
                 </div>
               ))}
             </div>

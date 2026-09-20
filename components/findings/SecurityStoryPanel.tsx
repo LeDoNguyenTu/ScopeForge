@@ -1,23 +1,27 @@
 import type { SecurityStoryV1 } from "@/lib/security-remediation/types";
 
 export interface SecurityStoryPanelProps {
+  assigneeLabel?: string | null;
   story: SecurityStoryV1;
 }
 
-export default function SecurityStoryPanel({ story }: SecurityStoryPanelProps) {
+export default function SecurityStoryPanel({ assigneeLabel, story }: SecurityStoryPanelProps) {
   return (
-    <section className="panel assetPanel">
-      <div className="panelTitle"><div><span>Security Story v1</span><h2>What happened and what to do next</h2></div></div>
+    <section className="panel assetPanel findingStoryPanel">
+      <div className="panelTitle"><div><span>Finding guidance</span><h2>What this means and what to do next</h2></div></div>
+      <p className="findingStorySummary">{story.summary}</p>
 
-      <div className="detailList">
-        <div><span>Summary</span><strong>{story.summary}</strong></div>
-        <div><span>Impact</span><strong>{story.impact}</strong></div>
-        <div><span>Remediation guidance</span><strong>{story.remediation.guidance}</strong></div>
-        <div><span>Remediation provenance</span><strong>{story.remediation.provenanceLabel}</strong></div>
-        {story.remediation.assigneeUserId ? <div><span>Assignee</span><strong>{story.remediation.assigneeUserId}</strong></div> : null}
-        {story.remediation.note ? <div><span>Operator note</span><strong>{story.remediation.note}</strong></div> : null}
-        <div><span>Verification</span><strong>{story.verification.summary}</strong></div>
-        <div><span>Verification provenance</span><strong>{story.verification.provenanceLabel}</strong></div>
+      <div className="findingStoryGrid">
+        <div><span>What happened</span><strong>{story.impact}</strong></div>
+        <div><span>Recommended fix</span><strong>{story.remediation.guidance}</strong></div>
+        <div><span>How to verify</span><strong>{story.verification.summary}</strong></div>
+        {story.remediation.note ? <div><span>Current work</span><strong>{story.remediation.note}</strong></div> : null}
+      </div>
+
+      <div className="findingStoryMeta">
+        <span>{story.remediation.provenanceLabel}</span>
+        <span>{story.verification.provenanceLabel}</span>
+        {story.remediation.assigneeUserId ? <span>Assigned to {assigneeLabel ?? "a workspace member"}</span> : null}
       </div>
 
       <div className="panelTitle"><div><span>Bounded evidence</span><h3>Evidence used by this story</h3></div></div>
