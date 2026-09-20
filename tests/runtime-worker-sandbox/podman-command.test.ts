@@ -8,7 +8,7 @@ const input = {
   mediatorSessionNonce: "c".repeat(64),
   podmanBinary: "/usr/bin/podman",
   image: `ghcr.io/scopeforge/runtime-worker@sha256:${"a".repeat(64)}`,
-  mediatorSocketPath: `/run/scopeforge/runtime-mediator/${"b".repeat(64)}.sock`,
+  mediatorSocketPath: `/run/scopeforge-worker/runtime-mediator/${"b".repeat(64)}.sock`,
 };
 
 describe.skipIf(process.platform === "win32")("Phase 6D runtime worker Podman command", () => {
@@ -56,9 +56,9 @@ describe.skipIf(process.platform === "win32")("Phase 6D runtime worker Podman co
   it("rejects task-controlled socket paths and argument injection", () => {
     for (const mediatorSocketPath of [
       "/tmp/mediator.sock",
-      "/run/scopeforge/runtime-mediator/../../podman.sock",
-      "/run/scopeforge/runtime-mediator/x.sock,--privileged",
-      "/run/scopeforge/runtime-mediator/x.sock\n--privileged",
+      "/run/scopeforge-worker/runtime-mediator/../../podman.sock",
+      "/run/scopeforge-worker/runtime-mediator/x.sock,--privileged",
+      "/run/scopeforge-worker/runtime-mediator/x.sock\n--privileged",
     ]) {
       expect(() => buildRuntimeWorkerPodmanCreateCommand({ ...input, mediatorSocketPath })).toThrow();
     }

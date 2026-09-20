@@ -86,6 +86,8 @@ test -f .scopeforge-worker-build/scopeforge-worker.cjs
 
 The host must still be rootless Podman on cgroup v2. Do not relax the accepted container boundary to make startup easier.
 
+The supervisor mediator socket is created under `/run/scopeforge-worker/runtime-mediator`, inside the systemd-owned `RuntimeDirectory=scopeforge-worker`. The host-side socket root must never point at `/run/scopeforge/runtime-mediator`, which is outside the service's declared writable paths under `ProtectSystem=strict`.
+
 ## Idle authentication proof
 
 Start only the long-running supervisor:
