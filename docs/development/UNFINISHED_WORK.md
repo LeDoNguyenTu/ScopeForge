@@ -1,54 +1,67 @@
 # ScopeForge Unfinished Work
 
-Last reconciled: 2026-09-20, Asia/Singapore.
+Last reconciled: 2026-09-21, Asia/Singapore.
 
-## Active
+## Phase 11 status
 
-Phase 11C source, production schema, worker identity registration, exact-image Linux containment acceptance, and Vercel deployment are complete.
+Phase 11 source implementation is complete for the initial approved release scope.
 
-The worker's authenticated idle operation, class-scoped rollback, and fixed-parameter admin canary entry point are complete. Before the one real canary, branch `ops/phase11-production-canary-evidence-20260920` must release retry-safe parent-run advancement after terminal worker finalization.
+Released through PR #160:
 
-## Completed external gate
+- Tasks 1-9 core planning/policy/persistence/orchestration
+- Task 10 bounded HTTP provider path plus reviewed Nmap/Nuclei contracts
+- Task 11 adaptive/legal-lab evaluation
+- Task 12 bounded stateful web/API discovery
+- Task 13 session/browser authority
+- Task 14 proof-only validation
+- Task 15 continuous validation/remediation feedback
+- Task 16 capability-gap evaluation/defer decisions
 
-Image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a` passed the affected Linux containment gate. See `PHASE11C_LINUX_ACCEPTANCE.md`.
+External Nmap, Nuclei, external httpx, broad exploit frameworks, cloud/cluster credentials, and advanced provider execution remain separately gated. They are not required merely to close the initial Phase 11 operational gate.
 
-## Next release gate
+## Remaining active blocker
 
-1. release the post-finalization parent-run advancement slice
-2. run one bounded authorized production canary
-3. verify request accounting, result-to-coverage reconciliation, logs, and terminal cleanup
-4. keep external Nmap, Nuclei, and external httpx process execution disabled
+One production canary was attempted and reached the dedicated worker, but the provider attempt failed before sandbox execution.
 
-## Production state already complete - do not repeat
+Exact evidence:
 
-- PR #147 is merged into `main`.
-- PR #150 is merged into `main`; exact-head and post-merge CI passed.
-- PR #147 exact-head CI passed.
-- Vercel production is READY on the exact current `main` SHA.
-- Production Supabase already contains the reviewed Phase 11A/11C migrations.
-- A Phase 11 HTTP worker identity is already registered.
-- Phase 11 worker-control RPCs are service-role only.
-- There are currently zero Phase 11 HTTP worker tasks.
+- run: `bbd5c0cd-717c-4ee3-a5a6-c1028331f5b4`
+- action: `phase11-action:bb4b6588033f981264bab07a8584df3d5fea86696db79a8f90f2177ac508f9a9`
+- worker task: `aa6f13c2-6512-498f-95a7-ea7f7cce4e7e`
+- attempt: `52c4c9fd-7a46-4c56-b3fd-63f843162b70`
+- exactly one request was charged
+- attempt status: `provider_failed`
+- error: `WORKER_EXECUTION_FAILED`
+- observations: 0
+- worker heartbeat proves the task was leased on the dedicated host
 
-## Separately gated
+Root cause: the mediator host socket root was outside the systemd service's writable runtime directory.
 
-- Do not reapply Phase 11A or Phase 11C migrations that are already present in production.
-- Do not use a mutable runtime image tag.
-- Do not enable external Nmap, Nuclei, or external httpx process execution.
-- Do not weaken Phase 11 authorization, worker authentication, RPC ACLs, or runtime containment.
-- Do not blindly enable RLS on existing private worker tables without a separately tested policy design.
-- Keep ScopeForge Supabase `tdgpibrepzcvdivztkta` separate from Job Command Center `xwsergbpvkcsugexssmc`.
+PR #159 fixed this by moving the host mediator socket root to `/run/scopeforge-worker/runtime-mediator` without changing the in-container path or sandbox/authorization limits.
 
-## Completed - do not repeat
+## Next actions
 
-- Phase 11 Tasks 1 through 9.
-- Phase 11 Task 11 adaptive evaluation harness is complete, including deterministic/labeled fixtures, graph-policy coverage, catastrophic ceilings, and pinned legal-lab definitions.
-- Phase 11C provider dependency/threat-model review.
-- PR #141 provider contracts.
-- PR #142 bounded HTTP mediator/runtime foundation.
-- PR #143 trusted HTTP worker control.
-- PR #144 reproducible runtime-image candidate source/build gate.
-- PR #145 result-to-coverage reconciliation.
-- PR #146 Linux acceptance record.
-- PR #147 default-off worker-host runtime selection.
-- Vercel Hobby deployment-budget filtering.
+1. Confirm exact current main is healthy after PR #160.
+2. Deploy the rebuilt worker supervisor bundle from current main to the accepted Oracle Linux host.
+3. Restart only `scopeforge-worker@phase11-http`.
+4. Confirm idle auth and cleanup.
+5. Rerun one verified ScopeForge-owned HTTPS root-only canary.
+6. Verify one request, valid terminal states, observation/no-signal result, coverage accounting, no secret/body leakage, and no leftover runtime artifacts.
+7. Record acceptance evidence.
+8. Remove `public/.well-known/scopeforge-verification.txt`.
+9. Mark Phase 11 operationally complete.
+
+## Do not repeat
+
+- Do not reapply already deployed Phase 11A/11C migrations.
+- Do not create a replacement worker identity unless explicit credential rotation is required.
+- Do not weaken systemd, Podman, egress, authorization, or RPC boundaries.
+- Do not use mutable container tags.
+- Do not manually insert a worker task to fake the canary.
+- Do not target third-party assets.
+- Do not enable external Nmap/Nuclei/httpx merely to reach 100%.
+- Keep ScopeForge Supabase `tdgpibrepzcvdivztkta` separate from Job Command Center.
+
+## Obsolete branch/PR note
+
+PR #152 is superseded by released Task 11 work (#153 and #160) and should not be used as a resume point.
