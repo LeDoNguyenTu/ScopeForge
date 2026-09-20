@@ -21,3 +21,18 @@ node benchmarks/pentest/run-labeled.mjs
 ```
 
 Each command emits a JSON run manifest and exits non-zero if its adaptive assertions or ceiling fail.
+
+
+## Real legal-lab acceptance
+
+Task 11 also includes a real loopback HTTP acceptance harness rather than relying only on injected provider counters. The mandatory CI target is a ScopeForge-owned test API started inside the Vitest process on an ephemeral `127.0.0.1` port. The harness performs only GET requests, uses manual redirect handling, enforces an exact-origin check before network I/O, enforces a fixed six-request ceiling, aborts a deliberately slow request, observes a controlled provider failure, and tears down all sockets at the end of the run.
+
+The measured CI manifest is produced by:
+
+    node benchmarks/pentest/run-legal-lab.mjs
+
+Its release conditions require zero out-of-scope requests, zero retained secret material, successful cleanup, redirect containment, provider-failure containment, observed cancellation, and completion under the catastrophic wall-clock ceiling.
+
+Optional containerized legal targets are defined in `tests/pentest/labs/compose.yml`. They pin OWASP Juice Shop, DVWA, and the DVWA database to explicit versions, publish only on loopback, and use an internal Docker network. They are not started by ordinary CI because Task 11 does not need a public or long-lived vulnerable service to prove the control boundary. Dedicated evaluation runners may opt into those profiles after the images are independently reviewed for that run.
+
+These legal-lab measurements remain Task 11 evaluation evidence only. They do not enable a production provider, broaden authorization, or justify claims about global vulnerability accuracy.
