@@ -17,6 +17,22 @@ Working estimate at handoff:
 
 These are project-management estimates, not computed coverage metrics. Update them only when release gates materially change.
 
+## Latest operational reconciliation
+
+Current released main is `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164.
+
+Release evidence:
+
+- PR #163 released the Unix-socket pathname-length fix at `/run/scopeforge-worker/mediator`.
+- PR #164 fixed the trusted preparation state machine so a correctly claimed Phase 11 action in `running` state is accepted.
+- PR #164 exact-head CI run `35542030195` completed successfully across the full test suite, typecheck, CLI/worker builds, scanner and Phase 11 benchmarks, Next build, CSP/Phase 11 browser smoke, production diagnostic, and screenshot upload.
+- Vercel production deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on exact SHA `3cc1443ed292a14fe6738bc64a0b8629b5992d56`.
+- The dedicated Phase 11 worker has authenticated against that exact deployment and returned repeated idle claim HTTP 200 responses.
+- The Phase 11 queue currently has no queued or leased work. Three failed canaries remain preserved as `dead_letter` evidence.
+- Direct live privilege inspection found zero `anon` or `authenticated` grants on the nine Supabase private worker tables flagged for RLS-disabled advisory. Do not auto-enable RLS without a tested service-role policy design.
+
+Do not lower the remaining operational gate merely because PR #164 is released. One authenticated end-to-end canary is still required.
+
 ## 2026-09-21 findings UI release
 
 Live reconciliation before this slice:
@@ -146,97 +162,67 @@ The PR #159 bundle was deployed to the Oracle host, but the follow-up canary als
 
 Do not retry this run or remove its evidence.
 
-## Corrected root cause and active fix
+## Third canary - preserve as failed evidence
 
-The hardened service has:
+The PR #163 worker bundle with the corrected socket pathname was deployed, but the next bounded canary still failed before sandbox execution:
+
+- run `3a96f604-857c-4a36-8d23-3c2127ab08de`
+- action `phase11-action:fef9fd799e90c749af29156b0376b312187ed43c0cc0b016e352408b88f6dd05`
+- task `36c86535-d7b9-4c11-bb16-c2ce03c74f3d`
+- attempt `37469474-2a71-4b6d-9cf8-176b01fa19d8`
+- exactly one request charged
+- task `dead_letter`
+- attempt `failed` with `WORKER_EXECUTION_FAILED`
+- all worker metrics zero
+- no observation produced
+- attempt duration about 313 ms
+
+Vercel production logs for the exact attempt showed:
+
+- `POST /api/internal/workers/phase11-http/prepare` -> HTTP 409
+- no heartbeat
+- `POST /api/internal/workers/phase11-http/finalize` -> HTTP 200
+
+The root cause was a trusted state-machine contradiction, not a sandbox failure. The claim RPC intentionally moves the action to `running`, while preparation accepted only `enqueueing` or `queued`. PR #164 adds `running` as the valid post-claim state and makes the regression fixture default to that real leased state.
+
+Do not retry or delete this failed canary.
+
+## Corrected root causes and released fixes
+
+The hardened service remains unchanged:
 
 - `ProtectSystem=strict`
 - `RuntimeDirectory=scopeforge-worker`
 - writable runtime path `/run/scopeforge-worker`
+- immutable accepted runtime image
+- rootless Podman with `--network=none`
+- closed mediator and authorization boundaries
 
-The old supervisor used host mediator root:
+Operational defects found and released:
 
-`/run/scopeforge/runtime-mediator`
+1. PR #159 moved the mediator host socket into the systemd-owned runtime directory.
+2. PR #163 shortened the host socket pathname from the 109-byte failing form to the 101-byte `/run/scopeforge-worker/mediator/<64-hex>.sock` form without reducing nonce entropy or widening containment.
+3. PR #164 corrected the post-claim action-state validator to accept the authoritative `running` state after a valid lease.
 
-That path was not writable by the service.
-
-PR #159 moved only the host mediator root to:
-
-`/run/scopeforge-worker/runtime-mediator`
-
-That path is writable, but it is too long for the existing 64-hex socket filename. The exact generated pathname is 109 bytes; the Oracle Linux host reproduced `listen EINVAL` because pathname Unix sockets allow at most 107 bytes plus the terminator.
-
-Branch `fix/phase11-unix-socket-path-length-20260921` keeps the 256-bit random filename and moves only the private host subdirectory to:
-
-`/run/scopeforge-worker/mediator`
-
-The resulting pathname is 101 bytes and a direct non-root Oracle-host reproduction successfully listened on the exact path. The in-container path remains unchanged.
-
-The in-container path remains:
-
-`/run/scopeforge/mediator.sock`
-
-No sandbox, network, authorization, or target-scope weakening was introduced.
+Live Supabase definitions confirm preparation remains bound to the authenticated worker class, leased task, unfinished attempt, and valid lease hash. PR #164 does not create a pre-claim execution path.
 
 ## Exact remaining execution sequence
 
 ### 1. Reconcile release state
 
-Confirm:
+Before the final canary, reconfirm:
 
-- current main SHA
-- exact-main CI green
-- Vercel production READY on current main
-- Supabase project healthy
-- no unexpected queued Phase 11 tasks
-- existing worker identity still enabled
+- main is at least `3cc1443ed292a14fe6738bc64a0b8629b5992d56`
+- Vercel production for the intended main is READY
+- no unexpected queued or leased Phase 11 task exists
+- existing worker identity remains enabled
+- authenticated idle claim still succeeds
 
-### 2. Release and deploy corrected supervisor to Oracle host
+Do not redeploy or rotate the worker merely because PR #164 changed server-side preparation logic.
 
-First merge the socket-length fix only after its exact-head CI passes. Then build from that exact released main.
+### 2. Run exactly one new canary
 
-Use the accepted dedicated Linux host and the `scopeforge-worker` account.
-
-Build from the exact released main with Node 24:
-
-```sh
-npm ci
-npm run build:workers
-```
-
-Deploy the resulting:
-
-`.scopeforge-worker-build/scopeforge-worker.cjs`
-
-to the production bundle location used by the systemd service:
-
-`/opt/scopeforge/current/scopeforge-worker.cjs`
-
-Do not place secrets in Git, chat, PR comments, or shell history. Preserve the existing environment file and worker credential.
-
-The unit is:
-
-`scopeforge-worker@phase11-http`
-
-Restart only this instance. Do not disrupt repository snapshot/scan workers.
-
-### 3. Host preflight/cleanup
-
-Confirm:
-
-- non-root worker account
-- rootless Podman on cgroup v2
-- immutable accepted runtime image exists
-- mediator host root is under `/run/scopeforge-worker/mediator`
-- no stale Phase 11 runtime container
-- no stale mediator socket
-- authenticated idle claim succeeds
-
-Do not relax `ProtectSystem=strict`, `ReadWritePaths`, cgroup limits, egress policy, or worker auth.
-
-### 4. Run exactly one new canary
-
-Use the platform-admin `/admin/phase11` control and an existing verified ScopeForge-owned HTTPS web/API asset.
+Use the authenticated platform-admin `/admin/phase11` control and an existing verified ScopeForge-owned HTTPS web/API asset.
 
 The canary must remain:
 
@@ -249,20 +235,21 @@ The canary must remain:
 - no external Nmap/Nuclei/httpx
 - no third-party target
 
-Do not manually insert a worker task.
+Do not manually insert a worker task or call service-role SQL to manufacture acceptance.
 
-### 5. Acceptance criteria
+### 3. Acceptance criteria
 
 Require all of:
 
 - worker leases the new task
+- prepare succeeds past the previous HTTP 409 boundary
+- mediator/sandbox execution starts normally
 - exactly one request is charged
 - attempt reaches a valid terminal result
 - run/action/task reconcile terminally
 - either a valid observation is persisted or the provider produces a legitimate no-signal result
 - coverage request-count delta is exactly one
 - no duplicate terminal accounting
-- provider-failure accounting is correct
 - no out-of-scope redirect/target authority
 - no response body, credential, auth token, or secret leakage in ordinary logs/evidence
 - no remaining runtime container
@@ -271,7 +258,11 @@ Require all of:
 
 Do not manufacture a finding.
 
-### 6. Close Phase 11
+### 4. Host verification
+
+Use the accepted Oracle Linux host to confirm no leftover Phase 11 runtime container or mediator socket after the final canary. Preserve the existing worker credential and immutable runtime image. Do not weaken systemd, Podman, cgroup, or egress controls.
+
+### 5. Close Phase 11
 
 After acceptance:
 

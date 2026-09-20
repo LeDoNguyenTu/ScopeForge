@@ -11,7 +11,11 @@ Last reconciled: 2026-09-20, Asia/Singapore. Live repository/provider state wins
 - PR #145: result-to-coverage reconciliation.
 - PR #146: exact-image Linux containment acceptance record.
 - PR #147: explicit worker-host configuration for `phase11_http_discovery_v1`.
-- PR #147 exact-head CI run `35409821247` passed before merge.
+- PR #159: systemd runtime-directory alignment for the mediator host socket.
+- PR #163: Linux Unix-socket pathname-length correction.
+- PR #164: post-claim `running` state accepted by trusted Phase 11 preparation.
+- PR #164 exact-head CI run `35542030195` passed before merge.
+- Current released main after PR #164: `3cc1443ed292a14fe6738bc64a0b8629b5992d56`.
 
 ## Implemented control boundary
 
@@ -42,21 +46,26 @@ The released implementation includes:
 
 ## Live production state
 
-- Supabase `tdgpibrepzcvdivztkta` is ACTIVE_HEALTHY.
-- The reviewed Phase 11A/11C migrations are already present in the live migration history.
-- Checked Phase 11 worker RPC ACLs grant execute to `service_role` only.
-- One `phase11_http_discovery_v1` worker identity is already registered for current `main`.
-- The worker is running on the dedicated host. Authenticated empty claims passed before and after a class-scoped rollback; idle claims do not update `last_seen_at` until a task is leased.
-- There are zero Phase 11 HTTP worker tasks.
-- Vercel production is READY on current `main` and had no runtime errors in the latest 24-hour check.
-- `scopeforge.dev` returns HTTP 200 with the expected nonce-based CSP/security headers.
+- ScopeForge Supabase project remains `tdgpibrepzcvdivztkta`.
+- The reviewed Phase 11A/11C migrations are already present in live migration history. Do not reapply them.
+- Checked Phase 11 worker RPC ACLs remain service-role-only.
+- Direct privilege inspection found zero `anon` or `authenticated` grants on the nine flagged private worker tables.
+- One `phase11_http_discovery_v1` worker identity remains registered and enabled.
+- The worker authenticated against the PR #164 production release with repeated idle claim HTTP 200 responses.
+- Vercel deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on exact main SHA `3cc1443ed292a14fe6738bc64a0b8629b5992d56`.
+- There are no queued or leased Phase 11 tasks. Three failed canaries remain preserved as `dead_letter` evidence.
+- The latest failed canary reached claim/finalization but preparation returned HTTP 409 because trusted preparation rejected the valid post-claim `running` action state. PR #164 is released to correct that exact state-machine defect.
+- `scopeforge.dev` serves the released production deployment with the existing nonce-based CSP/security headers.
 
 ## Remaining release gate
 
-1. release the fixed-parameter platform-admin canary control
-2. run one bounded authorized production canary
-3. verify request accounting, result-to-coverage reconciliation, terminal cleanup, and logs
-4. leave the class enabled only after the canary evidence passes
+1. Use an authenticated platform-admin session at `/admin/phase11`.
+2. Run exactly one verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary.
+3. Confirm preparation succeeds past the previous HTTP 409 boundary and normal mediator/sandbox execution occurs.
+4. Verify exactly one request, valid terminal run/action/task/attempt state, observation or legitimate no-signal result, and exact coverage reconciliation.
+5. Verify ordinary logs/evidence do not expose response bodies, credentials, authorization tokens, or secrets.
+6. Verify no leftover runtime container or mediator socket on the accepted Oracle host.
+7. Record successful evidence, remove the temporary verification proof, and only then close Phase 11 operational acceptance.
 
 ## Hard boundaries
 
