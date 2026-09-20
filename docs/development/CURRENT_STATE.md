@@ -1,82 +1,109 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-20, Asia/Singapore. Live provider state wins.
+Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- `main`: `d92698ae118fb5aa0af7d9db6589348b89576d2e`; exact-main CI `35460959197` passed.
-- PR #143 released the trusted Phase 11C HTTP worker control path.
-- PR #144 released the reproducible Phase 11C runtime-image candidate source and permanent `npm run build:workers` CI gate.
-- PR #145 released bounded Phase 11 request/result/coverage reconciliation.
-- PR #146 released the exact-image Linux acceptance record.
-- PR #147 released explicit default-off worker-host selection for `phase11_http_discovery_v1`.
-- PR #147 exact-head CI run `35409821247` passed.
-- PR #150 released the fixed-parameter platform-admin Phase 11 canary control and passed exact-head CI run `35460749698`.
-- Vercel production deployment `dpl_49mavQuJxwksw1AcaZzmZfaAdvSA` is READY and contains `/admin/phase11`.
-- Vercel reported no production runtime errors in the latest 24-hour check.
-- Vercel Hobby deployment filtering remains active for ordinary feature branches.
+- `main`: `81282bf786b3b7f82b2f9ebb8427117c2a51912a` after PR #160.
+- PR #155 released bounded Phase 11E web/API discovery.
+- PR #156 released Phase 11F session/browser authority.
+- PR #157 released Phase 11G proof-only validation.
+- PR #158 released continuous-validation/remediation feedback.
+- PR #159 released the Phase 11 mediator runtime-directory fix.
+- PR #160 released the final Phase 11 source-validation gates and Task 16 capability-gap decisions.
+- PR #160 exact-head CI run `35534658243` passed every required step, including the four Phase 11 benchmark runners and browser acceptance.
+- Last independently verified Vercel production deployment before PR #160 merge was `dpl_28CYfNwZ6xAzEfgvKM8wTpo1cf7C`, READY on main SHA `5fbc5bc9e655fa88531b62e51e452fceb33775c5` (PR #159). Recheck the exact PR #160 production deployment before the next canary.
 
-## Released Phase 11C source
+## Phase 11 source status
 
-It adds:
+Tasks 1 through 16 are complete for the initial Phase 11 release scope.
 
-- immutable run-level request, graph-expansion, and provider-failure limits
-- deterministic stop-condition enforcement before each planner iteration
-- request usage on authoritative private action-attempt rows
-- atomic terminal-result reconciliation into private coverage and the privacy-reduced public summary
-- provider-failure accounting
-- conservative HTTP request accounting for ambiguous expired leases
-- HTTP-class request accounting capped to the runtime ceiling of 12
-- replay-safe accounting through the existing terminal replay boundary
-- monotonic graph persistence so stale graph snapshots cannot roll committed request/failure coverage backward
-- coverage semantics that charge consumed requests without falsely marking blocked/cancelled/policy-rejected actions as covered
-- dedicated worker-host selection requiring an absolute Podman path and immutable runtime-image digest
+- graph, hypotheses, policy, provider contracts/registry, native observations, planner, persistence, and run orchestration are released
+- bounded first-party HTTP execution is implemented with dedicated worker containment
+- Task 11 adaptive/legal-lab evaluation is a permanent CI gate
+- web/API discovery, session/browser authority, proof-only validation, and continuous validation are released in source
+- Task 16 advanced-provider evaluation is complete; Prowler, Kubescape, CodeQL execution, TruffleHog, MobSF, Amass/BBOT, and specialist reverse-engineering providers remain deferred until a measured capability gap justifies their authority/cost
+- external Nmap, Nuclei, and external httpx process execution remain separately gated and disabled
 
-## Linux runtime acceptance
-
-The accepted source/image combination passed the affected real-Linux rootless-Podman/cgroup-v2 containment gate on the dedicated Oracle host.
-
-- runtime bundle SHA-256: `05dd6f00bb5a1bf9be6b8046d3c7aeff79b4b78a7b73dba5d72acb095cee8153`
-- accepted image: `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`
-- real mediator-only HTTPS, cross-host redirect rejection, direct-egress denial, cgroup/resource ceilings, cancellation, wall-time/output cleanup, and terminal cleanup passed
-- focused Linux validation: 25 files and 121 tests passed
-
-See `docs/development/PHASE11C_LINUX_ACCEPTANCE.md`.
+See `docs/validation/phase-11/COMPLETION_MATRIX.md`.
 
 ## Production database state
 
-- ScopeForge Supabase: `tdgpibrepzcvdivztkta`.
-- Project state: ACTIVE_HEALTHY.
-- PostgreSQL: 17.
-- Live migration history includes:
-  - `phase_11a_planning_graph`
-  - `phase_11a_run_orchestration`
-  - `phase_11a_run_orchestration_hardening`
-  - `phase_11c_http_worker_control`
-  - `phase_11c_result_coverage_reconciliation`
-- Do not reapply these migrations.
-- One `phase11_http_discovery_v1` worker identity is registered against the current `main` software version.
-- The registered Phase 11 worker is deployed and authenticated empty claims passed. Idle claims leave `last_seen_at = null` by design; it advances only for leased task heartbeats.
-- There are zero Phase 11 HTTP worker tasks.
-- Phase 11 worker-control RPCs checked in production are executable by `service_role` only.
+ScopeForge Supabase project: `tdgpibrepzcvdivztkta`.
 
-## Production boundary
+Do not confuse it with the Job Command Center Supabase project.
 
-- Authenticated idle operation and class-scoped rollback are proven on the dedicated host.
-- Production canary acceptance has not yet been run.
-- The active follow-up source slice advances the parent run after fresh or replayed terminal HTTP finalization, preserving retry safety.
-- The accepted immutable runtime image must be used unchanged for the enablement gate.
-- External Nmap, Nuclei, and external httpx process runners remain disabled.
+Reviewed Phase 11A/11C migrations are already present in production. Do not reapply them.
 
-## Security-advisor note
+The registered Phase 11 HTTP worker remains:
 
-Supabase flags RLS-disabled private worker tables. Direct checks show the inspected worker tables are not granted to `anon` or `authenticated`, and the Phase 11 RPC boundary is service-role only. Do not auto-enable RLS without a separate policy design and regression gate because doing so without policies would break trusted worker access.
+- worker ID: `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e`
+- execution class: `phase11_http_discovery_v1`
+- registered software version: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`
+- last observed lease heartbeat: `2026-09-20 15:39:15.766929+00`
+- disabled: no
 
-The public workspace collaborator `SECURITY DEFINER` RPCs are intentionally authenticated endpoints with explicit `auth.uid()` and owner/admin authorization checks.
+Do not rotate/re-register the worker merely because the bundle changed. Preserve the existing host-stored credential unless an explicit credential-rotation procedure is required.
 
-## Next
+## First production canary evidence
 
-1. release the post-finalization run advancement slice
-2. run one bounded authorized production canary from `/admin/phase11`
-3. verify accounting, terminal state, cleanup, and logs
-4. keep Nmap, Nuclei, and external httpx process execution disabled until separately reviewed
+One bounded production canary was run through the normal admin/planner/policy/authorization/queue path.
+
+- run ID: `bbd5c0cd-717c-4ee3-a5a6-c1028331f5b4`
+- run status: `failed`
+- stop reason: `request_budget_exhausted`
+- authorization snapshot: `phase11-auth:bbd5c0cd-717c-4ee3-a5a6-c1028331f5b4`
+- action ID: `phase11-action:bb4b6588033f981264bab07a8584df3d5fea86696db79a8f90f2177ac508f9a9`
+- capability: `web.http.probe.v1`
+- action decision: approved
+- action state: terminal
+- max requests: 1
+- max runtime: 5000 ms
+- worker task ID: `aa6f13c2-6512-498f-95a7-ea7f7cce4e7e`
+- attempt ID: `52c4c9fd-7a46-4c56-b3fd-63f843162b70`
+- provider: `scopeforge.http-discovery` v1.0.0
+- attempt status: `provider_failed`
+- request_count: 1
+- error: `WORKER_EXECUTION_FAILED`
+- observations: 0
+
+This proves the control path reached the dedicated worker and request accounting/finalization worked. It is not a successful operational acceptance.
+
+## Canary failure root cause and released fix
+
+The dedicated worker is hardened with `ProtectSystem=strict` and `RuntimeDirectory=scopeforge-worker`, making `/run/scopeforge-worker` the declared writable runtime path.
+
+The supervisor previously attempted to create its host mediator socket under:
+
+`/run/scopeforge/runtime-mediator`
+
+That path is outside the service writable set. PR #159 changed only the host mediator root to:
+
+`/run/scopeforge-worker/runtime-mediator`
+
+The in-container mediator path remains `/run/scopeforge/mediator.sock`. Podman network isolation, sandbox limits, authorization, and target scope were not widened.
+
+The PR #159 application deployment is verified READY. The corrected worker bundle still has to be built/deployed to the dedicated Oracle Linux worker host before the canary can be rerun.
+
+## Immutable runtime boundary
+
+Accepted runtime image remains:
+
+`localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`
+
+Do not replace it with a mutable tag or enable additional execution classes to close Phase 11.
+
+## Remaining Phase 11 operational gate
+
+1. Recheck post-merge CI and Vercel production for exact main `81282bf786b3b7f82b2f9ebb8427117c2a51912a`.
+2. On the accepted Oracle Linux host, build/deploy the current `scopeforge-worker.cjs` using Node 24 and the released source.
+3. Preserve the existing Phase 11 worker identity/credential and immutable runtime image.
+4. Restart only `scopeforge-worker@phase11-http`.
+5. Prove idle authentication and no leftover container/socket.
+6. Run exactly one new verified-asset root-only canary from `/admin/phase11`.
+7. Require exactly one request, terminal run/action/task state, a valid observation or legitimate no-signal result, coverage reconciliation, zero secret/response-body leakage, and no remaining container/socket.
+8. Record the successful evidence in Phase 11 validation/status docs.
+9. Remove `public/.well-known/scopeforge-verification.txt` after verification/canary closure.
+10. Only then mark Phase 11 operationally 100% complete.
+
+Canonical handoff: `docs/development/CODEX_HANDOFF_PHASE11.md`.
