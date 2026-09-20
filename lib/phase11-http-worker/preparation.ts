@@ -92,7 +92,7 @@ function assertAuthority(state: Phase11HttpWorkerAuthoritativeState, now: Date):
     fail("PHASE11_HTTP_AUTHORIZATION_EXPIRED");
   }
 
-  if (action.state !== "enqueueing" && action.state !== "queued") {
+  if (action.state !== "enqueueing" && action.state !== "queued" && action.state !== "running") {
     fail("PHASE11_HTTP_ACTION_STATE_INVALID");
   }
   if (action.decisionStatus !== "approved" && action.decisionStatus !== "narrowed") {
