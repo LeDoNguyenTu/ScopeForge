@@ -22,8 +22,8 @@ describe("worker systemd service", () => {
     expect(unit).toContain(
       "ReadWritePaths=/var/lib/scopeforge /home/scopeforge-worker/.local/share/containers /run/scopeforge-worker",
     );
-    expect(mediator).toContain("/run/scopeforge-worker/runtime-mediator");
-    expect(podman).toContain("/run/scopeforge-worker/runtime-mediator");
+    expect(mediator).toContain("/run/scopeforge-worker/mediator");
+    expect(podman).toContain("/run/scopeforge-worker/mediator");
     expect(mediator).not.toContain("/run/scopeforge/runtime-mediator");
     expect(podman).not.toContain("/run/scopeforge/runtime-mediator");
   });

@@ -1,10 +1,18 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { runtimeMediatorHostSocketPath } from "@/packages/runtime-worker-mediator/unix-server";
 
 const serverPath = path.resolve("packages/runtime-worker-mediator/unix-server.ts");
 
 describe("runtime mediator socket permissions", () => {
+  it("keeps the generated pathname within Linux sockaddr_un capacity", () => {
+    const socketPath = runtimeMediatorHostSocketPath("a".repeat(64));
+
+    expect(Buffer.byteLength(socketPath, "utf8")).toBeLessThanOrEqual(107);
+    expect(socketPath).toMatch(/^\/run\/scopeforge-worker\//);
+  });
+
   it("re-establishes a private supervisor-owned host root before exposing the bind-mounted socket", async () => {
     const source = await readFile(serverPath, "utf8");
 

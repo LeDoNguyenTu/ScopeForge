@@ -7,7 +7,7 @@ const baseInput = {
   mediatorSessionNonce: "c".repeat(64),
   podmanBinary: "/usr/bin/podman",
   image: `ghcr.io/scopeforge/runtime-worker@sha256:${"a".repeat(64)}`,
-  mediatorSocketPath: `/run/scopeforge-worker/runtime-mediator/${"b".repeat(64)}.sock`,
+  mediatorSocketPath: `/run/scopeforge-worker/mediator/${"b".repeat(64)}.sock`,
 };
 
 function driver() {

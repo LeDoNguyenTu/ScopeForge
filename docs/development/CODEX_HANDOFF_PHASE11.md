@@ -17,7 +17,7 @@ Working estimate at handoff:
 
 These are project-management estimates, not computed coverage metrics. Update them only when release gates materially change.
 
-## 2026-09-21 findings UI continuation
+## 2026-09-21 findings UI release
 
 Live reconciliation before this slice:
 
@@ -47,7 +47,9 @@ TDD evidence and local validation:
 - `npm audit --audit-level=high`: zero vulnerabilities
 - full suite reached 2,267 passed / 26 skipped; two Windows timing-bound tests failed only by timeout and both passed when rerun in isolation
 
-Rendered authenticated visual acceptance remains pending. The browser-only local attempt was blocked before rendering because this checkout has no local Supabase public URL/key, and the available browser inventory did not expose the user's authenticated Chrome-extension session. Do not request or paste secrets to work around this. Use an authenticated browser extension or an exact-candidate deployment for desktop/mobile screenshots.
+PR #162 merged as `a04d90d10cd073161b59bb6d9b6466b58c3e5923`. Exact-head CI run `35537866841` and post-merge main CI run `35538297419` passed. Production deployment `dpl_9WuwE3sxs4gbc9BqY2doxHBuZuUQ` is READY and serves `scopeforge.dev`.
+
+The connected Chrome extension later exposed the authenticated platform-admin session and the Phase 11 admin control rendered correctly. Continue to use the Chrome extension for authenticated visual checks; do not use whole-desktop automation.
 
 This UI slice is independent of the remaining Phase 11 production-worker canary below. Do not treat it as Phase 11 operational acceptance.
 
@@ -128,7 +130,23 @@ Do not delete or rewrite these rows.
 
 Interpretation: planner/policy/authorization/queue/worker lease/finalization/accounting paths worked. Sandbox/provider execution did not.
 
-## Root cause already fixed in source
+## Second canary - preserve as failed evidence
+
+The PR #159 bundle was deployed to the Oracle host, but the follow-up canary also failed before sandbox execution:
+
+- run `dd90af93-9f9e-4168-8a2a-067302210f85`
+- action `phase11-action:dfe0443e9f0f41f1012054da78ad4e2cc466242013b4fb0344c41bd09f774c8b`
+- task `f59e0413-27ef-43b2-bf32-d11d3d54a77e`
+- attempt `913086b3-52f1-4405-b613-025830cb2d38`
+- exactly one request charged
+- attempt `provider_failed`, error `WORKER_EXECUTION_FAILED`
+- worker metrics all zero and no observation/evidence produced
+- run terminal failed with `request_budget_exhausted`
+- no container or mediator socket remained
+
+Do not retry this run or remove its evidence.
+
+## Corrected root cause and active fix
 
 The hardened service has:
 
@@ -145,6 +163,14 @@ That path was not writable by the service.
 PR #159 moved only the host mediator root to:
 
 `/run/scopeforge-worker/runtime-mediator`
+
+That path is writable, but it is too long for the existing 64-hex socket filename. The exact generated pathname is 109 bytes; the Oracle Linux host reproduced `listen EINVAL` because pathname Unix sockets allow at most 107 bytes plus the terminator.
+
+Branch `fix/phase11-unix-socket-path-length-20260921` keeps the 256-bit random filename and moves only the private host subdirectory to:
+
+`/run/scopeforge-worker/mediator`
+
+The resulting pathname is 101 bytes and a direct non-root Oracle-host reproduction successfully listened on the exact path. The in-container path remains unchanged.
 
 The in-container path remains:
 
@@ -165,7 +191,9 @@ Confirm:
 - no unexpected queued Phase 11 tasks
 - existing worker identity still enabled
 
-### 2. Deploy corrected supervisor to Oracle host
+### 2. Release and deploy corrected supervisor to Oracle host
+
+First merge the socket-length fix only after its exact-head CI passes. Then build from that exact released main.
 
 Use the accepted dedicated Linux host and the `scopeforge-worker` account.
 
@@ -199,7 +227,7 @@ Confirm:
 - non-root worker account
 - rootless Podman on cgroup v2
 - immutable accepted runtime image exists
-- mediator host root is under `/run/scopeforge-worker/runtime-mediator`
+- mediator host root is under `/run/scopeforge-worker/mediator`
 - no stale Phase 11 runtime container
 - no stale mediator socket
 - authenticated idle claim succeeds

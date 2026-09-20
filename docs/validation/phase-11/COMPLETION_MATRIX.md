@@ -25,7 +25,7 @@ This matrix separates source completion from operational enablement. Default-off
 
 ## Remaining operational gate
 
-The initial bounded Phase 11 production HTTP canary reached the dedicated worker and preserved request accounting, but failed before sandbox execution. The identified source mismatch placed the host mediator socket outside the systemd-owned writable runtime directory. The corrective release moves only the host socket root under `/run/scopeforge-worker/runtime-mediator` while retaining the in-container mediator path and all sandbox limits.
+Two bounded Phase 11 production HTTP canaries reached the dedicated worker and preserved one-request accounting, but failed before sandbox execution. PR #159 moved the host mediator socket into the systemd-owned writable runtime directory; the resulting 109-byte pathname then reproduced `listen EINVAL` on the accepted Oracle Linux host. The active corrective branch shortens only the private host subdirectory to `/run/scopeforge-worker/mediator`, producing a 101-byte pathname while retaining the 64-hex random filename, in-container mediator path, and all sandbox limits.
 
 Phase 11 operational completion requires:
 

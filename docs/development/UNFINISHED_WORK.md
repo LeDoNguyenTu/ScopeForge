@@ -35,14 +35,24 @@ Exact evidence:
 - observations: 0
 - worker heartbeat proves the task was leased on the dedicated host
 
-Root cause: the mediator host socket root was outside the systemd service's writable runtime directory.
+The first diagnosis was incomplete: the mediator host socket root was outside the systemd service's writable runtime directory.
 
 PR #159 fixed this by moving the host mediator socket root to `/run/scopeforge-worker/runtime-mediator` without changing the in-container path or sandbox/authorization limits.
 
+After deploying that bundle, a second one-request canary also failed before sandbox execution:
+
+- run: `dd90af93-9f9e-4168-8a2a-067302210f85`
+- action: `phase11-action:dfe0443e9f0f41f1012054da78ad4e2cc466242013b4fb0344c41bd09f774c8b`
+- worker task: `f59e0413-27ef-43b2-bf32-d11d3d54a77e`
+- attempt: `913086b3-52f1-4405-b613-025830cb2d38`
+- one request charged; `provider_failed`; `WORKER_EXECUTION_FAILED`; zero worker metrics; no observation
+
+The exact generated socket pathname is 109 bytes and the Oracle host reproduced `listen EINVAL`. The active TDD fix uses `/run/scopeforge-worker/mediator/<64-hex>.sock`, which is 101 bytes and listens successfully while keeping the 256-bit filename and all containment boundaries.
+
 ## Next actions
 
-1. Confirm exact current main is healthy after PR #160.
-2. Deploy the rebuilt worker supervisor bundle from current main to the accepted Oracle Linux host.
+1. Merge `fix/phase11-unix-socket-path-length-20260921` only after exact-head CI passes.
+2. Deploy the rebuilt worker supervisor bundle from exact released main to the accepted Oracle Linux host.
 3. Restart only `scopeforge-worker@phase11-http`.
 4. Confirm idle auth and cleanup.
 5. Rerun one verified ScopeForge-owned HTTPS root-only canary.
