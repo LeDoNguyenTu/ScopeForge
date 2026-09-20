@@ -4,17 +4,13 @@ Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- Current live main before the socket-length follow-up: `a04d90d10cd073161b59bb6d9b6466b58c3e5923`.
-- PR #162 released the human-readable findings UI. Exact-head CI `35537866841` and post-merge main CI `35538297419` passed; Vercel deployment `dpl_9WuwE3sxs4gbc9BqY2doxHBuZuUQ` is READY on `scopeforge.dev`.
-- Phase 11 source baseline: `81282bf786b3b7f82b2f9ebb8427117c2a51912a` after PR #160. PR #161 then reconciled handoff/status documentation only. Always resolve live `main` before starting work.
-- PR #155 released bounded Phase 11E web/API discovery.
-- PR #156 released Phase 11F session/browser authority.
-- PR #157 released Phase 11G proof-only validation.
-- PR #158 released continuous-validation/remediation feedback.
-- PR #159 released the Phase 11 mediator runtime-directory fix.
-- PR #160 released the final Phase 11 source-validation gates and Task 16 capability-gap decisions.
-- PR #160 exact-head CI run `35534658243` passed every required step, including the four Phase 11 benchmark runners and browser acceptance.
-- Last independently verified Vercel production deployment before PR #160 merge was `dpl_28CYfNwZ6xAzEfgvKM8wTpo1cf7C`, READY on main SHA `5fbc5bc9e655fa88531b62e51e452fceb33775c5` (PR #159). Recheck the exact PR #160 production deployment before the next canary.
+- Current live main: `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164.
+- PR #163 released the Unix-socket pathname-length fix, moving the private host socket root to `/run/scopeforge-worker/mediator`.
+- PR #164 released the Phase 11 post-claim preparation state fix. Exact-head CI run `35542030195` passed the full suite, typecheck, CLI/worker builds, scanner and Phase 11 benchmarks, Next production build, CSP/Phase 11 browser smoke, production diagnostic, and artifact upload.
+- Vercel production deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on exact main SHA `3cc1443ed292a14fe6738bc64a0b8629b5992d56` and serves `scopeforge.dev`.
+- The dedicated Phase 11 worker authenticated against that exact deployment with repeated idle `POST /api/internal/workers/claim` HTTP 200 responses.
+- PR #162 released the human-readable findings UI.
+- Phase 11 source baseline remains complete through PR #160. PRs #163 and #164 are operational closure fixes, not scope expansion.
 
 ## Phase 11 source status
 
@@ -73,27 +69,40 @@ This proves the control path reached the dedicated worker and request accounting
 
 ## Canary failure evidence and corrected diagnosis
 
-The dedicated worker is hardened with `ProtectSystem=strict` and `RuntimeDirectory=scopeforge-worker`, making `/run/scopeforge-worker` the declared writable runtime path.
+The first canary exposed a mediator host-directory mismatch. PR #159 moved the host mediator root into the systemd-owned runtime directory.
 
-The supervisor previously attempted to create its host mediator socket under:
+The second canary then exposed a Linux Unix-socket pathname limit. The old generated pathname was 109 bytes and reproduced `listen EINVAL` on the accepted Oracle Linux host. PR #163 shortened only the private host subdirectory to `/run/scopeforge-worker/mediator`, producing a 101-byte path while preserving the 256-bit filename, in-container path, sandbox limits, and authorization boundary.
 
-`/run/scopeforge/runtime-mediator`
+A third bounded canary after the socket-length release still failed before sandbox execution:
 
-That path is outside the service writable set. PR #159 changed only the host mediator root to:
+- run `3a96f604-857c-4a36-8d23-3c2127ab08de`
+- action `phase11-action:fef9fd799e90c749af29156b0376b312187ed43c0cc0b016e352408b88f6dd05`
+- task `36c86535-d7b9-4c11-bb16-c2ce03c74f3d`
+- attempt `37469474-2a71-4b6d-9cf8-176b01fa19d8`
+- one request charged
+- task `dead_letter`
+- attempt `failed` with `WORKER_EXECUTION_FAILED`
+- all worker metrics zero
+- no observation produced
+- attempt duration about 313 ms
 
-`/run/scopeforge-worker/runtime-mediator`
+Exact production logs for that attempt showed:
 
-The in-container mediator path remains `/run/scopeforge/mediator.sock`. Podman network isolation, sandbox limits, authorization, and target scope were not widened.
+- `POST /api/internal/workers/phase11-http/prepare` returned HTTP 409
+- no worker heartbeat occurred
+- `POST /api/internal/workers/phase11-http/finalize` returned HTTP 200
 
-The PR #159 bundle was deployed to the dedicated host and a second bounded canary preserved the same fail-closed result:
+The proven root cause was a state-machine contradiction. The claim RPC intentionally changes the authoritative action state to `running` before preparation, while `lib/phase11-http-worker/preparation.ts` accepted only `enqueueing` or `queued`. The prepare route converts the resulting `PHASE11_HTTP_ACTION_STATE_INVALID` error to HTTP 409.
 
-- run `dd90af93-9f9e-4168-8a2a-067302210f85`
-- action `phase11-action:dfe0443e9f0f41f1012054da78ad4e2cc466242013b4fb0344c41bd09f774c8b`
-- task `f59e0413-27ef-43b2-bf32-d11d3d54a77e`
-- attempt `913086b3-52f1-4405-b613-025830cb2d38`
-- one request charged; `provider_failed`; `WORKER_EXECUTION_FAILED`; no observation
+PR #164 fixed only that contradiction by accepting the authenticated post-claim `running` state. The regression fixture now defaults to `running`, while the existing authorization, target, lease, budget, network, and sandbox checks remain unchanged.
 
-The deeper cause is the generated host socket pathname length. `/run/scopeforge-worker/runtime-mediator/<64-hex>.sock` is 109 bytes and fails with `listen EINVAL` on the accepted Oracle Linux host. The active branch `fix/phase11-unix-socket-path-length-20260921` changes only the host subdirectory to `/run/scopeforge-worker/mediator`, producing a 101-byte path while retaining the 256-bit random filename, service-owned runtime directory, container path, sandbox limits, and authorization boundary.
+Live Supabase function-definition checks confirm that the claim RPC sets the action to `running`, the preparation-context RPC requires a leased task, verifies the Phase 11 worker class, rejects finished attempts, and validates the lease hash.
+
+The production Phase 11 queue currently contains no queued or leased tasks. The three failed canaries remain preserved as `dead_letter` audit evidence.
+
+## Private worker-table privilege note
+
+Supabase flags several private worker tables because RLS is disabled. A direct live privilege query on the nine flagged tables returned zero grants for both `anon` and `authenticated`. Do not enable RLS automatically without a separately tested service-role policy design because an unreviewed change could break trusted worker access.
 
 ## Immutable runtime boundary
 
@@ -105,15 +114,18 @@ Do not replace it with a mutable tag or enable additional execution classes to c
 
 ## Remaining Phase 11 operational gate
 
-1. Release the Unix-socket path-length regression fix after exact-head CI.
-2. On the accepted Oracle Linux host, build/deploy `scopeforge-worker.cjs` from that exact released main using Node 24.
-3. Preserve the existing Phase 11 worker identity/credential and immutable runtime image.
-4. Restart only `scopeforge-worker@phase11-http`.
-5. Prove idle authentication and no leftover container/socket.
-6. Run exactly one new verified-asset root-only canary from `/admin/phase11`.
-7. Require exactly one request, terminal run/action/task state, a valid observation or legitimate no-signal result, coverage reconciliation, zero secret/response-body leakage, and no remaining container/socket.
-8. Record the successful evidence in Phase 11 validation/status docs.
-9. Remove `public/.well-known/scopeforge-verification.txt` after verification/canary closure.
-10. Only then mark Phase 11 operationally 100% complete.
+The PR #163 socket fix and PR #164 preparation-state fix are released. Production is READY and the worker is authenticated and idle.
+
+The only remaining end-to-end acceptance gate is:
+
+1. Use the authenticated platform-admin `/admin/phase11` control to run exactly one verified ScopeForge-owned HTTPS root-only canary.
+2. Keep the canary at `web.http.probe.v1`, root-only GET, redirects disabled, exactly one request, and a 5-second action runtime ceiling.
+3. Verify the worker leases the task and preparation no longer returns HTTP 409.
+4. Require a valid terminal attempt plus terminal run/action/task reconciliation.
+5. Verify a valid observation or legitimate no-signal result, coverage request-count delta exactly one, no duplicate terminal accounting, and no secret/response-body leakage.
+6. Verify no leftover Phase 11 runtime container or mediator socket on the accepted Oracle host.
+7. Record the exact successful evidence, remove `public/.well-known/scopeforge-verification.txt`, and then mark Phase 11 operationally 100% complete.
+
+Do not manually insert a worker task, target third-party assets, or weaken containment to bypass this gate.
 
 Canonical handoff: `docs/development/CODEX_HANDOFF_PHASE11.md`.
