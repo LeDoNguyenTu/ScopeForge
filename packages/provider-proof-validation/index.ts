@@ -93,7 +93,11 @@ export function createBoundedReflectionProofRunner(input: {
   now?: () => Date;
 }): ReflectionProofRunner {
   return Object.freeze({
-    async run(\n      request: Readonly<ReflectionProofRequest>,\n      context: Readonly<ProviderExecutionContext>,\n      signal: AbortSignal,\n    ) {
+    async run(
+      request: Readonly<ReflectionProofRequest>,
+      context: Readonly<ProviderExecutionContext>,
+      signal: AbortSignal,
+    ) {
       if (context.maxRequests !== 1) throw new Error("PROOF_VALIDATION_REQUEST_BUDGET_INVALID");
       const root = canonicalOrigin(await input.resolveTarget(request.targetNodeId));
       const marker = proofMarker(context);
