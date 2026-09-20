@@ -21,45 +21,50 @@ External Nmap, Nuclei, external httpx, broad exploit frameworks, cloud/cluster c
 
 ## Remaining active blocker
 
-One production canary was attempted and reached the dedicated worker, but the provider attempt failed before sandbox execution.
+Phase 11 source implementation is complete, and the two operational defects found by the first production canaries are now released:
 
-Exact evidence:
+- PR #163 fixed the Linux Unix-socket pathname length by using `/run/scopeforge-worker/mediator/<64-hex>.sock`.
+- PR #164 fixed the post-claim preparation state machine by accepting the authoritative `running` action state after a successful lease.
+- PR #164 exact-head CI run `35542030195` passed every required validation step.
+- PR #164 merged as `3cc1443ed292a14fe6738bc64a0b8629b5992d56`.
+- Vercel production `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on that exact SHA.
+- The dedicated Phase 11 worker has successfully authenticated and performed idle claims against the released deployment.
 
-- run: `bbd5c0cd-717c-4ee3-a5a6-c1028331f5b4`
-- action: `phase11-action:bb4b6588033f981264bab07a8584df3d5fea86696db79a8f90f2177ac508f9a9`
-- worker task: `aa6f13c2-6512-498f-95a7-ea7f7cce4e7e`
-- attempt: `52c4c9fd-7a46-4c56-b3fd-63f843162b70`
-- exactly one request was charged
-- attempt status: `provider_failed`
+Preserve all three failed canaries as audit evidence. The newest one is:
+
+- run: `3a96f604-857c-4a36-8d23-3c2127ab08de`
+- action: `phase11-action:fef9fd799e90c749af29156b0376b312187ed43c0cc0b016e352408b88f6dd05`
+- worker task: `36c86535-d7b9-4c11-bb16-c2ce03c74f3d`
+- attempt: `37469474-2a71-4b6d-9cf8-176b01fa19d8`
+- exactly one request charged
+- task: `dead_letter`
+- attempt: `failed`
 - error: `WORKER_EXECUTION_FAILED`
-- observations: 0
-- worker heartbeat proves the task was leased on the dedicated host
+- worker metrics: all zero
+- observation: none
 
-The first diagnosis was incomplete: the mediator host socket root was outside the systemd service's writable runtime directory.
+Production logs proved the failure boundary: the Phase 11 prepare route returned HTTP 409, no heartbeat followed, and finalization returned HTTP 200. The claim RPC had correctly moved the action to `running`; trusted preparation rejected that valid post-claim state. PR #164 is the TDD regression fix.
 
-PR #159 fixed this by moving the host mediator socket root to `/run/scopeforge-worker/runtime-mediator` without changing the in-container path or sandbox/authorization limits.
-
-After deploying that bundle, a second one-request canary also failed before sandbox execution:
-
-- run: `dd90af93-9f9e-4168-8a2a-067302210f85`
-- action: `phase11-action:dfe0443e9f0f41f1012054da78ad4e2cc466242013b4fb0344c41bd09f774c8b`
-- worker task: `f59e0413-27ef-43b2-bf32-d11d3d54a77e`
-- attempt: `913086b3-52f1-4405-b613-025830cb2d38`
-- one request charged; `provider_failed`; `WORKER_EXECUTION_FAILED`; zero worker metrics; no observation
-
-The exact generated socket pathname is 109 bytes and the Oracle host reproduced `listen EINVAL`. The active TDD fix uses `/run/scopeforge-worker/mediator/<64-hex>.sock`, which is 101 bytes and listens successfully while keeping the 256-bit filename and all containment boundaries.
+The remaining blocker is not another source task. It is one successful end-to-end production canary through the authenticated platform-admin control.
 
 ## Next actions
 
-1. Merge `fix/phase11-unix-socket-path-length-20260921` only after exact-head CI passes.
-2. Deploy the rebuilt worker supervisor bundle from exact released main to the accepted Oracle Linux host.
-3. Restart only `scopeforge-worker@phase11-http`.
-4. Confirm idle auth and cleanup.
-5. Rerun one verified ScopeForge-owned HTTPS root-only canary.
-6. Verify one request, valid terminal states, observation/no-signal result, coverage accounting, no secret/body leakage, and no leftover runtime artifacts.
-7. Record acceptance evidence.
+1. From an authenticated platform-admin session, run exactly one verified ScopeForge-owned HTTPS canary from `/admin/phase11`.
+2. Keep it fixed at `web.http.probe.v1`, root-only GET, redirects disabled, one request maximum, and 5000 ms action runtime maximum.
+3. Verify preparation succeeds past the prior HTTP 409 boundary and the worker reaches normal mediator/sandbox execution.
+4. Verify one request, valid terminal task/action/run state, valid observation or legitimate no-signal result, and exact coverage reconciliation.
+5. Verify ordinary logs/evidence contain no response body, credentials, authorization token, or other secret.
+6. Verify the accepted Oracle host has no leftover Phase 11 runtime container or mediator socket.
+7. Record the exact acceptance IDs and evidence in Phase 11 validation/status docs.
 8. Remove `public/.well-known/scopeforge-verification.txt`.
-9. Mark Phase 11 operationally complete.
+9. Mark Phase 11 operationally complete only after all acceptance evidence passes.
+
+Current project-management estimates remain unchanged until this gate passes:
+
+- Phase 11 source: ~100%
+- Phase 11 operational acceptance: ~94%
+- overall "finish Phase 11" task: ~98%
+- whole ScopeForge project: ~90%
 
 ## Do not repeat
 
