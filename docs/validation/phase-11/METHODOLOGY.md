@@ -18,6 +18,7 @@ Run it with:
 node benchmarks/pentest/run-suite.mjs
 node benchmarks/pentest/run-matrix.mjs
 node benchmarks/pentest/run-labeled.mjs
+node benchmarks/pentest/run-legal-lab.mjs
 ```
 
 Each command emits a JSON run manifest and exits non-zero if its adaptive assertions or ceiling fail.
@@ -30,3 +31,21 @@ Task 11 also includes an opt-in legal-lab layer under `tests/pentest/labs/`. It 
 The third-party Compose profile publishes only loopback ports and uses an internal Docker network. Tests reject mutable `latest` image references, missing source revisions, non-loopback published ports, a published database port, or removal of the internal-network boundary.
 
 The legal labs exist so later provider-specific evaluations can measure real behavior against explicitly authorized targets. Their presence does not itself claim Nmap, Nuclei, external httpx, broad DAST, production attack-path coverage, or real-world vulnerability accuracy. See `LABS.md`.
+
+
+## Permanent release benchmark gate
+
+The Phase 11 CI release gate runs all four committed benchmark entry points on every non-draft pull request and on every push to `main`. The legal-lab benchmark starts a ScopeForge-owned ephemeral loopback HTTP service and measures real request behavior rather than injected counters.
+
+The legal-lab manifest fails closed unless all of these hold:
+
+- zero requests leave the exact loopback origin
+- the fixed request ceiling rejects overflow
+- cross-origin redirects are observed but never followed
+- an aborted slow request is cancelled within the fixture ceiling
+- a controlled provider failure is contained
+- response secret material is absent from retained evidence
+- sockets are cleaned up
+- the complete legal-lab acceptance finishes below its catastrophic wall-clock ceiling
+
+The optional Juice Shop and DVWA containers remain opt-in. The permanent CI gate does not start intentionally vulnerable third-party services.
