@@ -28,6 +28,13 @@ These estimates must not be raised until an actual release gate changes.
 - Production currently has no queued or leased Phase 11 task.
 - The eligible verified canary target is ScopeForge Production at `https://scopeforge.dev`.
 
+## Recent production maintenance
+
+- PR #170 merged as `844d89c40c232effb1c522c8ffbd89a5429cb32d` after full exact-head CI.
+- Production deployment `dpl_Bz7UwyYA4k8aiJXKvga5VcoEisgh` is READY.
+- Unauthenticated `/admin/phase11` still reaches sign-in without producing a new Vercel application error.
+- Dedicated worker claim traffic remains HTTP 200 on that deployment.
+
 ## Remaining Phase 11 gate
 
 From an authenticated platform-admin session at `/admin/phase11`, run exactly one bounded canary:
