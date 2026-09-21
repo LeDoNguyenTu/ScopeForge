@@ -25,6 +25,8 @@ The expected successful outcome of this run is Phase 11 source 100%, operational
 - worker ID: `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e`
 - execution class: `phase11_http_discovery_v1`
 - verified target shown in the admin UI: `ScopeForge Production · https://scopeforge.dev`
+- verified asset ID: `587635f1-a8f5-4e42-aeca-693c3d0e42eb`
+- verified asset workspace: `4af09b34-c75f-43ba-985e-19add2a1a749`
 - Oracle host: `ubuntu@168.107.81.228`
 - SSH key on the known Windows workstation: `C:\Users\ADMIN\.ssh\ssh-key-2026-08-31.key.txt`
 - OpenSSH executable: `C:\Windows\System32\OpenSSH\ssh.exe`
@@ -45,10 +47,11 @@ Do not print secret values, environment files, cookies, authorization headers, w
 
 ### B. Preflight production state
 
-Use live provider state, not stale docs.
+Run the read-only `scripts/phase11-final-preflight.sql` against ScopeForge Supabase first. Use live provider state, not stale docs.
 
 Require before clicking anything:
 
+- the preflight result shows `phase11_task_count = 3`, `active_phase11_task_count = 0`, worker `disabled_at = null`, and eligible target `ScopeForge Production` at `https://scopeforge.dev`
 - the intended current main Vercel deployment is READY
 - ScopeForge Supabase project is `tdgpibrepzcvdivztkta`
 - worker `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e` is enabled
