@@ -4,10 +4,10 @@ Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- Current live main: `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164.
+- Current live main: `7a489da09a65bdd8f33c15ca47b86464796546b2`, merge of PR #165. PR #165 contains documentation reconciliation only; the Phase 11 runtime behavior remains the PR #164 fix.
 - PR #163 released the Unix-socket pathname-length fix, moving the private host socket root to `/run/scopeforge-worker/mediator`.
 - PR #164 released the Phase 11 post-claim preparation state fix. Exact-head CI run `35542030195` passed the full suite, typecheck, CLI/worker builds, scanner and Phase 11 benchmarks, Next production build, CSP/Phase 11 browser smoke, production diagnostic, and artifact upload.
-- Vercel production deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on exact main SHA `3cc1443ed292a14fe6738bc64a0b8629b5992d56` and serves `scopeforge.dev`.
+- Vercel production deployment `dpl_BfJTTEGbsetMMMNF2jCF1w6woVDj` is READY on exact main SHA `7a489da09a65bdd8f33c15ca47b86464796546b2` and serves `scopeforge.dev`. The earlier PR #164 runtime deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is also READY.
 - The dedicated Phase 11 worker authenticated against that exact deployment with repeated idle `POST /api/internal/workers/claim` HTTP 200 responses.
 - PR #162 released the human-readable findings UI.
 - Phase 11 source baseline remains complete through PR #160. PRs #163 and #164 are operational closure fixes, not scope expansion.
@@ -38,7 +38,7 @@ The registered Phase 11 HTTP worker remains:
 - worker ID: `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e`
 - execution class: `phase11_http_discovery_v1`
 - registered software version: `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`
-- last observed lease heartbeat: `2026-09-20 15:39:15.766929+00`
+- last observed lease heartbeat: `2026-09-20 21:49:13.335068+00`
 - disabled: no
 
 Do not rotate/re-register the worker merely because the bundle changed. Preserve the existing host-stored credential unless an explicit credential-rotation procedure is required.
@@ -98,7 +98,7 @@ PR #164 fixed only that contradiction by accepting the authenticated post-claim 
 
 Live Supabase function-definition checks confirm that the claim RPC sets the action to `running`, the preparation-context RPC requires a leased task, verifies the Phase 11 worker class, rejects finished attempts, and validates the lease hash.
 
-The production Phase 11 queue currently contains no queued or leased tasks. The three failed canaries remain preserved as `dead_letter` audit evidence.
+Live reconciliation on 2026-09-21 confirmed the production Phase 11 queue contains no queued or leased tasks. The three failed canaries remain preserved as `dead_letter` audit evidence.
 
 ## Private worker-table privilege note
 

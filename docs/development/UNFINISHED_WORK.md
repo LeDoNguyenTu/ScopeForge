@@ -26,8 +26,8 @@ Phase 11 source implementation is complete, and the two operational defects foun
 - PR #163 fixed the Linux Unix-socket pathname length by using `/run/scopeforge-worker/mediator/<64-hex>.sock`.
 - PR #164 fixed the post-claim preparation state machine by accepting the authoritative `running` action state after a successful lease.
 - PR #164 exact-head CI run `35542030195` passed every required validation step.
-- PR #164 merged as `3cc1443ed292a14fe6738bc64a0b8629b5992d56`.
-- Vercel production `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on that exact SHA.
+- PR #164 merged as `3cc1443ed292a14fe6738bc64a0b8629b5992d56`; documentation reconciliation PR #165 subsequently moved live `main` to `7a489da09a65bdd8f33c15ca47b86464796546b2` without changing runtime behavior.
+- Vercel production `dpl_BfJTTEGbsetMMMNF2jCF1w6woVDj` is READY on current `main`; the PR #164 runtime deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` also remains READY.
 - The dedicated Phase 11 worker has successfully authenticated and performed idle claims against the released deployment.
 
 Preserve all three failed canaries as audit evidence. The newest one is:
@@ -45,7 +45,7 @@ Preserve all three failed canaries as audit evidence. The newest one is:
 
 Production logs proved the failure boundary: the Phase 11 prepare route returned HTTP 409, no heartbeat followed, and finalization returned HTTP 200. The claim RPC had correctly moved the action to `running`; trusted preparation rejected that valid post-claim state. PR #164 is the TDD regression fix.
 
-The remaining blocker is not another source task. It is one successful end-to-end production canary through the authenticated platform-admin control.
+The remaining blocker is not another source task. Live checks on 2026-09-21 confirmed the worker is enabled, the queue is idle, and the only remaining gate is one successful end-to-end production canary through the authenticated platform-admin control.
 
 ## Next actions
 
