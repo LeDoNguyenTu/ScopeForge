@@ -12,6 +12,16 @@ Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
 - PR #162 released the human-readable findings UI.
 - Phase 11 source baseline remains complete through PR #160. PRs #163 and #164 are operational closure fixes, not scope expansion.
 
+## 2026-09-21 database performance hardening
+
+PR #168 merged additive foreign-key index hardening after exact-head CI run `35584817649` passed the full repository gate. Production migration `cross_phase_fk_index_hardening` was then applied to ScopeForge Supabase `tdgpibrepzcvdivztkta`.
+
+Post-migration Supabase performance advisor reconciliation reports zero `unindexed_foreign_keys` findings, down from 16 before the migration. The remaining `unused_index` notices are informational and expected immediately after new indexes are created; do not drop indexes solely from that fresh counter state.
+
+The migration changes indexes only. It does not modify RLS, grants, functions, constraints, worker authority, or Phase 11 execution behavior.
+
+Production security-advisor decisions are recorded in `docs/security/PRODUCTION_SUPABASE_ADVISORS.md`.
+
 ## Phase 11 source status
 
 Tasks 1 through 16 are complete for the initial Phase 11 release scope.

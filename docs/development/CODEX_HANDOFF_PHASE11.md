@@ -69,6 +69,14 @@ The connected Chrome extension later exposed the authenticated platform-admin se
 
 This UI slice is independent of the remaining Phase 11 production-worker canary below. Do not treat it as Phase 11 operational acceptance.
 
+## Parallel maintenance completed during Phase 11 closure
+
+- PR #168 added 16 covering foreign-key indexes and passed exact-head CI run `35584817649`.
+- Production migration `cross_phase_fk_index_hardening` is applied to ScopeForge Supabase.
+- The post-migration performance advisor has zero `unindexed_foreign_keys` findings.
+- `docs/security/PRODUCTION_SUPABASE_ADVISORS.md` records the live security-advisor/grant reconciliation.
+- These changes do not lower or satisfy the remaining authenticated Phase 11 canary gate.
+
 ## Start here
 
 1. Resolve current `main` first. The Phase 11 source baseline is `81282bf786b3b7f82b2f9ebb8427117c2a51912a` (PR #160); PR #161 and any later commits may be documentation/closure follow-through.
