@@ -19,16 +19,16 @@ These are project-management estimates, not computed coverage metrics. Update th
 
 ## Latest operational reconciliation
 
-Current released main is `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164.
+Current released main is `7a489da09a65bdd8f33c15ca47b86464796546b2`, merge of PR #165. PR #165 is documentation-only reconciliation on top of the PR #164 runtime fix.
 
 Release evidence:
 
 - PR #163 released the Unix-socket pathname-length fix at `/run/scopeforge-worker/mediator`.
 - PR #164 fixed the trusted preparation state machine so a correctly claimed Phase 11 action in `running` state is accepted.
 - PR #164 exact-head CI run `35542030195` completed successfully across the full test suite, typecheck, CLI/worker builds, scanner and Phase 11 benchmarks, Next build, CSP/Phase 11 browser smoke, production diagnostic, and screenshot upload.
-- Vercel production deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on exact SHA `3cc1443ed292a14fe6738bc64a0b8629b5992d56`.
+- Vercel production deployment `dpl_BfJTTEGbsetMMMNF2jCF1w6woVDj` is READY on exact SHA `7a489da09a65bdd8f33c15ca47b86464796546b2`. The prior PR #164 runtime deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is also READY.
 - The dedicated Phase 11 worker has authenticated against that exact deployment and returned repeated idle claim HTTP 200 responses.
-- The Phase 11 queue currently has no queued or leased work. Three failed canaries remain preserved as `dead_letter` evidence.
+- Live reconciliation on 2026-09-21 confirmed the Phase 11 queue still has no queued or leased work. Three failed canaries remain preserved as `dead_letter` evidence. The worker remains enabled and its latest lease heartbeat is `2026-09-20 21:49:13.335068+00`.
 - Direct live privilege inspection found zero `anon` or `authenticated` grants on the nine Supabase private worker tables flagged for RLS-disabled advisory. Do not auto-enable RLS without a tested service-role policy design.
 
 Do not lower the remaining operational gate merely because PR #164 is released. One authenticated end-to-end canary is still required.
