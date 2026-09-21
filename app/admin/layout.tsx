@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import AdminNavigation from "@/components/platform-admin/AdminNavigation";
-import {
-  PlatformAdminAuthorizationError,
-  requirePlatformAdmin,
-} from "@/lib/platform-admin/authorization";
+import { getPlatformAdminAccessState } from "@/lib/platform-admin/authorization";
 import "./admin.css";
 import "./admin-responsive.css";
 import "./admin-settings.css";
@@ -18,19 +15,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  let context;
-  try {
-    context = await requirePlatformAdmin();
-  } catch (error) {
-    if (
-      error instanceof PlatformAdminAuthorizationError
-      && error.code === "PLATFORM_ADMIN_UNAUTHENTICATED"
-    ) {
-      redirect("/auth/sign-in");
-    }
-    notFound();
-  }
+  const access = await getPlatformAdminAccessState();
+  if (access.status === "unauthenticated") redirect("/auth/sign-in");
+  if (access.status === "denied") notFound();
 
+  const context = access.context;
   return (
     <div className="platformAdminShell">
       <a className="skipLink" href="#platform-admin-content">Skip to admin content</a>
