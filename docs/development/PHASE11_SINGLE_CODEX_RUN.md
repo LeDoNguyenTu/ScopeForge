@@ -93,7 +93,7 @@ Run the read-only SQL file:
 
 It excludes the three historical failed canaries and therefore selects only the new final canary.
 
-From the result, record:
+The result now includes `acceptance_ready` plus individual `acceptance_checks`. Do not close Phase 11 unless `acceptance_ready = true` and the independent Vercel/Oracle secrecy and cleanup checks also pass.\n\nFrom the result, record:
 
 - run ID/status/stop reason
 - action ID/state/decision/max request/max runtime
@@ -197,7 +197,7 @@ Set documented progress to:
 
 Recalculate the whole-project percentage from the actual roadmap instead of blindly changing 90%.
 
-Run focused validation for changed code/docs and the appropriate full CI gate. Do not bypass a failure.
+If the successful closure diff contains only documentation changes plus deletion of the temporary verification file, use `[skip ci]` commits and do not consume a full CI run merely for paperwork. Review the diff carefully and verify the resulting Vercel production deployment instead. If any executable code, configuration, migration, authorization, worker, or policy file changed, require the appropriate exact-head CI gate and do not bypass a failure.
 
 Open a closure PR, review the exact diff, merge only after the required exact-head CI is green, then verify the exact-main Vercel deployment reaches READY and `scopeforge.dev` serves that main.
 
