@@ -201,6 +201,8 @@ If the successful closure diff contains only documentation changes plus deletion
 
 Open a closure PR, review the exact diff, merge only after the required exact-head CI is green, then verify the exact-main Vercel deployment reaches READY and `scopeforge.dev` serves that main.
 
+If Phase 11 closure is successful and a genuine delete-ref capability is available, recheck `git worktree list` plus open PRs and delete the already-reviewed safe refs in `docs/development/BRANCH_CLEANUP_CANDIDATES.md`. Do not spend the closure run classifying additional branches and do not force-move refs.
+
 Confirm:
 
 - no open closure PR

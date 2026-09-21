@@ -13,6 +13,7 @@ Before implementation work:
    - `docs/development/CODEX_HANDOFF.md`
    - `docs/development/ACCOUNT_CONTEXT_CHECKLIST.md`
    - `docs/development/CURRENT_STATE.md`
+   - `docs/development/HISTORICAL_DOCUMENTATION.md` when older acceptance/working-state files conflict with current guidance
    - `docs/development/NEXT_STEPS.md`
    - `docs/development/SESSION_HANDOFF.md`
    - `docs/development/UNFINISHED_WORK.md`
@@ -86,3 +87,8 @@ This project is indexed by GitNexus as **ScopeForge** (17200 symbols, 28316 rela
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+
+## Branch hygiene
+
+For reviewed remote cleanup candidates, read `docs/development/BRANCH_CLEANUP_CANDIDATES.md`. Delete refs only with a genuine delete-ref operation after rechecking open PRs and local worktrees. Never force-move a branch to simulate deletion.
