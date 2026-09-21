@@ -35,6 +35,14 @@ These estimates must not be raised until an actual release gate changes.
 - Unauthenticated `/admin/phase11` still reaches sign-in without producing a new Vercel application error.
 - Dedicated worker claim traffic remains HTTP 200 on that deployment.
 
+## Final pre-Codex maintenance
+
+- PR #178 merged as `d767960cc866af01eaaad3f91b5a22c8fa708e29` after exact-head CI run `35629597495` passed the complete validation gate.
+- The Phase 11 canary form now announces pending/success/error state accessibly without changing server authority or execution limits.
+- Worker-table RLS hardening is documented in `docs/security/WORKER_RLS_HARDENING_PLAN.md`; production audit shows 9 tables, 0 browser grants, and 57 trusted SECURITY DEFINER routines touching the worker/runtime surface.
+- All 83 remote refs visible before PR #178 were classified. The cleanup manifest contains 69 reviewed safe-delete branches and 12 diverged branches to preserve.
+- `docs/development/HISTORICAL_DOCUMENTATION.md` distinguishes acceptance history from active resume guidance.
+
 ## Remaining Phase 11 gate
 
 From an authenticated platform-admin session at `/admin/phase11`, run exactly one bounded canary:
