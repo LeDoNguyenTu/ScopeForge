@@ -12,7 +12,7 @@ describe("platform admin UI boundary", () => {
   it("protects the admin shell with platform authorization and exposes the required areas", async () => {
     const layout = await read("app/admin/layout.tsx");
     const navigation = await read("components/platform-admin/AdminNavigation.tsx");
-    expect(layout).toContain("requirePlatformAdmin");
+    expect(layout).toContain("getPlatformAdminAccessState");\n    expect(layout).toContain('access.status === "unauthenticated"');\n    expect(layout).toContain('access.status === "denied"');\n    expect(layout).not.toContain("requirePlatformAdmin");
     expect(layout).toContain("AdminNavigation");
     for (const label of ["Overview", "Users", "Workspaces", "Audit", "Settings", "Back to workspace"]) {
       expect(navigation).toContain(label);
