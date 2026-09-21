@@ -22,6 +22,14 @@ The migration changes indexes only. It does not modify RLS, grants, functions, c
 
 Production security-advisor decisions are recorded in `docs/security/PRODUCTION_SUPABASE_ADVISORS.md`.
 
+## 2026-09-21 admin authorization telemetry cleanup
+
+PR #170 merged as `844d89c40c232effb1c522c8ffbd89a5429cb32d` after exact-head CI run `35585600946` passed the complete test, typecheck, CLI/worker build, scanner/Phase 11 benchmark, Next build, CSP browser, and production diagnostic gate.
+
+The admin layout now uses a typed non-throwing access-state read for expected page navigation only. Unauthenticated users still redirect to sign-in, signed-in non-admins still fail closed to not-found, and privileged server operations continue to use throwing `requirePlatformAdmin()` authorization.
+
+Vercel production deployment `dpl_Bz7UwyYA4k8aiJXKvga5VcoEisgh` is READY on the exact merge SHA and serves `scopeforge.dev`. A fresh unauthenticated `/admin/phase11` request rendered the sign-in page and produced zero runtime error groups in the verification window. The dedicated worker continued authenticated claim HTTP 200 traffic on the same deployment.
+
 ## Phase 11 source status
 
 Tasks 1 through 16 are complete for the initial Phase 11 release scope.
