@@ -9,7 +9,7 @@ Before implementation work:
 1. Confirm the repository is `LeDoNguyenTu/ScopeForge` and the GitHub identity is the intended project owner or an explicitly authorized account.
 2. Fetch and prune remote refs. Do not trust a SHA copied from an old conversation or handoff as the current branch tip.
 3. Inspect live `main`, all open pull requests, open release-blocking issues, current CI state, and the working tree before choosing a task.
-4. Read these files in order:
+4. If the current task is final Phase 11 closure, read `docs/development/PHASE11_SINGLE_CODEX_RUN.md` first and execute that bounded procedure. Otherwise read these files in order:
    - `docs/development/CODEX_HANDOFF.md`
    - `docs/development/ACCOUNT_CONTEXT_CHECKLIST.md`
    - `docs/development/CURRENT_STATE.md`

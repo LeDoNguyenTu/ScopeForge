@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-21, Asia/Singapore.
 
-This is the canonical resume document for another agent/Codex. Read it before changing anything.
+This is the canonical detailed resume document. For the final closure execution, `docs/development/PHASE11_SINGLE_CODEX_RUN.md` is the compact one-run procedure and should be read first.
 
 ## Objective
 

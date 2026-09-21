@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-21, Asia/Singapore.
 
-This file is intentionally short. For the authoritative detailed resume state, read:
+This file is intentionally short. If the goal is to finish Phase 11 now, start with `docs/development/PHASE11_SINGLE_CODEX_RUN.md` and follow it as the single closure procedure. For the authoritative detailed resume state, read:
 
 1. `docs/development/CODEX_HANDOFF_PHASE11.md`
 2. `docs/development/CURRENT_STATE.md`
