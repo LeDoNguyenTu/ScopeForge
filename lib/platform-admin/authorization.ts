@@ -53,12 +53,17 @@ export interface PlatformAdminContext {
   role: PlatformAdminRole;
 }
 
-export async function getOptionalPlatformAdmin(): Promise<PlatformAdminContext | null> {
+export type PlatformAdminAccessState =
+  | { status: "authorized"; context: PlatformAdminContext }
+  | { status: "unauthenticated" }
+  | { status: "denied" };
+
+export async function getPlatformAdminAccessState(): Promise<PlatformAdminAccessState> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { status: "unauthenticated" };
 
   const admin = createAdminClient<Phase10cDatabase>();
   const { data, error } = await admin
@@ -67,36 +72,29 @@ export async function getOptionalPlatformAdmin(): Promise<PlatformAdminContext |
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error || !data) return { status: "denied" };
   assertPlatformAdminRole(data.role);
-  return { user, role: data.role };
+  return { status: "authorized", context: { user, role: data.role } };
+}
+
+export async function getOptionalPlatformAdmin(): Promise<PlatformAdminContext | null> {
+  const state = await getPlatformAdminAccessState();
+  return state.status === "authorized" ? state.context : null;
 }
 
 export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const state = await getPlatformAdminAccessState();
+  if (state.status === "unauthenticated") {
     throw new PlatformAdminAuthorizationError(
       "PLATFORM_ADMIN_UNAUTHENTICATED",
       "Sign in to continue.",
     );
   }
-
-  const admin = createAdminClient<Phase10cDatabase>();
-  const { data, error } = await admin
-    .from("platform_admins")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error || !data) {
+  if (state.status === "denied") {
     throw new PlatformAdminAuthorizationError(
       "PLATFORM_ADMIN_ACCESS_DENIED",
       "Platform administrator access is required.",
     );
   }
-  assertPlatformAdminRole(data.role);
-  return { user, role: data.role };
+  return state.context;
 }
