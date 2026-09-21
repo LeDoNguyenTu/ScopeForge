@@ -31,7 +31,7 @@ The first canary exposed a mediator host-directory mismatch. PR #159 moved the h
 
 The second canary then reproduced the Linux Unix-socket pathname limit: the generated 109-byte host pathname failed with `listen EINVAL`. PR #163 shortened only the private host subdirectory to `/run/scopeforge-worker/mediator`, producing a 101-byte pathname while preserving the 64-hex random filename, in-container mediator path, authorization boundary, and sandbox limits.
 
-The third canary passed the corrected socket boundary but production preparation returned HTTP 409 before sandbox execution. The claim RPC had correctly moved the action to `running`, while trusted preparation accepted only `enqueueing` or `queued`. PR #164 released the regression fix so the authenticated post-claim `running` state is valid. Exact-head CI passed, and current production main `7a489da09a65bdd8f33c15ca47b86464796546b2` is READY. Live reconciliation on 2026-09-21 confirmed the dedicated worker is enabled and the Phase 11 queue has no queued or leased work.
+The third canary passed the corrected socket boundary but production preparation returned HTTP 409 before sandbox execution. The claim RPC had correctly moved the action to `running`, while trusted preparation accepted only `enqueueing` or `queued`. PR #164 released the regression fix so the authenticated post-claim `running` state is valid. Exact-head CI passed and the exact runtime deployment is READY. Later docs-only main/deployment revisions do not alter this runtime baseline. Live reconciliation on 2026-09-21 confirmed the dedicated worker is enabled and the Phase 11 queue has no queued or leased work.
 
 Phase 11 operational completion now requires only:
 
