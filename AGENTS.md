@@ -35,7 +35,9 @@ Before implementation work:
 
 ## Release ordering
 
-At the time this instruction file was introduced, GitHub App issue #79 remained the operational gate before Phase 10A2 PR #76, and Phase 10A3 PR #77 must follow the released Phase 10A2 work. Do not rely on that sentence alone. Re-read the live issue and pull requests first because they may have advanced.
+Phase 10A2 and Phase 10A3 are released and GitHub App issue #79 is closed. The current release-critical boundary is the final Phase 11 operational canary documented in `docs/development/CODEX_HANDOFF_PHASE11.md`, `CURRENT_STATE.md`, and `NEXT_STEPS.md`.
+
+Do not enable external Nmap, Nuclei, httpx, broad exploit frameworks, or deferred advanced providers merely to move a completion percentage. Resolve live `main`, open PRs, provider state, and the exact remaining Phase 11 gate before acting.
 
 ## External account context
 
