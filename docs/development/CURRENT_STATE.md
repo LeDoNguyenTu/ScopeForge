@@ -4,10 +4,10 @@ Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
 
 ## Released baseline
 
-- Current live main: `7a489da09a65bdd8f33c15ca47b86464796546b2`, merge of PR #165. PR #165 contains documentation reconciliation only; the Phase 11 runtime behavior remains the PR #164 fix.
+- Latest runtime-changing Phase 11 baseline: `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164. Later docs-only reconciliation commits may move `main`; resolve live `main` before acting.
 - PR #163 released the Unix-socket pathname-length fix, moving the private host socket root to `/run/scopeforge-worker/mediator`.
 - PR #164 released the Phase 11 post-claim preparation state fix. Exact-head CI run `35542030195` passed the full suite, typecheck, CLI/worker builds, scanner and Phase 11 benchmarks, Next production build, CSP/Phase 11 browser smoke, production diagnostic, and artifact upload.
-- Vercel production deployment `dpl_BfJTTEGbsetMMMNF2jCF1w6woVDj` is READY on exact main SHA `7a489da09a65bdd8f33c15ca47b86464796546b2` and serves `scopeforge.dev`. The earlier PR #164 runtime deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is also READY.
+- Vercel production deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on exact runtime SHA `3cc1443ed292a14fe6738bc64a0b8629b5992d56`. Later docs-only production deployments may be newer while preserving the same Phase 11 runtime behavior.
 - The dedicated Phase 11 worker authenticated against that exact deployment with repeated idle `POST /api/internal/workers/claim` HTTP 200 responses.
 - PR #162 released the human-readable findings UI.
 - Phase 11 source baseline remains complete through PR #160. PRs #163 and #164 are operational closure fixes, not scope expansion.
