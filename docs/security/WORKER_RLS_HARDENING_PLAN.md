@@ -26,6 +26,7 @@ Live inspection on 2026-09-22 confirmed all nine tables:
 - have no RLS policies
 - expose table privileges only to the `postgres` owner in the inspected grant view
 - expose no direct `anon` or `authenticated` table grant
+- are referenced by 57 inspected `SECURITY DEFINER` routines across the trusted worker/control surface
 
 The worker/control plane accesses these tables through reviewed `SECURITY DEFINER` functions and trusted server paths. That means a blanket `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` change is not safe merely because the advisor recommends RLS.
 
