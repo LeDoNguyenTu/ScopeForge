@@ -21,10 +21,12 @@ describe("responsive platform admin shell", () => {
     expect(css).not.toContain("min-width: 110px");
   });
 
-  it("keeps server-side platform authorization in the layout", () => {
+  it("keeps server-side platform authorization in the layout without throwing for expected navigation states", () => {
     const layout = read("app/admin/layout.tsx");
 
-    expect(layout).toContain("await requirePlatformAdmin()");
-    expect(layout).toContain("PLATFORM_ADMIN_UNAUTHENTICATED");
+    expect(layout).toContain("await getPlatformAdminAccessState()");
+    expect(layout).toContain('access.status === "unauthenticated"');
+    expect(layout).toContain('access.status === "denied"');
+    expect(layout).not.toContain("requirePlatformAdmin");
   });
 });
