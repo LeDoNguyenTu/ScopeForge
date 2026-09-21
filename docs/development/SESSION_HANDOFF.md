@@ -1,26 +1,64 @@
 # ScopeForge Session Handoff
 
-Last refreshed: 2026-09-20, Asia/Singapore.
+Last reconciled: 2026-09-21, Asia/Singapore. Live GitHub/provider state wins.
 
-## Resume exactly here
+## Canonical resume point
 
-- Released `main` is `d92698ae118fb5aa0af7d9db6589348b89576d2e`, merge of PR #150; post-merge CI `35460959197` passed.
-- PR #150 released `/admin/phase11` with a fixed root-only GET canary for existing verified HTTPS assets.
-- Vercel deployment `dpl_49mavQuJxwksw1AcaZzmZfaAdvSA` is READY and contains the Phase 11 admin route.
-- Supabase is `tdgpibrepzcvdivztkta`, ACTIVE_HEALTHY on PostgreSQL 17.
-- Phase 11A and Phase 11C migrations are already present in production. Do not reapply them.
-- The accepted runtime image remains `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`.
-- One `phase11_http_discovery_v1` worker identity is already registered for the PR #147 implementation SHA.
-- The dedicated Phase 11 service is enabled on the Oracle host with the accepted image. Authenticated empty claims passed before and after a class-scoped stop/start rollback; the pre-existing snapshot and repository-scan worker PIDs were unchanged.
-- Idle claims do not update `last_seen_at`; only a leased task heartbeat does. Do not weaken authentication or fabricate a heartbeat to change it.
-- Checked Phase 11 worker-control RPC ACLs are service-role only.
+Read `docs/development/CODEX_HANDOFF_PHASE11.md` first. It is the detailed Phase 11 closure handoff.
 
-## Next action
+Current project-management estimates:
 
-1. finish and release branch `ops/phase11-production-canary-evidence-20260920`, which advances the parent run after terminal worker finalization and exact replay
-2. use `/admin/phase11` to select an existing verified HTTPS web/API asset owned/administered by the signed-in operator
-3. run exactly one fixed root-GET canary through the normal planner/policy/authorization/queue path
-4. verify terminal task/action state, observations, request/coverage accounting, host cleanup, and logs
-5. update this handoff and `PHASE11C_PRODUCTION_ENABLEMENT.md` with exact production evidence
+- Phase 11 source: 100%
+- Phase 11 operational acceptance: about 94%
+- overall "finish Phase 11" task: about 98%
+- whole ScopeForge project: about 90%
 
-Do not reapply migrations, rotate the worker credential, or enable external Nmap/Nuclei/httpx execution as ordinary follow-up work.
+These estimates must not be raised until an actual release gate changes.
+
+## Current released state
+
+- Phase 11 source Tasks 1 through 16 are complete for the initial approved scope.
+- The latest runtime-changing Phase 11 baseline is PR #164 at `3cc1443ed292a14fe6738bc64a0b8629b5992d56`.
+- PR #163 fixed the Linux Unix-socket pathname limit.
+- PR #164 fixed trusted preparation to accept the authoritative post-claim `running` action state.
+- The dedicated `phase11_http_discovery_v1` worker is enabled and production logs show repeated authenticated idle claim HTTP 200 responses.
+- The accepted immutable runtime image remains `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`.
+- ScopeForge Supabase is `tdgpibrepzcvdivztkta`. Never use the Job Command Center project `xwsergbpvkcsugexssmc`.
+- Three failed Phase 11 canaries remain preserved as `dead_letter` audit evidence. Do not retry, rewrite, or delete them.
+- Production currently has no queued or leased Phase 11 task.
+- The eligible verified canary target is ScopeForge Production at `https://scopeforge.dev`.
+
+## Remaining Phase 11 gate
+
+From an authenticated platform-admin session at `/admin/phase11`, run exactly one bounded canary:
+
+- `web.http.probe.v1`
+- verified ScopeForge-owned HTTPS target only
+- root-only GET
+- redirects disabled
+- one request maximum
+- 5000 ms action runtime maximum
+
+Acceptance requires worker lease, successful preparation past the former HTTP 409 boundary, mediator/sandbox execution, exact one-request accounting, valid terminal attempt/run/action/task reconciliation, valid observation or legitimate no-signal result, no duplicate accounting or secret/body leakage, and no leftover runtime container or mediator socket.
+
+Do not manufacture acceptance with service-role SQL or manual worker-task insertion.
+
+## Parallel maintenance already completed
+
+- PR #168 added 16 covering foreign-key indexes after exact-head CI run `35584817649`.
+- Production migration `cross_phase_fk_index_hardening` is applied.
+- Supabase performance advisor now reports zero `unindexed_foreign_keys` findings.
+- Production advisor decisions are documented in `docs/security/PRODUCTION_SUPABASE_ADVISORS.md`.
+- The RLS-disabled private worker tables remain a separate defense-in-depth design item. Do not blindly enable RLS without tested trusted-worker policies.
+
+## After the successful canary
+
+1. record exact run/action/task/attempt/observation and coverage evidence
+2. verify host cleanup and ordinary log secrecy
+3. remove `public/.well-known/scopeforge-verification.txt`
+4. update `CURRENT_STATE.md`, `UNFINISHED_WORK.md`, the completion matrix, and this handoff
+5. run appropriate exact-head validation
+6. merge the closure PR and verify exact-main Vercel production
+7. only then mark Phase 11 operationally 100% complete
+
+External Nmap, Nuclei, external httpx, broad exploit frameworks, and deferred advanced providers remain disabled unless separately reviewed.
