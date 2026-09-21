@@ -19,6 +19,7 @@ describe("Phase 11 canary form accessibility", () => {
     expect(form).toContain('role={state && !state.ok ? "alert" : "status"}');
 
     expect(form).toContain('name="assetId"');
+    expect(form).toContain("launchPhase11CanaryAction");
     expect(form).toContain("Run bounded canary");
   });
 });
