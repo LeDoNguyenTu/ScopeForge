@@ -1,80 +1,60 @@
 # ScopeForge Branch Cleanup Candidates
 
-Last live audit: 2026-09-16, Asia/Singapore
+Last live audit: 2026-09-22, Asia/Singapore.
 
-This is a reconciliation record, not deletion authorization. Always re-fetch branches, open PRs, reachability, and local worktrees immediately before deleting refs.
+This is a deletion manifest, not a substitute for a real delete-ref operation. The current ChatGPT GitHub integration can prove reachability but does not expose branch deletion, so no refs were deleted in this reconciliation.
 
-## Live state observed
+## Current rule
 
-GitHub returned **21 remote branches**. This supersedes the older claim that only four refs remained.
+Before deleting any branch:
 
-Only two PRs remain open after PR #119 merged:
+1. fetch/prune the repository
+2. inspect open PRs
+3. inspect local worktrees
+4. prove the branch tip is reachable from a retained ref, preferably `main`
+5. preserve `main`, active PR heads, active worktree branches, and intentional long-lived refs
+6. delete only with a genuine delete-ref operation
+7. re-fetch branches after deletion
 
-- PR #76: `feat/phase-10a2-private-repository-acquisition`
-- PR #77: `feat/phase-10a3-github-webhook-reconciliation`
+Do not simulate deletion by force-moving a branch.
 
-Open-PR pagination page 3 with one result per page was empty, confirming there was no third open PR at this checkpoint.
+## Verified safe-delete candidates
 
-Observed branch set:
+The following branches were compared directly against current `main` on 2026-09-22. For each one, GitHub reported the branch tip as the merge base, with `main` ahead and the branch having zero commits not reachable from `main`.
 
-- `chore/refresh-compatible-dependencies`
+- `docs/active-agent-resume-20260921`
+- `docs/admin-auth-release-evidence-20260921`
+- `docs/phase11-live-reconcile-20260921b`
+- `docs/phase11-roadmap-reconcile-20260921`
+- `docs/phase11-stable-baseline-20260921`
+- `docs/post-fk-hardening-state-20260921`
+- `docs/production-advisor-reconciliation-20260921`
+- `fix/admin-auth-telemetry-20260921`
+- `fix/findings-human-readable-ui-20260921`
+- `fix/phase11-running-preparation-20260921`
+- `fix/phase11-unix-socket-path-length-20260921`
+- `ops/phase11-single-codex-acceptance-evaluator-20260922`
+- `ops/phase11-single-codex-close-prep-20260922`
+- `ops/phase11-single-codex-preflight-20260922`
+- `perf/fk-index-hardening-20260921`
+- `feat/phase11-final-validation-gates`
+- `feat/phase11-production-canary-control-20260920`
+- `feat/phase11-task12-web-api-discovery`
+- `feat/phase11-task13-session-browser`
+- `feat/phase11-task14-proof-validation`
+
+These are safe from a remote-reachability perspective. A Codex/local cleanup still must check `git worktree list` immediately before deletion.
+
+## Intentionally not classified here
+
+This manifest does not declare every other remote branch safe. The repository still contains older Phase 10, Phase 11, demo, dependency, test, temporary reconciliation, and maintenance branches.
+
+In particular, preserve until separately reviewed:
+
 - `demo/portfolio-20260910`
-- `docs/mobile-session-handoff-20260915`
-- `docs/session-reconciliation-20260915`
-- `feat/phase-10a2-private-repository-acquisition`
-- `feat/phase-10a3-github-webhook-reconciliation`
-- `feat/workspace-collaborator-controls-20260916`
-- `fix/ci-production-webdriver-isolation-20260915`
-- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp`
-- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp2`
-- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp3`
-- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp4`
-- `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp5`
-- `fix/phase-10a2-broker-authority-expiry-20260915`
-- `fix/phase-10a2-private-claim-binding-20260915`
-- `fix/phase-10a2-private-stream-cleanup-20260915`
-- `fix/repository-scan-download-expiry-20260916`
-- `fix/repository-upload-expiry-toctou-20260915`
-- `fix/signup-confirmation-flow-20260916`
-- `main`
-- `test/github-connection-reauthorization-20260915`
+- `chore/refresh-compatible-dependencies`
+- any branch with local unmerged work
+- any branch attached to a worktree
+- any branch backing an open PR created after this audit
 
-## Must retain without further question
-
-- `main`
-- `feat/phase-10a2-private-repository-acquisition` - open draft PR #76
-- `feat/phase-10a3-github-webhook-reconciliation` - open draft PR #77
-- `demo/portfolio-20260910` - intentional demo/portfolio ref
-- any branch backing a new open PR created after this audit
-- any branch attached to an active local worktree at deletion time
-
-## Known merged/superseded candidates requiring final pre-delete verification
-
-The following have strong live-history reasons to be cleanup candidates, but no deletion was performed in this continuation:
-
-- `fix/repository-scan-download-expiry-20260916` - PR #119 merged into #76 as `79e4b2a1e10a3fb2db7652b7d2f143a06f04156b`
-- `feat/workspace-collaborator-controls-20260916` - PR #118 merged/released
-- `fix/signup-confirmation-flow-20260916` - PR #117 merged/released
-- `fix/repository-upload-expiry-toctou-20260915` - PR #116 merged/released
-- `fix/phase-10a2-private-claim-binding-20260915` - PR #113 integrated into #76
-- `fix/phase-10a2-broker-authority-expiry-20260915` - PR #114 integrated into #76
-- `fix/phase-10a2-private-stream-cleanup-20260915` - PR #115 integrated into #76
-- the five `fix/phase-10a2-broker-authority-expiry-20260915-reconciled-temp*` refs - historical temporary reconciliation refs; verify they are not active worktrees before deletion
-
-The remaining maintenance/docs/test refs also require fresh merged/reachability and worktree verification before deletion. Do not infer safety only from their names.
-
-## Required cleanup procedure
-
-1. Fetch `main`, all branches, and all open PR pages.
-2. Inspect `git worktree list` and local branch state in the actual checkout.
-3. For each candidate, prove at least one reviewed preservation path: merged PR, tip reachable from a retained ref, or explicitly superseded/closed work whose commits remain reachable.
-4. Preserve all active PR heads, active worktree branches, intentional demo refs, and current task branches.
-5. Delete refs only through a genuine delete-ref operation. Never simulate deletion by force-moving or repointing a branch.
-6. Re-fetch the complete branch list after deletion.
-7. Record exact deleted refs, retained refs, final count, and any exceptions in `LATEST_SESSION.md` and `SESSION_HANDOFF.md`.
-
-## Latest-work cleanup note
-
-PR #119 is merged, but its source branch was intentionally left in place because this chat did not have a reviewed delete-ref action exposed and the broader manifest was already stale. That is safer than attempting partial cleanup from outdated assumptions.
-
-Branch hygiene does not change the release sequence and never clears issue #79 or authorizes Phase 10A2/10A3 production actions.
+The final Phase 11 Codex run may delete the verified list above in one batch after successful closure if it has a genuine delete-ref capability and the worktree/open-PR recheck is clean.
