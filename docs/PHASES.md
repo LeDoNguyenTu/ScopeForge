@@ -46,6 +46,13 @@ ScopeForge follows the approved community-platform roadmap. Phase boundaries are
    - **Strict CSP compatibility - complete.** PR #66 merged the nonce-based CSP gate as `191a7ee1c93f179adad51f108d4ad1fade2e78f2` after exact-head CI #794 and a READY Vercel Preview. Production CSP is enforced without permanent production `unsafe-inline` or `unsafe-eval`, and CI includes real-browser CSP acceptance.
    - **Approved Command Center V5 restoration - complete.** PR #67 restored the accepted public and authenticated V5 presentation on top of strict CSP. Final candidate `e66b6fc4b8693deb052fa89ae9d82647d51c3a94` passed CI #802 plus browser geometry/screenshot acceptance, merged as `a84478dfe1d361f6d9fa3d67f0e26ea9b2088e54`, and post-merge CI #803 passed on the exact production release.
 
+
+11. **Bounded autonomous pentest orchestration - source complete; final production acceptance pending**
+   - **11A Planning graph, hypotheses, policy, persistence, and run orchestration - complete.** Deterministic graph/hypothesis planning, authorization snapshots, closed capability contracts, bounded budgets, persisted run/action/coverage state, and terminal reconciliation are released.
+   - **11C First-party HTTP execution - source complete and operational fixes released.** The dedicated `phase11_http_discovery_v1` worker uses the immutable accepted runtime image, rootless Podman, `--network=none`, a one-use Unix mediator, target-bound authorization, cancellation, and exact request accounting. PR #163 fixed the Linux Unix-socket pathname limit and PR #164 fixed the authoritative post-claim `running` action-state preparation path.
+   - **11D through 11H bounded capability expansion - source complete.** Adaptive/legal-lab evaluation, bounded web/API discovery, session/browser authority, proof-only validation, continuous validation/remediation feedback, and advanced-provider defer decisions are released within their documented gates.
+   - **Operational closure pending.** Exactly one authenticated platform-admin canary against the verified ScopeForge-owned HTTPS target must still pass end to end before Phase 11 is marked operationally complete. External Nmap, Nuclei, httpx, broad exploit frameworks, and deferred advanced providers remain disabled unless separately reviewed.
+
 External provider controls that are disabled or not directly verified remain explicit operational follow-ups rather than hidden release claims. Hosted worker/scanner capability flags remain separately gated and must not be enabled merely because their implementation exists.
 
 ## Safety rule
