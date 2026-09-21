@@ -16,7 +16,7 @@ The local code and supply-chain scanner, Community Security Packs local v1, vali
 
 Local repository scanning remains passive and does not require a ScopeForge account. Hosted acquisition, private repository execution, automatic webhook-driven scanning, and network/runtime worker capabilities remain behind independent authorization, containment, migration, canary, monitoring, and rollback gates. Code or CI completion alone does not authorize those production capabilities.
 
-The positive production GitHub App owner/admin connection and controlled repository-import flow has been proven. Remaining negative provider canaries and the Phase 10A2/10A3 operational release sequence are tracked in `docs/development/CURRENT_STATE.md`, `docs/development/NEXT_STEPS.md`, and GitHub issue #79.
+The positive production GitHub App owner/admin connection and controlled repository-import flow has been proven, and the Phase 10A2/10A3 operational release sequence is complete. Current operational follow-up, including the final bounded Phase 11 production canary, is tracked in `docs/development/CURRENT_STATE.md` and `docs/development/NEXT_STEPS.md`.
 
 Community Security Packs v1 is released and intentionally local-only, explicitly selected, data-only, and limited to the closed `static_literal_v1` matcher. Hosted pack distribution/activation, active rules, executable plugins, and target-repository auto-discovery do not exist.
 
