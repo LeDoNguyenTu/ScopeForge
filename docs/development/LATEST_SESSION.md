@@ -1,31 +1,105 @@
 # ScopeForge Latest Session
 
-Date: 2026-09-20, Asia/Singapore
+Last reconciled: 2026-09-22, Asia/Singapore.
 
-## Outcome
+Live GitHub, Supabase, Vercel, and worker state wins over this file.
 
-PR #150 released the normal planner-to-HTTP closed-parameter bridge and narrow platform-admin canary control. A follow-up TDD slice now advances the parent run after terminal HTTP worker finalization so the bounded production canary can reach a deterministic terminal run state.
+## Current objective
 
-## Exact live evidence
+Phase 11 source implementation is complete. The only release-critical Phase 11 gate still open is one authenticated end-to-end production canary from `/admin/phase11` against the existing verified ScopeForge-owned HTTPS target.
 
-- released `main`: `d92698ae118fb5aa0af7d9db6589348b89576d2e`, merge of PR #150
-- PR #150 exact-head CI `35460749698`: success
-- post-merge CI `35460959197`: success
-- Vercel production deployment `dpl_49mavQuJxwksw1AcaZzmZfaAdvSA`: READY and contains `/admin/phase11`
-- Vercel runtime errors in latest 24-hour check: none
-- `scopeforge.dev`: HTTP 200 with nonce-based CSP and expected security headers
-- Supabase `tdgpibrepzcvdivztkta`: ACTIVE_HEALTHY, PostgreSQL 17
-- live migration history includes Phase 11A planning/orchestration and Phase 11C worker-control/result-coverage migrations
-- checked Phase 11 worker RPCs: `service_role` execute only
-- one `phase11_http_discovery_v1` worker identity exists for software version `ec3cdb2cf117c81c126973c2fcefb02e38fb4d14`
-- worker is installed as `scopeforge-worker@phase11-http` and authenticated empty claims return the exact idle result
-- idle claims intentionally leave `last_seen_at` null; it advances only after a task is leased/heartbeated
-- Phase 11 HTTP worker tasks: 0
-- accepted runtime image: `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`
-- runtime bundle SHA-256: `05dd6f00bb5a1bf9be6b8046d3c7aeff79b4b78a7b73dba5d72acb095cee8153`
+Use `docs/development/PHASE11_SINGLE_CODEX_RUN.md` for the exact one-run closure procedure. Do not resume from older Phase 10 or early Phase 11 handoffs.
 
-## Remaining blocker
+Current project-management estimates before the canary:
 
-The canary entry point is released. Review found that worker finalization reconciled task/action/coverage state but did not trigger the next trusted orchestration step, which could leave the parent run `running`. Branch `ops/phase11-production-canary-evidence-20260920` adds retry-safe post-finalization advancement. Its focused 68-test batch, typecheck, audit, CLI/worker/Next builds, benchmarks, and full 2,241-test run pass locally. Release it through exact-candidate CI, then run one canary and record accounting/cleanup evidence.
+- Phase 11 source: 100%
+- Phase 11 operational acceptance: about 94%
+- overall "finish Phase 11" task: about 98%
+- whole ScopeForge project: about 90%
 
-External Nmap, Nuclei, and external httpx process execution remains disabled.
+Do not raise those percentages until an actual release gate changes.
+
+## Latest executable release
+
+PR #178, **Finish pre-Codex maintenance cleanup**, merged as `d767960cc866af01eaaad3f91b5a22c8fa708e29`.
+
+Exact-head CI run `35629597495` passed:
+
+- full repository tests
+- npm audit
+- typecheck
+- CLI build/version
+- worker build
+- scanner benchmark
+- scanner matrix benchmark
+- Phase 11 adaptive/matrix/labeled/legal-lab benchmarks
+- Next production build
+- CSP browser smoke
+- production V5/Turnstile diagnostic
+- screenshot upload
+
+PR #178 changes no canary authority, backend authorization, queueing, worker runtime, request/runtime budget, database schema, or execution policy. Its only executable change improves the platform-admin Phase 11 form accessibility with async status announcement semantics.
+
+Later documentation-only commits may move `main`. Resolve live `main` before acting.
+
+## Final-canary preparation already complete
+
+The repository contains:
+
+- `docs/development/PHASE11_SINGLE_CODEX_RUN.md`
+- `scripts/phase11-final-preflight.sql`
+- `scripts/phase11-final-evidence.sql`
+- `scripts/phase11-final-host-check.sh`
+
+The preflight query has been validated against production and currently proves:
+
+- exactly three historical Phase 11 tasks
+- zero active queued/retry-wait/leased Phase 11 tasks
+- the dedicated worker is enabled
+- eligible verified asset is `ScopeForge Production` at `https://scopeforge.dev`
+
+The evidence query is read-only and returns a mechanical `acceptance_ready` verdict after the one new canary.
+
+The host helper checks the exact final-canary runtime container, mediator sockets, systemd service, and accepted immutable runtime image without printing environment secrets.
+
+## Production maintenance completed before the canary
+
+- PR #168 added 16 covering foreign-key indexes after exact-head CI `35584817649`.
+- Production migration `cross_phase_fk_index_hardening` is applied.
+- Supabase performance advisor now reports zero `unindexed_foreign_keys`.
+- PR #170 removed expected unauthenticated admin navigation from application-error telemetry while preserving fail-closed sign-in/not-found behavior. Exact-head CI `35585600946` passed.
+- PR #178 added a repeatable private worker-table RLS audit and hardening design.
+- Live RLS audit: nine target private worker/runtime tables, zero direct `anon`/`authenticated` table grants, zero policies, table owner `postgres`, and 57 inspected `SECURITY DEFINER` routines touching the trusted worker/runtime surface.
+- Do not blindly enable RLS. See `docs/security/WORKER_RLS_HARDENING_PLAN.md`.
+
+## Branch hygiene
+
+All 83 remote refs visible before PR #178 were classified.
+
+After PR #178 merged:
+
+- 69 non-main branches are reviewed safe-delete candidates from a remote-reachability perspective
+- 12 branches are genuinely diverged and intentionally excluded
+- `demo/portfolio-20260910` is intentionally retained
+- `main` is retained
+
+See `docs/development/BRANCH_CLEANUP_CANDIDATES.md` for the exact sets.
+
+The current ChatGPT GitHub integration cannot delete refs. The single Codex run may batch-delete the reviewed safe set only after checking open PRs and `git worktree list`.
+
+## Remaining Phase 11 gate
+
+Run exactly one authenticated bounded canary:
+
+- target: `ScopeForge Production · https://scopeforge.dev`
+- capability: `web.http.probe.v1`
+- root-only GET
+- redirects disabled
+- one request maximum
+- 5000 ms action runtime maximum
+
+Do not run a second canary if the first one fails.
+
+After the one canary, require database acceptance, Vercel evidence, Oracle host cleanup, temporary verification-file removal, closure documentation, and final production verification as specified in `PHASE11_SINGLE_CODEX_RUN.md`.
+
+External Nmap, Nuclei, external httpx, broad exploit frameworks, and deferred advanced providers remain disabled unless separately reviewed.
