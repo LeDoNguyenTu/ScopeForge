@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { scopeForgeIconMetadata } from "@/lib/brand/browser-icons";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
 import "./globals.css";
 import "./forge.css";
 import "./forge-landing.css";
@@ -32,7 +33,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><ToastProvider>{children}</ToastProvider></body>
     </html>
   );
 }
