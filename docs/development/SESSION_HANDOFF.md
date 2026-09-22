@@ -43,6 +43,16 @@ These estimates must not be raised until an actual release gate changes.
 - All 83 remote refs visible before PR #178 were classified. The cleanup manifest contains 69 reviewed safe-delete branches and 12 diverged branches to preserve.
 - `docs/development/HISTORICAL_DOCUMENTATION.md` distinguishes acceptance history from active resume guidance.
 
+## Worker RLS experiment closure
+
+- PR #180 merged as `0f7f0481ed5b7b08bd4efaed704dd3dcc64bb098`.
+- Free CI experiment `35694652988` passed 5/5 RLS ownership assertions and the full candidate gate.
+- Post-merge main CI `35695129374` also passed the complete gate.
+- Exact-main Vercel deployment `dpl_8iFsHwM9fwa9uayZtF6XMimHMsnX` is READY on `scopeforge.dev`.
+- Phase 11 preflight remained exactly 3 historical tasks and 0 active tasks; worker remains enabled.
+- The RLS experiment made no production database mutation.
+- Do not enable/force RLS on the nine current worker/runtime tables merely to clear the advisor. Current `postgres` RPC ownership has `BYPASSRLS`; meaningful hardening requires a later dedicated non-`BYPASSRLS` owner design.
+
 ## Remaining Phase 11 gate
 
 From an authenticated platform-admin session at `/admin/phase11`, run exactly one bounded canary:
