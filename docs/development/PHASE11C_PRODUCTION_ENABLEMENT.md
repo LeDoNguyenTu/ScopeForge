@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-22, Asia/Singapore.
 
-This runbook covers the remaining operational release gate for `phase11_http_discovery_v1`.
+This runbook records the completed operational release gate for `phase11_http_discovery_v1`.
 
 It assumes:
 
@@ -206,7 +206,13 @@ Exactly one canary was queued in the authorized single-Codex run. Run `2409c669-
 
 Prepare and finalize both returned HTTP 200, the canary window had no Vercel runtime errors, and the host helper returned `PHASE11_HOST_CLEANUP_PASS`. The parent run nevertheless ended `failed / request_budget_exhausted`, so the evidence query returned `acceptance_ready = false` only for `run_completed`.
 
-The confirmed root cause was the combination of request-budget precedence over provider failure and the stop RPC treating all request-budget exhaustion as failure. PR #182 and migration `20260922150155_complete_clean_budget_exhaustion` released the scoped correction. Preserve this canary unchanged and require a separately authorized later canary. Do not remove the temporary verification proof yet.
+The confirmed root cause was the combination of request-budget precedence over provider failure and the stop RPC treating all request-budget exhaustion as failure. PR #182 and migration `20260922150155_complete_clean_budget_exhaustion` released the scoped correction. Preserve this canary unchanged.
+
+### 2026-09-23 accepted fifth canary
+
+The separately authorized fifth canary completed through the normal production control path. Run `37fb0091-a7b2-4a33-8a24-6136deb61143`, action `phase11-action:dccb7c2dfc471218d15f53d4f01b44f6f53cc40b64e8a4a8dd8847c13adc354c`, task `1e6d3df7-c1b2-40e9-ba68-704c3fdda12e`, attempt `8c03e311-56c0-4b33-8520-682cb335cd5c`, and observation `phase11-obs-http:79a7ccee5eee6751f948ebd2bee1954f07f2b71a33e49b890b33278ac267f7bb` reconciled with `acceptance_ready = true`.
+
+Exactly one request was charged, provider failures and graph expansions were zero, prepare/finalize returned HTTP 200, and Oracle cleanup returned `PHASE11_HOST_CLEANUP_PASS` with no remaining exact container or mediator socket. The temporary verification proof was then removed. Phase 11C hosted HTTP discovery is operationally accepted for the approved scope.
 
 Phase 11C hosted HTTP discovery can be considered operationally released only after:
 

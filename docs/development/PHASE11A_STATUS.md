@@ -1,6 +1,6 @@
 # Phase 11 Status
 
-Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
+Last reconciled: 2026-09-23, Asia/Singapore. Live provider state wins.
 
 ## Source completion
 
@@ -24,11 +24,11 @@ PR #160 exact-head CI run `35534658243` passed all required tests, typecheck/bui
 
 ## Operational completion
 
-Operational acceptance is not yet complete.
+Operational acceptance is complete for the approved initial Phase 11 scope.
 
-The first bounded production canary reached the dedicated Phase 11 HTTP worker and consumed exactly one authorized request, but the attempt failed with `WORKER_EXECUTION_FAILED` before producing an observation.
+The fifth and final authorized bounded production canary, run `37fb0091-a7b2-4a33-8a24-6136deb61143`, completed through the normal admin, policy, queue, dedicated worker, mediator, and sandbox path. It charged exactly one request, persisted a valid observation, returned `acceptance_ready = true`, and left zero active Phase 11 tasks. Vercel prepare/finalize requests returned HTTP 200 and the Oracle helper returned `PHASE11_HOST_CLEANUP_PASS` with no remaining exact container or mediator socket.
 
-PR #159 corrected the identified systemd runtime-directory mismatch. The corrected supervisor bundle must now be deployed to the accepted Oracle host and the canary rerun.
+The four earlier failed canaries remain preserved as immutable audit evidence. The temporary public verification proof was removed only after this acceptance.
 
 See:
 

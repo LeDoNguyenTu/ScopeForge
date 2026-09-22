@@ -1,6 +1,22 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-22, Asia/Singapore. Live provider state wins.
+Last reconciled: 2026-09-23, Asia/Singapore. Live provider state wins.
+
+## Phase 11 operational acceptance complete
+
+The separately authorized post-fix canary completed successfully:
+
+- run `37fb0091-a7b2-4a33-8a24-6136deb61143`: `completed / request_budget_exhausted`
+- action `phase11-action:dccb7c2dfc471218d15f53d4f01b44f6f53cc40b64e8a4a8dd8847c13adc354c`: terminal, approved, one request, 5000 ms
+- task `1e6d3df7-c1b2-40e9-ba68-704c3fdda12e`: completed in one attempt
+- attempt `8c03e311-56c0-4b33-8520-682cb335cd5c`: succeeded, no failure code, 557 ms
+- observation `phase11-obs-http:79a7ccee5eee6751f948ebd2bee1954f07f2b71a33e49b890b33278ac267f7bb`
+- coverage: one request, zero provider failures, zero graph expansion
+- authoritative verdict: `acceptance_ready = true`; zero active Phase 11 tasks
+
+Exact-main Vercel deployment `dpl_2AhyQ4vkFrURaWhVaXn3QmdKvpAE` returned HTTP 200 for prepare and finalize and had no runtime errors in the canary window. The Oracle helper returned `PHASE11_HOST_CLEANUP_PASS`; the service remained active, the immutable image existed, and no exact container or mediator socket remained. The temporary verification proof was removed only after these checks passed.
+
+Phase 11 source, operational acceptance, and the completion task are 100%. Recalculation against the actual roadmap places the whole ScopeForge project at approximately 91%, not 100%, because separately gated Phase 6 hosted acquisition/scanning/runtime enablement and explicitly deferred provider work remain open.
 
 ## 2026-09-22 final-canary attempt and confirmed orchestration defect
 
@@ -21,7 +37,7 @@ Vercel production logs on exact deployment `dpl_C84oG7p5n66awbiR84ZMp49RwuNd` sh
 
 The confirmed root cause is the interaction between two released semantics: `evaluateStopConditions` selected `request_budget_exhausted` before `provider_failure_limit`, and `stop_phase11_pentest_run` classified every request-budget stop as `failed`. The scoped fix makes provider failure win when both ceilings are reached and maps clean request-budget exhaustion to `completed` in a forward-only migration. The terminal canary row must not be rewritten; after the fix is released, a new authenticated canary requires a separately authorized later run.
 
-The temporary verification proof remains present because Phase 11 acceptance did not complete.
+The failed fourth canary remains preserved as audit evidence; it was not rewritten.
 
 The terminal-semantics fix is now released. PR #182 passed exact-head CI run `35747536961` at `5cc0e699eaf29cad607913149dacdda003bf8e3f` and merged as `81ac30c773b7b9485d019f0a9b3df86535a06412`. Exact-main Vercel deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` is READY and serves `scopeforge.dev`; fresh authenticated worker claims returned HTTP 200. After confirming four historical tasks, zero active Phase 11 tasks, and an enabled worker, production migration `20260922150155_complete_clean_budget_exhaustion` was applied and registered. Post-migration verification confirmed the service-role-only grant, empty `search_path`, security-definer setting, clean-budget completion mapping, zero active work, and the unchanged failed fourth canary.
 
@@ -153,18 +169,8 @@ Accepted runtime image remains:
 
 Do not replace it with a mutable tag or enable additional execution classes to close Phase 11.
 
-## Remaining Phase 11 operational gate
+## Phase 11 operational closure
 
-The PR #163 socket fix and PR #164 preparation-state fix are released. The fourth canary proved the worker/action path and exposed the remaining parent-run terminal-semantics defect.
-
-The remaining end-to-end acceptance sequence is:
-
-1. Do not roll production back to pre-fix application code while migration `20260922150155` remains active.
-2. In a separately authorized future run, use `/admin/phase11` to queue exactly one verified ScopeForge-owned HTTPS root-only canary.
-3. Keep the canary at `web.http.probe.v1`, root-only GET, redirects disabled, exactly one request, and a 5-second action runtime ceiling.
-4. Require `acceptance_ready = true` plus clean Vercel and Oracle evidence.
-5. Record the exact successful evidence, remove `public/.well-known/scopeforge-verification.txt`, and only then mark Phase 11 operationally 100% complete.
-
-Do not manually insert a worker task, target third-party assets, or weaken containment to bypass this gate.
+Operational acceptance is complete with the exact evidence recorded above. Continue to preserve the accepted boundaries and do not roll production back to pre-fix application code while migration `20260922150155` remains active.
 
 Canonical handoff: `docs/development/CODEX_HANDOFF_PHASE11.md`.

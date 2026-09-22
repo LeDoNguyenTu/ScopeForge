@@ -1,47 +1,19 @@
 # ScopeForge Codex Handoff
 
-Last reconciled: 2026-09-22, Asia/Singapore.
+Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
-This file is intentionally short. If the goal is to finish Phase 11 now, start with `docs/development/PHASE11_SINGLE_CODEX_RUN.md` and follow it as the single closure procedure. For the authoritative detailed resume state, read:
+Phase 11 source, operational acceptance, and its completion task are 100% complete for the approved initial scope. The whole ScopeForge roadmap is about 91% complete because separately gated Phase 6 hosted-runtime enablement and deferred providers remain.
 
-1. `docs/development/CODEX_HANDOFF_PHASE11.md`
-2. `docs/development/CURRENT_STATE.md`
-3. `docs/development/NEXT_STEPS.md`
-4. `docs/development/UNFINISHED_WORK.md`
-5. `docs/security/PRODUCTION_SUPABASE_ADVISORS.md`
+The accepted fifth production canary is run `37fb0091-a7b2-4a33-8a24-6136deb61143`, action `phase11-action:dccb7c2dfc471218d15f53d4f01b44f6f53cc40b64e8a4a8dd8847c13adc354c`, task `1e6d3df7-c1b2-40e9-ba68-704c3fdda12e`, attempt `8c03e311-56c0-4b33-8520-682cb335cd5c`, and observation `phase11-obs-http:79a7ccee5eee6751f948ebd2bee1954f07f2b71a33e49b890b33278ac267f7bb`. Database verdict was `acceptance_ready = true`; Vercel prepare/finalize returned HTTP 200; Oracle cleanup returned `PHASE11_HOST_CLEANUP_PASS`; active Phase 11 tasks are zero; the worker remains enabled.
 
-Live GitHub and provider state wins if it differs from documentation.
+Do not rerun the Phase 11 acceptance canary. Preserve all five canaries as audit evidence. The temporary verification proof was removed after acceptance.
 
-## Immediate work
+Hard boundaries:
 
-The Phase 11 source scope is complete. Do not reopen Tasks 1 through 16 merely to increase provider count.
+- ScopeForge Supabase: `tdgpibrepzcvdivztkta`; never use `xwsergbpvkcsugexssmc`.
+- Dedicated worker: `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e`.
+- Immutable runtime image: `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`.
+- Preserve zero-egress containment, target-bound mediator authority, authorization, cancellation, budgets, RLS/security controls, and service-role-only worker control.
+- Do not enable external Nmap, Nuclei, external httpx, broad exploit frameworks, or deferred providers without separate review.
+- Do not redesign worker-table RLS from this handoff; the experiment and decision are complete.
 
-The 2026-09-22 single-Codex run used its one authorized platform-admin canary. The worker/action succeeded with one request and a valid observation, but the parent run failed under the confirmed request-budget terminal-status defect. Do not run another canary in that run and do not rewrite its terminal rows.
-
-The scoped stop-condition precedence fix and forward-only clean-budget-completion migration are released. A new authenticated canary against the existing verified ScopeForge-owned target `https://scopeforge.dev` requires a separately authorized later run.
-
-That fix is now released: PR #182 merged as `81ac30c773b7b9485d019f0a9b3df86535a06412`, exact-main Vercel deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` is READY, and migration `20260922150155_complete_clean_budget_exhaustion` is applied and registered. Production has four historical Phase 11 tasks and zero active tasks; the fourth canary remains unchanged. The separately authorized later canary is the only remaining acceptance gate.
-
-Keep the canary fixed at `web.http.probe.v1`, root-only GET, redirects disabled, one request maximum, and 5000 ms action runtime maximum. Do not bypass the normal admin/planner/policy/authorization/queue path.
-
-The failed-at-run-layer canary evidence is recorded in `CODEX_HANDOFF_PHASE11.md`. Oracle cleanup passed. Keep the temporary verification proof and close Phase 11 only after a later canary returns `acceptance_ready = true`.
-
-## Hard boundaries
-
-- ScopeForge Supabase: `tdgpibrepzcvdivztkta`
-- Job Command Center Supabase: `xwsergbpvkcsugexssmc` - never use this for ScopeForge
-- dedicated worker: `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e`
-- immutable runtime image: `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`
-- preserve `--network=none`, target-bound mediator authority, cancellation, budgets, and service-role-only worker-control boundaries
-- do not reapply existing Phase 11 migrations
-- do not rotate/recreate the worker identity without an explicit credential-rotation procedure
-- do not enable external Nmap, Nuclei, httpx, broad exploit frameworks, or deferred advanced providers merely to close Phase 11
-- do not manually insert tasks or use service-role SQL to fake the production canary
-- do not blindly enable RLS on private worker tables without a tested policy design
-- no AI co-author metadata
-
-## Recent parallel maintenance
-
-PR #168 released additive covering indexes for all 16 live unindexed foreign-key findings after exact-head CI run `35584817649`. The production migration is applied and the Supabase performance advisor now reports zero `unindexed_foreign_keys` findings.
-
-Do not repeat that migration or treat fresh `unused_index` notices as evidence the new indexes should immediately be removed.

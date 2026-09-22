@@ -23,9 +23,9 @@ This matrix separates source completion from operational enablement. Default-off
 | 15 continuous validation | complete | source released |
 | 16 advanced providers | evaluation complete | all candidates deferred until a measured capability gap justifies them |
 
-## Remaining operational gate
+## Operational acceptance
 
-Four bounded Phase 11 production HTTP canaries reached the dedicated worker and remain preserved as audit evidence.
+Five bounded Phase 11 production HTTP canaries reached the dedicated worker and remain preserved as audit evidence.
 
 The first canary exposed a mediator host-directory mismatch. PR #159 moved the host mediator socket into the systemd-owned writable runtime directory.
 
@@ -35,12 +35,8 @@ The third canary passed the corrected socket boundary but production preparation
 
 The fourth canary on 2026-09-22 passed preparation, sandbox execution, one-request accounting, observation persistence, finalization, Vercel runtime checks, and Oracle cleanup. Its worker/action attempt succeeded, but the parent run became `failed / request_budget_exhausted`; therefore `acceptance_ready` remained false only for `run_completed`. The confirmed fix prioritizes provider failure when failure and budget ceilings coincide and maps clean request-budget exhaustion to completed through a forward-only migration. Preserve the fourth canary unchanged and do not run another in the same authorized run.
 
-Phase 11 operational completion now requires:
+The separately authorized fifth canary completed operational acceptance on 2026-09-23. Run `37fb0091-a7b2-4a33-8a24-6136deb61143`, task `1e6d3df7-c1b2-40e9-ba68-704c3fdda12e`, attempt `8c03e311-56c0-4b33-8520-682cb335cd5c`, and observation `phase11-obs-http:79a7ccee5eee6751f948ebd2bee1954f07f2b71a33e49b890b33278ac267f7bb` passed every database acceptance check. Vercel prepare/finalize returned HTTP 200 with no runtime errors, Oracle cleanup returned `PHASE11_HOST_CLEANUP_PASS`, and the temporary proof-of-control file was removed afterward.
 
-1. preserve compatibility between released exact-main application `81ac30c773b7b9485d019f0a9b3df86535a06412` and applied migration `20260922150155`; do not roll back to pre-fix code while the mapping remains active
-2. in a separately authorized future run, run exactly one verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary from `/admin/phase11`
-3. keep redirects disabled, request ceiling at one, and action runtime ceiling at 5000 ms
-4. require `acceptance_ready = true` plus clean Vercel and Oracle evidence
-5. record exact acceptance evidence and remove the temporary proof-of-control file
+Phase 11 source and operational acceptance are complete for the approved initial production scope.
 
 No external Nmap, Nuclei, httpx, broad exploit framework, or advanced Task 16 provider should be enabled merely to close this gate.

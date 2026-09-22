@@ -64,6 +64,6 @@ See `PHASE11C_LINUX_ACCEPTANCE.md` for the exact host evidence.
 - The registered worker is running with this accepted image; authenticated empty claims and class-scoped rollback passed.
 - No Phase 11 HTTP worker task has run.
 - Vercel production is READY on current `main`.
-- The remaining gate is one bounded authorized canary through the normal planner/policy/authorization/queue path.
+- The bounded authorized production canary completed through the normal planner/policy/authorization/queue path on 2026-09-23; Phase 11 operational acceptance is complete for the approved scope.
 
 See `PHASE11C_PRODUCTION_ENABLEMENT.md` for the operational release procedure.

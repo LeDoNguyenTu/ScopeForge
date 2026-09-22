@@ -1,35 +1,24 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-22, Asia/Singapore. Live provider state wins over this document.
+Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
-## Immediate Phase 11 closure
+## Completed checkpoint
 
-1. Keep exact-main deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` and migration `20260922150155` compatible; do not roll production back to pre-fix application code while the mapping remains active.
-2. In a separately authorized future run, queue exactly one new verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary.
-3. Keep redirects disabled, request ceiling at one, and action runtime ceiling at 5000 ms.
-4. Require `acceptance_ready = true`, then repeat Vercel secrecy and Oracle cleanup checks.
-5. Only after that acceptance, remove `public/.well-known/scopeforge-verification.txt` and mark Phase 11 operationally complete.
+Phase 11 source, operational acceptance, and its closure task are 100% complete for the approved initial scope. The accepted production run is `37fb0091-a7b2-4a33-8a24-6136deb61143`. Preserve its evidence and the four earlier failed canaries; do not rerun acceptance merely for reassurance.
 
-The current single-Codex run already used its one canary. Do not queue another in that run.
+## Next roadmap work
 
-## Current released facts
+The whole project is approximately 91% complete. Reconcile the live roadmap before selecting the next item. Priority candidates are the separately gated Phase 6 hosted-runtime enablement and deferred provider capabilities.
 
-- Phase 11 source Tasks 1 through 16 are complete for the initial approved scope.
-- The latest runtime-changing Phase 11 baseline is PR #164 at `3cc1443ed292a14fe6738bc64a0b8629b5992d56`; later documentation-only commits may move `main`.
-- PR #163 released the Unix-socket pathname-length fix.
-- PR #164 released the post-claim preparation-state fix.
-- The dedicated `phase11_http_discovery_v1` worker is enabled and production logs show repeated authenticated idle claim HTTP 200 responses.
-- Three dead-letter canaries plus the fourth failed parent run remain preserved as audit evidence. Do not retry, rewrite, or delete them.
-- ScopeForge production has one eligible verified HTTPS canary target: `https://scopeforge.dev`.
-- External Nmap, Nuclei, external httpx, broad exploit frameworks, and deferred advanced Task 16 providers remain disabled until separately reviewed.
+For any next capability:
 
-## Parallel non-Phase-11 work
+1. start from live `main`, open PRs/issues, CI, provider state, and worktrees;
+2. retain default-off capability gates until operational and rollback evidence exists;
+3. preserve authorization, target verification, containment, network restrictions, budgets, RLS/security controls, and worker boundaries;
+4. obtain fresh exact-SHA Linux evidence where Linux containment is required;
+5. do not treat Phase 11 closure as authorization for deferred providers.
 
-Safe maintenance and hardening work that does not widen execution authority may proceed independently, including database index hardening, documentation reconciliation, UI/read-model improvements, and security review. Do not use unrelated maintenance as justification to lower the Phase 11 acceptance gate.
+## Repository hygiene
 
-## Already complete and not to be repeated
+The reviewed cleanup reduced remote refs from 88 to 31. Thirteen safe merged manifest branches remain only because active worktrees reference them. Recheck open PRs and `git worktree list` before any later deletion. Preserve diverged, intentional, and post-audit branches.
 
-- Phase 10A2 and Phase 10A3 production acceptance is released.
-- Phase 10C platform-admin console is released.
-- Reviewed Phase 11A/11C/11F migrations are already present in production Supabase.
-- Worker registration, immutable runtime-image acceptance, authenticated empty claims, and class-scoped rollback are already proven.
