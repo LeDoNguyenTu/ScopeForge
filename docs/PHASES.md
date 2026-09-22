@@ -59,6 +59,14 @@ External provider controls that are disabled or not directly verified remain exp
 
 The approved v1 roadmap is therefore complete at 100%. Optional provider activation or additional worker classes begin a new roadmap and do not alter this completion record unless explicitly adopted into scope.
 
+12. **External provider runtime and automated pentest expansion - active post-v1 roadmap**
+   - **12A external httpx - in progress.** Introduces a default-off ProjectDiscovery httpx v1.12.0 provider contract first, followed by a dedicated target-bound worker/runtime and Linux containment acceptance before any production execution.
+   - **12B Nuclei safe-active runtime - planned.** Existing adapter contracts will be paired with an exact reviewed engine/template snapshot and allowlist-only execution boundary.
+   - **12C network/service discovery - planned.** Existing Nmap contracts remain useful, but runtime enablement requires a separate NPSL deployment decision or a reviewed provider-neutral alternative.
+   - **12D-12H - planned.** Hosted browser/API execution, bounded DAST, expanded proof-only validation, adaptive multi-provider correlation, and final operational acceptance.
+
+Phase 12 is new scope and does not invalidate the evidence-based 100% closure of the approved v1 roadmap. Track the broader automated-pentest product vision separately. See `docs/development/PHASE12_ROADMAP.md`.
+
 ## Safety rule
 
 Do not widen active, acquisition, scanner, or hosted mutation authority merely because lower-level infrastructure exists. Remote active behavior requires explicit authorization, strict target controls, separated execution authority, egress/network policy, resource budgets, cancellation, auditability, and testable failure semantics. Browser roles remain read-only for the hosted security ledger and snapshot provenance. Trusted mutation paths must stay narrow and independently authorized.
