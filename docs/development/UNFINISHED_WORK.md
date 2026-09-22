@@ -18,9 +18,11 @@ No Phase 11 closure blocker remains for the approved initial production scope.
 
 Preserve all five canaries. Do not run another Phase 11 acceptance canary merely to reconfirm closure.
 
-## Remaining ScopeForge roadmap work
+## Approved roadmap status
 
-The whole project is approximately 91% complete. Remaining work is outside the completed Phase 11 scope and includes separately gated Phase 6 hosted-runtime enablement and deferred provider capabilities. Each requires its own authorization, operational acceptance, rollback evidence, and security review.
+No unfinished task remains in the approved ScopeForge v1 roadmap. All 11 delivery phases are complete, so the project completion measure is 100%.
+
+Generic Phase 6D passive/active worker flags, paid or externally administered provider controls, and providers rejected or deferred by reviewed gate decisions are intentional non-v1 scope. If adopted later, each becomes a new roadmap item requiring its own authorization, operational acceptance, rollback evidence, and security review. Their current disabled or unverified state must not be relabeled as active.
 
 One manifest-approved merged remote branch remains intentionally undeleted because its active worktree contains uncommitted user changes. One additional merged local-only worktree with uncommitted files is also preserved. Diverged and intentional remote branches remain preserved.
 

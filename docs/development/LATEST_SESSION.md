@@ -28,9 +28,9 @@ The temporary public verification proof was removed only after successful accept
 - Phase 11 source: 100%
 - Phase 11 operational acceptance: 100%
 - Phase 11 completion task: 100%
-- whole ScopeForge project: about 91%
+- approved ScopeForge v1 roadmap: 100% (11 of 11 phases)
 
-The whole project is not 100% because separately gated Phase 6 hosted-runtime enablement and deferred provider work remain outside the completed Phase 11 scope.
+Final roadmap reconciliation recognizes Phase 10A2/A3 as the operational acceptance of the private acquisition and zero-egress scanning path. Generic disabled worker classes and explicitly rejected/deferred providers remain post-v1 scope, so they do not reduce the approved roadmap completion percentage or imply that those capabilities are enabled.
 
 ## Branch cleanup
 

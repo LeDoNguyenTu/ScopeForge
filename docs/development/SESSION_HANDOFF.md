@@ -9,7 +9,7 @@ Phase 11 is operationally accepted for the approved initial scope. Read `CURRENT
 - Phase 11 source: 100%
 - Phase 11 operational acceptance: 100%
 - Phase 11 completion task: 100%
-- whole ScopeForge project: about 91%
+- approved ScopeForge v1 roadmap: 100% (11 of 11 phases)
 
 ## Accepted production evidence
 
@@ -27,6 +27,6 @@ PR #182, merge `81ac30c773b7b9485d019f0a9b3df86535a06412`, deployment `dpl_46A1x
 
 The temporary verification proof was removed after acceptance. Branch cleanup reduced remote refs from 88 to 16. One safe manifest remote branch and one merged local-only branch remain because their active worktrees contain uncommitted user files; every diverged and intentional branch was preserved.
 
-## Remaining project scope
+## Project completion boundary
 
-Continue from the actual roadmap. Phase 6 hosted-runtime enablement and deferred providers remain separately gated. Do not weaken authorization, containment, RLS, network policy, target verification, or budgets to advance them.
+The approved v1 roadmap is complete. Phase 10A2/A3 supplied production acceptance for private acquisition and zero-egress scanning. Generic disabled worker classes, paid/external provider controls, and providers rejected or deferred by reviewed gate decisions are new post-v1 scope. Do not enable them or weaken authorization, containment, RLS, network policy, target verification, or budgets merely because v1 is complete.

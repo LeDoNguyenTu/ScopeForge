@@ -9,7 +9,7 @@ Last reconciled: 2026-09-23, Asia/Singapore.
 - Phase 11 source: 100%
 - Phase 11 operational acceptance: 100%
 - Phase 11 completion task: 100%
-- whole ScopeForge project: about 91%
+- approved ScopeForge v1 roadmap: 100% (11 of 11 phases, after final reconciliation)
 
 The accepted canary ran once through the existing authenticated production session:
 

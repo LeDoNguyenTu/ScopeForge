@@ -36,9 +36,9 @@ Before implementation work:
 
 ## Release ordering
 
-Phase 10A2 and Phase 10A3 are released and GitHub App issue #79 is closed. The current release-critical boundary is the final Phase 11 operational canary documented in `docs/development/CODEX_HANDOFF_PHASE11.md`, `CURRENT_STATE.md`, and `NEXT_STEPS.md`.
+The approved v1 roadmap is complete through Phase 11. Phase 10A2/A3 and the Phase 11 production canary are released and accepted. Read `docs/development/PROJECT_COMPLETION.md` before opening a new roadmap phase.
 
-Do not enable external Nmap, Nuclei, httpx, broad exploit frameworks, or deferred advanced providers merely to move a completion percentage. Resolve live `main`, open PRs, provider state, and the exact remaining Phase 11 gate before acting.
+Do not enable external Nmap, Nuclei, httpx, broad exploit frameworks, generic disabled worker classes, or deferred advanced providers merely because v1 is complete. Any later expansion is new scope and requires its own design, authorization, containment, acceptance, and rollback evidence.
 
 ## External account context
 
@@ -47,7 +47,7 @@ Known non-secret production identifiers are documented in `docs/development/ACCO
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **ScopeForge** (17200 symbols, 28316 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **ScopeForge** (17884 symbols, 29312 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
