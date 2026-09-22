@@ -31,6 +31,8 @@ beforeAll(async () => {
     grant create on schema public to scopeforge_restricted_owner;
 
     create schema private;
+    grant usage on schema private to scopeforge_bypass_owner;
+    grant usage on schema private to scopeforge_restricted_owner;
 
     create table private.worker_tasks_bypass (
       id integer primary key,
