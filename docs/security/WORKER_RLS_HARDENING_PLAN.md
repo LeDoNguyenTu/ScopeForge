@@ -30,6 +30,36 @@ Live inspection on 2026-09-22 confirmed all nine tables:
 
 The worker/control plane accesses these tables through reviewed `SECURITY DEFINER` functions and trusted server paths. That means a blanket `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` change is not safe merely because the advisor recommends RLS.
 
+## Verified production role attributes
+
+A live read-only production check on 2026-09-22 established:
+
+- `postgres`: `rolsuper = false`, `rolbypassrls = true`
+- `service_role`: `rolsuper = false`, `rolbypassrls = true`
+- `anon`, `authenticated`, and `authenticator`: `rolbypassrls = false`
+- all 57 inspected worker/runtime `SECURITY DEFINER` routines are owned by `postgres`
+
+This materially changes the hardening analysis. PostgreSQL roles with `BYPASSRLS` bypass row-security policies even when a table uses `FORCE ROW LEVEL SECURITY`. Therefore enabling or forcing RLS on the current `postgres`-owned worker tables does **not** constrain the existing 57 trusted security-definer routines.
+
+The current browser boundary is instead enforced by the absence of direct table grants and the reviewed RPC execution grants.
+
+## Free CI ownership experiment
+
+The repository includes `tests/database/worker-rls-hardening-experiment.test.ts`. It runs in the ordinary GitHub Actions/Vitest job using PGlite and compares two otherwise-equivalent trusted RPC ownership models:
+
+1. a `BYPASSRLS` security-definer owner, matching current Supabase `postgres`
+2. a dedicated non-`BYPASSRLS` security-definer owner
+
+The experiment is expected to prove:
+
+- browser roles remain unable to read the private table because they have no table grant
+- `ENABLE ROW LEVEL SECURITY` plus `FORCE ROW LEVEL SECURITY` does not restrict a `BYPASSRLS` function owner
+- a non-`BYPASSRLS` function owner is restricted by forced RLS when no matching policy exists
+- an explicit policy can then restore only the intended access for that dedicated owner
+- `service_role` having `BYPASSRLS` does not grant direct table access by itself when table grants remain revoked
+
+This experiment costs no Supabase branching fee and does not touch production data or schema.
+
 ## Why this is not a one-line remediation
 
 PostgreSQL table owners normally bypass RLS unless `FORCE ROW LEVEL SECURITY` applies. ScopeForge also relies on security-definer functions whose execution identity and ownership are part of the trusted worker boundary.
@@ -37,8 +67,8 @@ PostgreSQL table owners normally bypass RLS unless `FORCE ROW LEVEL SECURITY` ap
 A correct hardening slice therefore has to prove all of the following before production:
 
 1. which function owner executes each claim, heartbeat, finalization, recovery, snapshot, scan, artifact, and event path
-2. whether ordinary `ENABLE ROW LEVEL SECURITY` changes any trusted function behavior at all
-3. whether `FORCE ROW LEVEL SECURITY` would break owner-executed control functions
+2. confirm that ordinary `ENABLE ROW LEVEL SECURITY` does not constrain the current `BYPASSRLS` function owner
+3. confirm that `FORCE ROW LEVEL SECURITY` also remains bypassed by the current `postgres` owner, then test a dedicated non-`BYPASSRLS` owner
 4. whether service-role/server access depends on direct table access anywhere outside those functions
 5. whether recovery and cancellation paths still work when a worker dies mid-lease
 6. whether repository snapshot/scan publication and cleanup remain atomic
