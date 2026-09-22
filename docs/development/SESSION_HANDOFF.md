@@ -30,4 +30,3 @@ The temporary verification proof was removed after acceptance. Branch cleanup re
 ## Remaining project scope
 
 Continue from the actual roadmap. Phase 6 hosted-runtime enablement and deferred providers remain separately gated. Do not weaken authorization, containment, RLS, network policy, target verification, or budgets to advance them.
-

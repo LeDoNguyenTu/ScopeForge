@@ -44,4 +44,3 @@ The temporary public verification file was removed only after successful accepta
 - Preserve authorization, target verification, request/runtime budgets, zero-egress containment, mediator boundaries, cancellation, RLS/security controls, and service-role-only worker control.
 - The worker-table RLS experiment and decision are complete; do not redesign them as Phase 11 cleanup.
 - External Nmap, Nuclei, external httpx, broad exploit frameworks, and deferred advanced providers remain disabled until separately reviewed.
-

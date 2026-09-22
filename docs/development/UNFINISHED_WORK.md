@@ -25,4 +25,3 @@ The whole project is approximately 91% complete. Remaining work is outside the c
 Thirteen manifest-approved merged branches remain intentionally undeleted because they are attached to active worktrees. Diverged, intentional, and post-audit branches remain preserved.
 
 Do not weaken authorization, network restrictions, containment, worker boundaries, request/runtime budgets, RLS/security controls, or target verification to advance remaining roadmap work.
-

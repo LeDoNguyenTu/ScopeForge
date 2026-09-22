@@ -21,4 +21,3 @@ For any next capability:
 ## Repository hygiene
 
 The reviewed cleanup reduced remote refs from 88 to 31. Thirteen safe merged manifest branches remain only because active worktrees reference them. Recheck open PRs and `git worktree list` before any later deletion. Preserve diverged, intentional, and post-audit branches.
-

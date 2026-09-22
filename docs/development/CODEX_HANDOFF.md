@@ -16,4 +16,3 @@ Hard boundaries:
 - Preserve zero-egress containment, target-bound mediator authority, authorization, cancellation, budgets, RLS/security controls, and service-role-only worker control.
 - Do not enable external Nmap, Nuclei, external httpx, broad exploit frameworks, or deferred providers without separate review.
 - Do not redesign worker-table RLS from this handoff; the experiment and decision are complete.
-

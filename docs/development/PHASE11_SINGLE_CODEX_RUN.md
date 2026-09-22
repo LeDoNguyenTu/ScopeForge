@@ -42,4 +42,3 @@ All five terminal canaries are preserved. The fourth failed canary remains the i
 The preflight and evidence SQL helpers now treat all five canaries as historical. They remain read-only and are not authorization to create more canaries.
 
 Do not redesign worker-table RLS as closure work. Preserve authorization, target verification, one-request/5000-ms budgets, zero-egress containment, mediator and worker boundaries, cancellation, RLS/security controls, and service-role-only control. External Nmap, Nuclei, external httpx, broad exploit frameworks, and deferred advanced providers remain disabled unless separately reviewed.
-
