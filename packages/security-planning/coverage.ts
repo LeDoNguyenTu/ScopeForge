@@ -78,9 +78,9 @@ export function evaluateStopConditions(input: StopConditionInput): RunStopReason
   if (!Number.isFinite(deadline)) throw new Error("COVERAGE_DEADLINE_INVALID");
   if (deadline <= input.now.getTime()) return "deadline_reached";
 
+  if (input.coverage.providerFailureCount >= input.providerFailureLimit) return "provider_failure_limit";
   if (input.coverage.requestCount >= input.requestBudget) return "request_budget_exhausted";
   if (input.coverage.graphExpansionCount >= input.graphExpansionLimit) return "graph_expansion_limit";
-  if (input.coverage.providerFailureCount >= input.providerFailureLimit) return "provider_failure_limit";
   if (input.approvalRequired) return "approval_required";
   if (input.coverage.untestedNodeIds.length === 0) return "coverage_complete";
   if (input.eligibleHypothesisCount === 0) return "no_eligible_hypotheses";

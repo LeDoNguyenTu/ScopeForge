@@ -1,6 +1,27 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins.
+Last reconciled: 2026-09-22, Asia/Singapore. Live provider state wins.
+
+## 2026-09-22 final-canary attempt and confirmed orchestration defect
+
+Exactly one authenticated production canary was queued in the 2026-09-22 single-Codex run. Do not create another canary in that run.
+
+- run: `2409c669-306b-4a7f-bf83-e3bcf1efc0cc`
+- action: `phase11-action:0d3b8a92c08aed7f9b351991eb7291c2c5ad6e007bcd7f5f376d0793542da9b4`
+- task: `d15b183e-d1cd-4f52-a617-64ec2260d309`
+- worker/action attempt: `f81f2f16-30de-41cf-a5ab-ee641e2e7804`
+- observation: `phase11-obs-http:51f1b31271876b0eee32170ac86a44bf23a19bb4a321fac568d596dafe7b443e`
+- worker outcome and action-attempt status: `succeeded`
+- task/action: terminal and completed as expected
+- coverage: one request, zero provider failures, zero graph expansion
+- parent run: `failed` with `request_budget_exhausted`
+- authoritative evidence verdict: `acceptance_ready = false` only because `run_completed = false`; every other mechanical acceptance check passed
+
+Vercel production logs on exact deployment `dpl_C84oG7p5n66awbiR84ZMp49RwuNd` show prepare HTTP 200 and finalize HTTP 200, with no runtime-error cluster in the canary window. Oracle verification ended with `PHASE11_HOST_CLEANUP_PASS`: the service remained active, the accepted immutable image was present, and no exact canary container or mediator socket remained.
+
+The confirmed root cause is the interaction between two released semantics: `evaluateStopConditions` selected `request_budget_exhausted` before `provider_failure_limit`, and `stop_phase11_pentest_run` classified every request-budget stop as `failed`. The scoped fix makes provider failure win when both ceilings are reached and maps clean request-budget exhaustion to `completed` in a forward-only migration. The terminal canary row must not be rewritten; after the fix is released, a new authenticated canary requires a separately authorized later run.
+
+The temporary verification proof remains present because Phase 11 acceptance did not complete.
 
 ## Released baseline
 
@@ -116,7 +137,7 @@ PR #164 fixed only that contradiction by accepting the authenticated post-claim 
 
 Live Supabase function-definition checks confirm that the claim RPC sets the action to `running`, the preparation-context RPC requires a leased task, verifies the Phase 11 worker class, rejects finished attempts, and validates the lease hash.
 
-Live reconciliation on 2026-09-21 confirmed the production Phase 11 queue contains no queued or leased tasks. The three failed canaries remain preserved as `dead_letter` audit evidence.
+Live reconciliation after the 2026-09-22 attempt confirmed the production Phase 11 queue contains no queued or leased tasks. Preserve the first three `dead_letter` canaries and the fourth terminal canary as audit evidence.
 
 ## Private worker-table privilege note
 
@@ -132,17 +153,15 @@ Do not replace it with a mutable tag or enable additional execution classes to c
 
 ## Remaining Phase 11 operational gate
 
-The PR #163 socket fix and PR #164 preparation-state fix are released. Production is READY and the worker is authenticated and idle.
+The PR #163 socket fix and PR #164 preparation-state fix are released. The fourth canary proved the worker/action path and exposed the remaining parent-run terminal-semantics defect.
 
-The only remaining end-to-end acceptance gate is:
+The remaining end-to-end acceptance sequence is:
 
-1. Use the authenticated platform-admin `/admin/phase11` control to run exactly one verified ScopeForge-owned HTTPS root-only canary.
-2. Keep the canary at `web.http.probe.v1`, root-only GET, redirects disabled, exactly one request, and a 5-second action runtime ceiling.
-3. Verify the worker leases the task and preparation no longer returns HTTP 409.
-4. Require a valid terminal attempt plus terminal run/action/task reconciliation.
-5. Verify a valid observation or legitimate no-signal result, coverage request-count delta exactly one, no duplicate terminal accounting, and no secret/response-body leakage.
-6. Verify no leftover Phase 11 runtime container or mediator socket on the accepted Oracle host.
-7. Record the exact successful evidence, remove `public/.well-known/scopeforge-verification.txt`, and then mark Phase 11 operationally 100% complete.
+1. Release the scoped stop-condition precedence fix, verify the updated exact-main application is serving production with no active Phase 11 work, and only then apply its forward-only clean-budget-completion migration. Do not roll back to pre-fix application code while the new mapping remains active.
+2. In a separately authorized future run, use `/admin/phase11` to queue exactly one verified ScopeForge-owned HTTPS root-only canary.
+3. Keep the canary at `web.http.probe.v1`, root-only GET, redirects disabled, exactly one request, and a 5-second action runtime ceiling.
+4. Require `acceptance_ready = true` plus clean Vercel and Oracle evidence.
+5. Record the exact successful evidence, remove `public/.well-known/scopeforge-verification.txt`, and only then mark Phase 11 operationally 100% complete.
 
 Do not manually insert a worker task, target third-party assets, or weaken containment to bypass this gate.
 

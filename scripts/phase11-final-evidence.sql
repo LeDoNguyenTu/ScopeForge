@@ -2,7 +2,7 @@
 -- Read-only. Do not modify or delete any canary rows.
 -- Run only after the single authenticated final canary has been queued.
 --
--- The three known failed canaries are excluded explicitly. If new_canary_count
+-- The four known terminal canaries are excluded explicitly. If new_canary_count
 -- is not exactly 1, do not queue another canary.
 
 with new_canaries as (
@@ -30,7 +30,8 @@ with new_canaries as (
   where p11.run_id not in (
     'bbd5c0cd-717c-4ee3-a5a6-c1028331f5b4'::uuid,
     'dd90af93-9f9e-4168-8a2a-067302210f85'::uuid,
-    '3a96f604-857c-4a36-8d23-3c2127ab08de'::uuid
+    '3a96f604-857c-4a36-8d23-3c2127ab08de'::uuid,
+    '2409c669-306b-4a7f-bf83-e3bcf1efc0cc'::uuid
   )
 ),
 final_canary as (

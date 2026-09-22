@@ -1,6 +1,6 @@
 # Codex Handoff - Phase 11 Closure
 
-Last reconciled: 2026-09-21, Asia/Singapore.
+Last reconciled: 2026-09-22, Asia/Singapore.
 
 This is the canonical detailed resume document. For the final closure execution, `docs/development/PHASE11_SINGLE_CODEX_RUN.md` is the compact one-run procedure and should be read first.
 
@@ -19,6 +19,22 @@ These are project-management estimates, not computed coverage metrics. Update th
 
 ## Latest operational reconciliation
 
+### 2026-09-22 single-canary result
+
+The authorized run queued exactly one production canary. It must not queue a second.
+
+- run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc`
+- action `phase11-action:0d3b8a92c08aed7f9b351991eb7291c2c5ad6e007bcd7f5f376d0793542da9b4`
+- task `d15b183e-d1cd-4f52-a617-64ec2260d309`
+- worker/action attempt `f81f2f16-30de-41cf-a5ab-ee641e2e7804`
+- observation `phase11-obs-http:51f1b31271876b0eee32170ac86a44bf23a19bb4a321fac568d596dafe7b443e`
+
+The worker and action attempt succeeded, one request was charged, provider failures remained zero, a valid observation was persisted, prepare/finalize returned HTTP 200, and Oracle cleanup returned `PHASE11_HOST_CLEANUP_PASS`. The parent run alone ended `failed / request_budget_exhausted`; therefore the authoritative SQL verdict was `acceptance_ready = false` with only `run_completed = false`.
+
+The exact defect is the combined stop semantics: request budget was checked before provider failure, while the stop RPC classified request-budget exhaustion as failure. The scoped fix prioritizes provider failure and uses a forward-only migration to classify clean request-budget exhaustion as completed. Do not rewrite this terminal canary. After the fix is released and the migration is applied, the next canary requires a separately authorized future run.
+
+Keep the temporary verification file until that future acceptance passes. Current estimates remain unchanged.
+
 The latest runtime-changing Phase 11 baseline is `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164. Later commits may be documentation-only reconciliation, so always resolve live `main` before acting.
 
 Release evidence:
@@ -28,10 +44,10 @@ Release evidence:
 - PR #164 exact-head CI run `35542030195` completed successfully across the full test suite, typecheck, CLI/worker builds, scanner and Phase 11 benchmarks, Next build, CSP/Phase 11 browser smoke, production diagnostic, and screenshot upload.
 - The PR #164 runtime deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY on exact runtime SHA `3cc1443ed292a14fe6738bc64a0b8629b5992d56`. Later docs-only production deployments may sit on top of it without changing Phase 11 runtime behavior.
 - The dedicated Phase 11 worker has authenticated against that exact deployment and returned repeated idle claim HTTP 200 responses.
-- Live reconciliation on 2026-09-21 confirmed the Phase 11 queue still has no queued or leased work. Three failed canaries remain preserved as `dead_letter` evidence. The worker remains enabled and its latest lease heartbeat is `2026-09-20 21:49:13.335068+00`.
+- The first three failed canaries remain preserved as `dead_letter` evidence; the fourth terminal canary is recorded above and must also remain unchanged.
 - Direct live privilege inspection found zero `anon` or `authenticated` grants on the nine Supabase private worker tables flagged for RLS-disabled advisory. Do not auto-enable RLS without a tested service-role policy design.
 
-Do not lower the remaining operational gate merely because PR #164 is released. One authenticated end-to-end canary is still required.
+Do not lower the remaining operational gate. Release the scoped terminal-semantics fix first; one later authenticated end-to-end canary is still required under separate authorization.
 
 ## 2026-09-21 findings UI release
 
@@ -216,9 +232,13 @@ Live Supabase definitions confirm preparation remains bound to the authenticated
 
 ## Exact remaining execution sequence
 
+### 0. Release the confirmed fix
+
+Require exact-head CI for the stop-condition precedence change and forward-only clean-budget-completion migration. Merge, verify the updated exact-main application is serving production, and confirm the Phase 11 queue is idle before applying the migration to ScopeForge Supabase. Then verify the deployed function and privileges. Do not mutate the fourth canary or roll production back to pre-fix application code while the new database mapping remains active.
+
 ### 1. Reconcile release state
 
-Before the final canary, reconfirm:
+Before the later authorized canary, reconfirm:
 
 - main is at least `3cc1443ed292a14fe6738bc64a0b8629b5992d56`
 - Vercel production for the intended main is READY
@@ -228,9 +248,9 @@ Before the final canary, reconfirm:
 
 Do not redeploy or rotate the worker merely because PR #164 changed server-side preparation logic.
 
-### 2. Run exactly one new canary
+### 2. Run exactly one new canary in a separately authorized future run
 
-Use the authenticated platform-admin `/admin/phase11` control and an existing verified ScopeForge-owned HTTPS web/API asset.
+Do not run another canary in the already-consumed 2026-09-22 run. In a newly authorized run, use the authenticated platform-admin `/admin/phase11` control and the existing verified ScopeForge-owned HTTPS asset.
 
 The canary must remain:
 

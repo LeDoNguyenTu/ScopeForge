@@ -1,6 +1,6 @@
 # Phase 11C Production Enablement Runbook
 
-Last reconciled: 2026-09-21, Asia/Singapore.
+Last reconciled: 2026-09-22, Asia/Singapore.
 
 This runbook covers the remaining operational release gate for `phase11_http_discovery_v1`.
 
@@ -199,6 +199,14 @@ Supabase Security Advisor currently flags RLS-disabled private worker tables. Di
 The public workspace collaborator `SECURITY DEFINER` RPC warnings are unrelated to this release. Their source derives the actor from `auth.uid()` and enforces owner/admin workspace authorization.
 
 ## Completion criteria
+
+### 2026-09-22 bounded canary evidence
+
+Exactly one canary was queued in the authorized single-Codex run. Run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc`, action `phase11-action:0d3b8a92c08aed7f9b351991eb7291c2c5ad6e007bcd7f5f376d0793542da9b4`, task `d15b183e-d1cd-4f52-a617-64ec2260d309`, and attempt `f81f2f16-30de-41cf-a5ab-ee641e2e7804` produced one successful request and observation `phase11-obs-http:51f1b31271876b0eee32170ac86a44bf23a19bb4a321fac568d596dafe7b443e`.
+
+Prepare and finalize both returned HTTP 200, the canary window had no Vercel runtime errors, and the host helper returned `PHASE11_HOST_CLEANUP_PASS`. The parent run nevertheless ended `failed / request_budget_exhausted`, so the evidence query returned `acceptance_ready = false` only for `run_completed`.
+
+The confirmed root cause is the combination of request-budget precedence over provider failure and the stop RPC treating all request-budget exhaustion as failure. Release the scoped code/migration fix, preserve this canary unchanged, and require a separately authorized later canary. Do not remove the temporary verification proof yet.
 
 Phase 11C hosted HTTP discovery can be considered operationally released only after:
 

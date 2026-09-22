@@ -1,6 +1,6 @@
 # ScopeForge Codex Handoff
 
-Last reconciled: 2026-09-21, Asia/Singapore.
+Last reconciled: 2026-09-22, Asia/Singapore.
 
 This file is intentionally short. If the goal is to finish Phase 11 now, start with `docs/development/PHASE11_SINGLE_CODEX_RUN.md` and follow it as the single closure procedure. For the authoritative detailed resume state, read:
 
@@ -16,11 +16,13 @@ Live GitHub and provider state wins if it differs from documentation.
 
 The Phase 11 source scope is complete. Do not reopen Tasks 1 through 16 merely to increase provider count.
 
-The only Phase 11 release gate still open is one authenticated platform-admin production canary from `/admin/phase11` against the existing verified ScopeForge-owned target `https://scopeforge.dev`.
+The 2026-09-22 single-Codex run used its one authorized platform-admin canary. The worker/action succeeded with one request and a valid observation, but the parent run failed under the confirmed request-budget terminal-status defect. Do not run another canary in that run and do not rewrite its terminal rows.
+
+Release the scoped stop-condition precedence fix and forward-only clean-budget-completion migration first. A new authenticated canary against the existing verified ScopeForge-owned target `https://scopeforge.dev` then requires a separately authorized later run.
 
 Keep the canary fixed at `web.http.probe.v1`, root-only GET, redirects disabled, one request maximum, and 5000 ms action runtime maximum. Do not bypass the normal admin/planner/policy/authorization/queue path.
 
-After the canary, preserve exact evidence, verify Oracle-host container/socket cleanup, remove the temporary verification proof, reconcile the canonical docs, and close Phase 11 only if all acceptance criteria pass.
+The failed-at-run-layer canary evidence is recorded in `CODEX_HANDOFF_PHASE11.md`. Oracle cleanup passed. Keep the temporary verification proof and close Phase 11 only after a later canary returns `acceptance_ready = true`.
 
 ## Hard boundaries
 

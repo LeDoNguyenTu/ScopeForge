@@ -1,6 +1,6 @@
 # ScopeForge Session Handoff
 
-Last reconciled: 2026-09-21, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-09-22, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Canonical resume point
 
@@ -55,7 +55,11 @@ These estimates must not be raised until an actual release gate changes.
 
 ## Remaining Phase 11 gate
 
-From an authenticated platform-admin session at `/admin/phase11`, run exactly one bounded canary:
+The 2026-09-22 single-Codex run already consumed its one authorized canary. Worker execution, one-request accounting, observation persistence, Vercel prepare/finalize, and Oracle cleanup succeeded, but the parent run ended `failed / request_budget_exhausted`. The authoritative verdict was false only for `run_completed`.
+
+The scoped fix prioritizes provider failure over request-budget exhaustion and adds a forward-only migration that completes clean budget exhaustion. Preserve run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc` and its related rows unchanged. After the fix is released and the migration is applied, obtain fresh authorization for one later canary. The temporary verification file remains until that canary passes.
+
+After the fix is released and the migration is verified, a separately authorized future run may execute exactly one bounded canary from `/admin/phase11`:
 
 - `web.http.probe.v1`
 - verified ScopeForge-owned HTTPS target only
