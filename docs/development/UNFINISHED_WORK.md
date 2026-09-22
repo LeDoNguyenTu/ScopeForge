@@ -1,6 +1,6 @@
 # ScopeForge Unfinished Work
 
-Last reconciled: 2026-09-21, Asia/Singapore.
+Last reconciled: 2026-09-22, Asia/Singapore.
 
 ## Phase 11 status
 
@@ -21,6 +21,14 @@ External Nmap, Nuclei, external httpx, broad exploit frameworks, cloud/cluster c
 
 ## Remaining active blocker
 
+The 2026-09-22 single-Codex run queued exactly one additional authenticated canary and must not queue another. The worker, sandbox, bounded HTTP request, observation persistence, accounting, Vercel prepare/finalize routes, and Oracle cleanup all succeeded, but the parent run terminalized as `failed / request_budget_exhausted`.
+
+Evidence: run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc`, action `phase11-action:0d3b8a92c08aed7f9b351991eb7291c2c5ad6e007bcd7f5f376d0793542da9b4`, task `d15b183e-d1cd-4f52-a617-64ec2260d309`, attempt `f81f2f16-30de-41cf-a5ab-ee641e2e7804`, and observation `phase11-obs-http:51f1b31271876b0eee32170ac86a44bf23a19bb4a321fac568d596dafe7b443e`. The evidence query returned one request, zero provider failures, zero active tasks, and `acceptance_ready = false` solely because the run was not `completed`.
+
+The root cause is confirmed: stop-condition precedence let request-budget exhaustion mask a simultaneous provider failure, while the database stop RPC mapped every request-budget stop to failure. The scoped source fix prioritizes provider failure and a forward-only migration completes only clean request-budget exhaustion. Preserve the terminal canary row unchanged. Release the fix with exact-head CI and apply the reviewed migration; a later separately authorized run must perform the next canary.
+
+Do not remove `public/.well-known/scopeforge-verification.txt` until that later canary passes.
+
 Phase 11 source implementation is complete, and the two operational defects found by the first production canaries are now released:
 
 - PR #163 fixed the Linux Unix-socket pathname length by using `/run/scopeforge-worker/mediator/<64-hex>.sock`.
@@ -30,7 +38,7 @@ Phase 11 source implementation is complete, and the two operational defects foun
 - The PR #164 runtime deployment `dpl_8AYvooHJ38pJEk5yPfEe7o2JdiWe` is READY; later docs-only production deployments may be newer without changing the runtime fix.
 - The dedicated Phase 11 worker has successfully authenticated and performed idle claims against the released deployment.
 
-Preserve all three failed canaries as audit evidence. The newest one is:
+Preserve the first three failed canaries and the fourth terminal canary as audit evidence. The newest pre-fix canary is:
 
 - run: `3a96f604-857c-4a36-8d23-3c2127ab08de`
 - action: `phase11-action:fef9fd799e90c749af29156b0376b312187ed43c0cc0b016e352408b88f6dd05`
@@ -45,19 +53,16 @@ Preserve all three failed canaries as audit evidence. The newest one is:
 
 Production logs proved the failure boundary: the Phase 11 prepare route returned HTTP 409, no heartbeat followed, and finalization returned HTTP 200. The claim RPC had correctly moved the action to `running`; trusted preparation rejected that valid post-claim state. PR #164 is the TDD regression fix.
 
-The remaining blocker is not another source task. Live checks on 2026-09-21 confirmed the worker is enabled, the queue is idle, and the only remaining gate is one successful end-to-end production canary through the authenticated platform-admin control.
+The remaining blocker is the release/deployment of the confirmed terminal-semantics fix followed by one successful end-to-end production canary in a separately authorized run.
 
 ## Next actions
 
-1. From an authenticated platform-admin session, run exactly one verified ScopeForge-owned HTTPS canary from `/admin/phase11`.
-2. Keep it fixed at `web.http.probe.v1`, root-only GET, redirects disabled, one request maximum, and 5000 ms action runtime maximum.
-3. Verify preparation succeeds past the prior HTTP 409 boundary and the worker reaches normal mediator/sandbox execution.
-4. Verify one request, valid terminal task/action/run state, valid observation or legitimate no-signal result, and exact coverage reconciliation.
-5. Verify ordinary logs/evidence contain no response body, credentials, authorization token, or other secret.
-6. Verify the accepted Oracle host has no leftover Phase 11 runtime container or mediator socket.
-7. Record the exact acceptance IDs and evidence in Phase 11 validation/status docs.
-8. Remove `public/.well-known/scopeforge-verification.txt`.
-9. Mark Phase 11 operationally complete only after all acceptance evidence passes.
+1. Merge the scoped terminal-semantics fix after exact-head CI.
+2. Confirm the updated exact-main application is serving production and the worker queue is idle.
+3. Only then apply and verify the forward-only migration on ScopeForge Supabase. Do not roll back to pre-fix application code while the new mapping remains active.
+4. In a separately authorized future run, execute exactly one new canary with the existing bounded controls.
+5. Require `acceptance_ready = true`, clean logs, and Oracle cleanup.
+6. Only then remove `public/.well-known/scopeforge-verification.txt` and mark Phase 11 operationally complete.
 
 Current project-management estimates remain unchanged until this gate passes:
 

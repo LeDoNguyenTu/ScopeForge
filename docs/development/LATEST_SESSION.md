@@ -6,11 +6,25 @@ Live GitHub, Supabase, Vercel, and worker state wins over this file.
 
 ## Current objective
 
-Phase 11 source implementation is complete. The only release-critical Phase 11 gate still open is one authenticated end-to-end production canary from `/admin/phase11` against the existing verified ScopeForge-owned HTTPS target.
+Exactly one authenticated final-canary attempt was made on 2026-09-22. The action path succeeded end to end, but the parent run failed due a confirmed terminal-semantics defect; no second canary is authorized in that run.
+
+- run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc`
+- action `phase11-action:0d3b8a92c08aed7f9b351991eb7291c2c5ad6e007bcd7f5f376d0793542da9b4`
+- task `d15b183e-d1cd-4f52-a617-64ec2260d309`
+- attempt `f81f2f16-30de-41cf-a5ab-ee641e2e7804`
+- observation `phase11-obs-http:51f1b31271876b0eee32170ac86a44bf23a19bb4a321fac568d596dafe7b443e`
+- one request, zero provider failures, successful worker/action attempt
+- Vercel prepare/finalize HTTP 200, no canary-window runtime errors
+- Oracle `PHASE11_HOST_CLEANUP_PASS`
+- parent run `failed / request_budget_exhausted`; `acceptance_ready = false` only for `run_completed`
+
+Release the scoped stop-condition precedence and forward-only clean-budget-completion fix, then leave the temporary verification proof in place. A separately authorized later run must perform the next canary.
+
+Phase 11 source implementation is complete. The release-critical sequence is now the scoped terminal-semantics fix and migration, followed by one authenticated end-to-end production canary in a separately authorized future run.
 
 Use `docs/development/PHASE11_SINGLE_CODEX_RUN.md` for the exact one-run closure procedure. Do not resume from older Phase 10 or early Phase 11 handoffs.
 
-Current project-management estimates before the canary:
+Current project-management estimates after the non-accepted canary remain:
 
 - Phase 11 source: 100%
 - Phase 11 operational acceptance: about 94%
@@ -69,7 +83,7 @@ The repository contains:
 
 The preflight query has been validated against production and currently proves:
 
-- exactly three historical Phase 11 tasks
+- exactly four historical Phase 11 tasks after the 2026-09-22 attempt
 - zero active queued/retry-wait/leased Phase 11 tasks
 - the dedicated worker is enabled
 - eligible verified asset is `ScopeForge Production` at `https://scopeforge.dev`
@@ -105,7 +119,7 @@ The current ChatGPT GitHub integration cannot delete refs. The single Codex run 
 
 ## Remaining Phase 11 gate
 
-Run exactly one authenticated bounded canary:
+After the fix release and migration, obtain separate authorization and run exactly one new bounded canary:
 
 - target: `ScopeForge Production · https://scopeforge.dev`
 - capability: `web.http.probe.v1`
@@ -114,7 +128,7 @@ Run exactly one authenticated bounded canary:
 - one request maximum
 - 5000 ms action runtime maximum
 
-Do not run a second canary if the first one fails.
+Do not run another canary in the already-consumed 2026-09-22 single-Codex run.
 
 After the one canary, require database acceptance, Vercel evidence, Oracle host cleanup, temporary verification-file removal, closure documentation, and final production verification as specified in `PHASE11_SINGLE_CODEX_RUN.md`.
 

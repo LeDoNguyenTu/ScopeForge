@@ -1,16 +1,18 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins over this document.
+Last reconciled: 2026-09-22, Asia/Singapore. Live provider state wins over this document.
 
 ## Immediate Phase 11 closure
 
-1. From an authenticated platform-admin session at `/admin/phase11`, run exactly one verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary.
-2. Keep redirects disabled, request ceiling at one, and action runtime ceiling at 5000 ms.
-3. Verify the dedicated worker leases the task, preparation passes the former HTTP 409 boundary, and mediator/sandbox execution occurs normally.
-4. Verify exactly one request, a valid terminal attempt, terminal run/action/task reconciliation, and either a valid observation or legitimate no-signal result.
-5. Verify coverage request-count delta is exactly one, no duplicate terminal accounting occurs, and ordinary logs/evidence contain no response body, credential, authorization token, or secret.
-6. Verify the accepted Oracle host leaves no Phase 11 runtime container or mediator socket behind.
-7. Record the exact production evidence, remove `public/.well-known/scopeforge-verification.txt`, update the Phase 11 completion/status docs, and mark Phase 11 operationally complete only after all acceptance criteria pass.
+1. Merge the scoped request-budget terminal-semantics fix only after exact-head CI passes.
+2. Verify the updated exact-main application is READY and serving production, and confirm the Phase 11 queue has no active work.
+3. Only then apply the forward-only migration to ScopeForge Supabase `tdgpibrepzcvdivztkta` and verify the deployed function definition/privileges. Do not mutate the preserved terminal canary, and do not roll production back to pre-fix application code while this database mapping remains active.
+4. In a separately authorized future run, queue exactly one new verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary.
+5. Keep redirects disabled, request ceiling at one, and action runtime ceiling at 5000 ms.
+6. Require `acceptance_ready = true`, then repeat Vercel secrecy and Oracle cleanup checks.
+7. Only after that acceptance, remove `public/.well-known/scopeforge-verification.txt` and mark Phase 11 operationally complete.
+
+The current single-Codex run already used its one canary. Do not queue another in that run.
 
 ## Current released facts
 
@@ -19,7 +21,7 @@ Last reconciled: 2026-09-21, Asia/Singapore. Live provider state wins over this 
 - PR #163 released the Unix-socket pathname-length fix.
 - PR #164 released the post-claim preparation-state fix.
 - The dedicated `phase11_http_discovery_v1` worker is enabled and production logs show repeated authenticated idle claim HTTP 200 responses.
-- Three failed production canaries remain preserved as audit evidence. Do not retry, rewrite, or delete them.
+- Three dead-letter canaries plus the fourth failed parent run remain preserved as audit evidence. Do not retry, rewrite, or delete them.
 - ScopeForge production has one eligible verified HTTPS canary target: `https://scopeforge.dev`.
 - External Nmap, Nuclei, external httpx, broad exploit frameworks, and deferred advanced Task 16 providers remain disabled until separately reviewed.
 

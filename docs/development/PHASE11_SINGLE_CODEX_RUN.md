@@ -2,11 +2,13 @@
 
 Last prepared: 2026-09-22, Asia/Singapore.
 
+> **Consumed on 2026-09-22:** this run queued its one authorized canary. Do not reuse this document to queue a second canary in the same run. The canary's worker/action path succeeded, but the parent run exposed the clean request-budget terminal-status defect documented in `CODEX_HANDOFF_PHASE11.md`. Release that fix first; a new canary requires a separately authorized future run.
+
 This is the shortest safe path to finish Phase 11 in one Codex run. Do not spend the run rediscovering already-verified state. Do not redesign worker-table RLS during this closure: PR #180 proved the current `postgres` RPC owner has `BYPASSRLS`, so that defense-in-depth redesign is explicitly post-Phase-11 work.
 
-## Goal
+## Original goal for the consumed run
 
-Perform the one remaining authenticated production canary, collect database/Vercel/Oracle evidence, close Phase 11 if and only if all acceptance criteria pass, and leave `main` production-ready with no open closure PR.
+The 2026-09-22 run attempted the one remaining authenticated production canary, collected database/Vercel/Oracle evidence, and was required to close Phase 11 only if every acceptance criterion passed. It did not pass the parent-run completion check; use the current handoff rather than repeating this procedure in the same run.
 
 Current estimates before this run:
 
@@ -51,11 +53,11 @@ Run the read-only `scripts/phase11-final-preflight.sql` against ScopeForge Supab
 
 Require before clicking anything:
 
-- the preflight result shows `phase11_task_count = 3`, `active_phase11_task_count = 0`, worker `disabled_at = null`, and eligible target `ScopeForge Production` at `https://scopeforge.dev`
+- for the next separately authorized run, the preflight result shows `phase11_task_count = 4`, `active_phase11_task_count = 0`, worker `disabled_at = null`, and eligible target `ScopeForge Production` at `https://scopeforge.dev`
 - the intended current main Vercel deployment is READY
 - ScopeForge Supabase project is `tdgpibrepzcvdivztkta`
 - worker `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e` is enabled
-- there are exactly the three historical Phase 11 tasks/runs and zero active queued/retry_wait/leased Phase 11 tasks
+- there are exactly the four historical Phase 11 tasks/runs and zero active queued/retry_wait/leased Phase 11 tasks
 - fresh production worker claims are HTTP 200
 - `https://scopeforge.dev/.well-known/scopeforge-verification.txt` still returns the expected proof before the canary
 
@@ -91,9 +93,11 @@ Run the read-only SQL file:
 
 `scripts/phase11-final-evidence.sql`
 
-It excludes the three historical failed canaries and therefore selects only the new final canary.
+It excludes the four preserved terminal canaries and therefore selects only a newly authorized later canary.
 
-The result now includes `acceptance_ready` plus individual `acceptance_checks`. Do not close Phase 11 unless `acceptance_ready = true` and the independent Vercel/Oracle secrecy and cleanup checks also pass.\n\nFrom the result, record:
+The result includes `acceptance_ready` plus individual `acceptance_checks`. Do not close Phase 11 unless `acceptance_ready = true` and the independent Vercel/Oracle secrecy and cleanup checks also pass.
+
+From the result, record:
 
 - run ID/status/stop reason
 - action ID/state/decision/max request/max runtime

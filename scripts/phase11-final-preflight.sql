@@ -2,9 +2,9 @@
 -- Read-only. Run before the single authenticated canary click.
 -- Expected closure-ready state:
 --   worker.disabled_at IS NULL
---   phase11_task_count = 3
+--   phase11_task_count = 4
 --   active_phase11_task_count = 0
---   historical_runs contains exactly the three preserved dead_letter canaries
+--   historical_runs contains exactly the four preserved terminal canaries
 --   eligible_target is ScopeForge Production at https://scopeforge.dev
 
 select jsonb_build_object(

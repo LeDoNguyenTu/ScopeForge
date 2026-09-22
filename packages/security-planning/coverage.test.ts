@@ -137,4 +137,13 @@ describe("Phase 11 coverage and stop conditions", () => {
   it("continues when no stop condition has been reached", () => {
     expect(evaluateStopConditions(stopInput())).toBeUndefined();
   });
+
+  it("reports provider failure before request-budget exhaustion when the same attempt reaches both", () => {
+    expect(evaluateStopConditions(stopInput({
+      coverage: coverage({
+        requestCount: 10,
+        providerFailureCount: 3,
+      }),
+    }))).toBe("provider_failure_limit");
+  });
 });
