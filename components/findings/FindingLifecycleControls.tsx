@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { FindingLifecycleState, WorkspaceRole } from "@/lib/database.types";
 import { changeFindingLifecycleAction } from "@/app/dashboard/findings/[findingId]/actions";
 import type { Phase5ALifecycleAction } from "@/lib/security-findings/service";
+import { useToast } from "@/components/feedback/ToastProvider";
 
 const actionsByState: Partial<Record<FindingLifecycleState, readonly Phase5ALifecycleAction[]>> = {
   open: ["acknowledge", "start_work"],
@@ -34,8 +36,9 @@ export default function FindingLifecycleControls({
 }: FindingLifecycleControlsProps) {
   const [currentState, setCurrentState] = useState<FindingLifecycleState>(lifecycleState);
   const [note, setNote] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const toast = useToast();
 
   if (!WRITE_ROLES.has(role)) {
     return (
@@ -63,16 +66,16 @@ export default function FindingLifecycleControls({
     const actionNote = action === "resolve" || action === "reopen" ? note.trim() : undefined;
     if ((action === "resolve" || action === "reopen") && !actionNote) return;
 
-    setMessage(null);
     startTransition(async () => {
       const result = await changeFindingLifecycleAction(findingId, action, actionNote);
       if (!result.ok) {
-        setMessage(result.error.message);
+        toast.error(result.error.message);
         return;
       }
       setCurrentState(result.data.lifecycleState as FindingLifecycleState);
       setNote("");
-      setMessage("Finding lifecycle updated.");
+      toast.success("Finding lifecycle updated.");
+      router.refresh();
     });
   }
 
@@ -114,8 +117,6 @@ export default function FindingLifecycleControls({
           </button>
         ))}
       </div>
-
-      {message ? <div className="authMessage" role="status">{message}</div> : null}
     </div>
   );
 }

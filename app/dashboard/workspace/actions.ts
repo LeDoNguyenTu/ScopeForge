@@ -25,7 +25,17 @@ export async function switchWorkspace(form: FormData) {
   redirect("/dashboard");
 }
 
-export async function manageCollaborator(form: FormData): Promise<{ ok: boolean; message: string }> {
+export type ManageCollaboratorResult =
+  | { ok: false; message: string }
+  | {
+      ok: true;
+      message: string;
+      operation: "add" | "role" | "remove";
+      collaboratorId?: string;
+      role?: "member" | "viewer";
+    };
+
+export async function manageCollaborator(form: FormData): Promise<ManageCollaboratorResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Sign in to manage collaborators." };
@@ -56,5 +66,12 @@ export async function manageCollaborator(form: FormData): Promise<{ ok: boolean;
     return { ok: false, message: messages[error.message] ?? "The change could not be saved. Please try again." };
   }
   revalidatePath("/dashboard/workspace");
-  return { ok: true, message: operation === "add" ? "Collaborator added." : operation === "remove" ? "Collaborator removed." : "Role updated." };
+  const normalizedOperation = operation as "add" | "role" | "remove";
+  return {
+    ok: true,
+    message: operation === "add" ? "Collaborator added." : operation === "remove" ? "Collaborator removed." : "Role updated.",
+    operation: normalizedOperation,
+    ...(operation === "add" ? {} : { collaboratorId }),
+    ...(operation === "role" ? { role: role as "member" | "viewer" } : {}),
+  };
 }

@@ -1,18 +1,25 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import FindingLifecycleControls from "@/components/findings/FindingLifecycleControls";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
+
+const mocks = vi.hoisted(() => ({ change: vi.fn(), refresh: vi.fn() }));
+vi.mock("@/app/dashboard/findings/[findingId]/actions", () => ({ changeFindingLifecycleAction: mocks.change }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 
 function renderControls(
   overrides: Partial<React.ComponentProps<typeof FindingLifecycleControls>> = {},
 ) {
   return render(
-    <FindingLifecycleControls
-      findingId="finding-1"
-      lifecycleState="open"
-      role="member"
-      {...overrides}
-    />,
+    <ToastProvider>
+      <FindingLifecycleControls
+        findingId="finding-1"
+        lifecycleState="open"
+        role="member"
+        {...overrides}
+      />
+    </ToastProvider>,
   );
 }
 
@@ -54,5 +61,19 @@ describe("FindingLifecycleControls", () => {
     const body = document.body.textContent ?? "";
 
     expect(body).not.toMatch(/accepted risk|false positive|retest|verified fixed/i);
+  });
+
+  it("refreshes canonical finding content and uses a toast after a lifecycle update", async () => {
+    mocks.change.mockResolvedValue({ ok: true, data: { lifecycleState: "resolved" } });
+    renderControls({ lifecycleState: "in_progress", role: "admin" });
+
+    fireEvent.change(screen.getByRole("textbox", { name: /resolution note/i }), {
+      target: { value: "Patched and deployed." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^resolve$/i }));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Finding lifecycle updated."));
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+    expect(document.querySelector(".authMessage")).not.toBeInTheDocument();
   });
 });
