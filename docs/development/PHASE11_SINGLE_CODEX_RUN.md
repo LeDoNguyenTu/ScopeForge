@@ -2,7 +2,7 @@
 
 Last prepared: 2026-09-22, Asia/Singapore.
 
-This is the shortest safe path to finish Phase 11 in one Codex run. Do not spend the run rediscovering already-verified state.
+This is the shortest safe path to finish Phase 11 in one Codex run. Do not spend the run rediscovering already-verified state. Do not redesign worker-table RLS during this closure: PR #180 proved the current `postgres` RPC owner has `BYPASSRLS`, so that defense-in-depth redesign is explicitly post-Phase-11 work.
 
 ## Goal
 
