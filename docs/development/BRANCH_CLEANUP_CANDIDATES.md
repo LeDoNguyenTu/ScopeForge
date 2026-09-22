@@ -6,6 +6,8 @@ This is a reviewed deletion manifest. It is not a substitute for checking local 
 
 At this audit, GitHub exposed 83 remote refs before PR #178 merged. Every non-main branch was classified by direct comparison against `main`.
 
+Cleanup execution on 2026-09-23 rechecked zero open PRs, fetched/pruned refs, and inspected every active worktree. It deleted 56 manifest branches that remained fully reachable from `main` and were not attached to a worktree. Thirteen safe manifest branches remain protected by active worktrees. All diverged, intentional, and post-audit branches were preserved. Remote refs decreased from 88 to 32, including `origin/HEAD`.
+
 ## Summary
 
 - 69 branches below are fully reachable from `main` and have zero unique commits from a remote-reachability perspective.

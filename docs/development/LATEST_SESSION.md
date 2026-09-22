@@ -18,7 +18,11 @@ Exactly one authenticated final-canary attempt was made on 2026-09-22. The actio
 - Oracle `PHASE11_HOST_CLEANUP_PASS`
 - parent run `failed / request_budget_exhausted`; `acceptance_ready = false` only for `run_completed`
 
-Release the scoped stop-condition precedence and forward-only clean-budget-completion fix, then leave the temporary verification proof in place. A separately authorized later run must perform the next canary.
+The scoped stop-condition precedence and forward-only clean-budget-completion fix is released. Leave the temporary verification proof in place. A separately authorized later run must perform the next canary.
+
+Release completed on 2026-09-23: PR #182 merged as `81ac30c773b7b9485d019f0a9b3df86535a06412` after exact-head CI `35747536961`; deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` is READY on `scopeforge.dev`; migration `20260922150155_complete_clean_budget_exhaustion` is applied and registered. Database verification found four historical tasks, zero active tasks, an enabled worker, service-role-only RPC execution, pinned empty `search_path`, and the fourth canary unchanged.
+
+Branch cleanup also removed 56 reviewed, merged, non-worktree remote branches. Thirteen manifest branches remain because they are attached to active worktrees. All twelve diverged branches, `demo/portfolio-20260910`, `main`, and post-audit branches were preserved. Remote refs fell from 88 to 32 (including `origin/HEAD`).
 
 Phase 11 source implementation is complete. The release-critical sequence is now the scoped terminal-semantics fix and migration, followed by one authenticated end-to-end production canary in a separately authorized future run.
 

@@ -57,9 +57,11 @@ These estimates must not be raised until an actual release gate changes.
 
 The 2026-09-22 single-Codex run already consumed its one authorized canary. Worker execution, one-request accounting, observation persistence, Vercel prepare/finalize, and Oracle cleanup succeeded, but the parent run ended `failed / request_budget_exhausted`. The authoritative verdict was false only for `run_completed`.
 
-The scoped fix prioritizes provider failure over request-budget exhaustion and adds a forward-only migration that completes clean budget exhaustion. Preserve run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc` and its related rows unchanged. After the fix is released and the migration is applied, obtain fresh authorization for one later canary. The temporary verification file remains until that canary passes.
+The released scoped fix prioritizes provider failure over request-budget exhaustion, and the applied forward-only migration completes clean budget exhaustion. Preserve run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc` and its related rows unchanged. Obtain fresh authorization for one later canary. The temporary verification file remains until that canary passes.
 
-After the fix is released and the migration is verified, a separately authorized future run may execute exactly one bounded canary from `/admin/phase11`:
+The fix release is complete: PR #182 merged as `81ac30c773b7b9485d019f0a9b3df86535a06412` after exact-head CI `35747536961`; Vercel deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` is READY on `scopeforge.dev`; migration `20260922150155_complete_clean_budget_exhaustion` is applied and registered. Post-migration checks show zero active Phase 11 tasks, the worker enabled, expected RPC security, and the preserved fourth canary unchanged.
+
+With the fix released and migration verified, a separately authorized future run may execute exactly one bounded canary from `/admin/phase11`:
 
 - `web.http.probe.v1`
 - verified ScopeForge-owned HTTPS target only

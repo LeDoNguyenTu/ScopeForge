@@ -35,6 +35,12 @@ The exact defect is the combined stop semantics: request budget was checked befo
 
 Keep the temporary verification file until that future acceptance passes. Current estimates remain unchanged.
 
+### 2026-09-23 fix release
+
+PR #182 passed exact-head CI run `35747536961` at `5cc0e699eaf29cad607913149dacdda003bf8e3f` and merged as `81ac30c773b7b9485d019f0a9b3df86535a06412`. Exact-main deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` is READY, serves `scopeforge.dev`, and received fresh authenticated worker claim HTTP 200 responses.
+
+Only after that deployment and an idle-queue check, migration `20260922150155_complete_clean_budget_exhaustion` was applied and registered. Verification confirmed service-role-only execution, `SECURITY DEFINER`, pinned empty `search_path`, the clean-budget-completion mapping, four historical tasks, zero active tasks, an enabled worker, and no mutation of run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc`.
+
 The latest runtime-changing Phase 11 baseline is `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164. Later commits may be documentation-only reconciliation, so always resolve live `main` before acting.
 
 Release evidence:
@@ -47,7 +53,7 @@ Release evidence:
 - The first three failed canaries remain preserved as `dead_letter` evidence; the fourth terminal canary is recorded above and must also remain unchanged.
 - Direct live privilege inspection found zero `anon` or `authenticated` grants on the nine Supabase private worker tables flagged for RLS-disabled advisory. Do not auto-enable RLS without a tested service-role policy design.
 
-Do not lower the remaining operational gate. Release the scoped terminal-semantics fix first; one later authenticated end-to-end canary is still required under separate authorization.
+Do not lower the remaining operational gate. The scoped terminal-semantics fix is released; one later authenticated end-to-end canary is still required under separate authorization.
 
 ## 2026-09-21 findings UI release
 
@@ -232,9 +238,9 @@ Live Supabase definitions confirm preparation remains bound to the authenticated
 
 ## Exact remaining execution sequence
 
-### 0. Release the confirmed fix
+### 0. Confirm the released fix
 
-Require exact-head CI for the stop-condition precedence change and forward-only clean-budget-completion migration. Merge, verify the updated exact-main application is serving production, and confirm the Phase 11 queue is idle before applying the migration to ScopeForge Supabase. Then verify the deployed function and privileges. Do not mutate the fourth canary or roll production back to pre-fix application code while the new database mapping remains active.
+PR #182, exact-head CI `35747536961`, merge `81ac30c773b7b9485d019f0a9b3df86535a06412`, deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc`, and migration `20260922150155` are complete. Reconfirm them before the later canary. Do not mutate the fourth canary or roll production back to pre-fix application code while the new database mapping remains active.
 
 ### 1. Reconcile release state
 
