@@ -50,7 +50,7 @@ The repository includes `tests/database/worker-rls-hardening-experiment.test.ts`
 1. a `BYPASSRLS` security-definer owner, matching current Supabase `postgres`
 2. a dedicated non-`BYPASSRLS` security-definer owner
 
-The experiment is expected to prove:
+Exact-head CI run `35694652988` proved:
 
 - browser roles remain unable to read the private table because they have no table grant
 - `ENABLE ROW LEVEL SECURITY` plus `FORCE ROW LEVEL SECURITY` does not restrict a `BYPASSRLS` function owner
@@ -58,7 +58,7 @@ The experiment is expected to prove:
 - an explicit policy can then restore only the intended access for that dedicated owner
 - `service_role` having `BYPASSRLS` does not grant direct table access by itself when table grants remain revoked
 
-This experiment costs no Supabase branching fee and does not touch production data or schema.
+This experiment costs no Supabase branching fee and does not touch production data or schema. Full evidence and the resulting architecture decision are recorded in `docs/security/WORKER_RLS_EXPERIMENT_RESULT.md`.
 
 ## Why this is not a one-line remediation
 
