@@ -51,6 +51,10 @@ function fillCredentials() {
 }
 
 describe("AuthForm", () => {
+  it("links password users to account recovery", () => {
+    render(<AuthForm mode="sign-in" />);
+    expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute("href", "/auth/forgot-password");
+  });
   it("renders a bounded sign-in error instead of raw provider detail", async () => {
     mocks.signInWithPassword.mockResolvedValue({
       error: new Error("Invalid login credentials for alice@example.com")

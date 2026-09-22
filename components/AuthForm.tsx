@@ -116,6 +116,7 @@ export default function AuthForm({
         {signUp && <label>Display name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Brian" maxLength={80} /></label>}
         <label>Email<input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label>
         <label>Password<input required type="password" autoComplete={signUp ? "new-password" : "current-password"} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" /></label>
+        {!signUp ? <Link className="authForgotLink" href="/auth/forgot-password">Forgot password?</Link> : null}
         {normalizedCaptchaSiteKey && (
           <div
             className="authSecurityPanel"

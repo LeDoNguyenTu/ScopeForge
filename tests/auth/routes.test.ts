@@ -89,6 +89,13 @@ describe("auth redirect routes", () => {
     expect(response.headers.get("location")).toBe("https://scopeforge.dev/auth/result?status=success");
   });
 
+  it("sends a successful recovery confirmation to the password update page", async () => {
+    mocks.verifyOtp.mockResolvedValue({ error: null });
+    const { GET } = await import("@/app/auth/confirm/route");
+    const response = await GET(new Request("https://scopeforge.dev/auth/confirm?token_hash=example&type=recovery"));
+    expect(response.headers.get("location")).toBe("https://scopeforge.dev/auth/update-password");
+  });
+
   it("shows a result after successful PKCE exchange without a return path", async () => {
     mocks.exchangeCodeForSession.mockResolvedValue({ error: null });
     const { GET } = await import("@/app/auth/callback/route");

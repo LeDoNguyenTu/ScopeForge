@@ -63,6 +63,12 @@ button, input, select, textarea { font: inherit; }
 .authHeading h1 { font-size: 31px; }
 .authHeading p, .authForm label, .authSwitch { font-size: 14px; }
 .authForm input { min-height: 48px; font-size: 16px; }
+.authForgotLink { justify-self: end; margin-top: -7px; color: var(--product-accent); font-size: 13px; font-weight: 650; }
+.authRecoveryResult { display: flex; align-items: flex-start; gap: 12px; padding: 15px; border: 1px solid rgba(114, 230, 188, .3); border-radius: 10px; background: rgba(114, 230, 188, .07); color: #d7f4e9; font-size: 14px; line-height: 1.55; }
+.authRecoveryResult svg { flex: 0 0 auto; margin-top: 2px; color: var(--product-accent); }
+.authRecoveryResult strong { display: block; margin-bottom: 3px; }
+.authRecoveryResult p { margin: 0; color: #b9ccc5; }
+.authMessageError { border-color: rgba(255, 155, 134, .35); background: rgba(255, 155, 134, .08); color: #ffd0c6; }
 
 @media (max-width: 1100px) {
   .findingPrimaryGrid { grid-template-columns: 1fr; }
