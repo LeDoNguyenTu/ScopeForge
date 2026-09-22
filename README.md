@@ -12,11 +12,11 @@ The project combines a local/passive repository scanner with a web control plane
 
 ## Current status
 
-The local code and supply-chain scanner, Community Security Packs local v1, validation/benchmark methodology, production hardening, strict nonce CSP, authenticated control plane, platform administration, and Phase 10A1 GitHub connected-project core are released.
+The approved ScopeForge v1 roadmap is complete: all 11 delivery phases are released for their approved scopes. This includes the local code and supply-chain scanner, Community Security Packs local v1, validation/benchmark methodology, production hardening, strict nonce CSP, authenticated control plane, platform administration, accepted private repository acquisition and zero-egress scanning, GitHub webhook reconciliation, and bounded Phase 11 autonomous pentest orchestration.
 
-Local repository scanning remains passive and does not require a ScopeForge account. Hosted acquisition, private repository execution, automatic webhook-driven scanning, and network/runtime worker capabilities remain behind independent authorization, containment, migration, canary, monitoring, and rollback gates. Code or CI completion alone does not authorize those production capabilities.
+Local repository scanning remains passive and does not require a ScopeForge account. Hosted and networked capabilities retain independent authorization, containment, migration, monitoring, and rollback boundaries. Capabilities explicitly deferred from v1 remain disabled and are not implied by project completion.
 
-The positive production GitHub App owner/admin connection and controlled repository-import flow has been proven, the Phase 10A2/10A3 operational release sequence is complete, and Phase 11 bounded autonomous pentest orchestration has production acceptance. Remaining operational follow-up is tracked in `docs/development/CURRENT_STATE.md` and `docs/development/NEXT_STEPS.md`.
+The positive production GitHub App owner/admin connection and controlled repository-import flow has been proven, the Phase 10A2/10A3 operational release sequence is complete, and Phase 11 bounded autonomous pentest orchestration has production acceptance. The completion boundary and intentional non-v1 scope are recorded in `docs/development/PROJECT_COMPLETION.md`.
 
 Community Security Packs v1 is released and intentionally local-only, explicitly selected, data-only, and limited to the closed `static_literal_v1` matcher. Hosted pack distribution/activation, active rules, executable plugins, and target-repository auto-discovery do not exist.
 

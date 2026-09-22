@@ -2,6 +2,8 @@
 
 ScopeForge follows the approved community-platform roadmap. Phase boundaries are safety and architecture boundaries, not only feature groupings.
 
+**Approved roadmap status: 11 of 11 phases complete (100%).** See `docs/development/PROJECT_COMPLETION.md` for the evidence-based closure boundary and intentional non-v1 scope.
+
 1. **Foundation - complete**
    Identity, workspaces, tenancy, Row Level Security, application shell, security headers, CI, and deployment baseline.
 
@@ -23,9 +25,9 @@ ScopeForge follows the approved community-platform roadmap. Phase boundaries are
 
 6. **Isolated workers and scanner scale - code complete through 6D; production enablement separately gated**
    - **6A Zero-egress worker foundation - complete.** Merged directly to `main` as `91f856f53fb57a4b9cd6710ee767361f473cea45`. Adds a private PostgreSQL-backed worker queue, internal `worker_foundation_probe` jobs, closed `foundation_no_egress_v1` contracts, scoped worker credentials, bounded leases/retries/recovery, private audit events, fleet health, and permanent authority guards.
-   - **6B Public GitHub repository acquisition and private immutable snapshots - code complete.** Merged through PR #38 as `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`. Hosted acquisition remains disabled until its separate operational acceptance, monitoring, rollback, and canary gate is complete.
-   - **6C Isolated zero-egress Phase 3 scanning over immutable snapshots - code complete.** Merged through PR #39 as `7a329dc2796a142102af2392ee461f205daa1b78`. Hosted scanning remains disabled until its own real Linux execution-boundary acceptance proves zero egress, read-only boundaries, resource enforcement, and cancellation/container termination.
-   - **6D Dedicated network-enabled workers - code and release acceptance complete, runtime enablement still gated.** Threat model/design merged through PR #51 and implementation through PR #52 into `main` at `4ec80199ed922a5d9c92041e5432a8355f4a4277`. Task 14 software acceptance, the 31-check real Linux rootless-Podman/cgroup-v2 Task 15 containment matrix, Task 16 source/security review, Supabase reconciliation, and exact-head CI were completed before merge. Passive and active worker capabilities remain disabled until separate operational canary/rollback gates authorize them.
+   - **6B Repository acquisition and private immutable snapshots - complete for v1.** Merged through PR #38 as `79c5ac30c38e91081a7bd6256e2b77f2a0cb25dc`; private production acquisition later received its operational canary, monitoring, cleanup, and rollback acceptance through Phase 10A2.
+   - **6C Isolated zero-egress Phase 3 scanning over immutable snapshots - complete for v1.** Merged through PR #39 as `7a329dc2796a142102af2392ee461f205daa1b78`; the private-repository zero-egress production path later received acceptance through Phase 10A2/A3, including automatic scan reconciliation and exact-snapshot reuse.
+   - **6D Dedicated network-enabled workers - complete for the approved v1 boundary.** Threat model/design merged through PR #51 and implementation through PR #52 into `main` at `4ec80199ed922a5d9c92041e5432a8355f4a4277`. Task 14 software acceptance, the 31-check real Linux rootless-Podman/cgroup-v2 Task 15 containment matrix, Task 16 source/security review, Supabase reconciliation, and exact-head CI completed. The generic passive/active worker flags remain intentionally disabled; enabling them is new post-v1 scope, not unfinished v1 work.
 
 7. **Community Security Packs - complete for local-only v1**
    Phase 7 merged through PR #54 as squash commit `1e9a72e0c4a526b064d6d3729981b405fac6b2b1`. V1 adds strict bounded pack manifests, exactly `static_literal_v1`, safe identity-checked repository reads, bounded non-backtracking path matching, deterministic findings, hostile-safe fixture validation, explicit `pack validate` / `pack inspect` / repeated `scan --pack` CLI workflows, local JSON/SARIF/terminal/baseline compatibility, permanent hosted-export rejection, one first-party Node TLS example pack, and contributor/reviewer governance. Final CI #756 on exact PR head `b10f04f87ff06a81106b585973c3e7872571bfa6` passed the complete validation gate. Target repositories cannot auto-discover packs. Hosted pack distribution/activation, executable plugins, active/network-capable rules, browser authority, and worker authority remain outside v1.
@@ -54,6 +56,8 @@ ScopeForge follows the approved community-platform roadmap. Phase boundaries are
    - **Operational closure complete.** Authorized production run `37fb0091-a7b2-4a33-8a24-6136deb61143` completed end to end against the verified ScopeForge-owned HTTPS target with one request, zero provider failures, persisted observation evidence, clean Vercel runtime logs, and `PHASE11_HOST_CLEANUP_PASS`. External Nmap, Nuclei, httpx, broad exploit frameworks, and deferred advanced providers remain disabled unless separately reviewed.
 
 External provider controls that are disabled or not directly verified remain explicit operational follow-ups rather than hidden release claims. Hosted worker/scanner capability flags remain separately gated and must not be enabled merely because their implementation exists.
+
+The approved v1 roadmap is therefore complete at 100%. Optional provider activation or additional worker classes begin a new roadmap and do not alter this completion record unless explicitly adopted into scope.
 
 ## Safety rule
 

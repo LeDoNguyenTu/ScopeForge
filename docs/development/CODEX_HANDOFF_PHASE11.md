@@ -9,9 +9,9 @@ Phase 11 is complete for the approved initial production scope.
 - Phase 11 source: 100%
 - Phase 11 operational acceptance: 100%
 - Phase 11 completion task: 100%
-- whole ScopeForge project: about 91%
+- approved ScopeForge v1 roadmap: 100% (11 of 11 phases)
 
-The whole-project estimate is roadmap-based. Separately gated Phase 6 hosted-runtime enablement and deferred providers remain outside Phase 11.
+Final roadmap reconciliation recognizes the later Phase 10A2/A3 private acquisition and zero-egress scan acceptance and treats generic disabled worker classes plus explicitly rejected/deferred providers as post-v1 scope. Their disabled state must still be reported truthfully.
 
 ## Accepted fifth canary
 

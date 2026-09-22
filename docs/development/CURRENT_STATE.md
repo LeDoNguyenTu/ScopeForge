@@ -16,7 +16,7 @@ The separately authorized post-fix canary completed successfully:
 
 Exact-main Vercel deployment `dpl_2AhyQ4vkFrURaWhVaXn3QmdKvpAE` returned HTTP 200 for prepare and finalize and had no runtime errors in the canary window. The Oracle helper returned `PHASE11_HOST_CLEANUP_PASS`; the service remained active, the immutable image existed, and no exact container or mediator socket remained. The temporary verification proof was removed only after these checks passed.
 
-Phase 11 source, operational acceptance, and the completion task are 100%. Recalculation against the actual roadmap places the whole ScopeForge project at approximately 91%, not 100%, because separately gated Phase 6 hosted acquisition/scanning/runtime enablement and explicitly deferred provider work remain open.
+Phase 11 source, operational acceptance, and the completion task are 100%. Final roadmap reconciliation records the approved ScopeForge v1 project at **100%: 11 of 11 phases complete**. Phase 10A2/A3 closed the private acquisition and zero-egress scanning production path; generic disabled worker classes and provider capabilities explicitly rejected or deferred by their gate decisions remain future scope rather than incomplete v1 work. See `PROJECT_COMPLETION.md`.
 
 ## 2026-09-22 final-canary attempt and confirmed orchestration defect
 

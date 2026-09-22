@@ -4,19 +4,23 @@ Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Completed checkpoint
 
-Phase 11 source, operational acceptance, and its closure task are 100% complete for the approved initial scope. The accepted production run is `37fb0091-a7b2-4a33-8a24-6136deb61143`. Preserve its evidence and the four earlier failed canaries; do not rerun acceptance merely for reassurance.
+The approved ScopeForge v1 roadmap is complete: **11 of 11 delivery phases, 100%**.
 
-## Next roadmap work
+Phase 11 source, operational acceptance, and closure are complete. Phase 10A2/A3 supplied the later production acceptance for private immutable repository acquisition, zero-egress scanning, webhook reconciliation, and exact-snapshot reuse. The canonical completion record is `PROJECT_COMPLETION.md`.
 
-The whole project is approximately 91% complete. Reconcile the live roadmap before selecting the next item. Priority candidates are the separately gated Phase 6 hosted-runtime enablement and deferred provider capabilities.
+## No automatic next phase
 
-For any next capability:
+There is no unfinished approved-roadmap task to resume. A future capability begins a new roadmap only after the user explicitly adopts it into scope.
+
+Potential post-v1 proposals include generic passive/active runtime-worker activation, provider-managed Turnstile enforcement, paid-plan leaked-password protection, project-specific WAF rules, hosted Security Packs, or an advanced provider that satisfies the Phase 11 Task 16 re-entry criteria. None is currently implied, enabled, or required for v1 completion.
+
+For any new phase:
 
 1. start from live `main`, open PRs/issues, CI, provider state, and worktrees;
-2. retain default-off capability gates until operational and rollback evidence exists;
-3. preserve authorization, target verification, containment, network restrictions, budgets, RLS/security controls, and worker boundaries;
-4. obtain fresh exact-SHA Linux evidence where Linux containment is required;
-5. do not treat Phase 11 closure as authorization for deferred providers.
+2. write the threat model and measurable acceptance/rollback criteria before enabling authority;
+3. retain default-off capability gates until exact operational evidence passes;
+4. preserve authorization, target verification, containment, network restrictions, budgets, RLS/security controls, and worker boundaries;
+5. obtain fresh exact-SHA Linux evidence where Linux containment is required.
 
 ## Repository hygiene
 
