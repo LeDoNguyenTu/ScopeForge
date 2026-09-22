@@ -18,7 +18,9 @@ The Phase 11 source scope is complete. Do not reopen Tasks 1 through 16 merely t
 
 The 2026-09-22 single-Codex run used its one authorized platform-admin canary. The worker/action succeeded with one request and a valid observation, but the parent run failed under the confirmed request-budget terminal-status defect. Do not run another canary in that run and do not rewrite its terminal rows.
 
-Release the scoped stop-condition precedence fix and forward-only clean-budget-completion migration first. A new authenticated canary against the existing verified ScopeForge-owned target `https://scopeforge.dev` then requires a separately authorized later run.
+The scoped stop-condition precedence fix and forward-only clean-budget-completion migration are released. A new authenticated canary against the existing verified ScopeForge-owned target `https://scopeforge.dev` requires a separately authorized later run.
+
+That fix is now released: PR #182 merged as `81ac30c773b7b9485d019f0a9b3df86535a06412`, exact-main Vercel deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` is READY, and migration `20260922150155_complete_clean_budget_exhaustion` is applied and registered. Production has four historical Phase 11 tasks and zero active tasks; the fourth canary remains unchanged. The separately authorized later canary is the only remaining acceptance gate.
 
 Keep the canary fixed at `web.http.probe.v1`, root-only GET, redirects disabled, one request maximum, and 5000 ms action runtime maximum. Do not bypass the normal admin/planner/policy/authorization/queue path.
 

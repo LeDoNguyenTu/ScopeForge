@@ -206,7 +206,7 @@ Exactly one canary was queued in the authorized single-Codex run. Run `2409c669-
 
 Prepare and finalize both returned HTTP 200, the canary window had no Vercel runtime errors, and the host helper returned `PHASE11_HOST_CLEANUP_PASS`. The parent run nevertheless ended `failed / request_budget_exhausted`, so the evidence query returned `acceptance_ready = false` only for `run_completed`.
 
-The confirmed root cause is the combination of request-budget precedence over provider failure and the stop RPC treating all request-budget exhaustion as failure. Release the scoped code/migration fix, preserve this canary unchanged, and require a separately authorized later canary. Do not remove the temporary verification proof yet.
+The confirmed root cause was the combination of request-budget precedence over provider failure and the stop RPC treating all request-budget exhaustion as failure. PR #182 and migration `20260922150155_complete_clean_budget_exhaustion` released the scoped correction. Preserve this canary unchanged and require a separately authorized later canary. Do not remove the temporary verification proof yet.
 
 Phase 11C hosted HTTP discovery can be considered operationally released only after:
 

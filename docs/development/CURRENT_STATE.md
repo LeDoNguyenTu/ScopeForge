@@ -23,6 +23,8 @@ The confirmed root cause is the interaction between two released semantics: `eva
 
 The temporary verification proof remains present because Phase 11 acceptance did not complete.
 
+The terminal-semantics fix is now released. PR #182 passed exact-head CI run `35747536961` at `5cc0e699eaf29cad607913149dacdda003bf8e3f` and merged as `81ac30c773b7b9485d019f0a9b3df86535a06412`. Exact-main Vercel deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` is READY and serves `scopeforge.dev`; fresh authenticated worker claims returned HTTP 200. After confirming four historical tasks, zero active Phase 11 tasks, and an enabled worker, production migration `20260922150155_complete_clean_budget_exhaustion` was applied and registered. Post-migration verification confirmed the service-role-only grant, empty `search_path`, security-definer setting, clean-budget completion mapping, zero active work, and the unchanged failed fourth canary.
+
 ## Released baseline
 
 - Latest runtime-changing Phase 11 baseline: `3cc1443ed292a14fe6738bc64a0b8629b5992d56`, merge of PR #164. Later docs-only reconciliation commits may move `main`; resolve live `main` before acting.
@@ -157,7 +159,7 @@ The PR #163 socket fix and PR #164 preparation-state fix are released. The fourt
 
 The remaining end-to-end acceptance sequence is:
 
-1. Release the scoped stop-condition precedence fix, verify the updated exact-main application is serving production with no active Phase 11 work, and only then apply its forward-only clean-budget-completion migration. Do not roll back to pre-fix application code while the new mapping remains active.
+1. Do not roll production back to pre-fix application code while migration `20260922150155` remains active.
 2. In a separately authorized future run, use `/admin/phase11` to queue exactly one verified ScopeForge-owned HTTPS root-only canary.
 3. Keep the canary at `web.http.probe.v1`, root-only GET, redirects disabled, exactly one request, and a 5-second action runtime ceiling.
 4. Require `acceptance_ready = true` plus clean Vercel and Oracle evidence.

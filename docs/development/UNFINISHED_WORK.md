@@ -25,7 +25,7 @@ The 2026-09-22 single-Codex run queued exactly one additional authenticated cana
 
 Evidence: run `2409c669-306b-4a7f-bf83-e3bcf1efc0cc`, action `phase11-action:0d3b8a92c08aed7f9b351991eb7291c2c5ad6e007bcd7f5f376d0793542da9b4`, task `d15b183e-d1cd-4f52-a617-64ec2260d309`, attempt `f81f2f16-30de-41cf-a5ab-ee641e2e7804`, and observation `phase11-obs-http:51f1b31271876b0eee32170ac86a44bf23a19bb4a321fac568d596dafe7b443e`. The evidence query returned one request, zero provider failures, zero active tasks, and `acceptance_ready = false` solely because the run was not `completed`.
 
-The root cause is confirmed: stop-condition precedence let request-budget exhaustion mask a simultaneous provider failure, while the database stop RPC mapped every request-budget stop to failure. The scoped source fix prioritizes provider failure and a forward-only migration completes only clean request-budget exhaustion. Preserve the terminal canary row unchanged. Release the fix with exact-head CI and apply the reviewed migration; a later separately authorized run must perform the next canary.
+The root cause is confirmed: stop-condition precedence let request-budget exhaustion mask a simultaneous provider failure, while the database stop RPC mapped every request-budget stop to failure. The released source fix prioritizes provider failure, and applied migration `20260922150155` completes only clean request-budget exhaustion. Preserve the terminal canary row unchanged; a later separately authorized run must perform the next canary.
 
 Do not remove `public/.well-known/scopeforge-verification.txt` until that later canary passes.
 
@@ -53,16 +53,14 @@ Preserve the first three failed canaries and the fourth terminal canary as audit
 
 Production logs proved the failure boundary: the Phase 11 prepare route returned HTTP 409, no heartbeat followed, and finalization returned HTTP 200. The claim RPC had correctly moved the action to `running`; trusted preparation rejected that valid post-claim state. PR #164 is the TDD regression fix.
 
-The remaining blocker is the release/deployment of the confirmed terminal-semantics fix followed by one successful end-to-end production canary in a separately authorized run.
+The terminal-semantics fix, exact-main deployment, and production migration are complete. The remaining blocker is one successful end-to-end production canary in a separately authorized run.
 
 ## Next actions
 
-1. Merge the scoped terminal-semantics fix after exact-head CI.
-2. Confirm the updated exact-main application is serving production and the worker queue is idle.
-3. Only then apply and verify the forward-only migration on ScopeForge Supabase. Do not roll back to pre-fix application code while the new mapping remains active.
-4. In a separately authorized future run, execute exactly one new canary with the existing bounded controls.
-5. Require `acceptance_ready = true`, clean logs, and Oracle cleanup.
-6. Only then remove `public/.well-known/scopeforge-verification.txt` and mark Phase 11 operationally complete.
+1. Do not roll back to pre-fix application code while migration `20260922150155` remains active.
+2. In a separately authorized future run, execute exactly one new canary with the existing bounded controls.
+3. Require `acceptance_ready = true`, clean logs, and Oracle cleanup.
+4. Only then remove `public/.well-known/scopeforge-verification.txt` and mark Phase 11 operationally complete.
 
 Current project-management estimates remain unchanged until this gate passes:
 

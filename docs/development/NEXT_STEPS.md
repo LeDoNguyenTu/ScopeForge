@@ -4,13 +4,11 @@ Last reconciled: 2026-09-22, Asia/Singapore. Live provider state wins over this 
 
 ## Immediate Phase 11 closure
 
-1. Merge the scoped request-budget terminal-semantics fix only after exact-head CI passes.
-2. Verify the updated exact-main application is READY and serving production, and confirm the Phase 11 queue has no active work.
-3. Only then apply the forward-only migration to ScopeForge Supabase `tdgpibrepzcvdivztkta` and verify the deployed function definition/privileges. Do not mutate the preserved terminal canary, and do not roll production back to pre-fix application code while this database mapping remains active.
-4. In a separately authorized future run, queue exactly one new verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary.
-5. Keep redirects disabled, request ceiling at one, and action runtime ceiling at 5000 ms.
-6. Require `acceptance_ready = true`, then repeat Vercel secrecy and Oracle cleanup checks.
-7. Only after that acceptance, remove `public/.well-known/scopeforge-verification.txt` and mark Phase 11 operationally complete.
+1. Keep exact-main deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc` and migration `20260922150155` compatible; do not roll production back to pre-fix application code while the mapping remains active.
+2. In a separately authorized future run, queue exactly one new verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary.
+3. Keep redirects disabled, request ceiling at one, and action runtime ceiling at 5000 ms.
+4. Require `acceptance_ready = true`, then repeat Vercel secrecy and Oracle cleanup checks.
+5. Only after that acceptance, remove `public/.well-known/scopeforge-verification.txt` and mark Phase 11 operationally complete.
 
 The current single-Codex run already used its one canary. Do not queue another in that run.
 

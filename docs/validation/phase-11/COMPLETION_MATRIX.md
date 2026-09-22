@@ -37,7 +37,7 @@ The fourth canary on 2026-09-22 passed preparation, sandbox execution, one-reque
 
 Phase 11 operational completion now requires:
 
-1. release the scoped terminal-semantics fix, verify the updated exact-main application is serving production with no active Phase 11 work, and only then apply its reviewed forward-only migration; do not roll back to pre-fix application code while the new mapping remains active
+1. preserve compatibility between released exact-main application `81ac30c773b7b9485d019f0a9b3df86535a06412` and applied migration `20260922150155`; do not roll back to pre-fix code while the mapping remains active
 2. in a separately authorized future run, run exactly one verified ScopeForge-owned HTTPS root-only `web.http.probe.v1` canary from `/admin/phase11`
 3. keep redirects disabled, request ceiling at one, and action runtime ceiling at 5000 ms
 4. require `acceptance_ready = true` plus clean Vercel and Oracle evidence
