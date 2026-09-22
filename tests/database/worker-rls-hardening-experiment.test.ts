@@ -83,6 +83,21 @@ afterAll(async () => {
 });
 
 describe("worker RLS hardening experiment", () => {
+  it("models the production owner distinction explicitly", async () => {
+    const roles = await db.query<{ rolname: string; rolbypassrls: boolean }>(`
+      select rolname, rolbypassrls
+      from pg_roles
+      where rolname in ('service_role', 'scopeforge_bypass_owner', 'scopeforge_restricted_owner')
+      order by rolname
+    `);
+
+    expect(roles.rows).toEqual([
+      { rolname: "scopeforge_bypass_owner", rolbypassrls: true },
+      { rolname: "scopeforge_restricted_owner", rolbypassrls: false },
+      { rolname: "service_role", rolbypassrls: true },
+    ]);
+  });
+
   it("keeps browser roles outside private worker tables before RLS", async () => {
     for (const role of ["anon", "authenticated"]) {
       await expect(
