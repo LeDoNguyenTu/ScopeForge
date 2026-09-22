@@ -1,0 +1,99 @@
+:root {
+  --product-bg: #0b1117;
+  --product-surface: #121b23;
+  --product-surface-raised: #17222c;
+  --product-border: #2b3a45;
+  --product-text: #edf3f5;
+  --product-muted: #a7b6bf;
+  --product-accent: #72e6bc;
+  --product-danger: #ff9b86;
+  --product-radius: 12px;
+  --product-shadow: 0 18px 52px rgba(0, 0, 0, .24);
+  --product-font: "Segoe UI Variable Text", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html { background: var(--product-bg); }
+body { min-width: 0; color: var(--product-text); background: var(--product-bg); font-family: var(--product-font); font-size: 15px; line-height: 1.55; text-rendering: optimizeLegibility; }
+button, input, select, textarea { font: inherit; }
+:where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--product-accent); outline-offset: 3px; }
+:where(button, select, input:not([type="checkbox"]):not([type="radio"])) { min-height: 44px; }
+
+.workspaceAppShell { --ui-border: var(--product-border); --ui-muted: var(--product-muted); background: var(--product-bg); }
+.workspaceContent { width: auto; max-width: 1680px; padding: 0 clamp(24px, 3vw, 48px) 56px; }
+.workspaceToolbar { min-height: 68px; margin-bottom: 34px; font-size: 13px; }
+.workspaceContent .pageHeader { margin-bottom: 26px; }
+.workspaceContent .pageHeader h1, .saasPageHeading h1 { font-size: clamp(30px, 3vw, 38px); line-height: 1.14; font-weight: 620; letter-spacing: -.035em; }
+.workspaceContent .pageHeader p, .saasPageHeading p { color: var(--product-muted); font-size: 15px; line-height: 1.65; }
+.workspaceContent .panel, .workspaceContent .statCard, .workspaceSettingsCard, .saasWorkbench, .saasWorkflow, .saasMapPanel { border-color: var(--product-border); border-radius: var(--product-radius); background: var(--product-surface); box-shadow: none; }
+.workspaceContent .panel { padding: clamp(20px, 2vw, 28px); align-self: start; }
+.workspaceContent .statCard { min-height: 132px; padding: 20px; }
+.workspaceContent .statCard > div { font-size: 14px; }
+.workspaceContent .statCard strong { font-size: clamp(26px, 2.4vw, 34px); font-weight: 620; }
+.workspaceContent .statCard small { color: var(--product-muted); font-size: 12px; }
+.workspaceContent .panelTitle h2, .workspaceSettingsCard h2 { font-size: 20px; font-weight: 620; }
+.workspaceContent .panelTitle > div > span, .sectionEyebrow { font-size: 12px; }
+.dashboardGrid { align-items: start; gap: 16px; }
+.findingPrimaryGrid { grid-template-columns: minmax(0, 1.3fr) minmax(340px, .7fr); }
+
+.verificationPanel { display: grid; gap: 18px; min-width: 0; }
+.verificationPanel .verificationHeader, .verificationPanel .heroActions { margin: 0; }
+.verificationPanel .findingNoteField { display: grid; gap: 8px; min-width: 0; color: #d4dde2; font-size: 14px; font-weight: 650; }
+.verificationPanel .findingNoteField > span { display: block; }
+.verificationPanel .findingNoteField input:not([type="checkbox"]),
+.verificationPanel .findingNoteField select,
+.verificationPanel .findingNoteField textarea { width: 100%; min-width: 0; border: 1px solid #3b4d59; border-radius: 9px; background: #0a131a; color: var(--product-text); font-size: 15px; outline: none; }
+.verificationPanel .findingNoteField input:not([type="checkbox"]), .verificationPanel .findingNoteField select { min-height: 46px; padding: 0 13px; }
+.verificationPanel .findingNoteField textarea { min-height: 120px; padding: 12px 13px; resize: vertical; line-height: 1.55; }
+.verificationPanel .findingNoteField small { color: #91a4af; font-size: 12px; font-weight: 400; }
+.verificationPanel .findingNoteField input:focus, .verificationPanel .findingNoteField select:focus, .verificationPanel .findingNoteField textarea:focus { border-color: var(--product-accent); box-shadow: 0 0 0 3px rgba(114, 230, 188, .12); }
+
+.workspaceSettings { max-width: 1120px; gap: 20px; }
+.workspaceSettings > header p, .workspaceSettingsCard > p { font-size: 14px; }
+.workspaceMemberList li { min-height: 82px; padding: 18px 0; }
+.workspaceMemberList li > div:first-child strong { font-size: 15px; }
+.workspaceMemberList span, .workspaceMemberList small { font-size: 13px; }
+.workspaceMemberActions { justify-content: flex-end; }
+.workspaceMemberActions select { min-width: 120px; }
+
+.immersiveDashboardLinks .sideLink { min-height: 48px; font-size: 14px; }
+.immersiveDashboardLinks .sideLink svg { flex: 0 0 auto; }
+.immersiveUserIdentity { text-decoration: none; }
+.primaryButton, .secondaryButton, .saasPrimary { min-height: 44px; border-radius: 9px; font-size: 14px; }
+.authCard { width: min(100%, 480px); padding: clamp(24px, 4vw, 36px); }
+.authHeading h1 { font-size: 31px; }
+.authHeading p, .authForm label, .authSwitch { font-size: 14px; }
+.authForm input { min-height: 48px; font-size: 16px; }
+
+@media (max-width: 1100px) {
+  .findingPrimaryGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 960px) {
+  .immersiveDashboardLinks .sideNav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+  .immersiveDashboardLinks .sideLink { flex: 0 0 auto; min-width: 124px; scroll-snap-align: start; }
+  .workspaceContent { padding: 0 24px 40px; }
+}
+
+@media (max-width: 700px) {
+  .workspaceContent { padding: 0 16px 32px; }
+  .workspaceToolbar { min-height: 58px; margin-bottom: 24px; }
+  .workspaceToolbar > span:first-child { max-width: 48vw; }
+  .workspaceContent .pageHeader h1, .saasPageHeading h1 { font-size: 29px; }
+  .workspaceContent .pageHeader p, .saasPageHeading p { font-size: 14px; }
+  .workspaceContent .panel { padding: 18px; }
+  .immersiveDashboardLinks .sideLink { min-width: 92px; min-height: 54px; font-size: 11px; }
+  .workspaceMemberActions { justify-content: flex-start; }
+  .workspaceMemberActions form:first-child { width: 100%; }
+  .workspaceMemberActions form:first-child select { flex: 1; }
+}
+
+@media (max-width: 420px) {
+  .workspaceContent .assetSummaryGrid { grid-template-columns: 1fr; }
+  .workspaceToolbar > span:first-child { display: none; }
+  .workspaceToolbar { justify-content: flex-end; }
+  .workspaceSettingsCard { padding: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

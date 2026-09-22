@@ -38,6 +38,8 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Assets" })).toHaveAttribute("href", "/dashboard/assets");
     expect(screen.getByRole("link", { name: "Findings" })).toHaveAttribute("href", "/dashboard/findings");
     expect(screen.getByRole("link", { name: "Workspace" })).toHaveAttribute("href", "/dashboard/workspace");
+    expect(screen.getByRole("link", { name: "Account & security" })).toHaveAttribute("href", "/dashboard/settings/security");
+    expect(screen.getByRole("link", { name: "Account & security for Brian" })).toHaveAttribute("href", "/dashboard/settings/security");
     expect(screen.getByText("ScopeForge Lab")).toBeInTheDocument();
     expect(screen.getByText("Immersive content")).toBeInTheDocument();
   });

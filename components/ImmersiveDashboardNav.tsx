@@ -28,9 +28,9 @@ export default function ImmersiveDashboardNav({
             <span>{workspaceName}</span>
             <small>{role}</small>
           </div>
-          <div className="immersiveUserIdentity" aria-label={`Signed in as ${displayName}`}>
+          <Link className="immersiveUserIdentity" href="/dashboard/settings/security" aria-label={`Account & security for ${displayName}`}>
             {displayName.slice(0, 2).toUpperCase()}
-          </div>
+          </Link>
           <form action={signOut}>
             <button type="submit" className="immersiveSignOut" aria-label="Sign out">
               <LogOut size={15} />
