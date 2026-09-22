@@ -42,6 +42,22 @@ PR #178 changes no canary authority, backend authorization, queueing, worker run
 
 Later documentation-only commits may move `main`. Resolve live `main` before acting.
 
+## Free worker-RLS experiment completed
+
+PR #180 merged as `0f7f0481ed5b7b08bd4efaed704dd3dcc64bb098`.
+
+- free PGlite/GitHub Actions experiment, no paid Supabase branch or project
+- corrected candidate CI `35694652988`: 498 files / 2,304 tests passed plus typecheck, CLI/worker builds, scanner and Phase 11 benchmarks, Next build, CSP browser smoke, and production diagnostic
+- post-merge main CI `35695129374`: full validation gate passed
+- production `postgres` and `service_role` both have `BYPASSRLS`
+- all 57 inspected worker/runtime `SECURITY DEFINER` routines are owned by `postgres` and pin empty `search_path`
+- browser roles have zero direct worker-table grants and zero execute grants across those 57 routines
+- experiment proves that enabling/forcing RLS alone does not constrain the current `BYPASSRLS` RPC owner
+- meaningful future RLS hardening requires a dedicated non-`BYPASSRLS` RPC owner plus explicit policies and integration validation
+- no production database mutation was made
+
+See `docs/security/WORKER_RLS_EXPERIMENT_RESULT.md`.
+
 ## Final-canary preparation already complete
 
 The repository contains:
