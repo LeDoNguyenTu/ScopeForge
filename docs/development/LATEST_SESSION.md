@@ -34,7 +34,7 @@ The whole project is not 100% because separately gated Phase 6 hosted-runtime en
 
 ## Branch cleanup
 
-Cleanup rechecked open PRs and all worktrees. It deleted 56 manifest-approved merged branches plus two run-created merged source branches. Thirteen safe manifest branches remain because they are attached to active worktrees. All diverged, intentional, and post-audit branches were preserved. Remote refs decreased from 88 to 31, including `origin/HEAD`.
+Cleanup rechecked open PRs, ancestry, and all worktrees. It removed the clean merged manifest worktrees/branches and three freshly verified merged post-audit remote branches. One safe manifest remote branch remains because its worktree contains uncommitted user changes; a separate merged local-only worktree with uncommitted files was also preserved. All diverged and intentional branches remain. Remote refs decreased from 88 to 16, including `origin/HEAD`.
 
 ## Durable boundaries
 

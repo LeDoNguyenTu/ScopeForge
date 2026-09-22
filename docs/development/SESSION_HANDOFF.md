@@ -25,7 +25,7 @@ Exactly one request was charged. Provider failures and graph expansions were zer
 
 PR #182, merge `81ac30c773b7b9485d019f0a9b3df86535a06412`, deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc`, and migration `20260922150155_complete_clean_budget_exhaustion` remain the released fix baseline. Preserve all five canaries and do not manufacture or rerun acceptance.
 
-The temporary verification proof was removed after acceptance. Branch cleanup reduced remote refs from 88 to 31 while retaining 13 worktree-attached safe branches and every diverged/intentional branch.
+The temporary verification proof was removed after acceptance. Branch cleanup reduced remote refs from 88 to 16. One safe manifest remote branch and one merged local-only branch remain because their active worktrees contain uncommitted user files; every diverged and intentional branch was preserved.
 
 ## Remaining project scope
 

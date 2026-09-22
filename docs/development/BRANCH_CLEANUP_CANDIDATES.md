@@ -6,7 +6,7 @@ This is a reviewed deletion manifest. It is not a substitute for checking local 
 
 At this audit, GitHub exposed 83 remote refs before PR #178 merged. Every non-main branch was classified by direct comparison against `main`.
 
-Cleanup execution on 2026-09-23 rechecked zero open PRs, fetched/pruned refs, and inspected every active worktree. It deleted 56 manifest branches that remained fully reachable from `main` and were not attached to a worktree, plus two run-created merged source branches after their PRs landed. Thirteen safe manifest branches remain protected by active worktrees. All diverged, intentional, and post-audit branches were preserved. Remote refs decreased from 88 to 31, including `origin/HEAD`.
+Cleanup execution on 2026-09-23 rechecked zero open PRs, fetched/pruned refs, and inspected every active worktree. After the initial deletion, it removed another 12 clean, fully merged manifest worktrees and their remote branches, then deleted three fully merged post-audit remote branches after fresh ancestry checks. One safe manifest remote branch remains protected because its active worktree contains uncommitted user changes. A separate merged local-only worktree with uncommitted files was also preserved. All diverged and intentional branches remain. Remote refs decreased from 88 to 16, including `origin/HEAD`.
 
 ## Summary
 

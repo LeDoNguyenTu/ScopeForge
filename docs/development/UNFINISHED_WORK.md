@@ -22,6 +22,6 @@ Preserve all five canaries. Do not run another Phase 11 acceptance canary merely
 
 The whole project is approximately 91% complete. Remaining work is outside the completed Phase 11 scope and includes separately gated Phase 6 hosted-runtime enablement and deferred provider capabilities. Each requires its own authorization, operational acceptance, rollback evidence, and security review.
 
-Thirteen manifest-approved merged branches remain intentionally undeleted because they are attached to active worktrees. Diverged, intentional, and post-audit branches remain preserved.
+One manifest-approved merged remote branch remains intentionally undeleted because its active worktree contains uncommitted user changes. One additional merged local-only worktree with uncommitted files is also preserved. Diverged and intentional remote branches remain preserved.
 
 Do not weaken authorization, network restrictions, containment, worker boundaries, request/runtime budgets, RLS/security controls, or target verification to advance remaining roadmap work.
