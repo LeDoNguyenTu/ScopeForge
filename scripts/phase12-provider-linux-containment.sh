@@ -140,15 +140,15 @@ common=(
   --tmpfs=/tmp:rw,size=8388608,mode=1777,nosuid,nodev,noexec
 )
 
-podman create
-  --name "$sidecar_name"
-  "${common[@]}"
-  --network=none
-  --pids-limit=8
-  --mount="type=bind,src=$socket_path,dst=/run/scopeforge/egress.sock,ro"
-  "$sidecar_image"
-  --trusted-hostname example.com
-  --port 443
+podman create \
+  --name "$sidecar_name" \
+  "${common[@]}" \
+  --network=none \
+  --pids-limit=8 \
+  --mount="type=bind,src=$socket_path,dst=/run/scopeforge/egress.sock,ro" \
+  "$sidecar_image" \
+  --trusted-hostname example.com \
+  --port 443 \
   --session-nonce "$nonce" >/dev/null
 
 podman start "$sidecar_name" >/dev/null
@@ -196,13 +196,13 @@ const loop=net.connect({host:"127.0.0.1",port:17777});loop.setTimeout(400);loop.
 setTimeout(()=>process.exit(10),2500).unref();
 '
 
-podman create
-  --name "$provider_name"
-  "${common[@]}"
-  --pids-limit=32
-  --network="container:$sidecar_name"
-  --entrypoint=/usr/local/bin/node
-  "$provider_image"
+podman create \
+  --name "$provider_name" \
+  "${common[@]}" \
+  --pids-limit=32 \
+  --network="container:$sidecar_name" \
+  --entrypoint=/usr/local/bin/node \
+  "$provider_image" \
   -e "$probe" >/dev/null
 
 provider_network="$(podman inspect --format '{{.HostConfig.NetworkMode}}' "$provider_name")"
