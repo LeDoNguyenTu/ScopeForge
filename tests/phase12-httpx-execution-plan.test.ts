@@ -31,6 +31,7 @@ describe("Phase 12 httpx executable profile", () => {
         "-silent",
         "-no-color",
         "-no-stdin",
+        "-duc",
         "-nfs",
         "-retries",
         "0",
