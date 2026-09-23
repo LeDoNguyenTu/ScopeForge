@@ -42,6 +42,7 @@ export function buildHttpxExecutionPlan(
     "-silent",
     "-no-color",
     "-no-stdin",
+    "-duc",
     "-nfs",
     "-retries",
     "0",
