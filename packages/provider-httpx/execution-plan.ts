@@ -1,4 +1,5 @@
 import type { HttpxProviderRequest, HttpxProbe } from ".";
+import { fixedProviderProxyArgs } from "../provider-egress-boundary";
 
 export const HTTPX_EXECUTABLE_PROFILE_ID = "projectdiscovery-httpx-1.12.0-bounded-v1";
 export const HTTPX_LINUX_AMD64_ZIP_SHA256 = "9d8439e8b6c9aa7d1e2314817a392e00d5178da3af5652f7475f88868f418f76";
@@ -38,6 +39,7 @@ export function buildHttpxExecutionPlan(
   const args = [
     "-u",
     target,
+    ...fixedProviderProxyArgs("httpx"),
     "-json",
     "-silent",
     "-no-color",

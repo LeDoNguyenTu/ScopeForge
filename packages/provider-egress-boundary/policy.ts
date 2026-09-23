@@ -56,7 +56,7 @@ function fail(code: string): never {
   throw new Error(code);
 }
 
-function canonicalHostname(value: string): string {
+export function canonicalProviderHostname(value: string): string {
   const hostname = value.trim().toLowerCase();
   if (!hostname || hostname.length > 253 || hostname.endsWith(".") || isIP(hostname) !== 0) {
     return fail("PROVIDER_EGRESS_HOST_INVALID");
@@ -98,7 +98,7 @@ export function createProviderEgressPolicy(
     return fail("PROVIDER_EGRESS_PORT_INVALID");
   }
 
-  const hostname = canonicalHostname(input.hostname);
+  const hostname = canonicalProviderHostname(input.hostname);
   let normalizedAddresses: ReturnType<typeof normalizePublicResolvedAddresses>;
   try {
     normalizedAddresses = normalizePublicResolvedAddresses(input.resolvedAddresses);

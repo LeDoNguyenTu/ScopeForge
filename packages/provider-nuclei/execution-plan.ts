@@ -2,6 +2,7 @@ import type {
   NucleiRunnerRequest,
   NucleiSeverity,
 } from ".";
+import { fixedProviderProxyArgs } from "../provider-egress-boundary";
 import {
   NUCLEI_BASELINE_TEMPLATE_ID,
   NUCLEI_BASELINE_TEMPLATE_PATH,
@@ -52,6 +53,7 @@ export function buildNucleiExecutionPlan(
   const url = targetAuthority(target.scheme, target.port, target.hostname);
   const args = [
     "-u", url,
+    ...fixedProviderProxyArgs("nuclei"),
     "-t", NUCLEI_BASELINE_TEMPLATE_PATH,
     "-jsonl",
     "-silent",

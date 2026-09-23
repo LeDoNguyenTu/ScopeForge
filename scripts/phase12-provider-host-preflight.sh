@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-Usage: scripts/phase12-provider-host-preflight.sh <httpx|nuclei> <staged-build-context>
+Usage: scripts/phase12-provider-host-preflight.sh <httpx|nuclei|egress-sidecar> <staged-build-context>
 
 Builds and checks a default-off Phase 12 provider image under the networkless
 baseline. It does not register a worker, change production state, or contact a target.
@@ -27,6 +27,12 @@ case "$provider" in
     binary="/opt/scopeforge/bin/nuclei"
     expected_version="3.11.1"
     version_args=(-version -duc)
+    ;;
+  egress-sidecar)
+    image_name="scopeforge-provider-egress-sidecar"
+    binary="/usr/local/bin/node"
+    expected_version="v24."
+    version_args=(--version)
     ;;
   *)
     usage
@@ -68,7 +74,7 @@ podman build   --network=none   --pull=never   --file "$context/Containerfile"  
 
 digest="$(podman image inspect --format '{{.Digest}}' "$candidate")"
 [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || {
-  printf 'Built provider image did not expose an immutable digest.\n' >&2
+  printf 'Built Phase 12 image did not expose an immutable digest.\n' >&2
   exit 65
 }
 immutable="localhost/$image_name@$digest"
@@ -89,7 +95,7 @@ sandbox=(
 
 version_output="$(podman run "${sandbox[@]}" --entrypoint "$binary" "$immutable" "${version_args[@]}" 2>&1)"
 grep -Fq "$expected_version" <<<"$version_output" || {
-  printf 'Provider binary version did not match the reviewed release.\n' >&2
+  printf 'Phase 12 image runtime version did not match the reviewed profile.\n' >&2
   exit 65
 }
 

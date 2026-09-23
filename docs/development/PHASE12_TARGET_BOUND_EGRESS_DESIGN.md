@@ -115,3 +115,17 @@ The host side performs no DNS lookup. It receives only the exact hostname/port p
 Both halves reject pre-authorization pipelined application bytes. This keeps request payload forwarding behind successful SOCKS authorization plus host tunnel authorization.
 
 This implementation remains source-only until a dedicated sidecar entry/image and provider sandbox orchestration are wired and Linux acceptance proves the two-container network namespace, socket isolation, process limits and cleanup boundary.
+
+
+## Sidecar source integration
+
+The provider-side source integration is deliberately split from the external provider images:
+
+- `packages/provider-egress-sidecar` accepts only the canonical target hostname, one port and one 64-hex task nonce
+- `deploy/worker/Containerfile.provider-egress-sidecar` contains only the pinned Node base and the ScopeForge sidecar entry
+- neither httpx nor Nuclei is copied into the sidecar image
+- both provider execution plans hardwire their proxy to `socks5://127.0.0.1:17777`
+- callers still have no proxy argument, URL override, redirect expansion or native provider flag surface
+- host preparation stages and networklessly preflights the sidecar separately from provider artifacts
+
+The next sandbox layer must start the sidecar with `--network=none`, mount the task Unix socket only into that sidecar, then start the provider container in the sidecar network namespace without mounting the Unix socket or passing the nonce.

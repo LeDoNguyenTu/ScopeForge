@@ -27,6 +27,8 @@ describe("Phase 12 httpx executable profile", () => {
       args: [
         "-u",
         "https://scopeforge.dev:443",
+        "-http-proxy",
+        "socks5://127.0.0.1:17777",
         "-json",
         "-silent",
         "-no-color",
@@ -49,6 +51,22 @@ describe("Phase 12 httpx executable profile", () => {
         "-tls-grab",
       ],
     });
+  });
+
+  it("hardwires exactly one internal loopback proxy and exposes no caller proxy input", () => {
+    const plan = buildHttpxExecutionPlan({
+      capabilityId: "web.http.probe.v1",
+      targetNodeId: "node-1",
+      scheme: "https",
+      port: 443,
+      maxRedirects: 0,
+      probes: ["status"],
+    }, "scopeforge.dev");
+    expect(plan.args.filter((value) => value === "-http-proxy")).toHaveLength(1);
+    expect(plan.args).toEqual(expect.arrayContaining([
+      "-http-proxy",
+      "socks5://127.0.0.1:17777",
+    ]));
   });
 
   it("does not allow caller-provided paths, query strings, credentials, or native flags", () => {

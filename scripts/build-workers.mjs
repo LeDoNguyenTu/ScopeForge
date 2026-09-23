@@ -30,6 +30,11 @@ await build({
 });
 await build({
   ...shared,
+  entryPoints: ["packages/provider-egress-sidecar/container-entry.ts"],
+  outfile: `${outdir}/provider-egress-sidecar-entry.js`,
+});
+await build({
+  ...shared,
   entryPoints: ["packages/nuclei-worker-runner/container-entry.ts"],
   outfile: `${outdir}/nuclei-worker-entry.js`,
 });

@@ -38,6 +38,11 @@ describe("Phase 12 Nuclei executable profile", () => {
     expect(plan.args).toContain("-duc");
     expect(plan.args).toContain("-omit-raw");
     expect(plan.args).toContain("-omit-template");
+    expect(plan.args.filter((value) => value === "-proxy")).toHaveLength(1);
+    expect(plan.args).toEqual(expect.arrayContaining([
+      "-proxy",
+      "socks5://127.0.0.1:17777",
+    ]));
     expect(plan.args).toEqual(expect.arrayContaining(["-rl", "1", "-bs", "1", "-c", "1", "-pc", "1"]));
     expect(plan.args).not.toContain("-fr");
     expect(plan.args).not.toContain("-fhr");
