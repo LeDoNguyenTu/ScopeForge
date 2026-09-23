@@ -1,14 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { buildHttpxExecutionPlan, HTTPX_EXECUTABLE_PROFILE_ID } from "../packages/provider-httpx/execution-plan";
+import {
+  buildHttpxExecutionPlan,
+  HTTPX_EXECUTABLE_PROFILE_ID,
+  HTTPX_LINUX_AMD64_ZIP_SHA256,
+  HTTPX_LINUX_ARM64_ZIP_SHA256,
+} from "../packages/provider-httpx/execution-plan";
 
 describe("Phase 12 httpx executable profile", () => {
+  it("pins the reviewed upstream Linux release artifacts", () => {
+    expect(HTTPX_LINUX_AMD64_ZIP_SHA256).toMatch(/^[a-f0-9]{64}$/);
+    expect(HTTPX_LINUX_ARM64_ZIP_SHA256).toMatch(/^[a-f0-9]{64}$/);
+    expect(HTTPX_LINUX_AMD64_ZIP_SHA256).not.toBe(HTTPX_LINUX_ARM64_ZIP_SHA256);
+  });
+
   it("builds one deterministic closed argument profile from trusted hostname plus reviewed request", () => {
     expect(buildHttpxExecutionPlan({
       capabilityId: "web.http.probe.v1",
       targetNodeId: "node-1",
       scheme: "https",
       port: 443,
-      maxRedirects: 1,
+      maxRedirects: 0,
       probes: ["content_type", "server", "status", "tech", "title", "tls"],
     }, "ScopeForge.dev")).toEqual({
       profileId: HTTPX_EXECUTABLE_PROFILE_ID,
@@ -19,12 +30,16 @@ describe("Phase 12 httpx executable profile", () => {
         "-json",
         "-silent",
         "-no-color",
-        "-no-fallback",
+        "-no-stdin",
+        "-nfs",
+        "-retries",
+        "0",
+        "-t",
+        "1",
+        "-rl",
+        "1",
         "-timeout",
         "5",
-        "-maxr",
-        "1",
-        "-fr",
         "-ct",
         "-server",
         "-sc",
@@ -55,16 +70,14 @@ describe("Phase 12 httpx executable profile", () => {
     }
   });
 
-  it("keeps redirects disabled unless the authorized profile explicitly permits them", () => {
-    const plan = buildHttpxExecutionPlan({
+  it("keeps redirects disabled in the first runtime profile", () => {
+    expect(() => buildHttpxExecutionPlan({
       capabilityId: "web.http.probe.v1",
       targetNodeId: "node-1",
       scheme: "https",
       port: 443,
-      maxRedirects: 0,
+      maxRedirects: 1,
       probes: ["status"],
-    }, "scopeforge.dev");
-    expect(plan.args).not.toContain("-fr");
-    expect(plan.args).toContain("0");
+    }, "scopeforge.dev")).toThrow("HTTPX_REDIRECT_PROFILE_NOT_RUNTIME_APPROVED");
   });
 });
