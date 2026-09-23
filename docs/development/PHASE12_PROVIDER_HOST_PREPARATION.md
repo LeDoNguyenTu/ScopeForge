@@ -116,3 +116,21 @@ Before 12A httpx or 12B Nuclei may become runtime-enabled, ScopeForge still need
 8. a separately authorized bounded production canary passes
 
 Do not substitute ordinary Podman Internet networking for this gate.
+
+
+## Target-free two-container Linux containment
+
+After immutable httpx/Nuclei and provider-egress-sidecar images have been built and retained locally by digest, run:
+
+```bash
+scripts/phase12-provider-linux-containment.sh \
+  httpx \
+  localhost/scopeforge-httpx-worker@sha256:<digest> \
+  localhost/scopeforge-provider-egress-sidecar@sha256:<digest>
+```
+
+Repeat separately for Nuclei with its own immutable provider image.
+
+The helper is intentionally target-free. It requires a clean exact source SHA, non-root/rootless Podman, cgroup v2 and locally available immutable images. It creates a supervisor-owned Unix-socket fixture, starts the trusted sidecar with `--network=none`, starts a fixed Node containment probe from the provider image in the sidecar network namespace, and fails unless direct DNS, public TCP and link-local metadata access are blocked while `127.0.0.1:17777` remains reachable. It also fails if the provider can see the task Unix socket or common container-engine sockets.
+
+A pass is containment evidence only. It does not prove real target dialing, host mediator pinned-IP behavior, byte budgets, cancellation under a real provider process, or production authorization. Those remain required before worker/control-plane integration or a production canary.
