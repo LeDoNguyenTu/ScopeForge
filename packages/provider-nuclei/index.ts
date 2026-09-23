@@ -101,7 +101,6 @@ function validateConfig(config: NucleiProviderConfig): Readonly<NucleiProviderCo
       throw new Error(`NUCLEI_TEMPLATE_ID_INVALID:${profile}`);
     }
     const templates = uniqueSorted(inputTemplates);
-    if (templates.length === 0) throw new Error(`NUCLEI_PROFILE_EMPTY:${profile}`);
     profiles[profile] = templates;
   }
   return Object.freeze({ profiles: Object.freeze(profiles) });

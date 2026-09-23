@@ -7,26 +7,64 @@ Last reconciled: 2026-09-23, Asia/Singapore.
 - Approved ScopeForge v1 roadmap: 100%.
 - Phase 11 source/operational acceptance: 100%.
 - Broader automated-pentest product vision: approximately 75% at Phase 12 start.
-- External production provider execution remains disabled at Phase 12 start.
+- Production external-provider execution remains disabled until each provider passes its own operational gate.
 
-## Active work
+## 12A external ProjectDiscovery httpx
 
-12A external ProjectDiscovery httpx.
+Source/runtime preparation is substantially complete and remains default-off.
 
-Current source work introduces a provider adapter only. It does not add network/process authority and does not enable production execution.
+Released through PR #185:
 
-The adapter:
+- pinned ProjectDiscovery httpx v1.12.0 Linux artifact SHA-256 values
+- closed `web.http.probe.v1` provider contract
+- deterministic fixed argument profile
+- dedicated worker runner/container entry
+- digest-pinned Node container source
+- target binding, output bounds, cancellation plumbing, hostile-output checks, privacy-reduced evidence
+- worker bundle generation
 
-- pins provider identity to `projectdiscovery.httpx` v1.12.0
-- exposes only `web.http.probe.v1`
-- binds execution to an authorized target node
-- permits one scheme/port profile and 0-3 redirects
-- permits only reviewed metadata probes
-- rejects caller URLs and provider-native flags
-- emits privacy-reduced normalized observations
-- keeps process/network creation outside the provider package
+Remaining 12A gate:
 
-Next gate after adapter CI is the dedicated worker runner/image and Linux containment path.
+1. build the exact httpx image on the accepted Linux worker host
+2. record its immutable image digest
+3. prove a target-bound egress design that does not create generic scanner Internet authority
+4. prove process-tree cancellation and CPU/memory/PID/disk/runtime/output ceilings
+5. register/enable a dedicated worker class only after the database/control-plane design is reviewed
+6. run exact-head CI and a separately authorized bounded production canary
+7. record rollback and cleanup evidence
+
+No production httpx worker is currently enabled.
+
+## 12B Nuclei safe-active runtime
+
+Source preparation is now in progress on the Phase 12 provider-runtime branch.
+
+Pinned supply-chain identities:
+
+- Nuclei engine v3.11.1
+- engine commit `a8c88feb4a1c8e961b7902534ce3af97e9d524a4`
+- Linux amd64 SHA-256 `ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6`
+- Linux arm64 SHA-256 `8044e3d9768ba0a744b2872c1a87e813006f013da97ca9f50f7661a4203bec07`
+- nuclei-templates v10.4.7
+- templates commit `83234ce456da3e90dda86dfbc5e605e64a846df3`
+
+The first runtime allowlist contains exactly one reviewed non-destructive template:
+
+- `http-missing-security-headers`
+- source path `http/misconfiguration/http-missing-security-headers.yaml`
+- pinned Git blob `7c1c5b8191ddf3468348b8f8a046b4d61b75d319`
+- upstream metadata declares one request
+
+The runtime profile:
+
+- accepts only the exact trusted host/scheme/port
+- disables redirects, OAST/interactsh, internal httpx probing and update checks
+- uses one template, one host, one request-per-second rate, bulk/concurrency/payload concurrency of one
+- omits raw request/response and embedded template material from JSONL output
+- normalizes only bounded template/severity/matcher/timestamp evidence
+- keeps the more aggressive `misconfiguration-reviewed` and `known-cve-reviewed` profiles disabled
+
+This is source preparation only. No Nuclei production execution is authorized by these files.
 
 ## Storage state
 

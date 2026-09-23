@@ -109,7 +109,7 @@ Nuclei's engine license and the template corpus are reviewed separately.
   - calculate and record ScopeForge's allowlisted-template-set digest
   - preserve template ID, source commit, and digest in result provenance
 
-Current template snapshot/checksum status: **not pinned**. Nuclei execution remains blocked until this is completed.
+Current template snapshot status: **pinned for the initial one-template runtime slice** to nuclei-templates `v10.4.7`, commit `83234ce456da3e90dda86dfbc5e605e64a846df3`. The initial allowlist contains only `http-missing-security-headers` at Git blob `7c1c5b8191ddf3468348b8f8a046b4d61b75d319`. Broader profiles remain disabled. Production execution is still blocked on dedicated target-bound containment and operational acceptance.
 
 ### Template safety policy
 
@@ -142,7 +142,7 @@ Before runtime enablement:
 7. fail closed on engine or template version drift
 8. preserve engine version and template digest in normalized observation provenance
 
-Current binary checksum status: **not recorded because no Nuclei binary is currently acquired or enabled**.
+Reviewed Nuclei v3.11.1 release metadata pins Linux amd64 SHA-256 `ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6` and Linux arm64 SHA-256 `8044e3d9768ba0a744b2872c1a87e813006f013da97ca9f50f7661a4203bec07`. No production Nuclei worker is enabled.
 
 ## Nmap
 

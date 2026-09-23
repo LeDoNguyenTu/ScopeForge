@@ -17,8 +17,8 @@ Phase 12 is divided into independently releasable gates:
 
 | Slice | Scope | Initial status |
 | --- | --- | --- |
-| 12A | external ProjectDiscovery httpx provider and target-bound runtime | in progress |
-| 12B | Nuclei safe-active runtime with pinned reviewed templates | planned |
+| 12A | external ProjectDiscovery httpx provider and target-bound runtime | source/runtime preparation complete; Linux containment and production acceptance pending |
+| 12B | Nuclei safe-active runtime with pinned reviewed templates | source preparation in progress; production disabled |
 | 12C | network/service discovery with Nmap or reviewed alternative | planned |
 | 12D | hosted authenticated browser/API runtime | planned |
 | 12E | bounded web/API DAST provider | planned |
@@ -50,7 +50,7 @@ The source adapter is introduced default-off first. It accepts only:
 
 It rejects arbitrary URLs, paths, methods, headers, proxy settings, files, screenshots/headless execution, arbitrary port ranges, and provider-native flags.
 
-Runtime enablement still requires:
+The adapter, fixed runner, container entry, artifact pins and image source are implemented. Runtime enablement still requires:
 
 1. exact artifact or source pin and SHA-256
 2. reproducible immutable worker image
@@ -65,7 +65,7 @@ Runtime enablement still requires:
 
 ## 12B - Nuclei
 
-Use the existing `provider-nuclei` contract. Runtime remains blocked until an exact Nuclei binary pin and an exact reviewed template snapshot/checksum are recorded.
+Use the existing `provider-nuclei` contract. Engine v3.11.1 and templates v10.4.7 are now pinned to exact upstream commits and Linux artifact digests. The initial source runtime allowlist contains only `http-missing-security-headers`; all other Nuclei profiles remain disabled. Runtime remains blocked on dedicated target-bound containment and operational acceptance.
 
 Initial production profile is allowlist-only and excludes code, JavaScript, headless execution, fuzzing/DAST mutation, local-file access, arbitrary helpers/processes, state-changing templates, and unreviewed out-of-band callbacks.
 
