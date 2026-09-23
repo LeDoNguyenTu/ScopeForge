@@ -45,7 +45,7 @@ The first source boundary is in `packages/provider-egress-boundary`.
 It provides:
 
 - canonical exact-target policy creation
-- public IPv4 pin validation
+- public IPv4 pin validation through the shared `packages/network-safety` policy
 - closed resource ceilings
 - fixed provider proxy arguments
 - SOCKS5 greeting parsing

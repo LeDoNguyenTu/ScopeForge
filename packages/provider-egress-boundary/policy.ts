@@ -1,4 +1,5 @@
-import { isIP, isIPv4 } from "node:net";
+import { isIP } from "node:net";
+import { normalizePublicResolvedAddresses } from "../network-safety";
 
 export type ExternalProviderKind = "httpx" | "nuclei";
 
@@ -46,24 +47,6 @@ const BLOCKED_HOST_SUFFIXES = Object.freeze([
   ".home.arpa",
 ]);
 
-const BLOCKED_IPV4_RANGES = Object.freeze([
-  ["0.0.0.0", 8],
-  ["10.0.0.0", 8],
-  ["100.64.0.0", 10],
-  ["127.0.0.0", 8],
-  ["169.254.0.0", 16],
-  ["172.16.0.0", 12],
-  ["192.0.0.0", 24],
-  ["192.0.2.0", 24],
-  ["192.88.99.0", 24],
-  ["192.168.0.0", 16],
-  ["198.18.0.0", 15],
-  ["198.51.100.0", 24],
-  ["203.0.113.0", 24],
-  ["224.0.0.0", 4],
-  ["240.0.0.0", 4],
-] as const);
-
 function fail(code: string): never {
   throw new Error(code);
 }
@@ -83,18 +66,13 @@ function canonicalHostname(value: string): string {
   return hostname;
 }
 
-function ipv4Integer(value: string): number {
-  return value.split(".").reduce((result, part) => ((result << 8) | Number(part)) >>> 0, 0);
-}
-
-function inIpv4Cidr(value: string, base: string, prefix: number): boolean {
-  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
-  return (ipv4Integer(value) & mask) === (ipv4Integer(base) & mask);
-}
-
 export function isPublicProviderIpv4(value: string): boolean {
-  if (!isIPv4(value)) return false;
-  return !BLOCKED_IPV4_RANGES.some(([base, prefix]) => inIpv4Cidr(value, base, prefix));
+  try {
+    const normalized = normalizePublicResolvedAddresses([value]);
+    return normalized.length === 1 && normalized[0]?.family === 4;
+  } catch {
+    return false;
+  }
 }
 
 function positiveBoundedInteger(value: number, maximum: number, code: string): number {
@@ -116,13 +94,19 @@ export function createProviderEgressPolicy(
   }
 
   const hostname = canonicalHostname(input.hostname);
-  const addresses = [...new Set(input.resolvedIpv4Addresses)];
-  if (addresses.length < 1
-      || addresses.length > PROVIDER_EGRESS_LIMITS.maxResolvedIpv4Addresses
-      || addresses.length !== input.resolvedIpv4Addresses.length
-      || addresses.some((address) => !isPublicProviderIpv4(address))) {
+  let normalizedAddresses: ReturnType<typeof normalizePublicResolvedAddresses>;
+  try {
+    normalizedAddresses = normalizePublicResolvedAddresses(input.resolvedIpv4Addresses);
+  } catch {
     return fail("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
   }
+  if (normalizedAddresses.length < 1
+      || normalizedAddresses.length > PROVIDER_EGRESS_LIMITS.maxResolvedIpv4Addresses
+      || normalizedAddresses.length !== input.resolvedIpv4Addresses.length
+      || normalizedAddresses.some(({ family }) => family !== 4)) {
+    return fail("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
+  }
+  const addresses = normalizedAddresses.map(({ address }) => address);
 
   const budget = Object.freeze({
     maxConnections: positiveBoundedInteger(
