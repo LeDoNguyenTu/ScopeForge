@@ -6,10 +6,11 @@ Status: source helper only - no production provider is enabled by this procedure
 
 Prepare and verify immutable Phase 12 provider image candidates without manually copying unverified binaries or templates.
 
-This procedure applies to the currently reviewed external providers:
+This procedure applies to the currently reviewed external-provider runtime images:
 
 - ProjectDiscovery httpx v1.12.0
 - ProjectDiscovery Nuclei v3.11.1 with the single reviewed Nuclei template allowlist
+- the ScopeForge trusted networkless egress sidecar
 
 It does not register a worker, create a production task, modify Supabase, grant target authority, or authorize external scanning.
 
@@ -51,7 +52,13 @@ For Nuclei:
 scripts/phase12-stage-provider-assets.sh nuclei linux-amd64
 ```
 
-The staging helper:
+For the trusted egress sidecar:
+
+```bash
+scripts/phase12-stage-egress-sidecar.sh
+```
+
+The external-provider staging helper:
 
 - reads the committed provider artifact manifest
 - permits only the reviewed ProjectDiscovery GitHub release URL family
@@ -64,11 +71,14 @@ The staging helper:
 
 Treat a checksum/blob mismatch as a hard stop. Do not bypass it by updating the expected value on the host.
 
+The sidecar staging helper performs no download. It copies only the exact locally built ScopeForge sidecar bundle and the digest-pinned sidecar Containerfile into a fresh context and records their SHA-256 values.
+
 ## 3. Run the networkless image preflight
 
 ```bash
 scripts/phase12-provider-host-preflight.sh httpx .scopeforge-provider-build/httpx-linux-amd64
 scripts/phase12-provider-host-preflight.sh nuclei .scopeforge-provider-build/nuclei-linux-amd64
+scripts/phase12-provider-host-preflight.sh egress-sidecar .scopeforge-provider-build/egress-sidecar
 ```
 
 The helper builds with `--network=none --pull=never`, derives the immutable local image digest, then verifies:
@@ -88,7 +98,7 @@ Successful output ends with:
 PHASE12_PROVIDER_HOST_PREFLIGHT_PASS
 ```
 
-Record the exact source SHA, staging evidence and immutable image reference.
+Record the exact source SHA, staging evidence and immutable image reference for all three candidates. The sidecar image contains no external provider binary.
 
 ## What this does not prove
 
