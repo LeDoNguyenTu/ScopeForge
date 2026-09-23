@@ -2,6 +2,10 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
+## Active product hardening candidate
+
+`feat/post-v1-ux-auth-security` is rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db`. Implementation and local build/test evidence are complete. Remaining gates are PR/CI/merge, exact-main deployment, authenticated production rendering, and passkey provider capability. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
+
 ## Canonical resume point
 
 Phase 11 is operationally accepted for the approved initial scope. Read `CURRENT_STATE.md`, `LATEST_SESSION.md`, and `CODEX_HANDOFF_PHASE11.md` before future work.

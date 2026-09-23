@@ -1,6 +1,6 @@
 # Product UX and account security acceptance
 
-Candidate: `feat/post-v1-ux-auth-security` (exact SHA is recorded after the final verification commit)
+Candidate: `feat/post-v1-ux-auth-security`, rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db` (exact head is recorded by the PR and final handoff).
 
 ## Scope and invariants
 
@@ -38,6 +38,9 @@ Candidate: `feat/post-v1-ux-auth-security` (exact SHA is recorded after the fina
 | Product UX neighboring gate | 614/614 passed across components, auth, workspaces, platform admin, product UI, findings, remediation, snapshots, project scans, and imports |
 | TypeScript | `npm run typecheck` passed |
 | Dependency audit | 0 vulnerabilities after the reviewed Supabase SDK update |
+| Full repository suite | 2,325 passed, 26 skipped; two known Windows parallel timeout failures both passed in a 4/4 serial rerun |
+| Builds | Typecheck, CLI build, worker bundles, and 42-route Next production build passed |
+| GitNexus | Refreshed: 18,283 nodes, 30,033 edges, 781 clusters, 300 flows |
 
 ## Rendered acceptance matrix
 
