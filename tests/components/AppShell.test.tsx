@@ -1,6 +1,12 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import AppShell from "@/components/AppShell";
+
+const mocks = vi.hoisted(() => ({ listFactors: vi.fn() }));
+
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({ auth: { mfa: { listFactors: mocks.listFactors } } }),
+}));
 
 vi.mock("@/app/actions", () => ({
   signOut: vi.fn(),
@@ -16,6 +22,15 @@ describe("AppShell", () => {
     workspaceName: "ScopeForge Lab",
     role: "owner",
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.sessionStorage.clear();
+    mocks.listFactors.mockResolvedValue({
+      data: { all: [], phone: [], totp: [], webauthn: [], recovery_code: [] },
+      error: null,
+    });
+  });
 
   it("uses the same accessible command navigation on detail pages", () => {
     render(<AppShell {...props}><p>Dashboard content</p></AppShell>);
@@ -50,5 +65,16 @@ describe("AppShell", () => {
     expect(admin).toHaveClass("workspaceAdminButton");
     expect(admin).toHaveAttribute("href", "/admin");
     expect(admin.parentElement).toHaveClass("workspaceToolbarActions");
+  });
+
+  it("offers non-privileged users a dismissible MFA recommendation without blocking dashboard content", async () => {
+    render(<AppShell {...props} role="viewer"><p>Viewer dashboard</p></AppShell>);
+
+    const recommendation = await screen.findByRole("status", { name: "Two-step verification recommendation" });
+    expect(screen.getByText("Viewer dashboard")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Set up two-step verification" })).toHaveAttribute("href", "/dashboard/settings/security");
+
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss MFA recommendation" }));
+    expect(recommendation).not.toBeInTheDocument();
   });
 });

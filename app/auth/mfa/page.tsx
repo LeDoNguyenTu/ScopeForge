@@ -27,7 +27,6 @@ export default async function MfaPage({ searchParams }: { searchParams: Promise<
           <p>Enter the current code from your authenticator app to continue.</p>
         </div>
         <MfaChallengeForm factors={assurance.verifiedTotp} next={next} />
-        <p className="authSwitch"><Link href="/dashboard/settings/security">Manage account security</Link></p>
       </section>
     </main>
   );
