@@ -1,11 +1,14 @@
-import type { ProviderEgressPolicy } from "./policy";
-
 export const SOCKS5_NO_AUTH_RESPONSE = Buffer.from([0x05, 0x00]);
 export const SOCKS5_CONNECT_SUCCESS_RESPONSE =
   Buffer.from([0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 
 export interface Socks5Greeting {
   consumedBytes: number;
+}
+
+export interface ProviderEgressSocksTarget {
+  hostname: string;
+  port: number;
 }
 
 export interface Socks5ConnectRequest {
@@ -34,7 +37,7 @@ export function parseSocks5Greeting(buffer: Buffer): Socks5Greeting | null {
 
 export function parseAuthorizedSocks5ConnectRequest(
   buffer: Buffer,
-  policy: Readonly<ProviderEgressPolicy>,
+  target: Readonly<ProviderEgressSocksTarget>,
 ): Socks5ConnectRequest | null {
   if (buffer.length < 5) return null;
   if (buffer[0] !== 0x05 || buffer[1] !== 0x01 || buffer[2] !== 0x00) {
@@ -59,7 +62,7 @@ export function parseAuthorizedSocks5ConnectRequest(
   const hostname = hostnameBytes.toString("ascii").toLowerCase();
   const port = buffer.readUInt16BE(5 + hostnameLength);
 
-  if (hostname !== policy.hostname || port !== policy.port) {
+  if (hostname !== target.hostname || port !== target.port) {
     return fail("PROVIDER_EGRESS_TARGET_MISMATCH");
   }
 

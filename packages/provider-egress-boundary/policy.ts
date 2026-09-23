@@ -5,6 +5,8 @@ export type ExternalProviderKind = "httpx" | "nuclei";
 
 export const PROVIDER_EGRESS_LOOPBACK_HOST = "127.0.0.1" as const;
 export const PROVIDER_EGRESS_LOOPBACK_PORT = 17777 as const;
+export const PROVIDER_EGRESS_CONTAINER_SOCKET_PATH =
+  "/run/scopeforge/egress.sock" as const;
 export const PROVIDER_EGRESS_LOOPBACK_PROXY_URL =
   `socks5://${PROVIDER_EGRESS_LOOPBACK_HOST}:${PROVIDER_EGRESS_LOOPBACK_PORT}` as const;
 
