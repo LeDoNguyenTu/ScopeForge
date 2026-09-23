@@ -175,6 +175,11 @@ done
 }
 
 sidecar_network="$(podman inspect --format '{{.HostConfig.NetworkMode}}' "$sidecar_name")"
+sidecar_id="$(podman inspect --format '{{.Id}}' "$sidecar_name")"
+[[ "$sidecar_id" =~ ^[a-f0-9]{12,64}$ ]] || {
+  printf 'Trusted sidecar container identity is invalid.\n' >&2
+  exit 65
+}
 [[ "$sidecar_network" == "none" ]] || {
   printf 'Trusted sidecar unexpectedly has an ordinary network.\n' >&2
   exit 65
@@ -207,17 +212,21 @@ podman create \
 
 provider_network="$(podman inspect --format '{{.HostConfig.NetworkMode}}' "$provider_name")"
 case "$provider_network" in
-  "container:$sidecar_name"|container:*) ;;
+  "container:$sidecar_name"|"container:$sidecar_id") ;;
   *)
     printf 'Provider did not join only the trusted sidecar network namespace.\n' >&2
     exit 65
     ;;
 esac
 
-provider_output="$(podman start --attach "$provider_name")"
+if ! provider_output="$(podman start --attach "$provider_name" 2>&1)"; then
+  provider_exit="$(podman wait "$provider_name" 2>/dev/null || true)"
+  printf 'Provider containment probe failed: exit=%s output=%s\n' "$provider_exit" "$provider_output" >&2
+  exit 65
+fi
 provider_exit="$(podman wait "$provider_name")"
 [[ "$provider_exit" == "0" ]] || {
-  printf 'Provider containment probe failed: %s\n' "$provider_output" >&2
+  printf 'Provider containment probe returned inconsistent exit status: %s\n' "$provider_exit" >&2
   exit 65
 }
 
