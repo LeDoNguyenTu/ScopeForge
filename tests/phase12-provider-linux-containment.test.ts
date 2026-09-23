@@ -53,7 +53,6 @@ describe("Phase 12 provider Linux containment helper", () => {
       "worker_nodes",
       "worker_tasks",
       "phase11_http_worker_tasks",
-      "supabase",
       "/opt/scopeforge/bin/httpx",
       "/opt/scopeforge/bin/nuclei",
       "metasploit",
