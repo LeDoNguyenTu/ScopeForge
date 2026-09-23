@@ -12,11 +12,11 @@ import {
   type ProviderEgressSocksTarget,
 } from "./socks5";
 import {
+  PROVIDER_EGRESS_CONTAINER_SOCKET_PATH,
   PROVIDER_EGRESS_LIMITS,
   PROVIDER_EGRESS_LOOPBACK_HOST,
   PROVIDER_EGRESS_LOOPBACK_PORT,
 } from "./policy";
-import { PROVIDER_EGRESS_CONTAINER_SOCKET_PATH } from "./unix-tunnel";
 import {
   encodeProviderEgressConnectFrame,
   PROVIDER_EGRESS_TUNNEL_ACCEPTED,

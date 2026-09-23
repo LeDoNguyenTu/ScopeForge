@@ -10,7 +10,10 @@ import {
   createProviderEgressAuthorizer,
   type ProviderEgressSession,
 } from "./authorizer";
-import type { ProviderEgressPolicy } from "./policy";
+import {
+  PROVIDER_EGRESS_CONTAINER_SOCKET_PATH,
+  type ProviderEgressPolicy,
+} from "./policy";
 import {
   decodeProviderEgressConnectFrame,
   PROVIDER_EGRESS_TUNNEL_ACCEPTED,
@@ -19,9 +22,6 @@ import {
 
 export const PROVIDER_EGRESS_HOST_SOCKET_ROOT =
   "/run/scopeforge-worker/egress" as const;
-export const PROVIDER_EGRESS_CONTAINER_SOCKET_PATH =
-  "/run/scopeforge/egress.sock" as const;
-
 const SOCKET_NAME_PATTERN = /^[a-f0-9]{64}[.]sock$/;
 
 function fail(code: string): never {
