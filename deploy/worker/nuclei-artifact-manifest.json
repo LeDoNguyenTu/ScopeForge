@@ -26,6 +26,7 @@
       {
         "id": "http-missing-security-headers",
         "path": "http/misconfiguration/http-missing-security-headers.yaml",
+        "gitBlobSha": "7c1c5b8191ddf3468348b8f8a046b4d61b75d319",
         "profile": "baseline-http",
         "maxRequests": 1
       }
