@@ -1,0 +1,35 @@
+{
+  "provider": "projectdiscovery.nuclei",
+  "version": "3.11.1",
+  "release": "https://github.com/projectdiscovery/nuclei/releases/tag/v3.11.1",
+  "sourceCommit": "a8c88feb4a1c8e961b7902534ce3af97e9d524a4",
+  "artifacts": {
+    "linux-amd64": {
+      "name": "nuclei_3.11.1_linux_amd64.zip",
+      "url": "https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_amd64.zip",
+      "sha256": "ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6"
+    },
+    "linux-arm64": {
+      "name": "nuclei_3.11.1_linux_arm64.zip",
+      "url": "https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_arm64.zip",
+      "sha256": "8044e3d9768ba0a744b2872c1a87e813006f013da97ca9f50f7661a4203bec07"
+    }
+  },
+  "templates": {
+    "release": "v10.4.7",
+    "sourceCommit": "83234ce456da3e90dda86dfbc5e605e64a846df3",
+    "checksumsAsset": {
+      "name": "nuclei-templates-10.4.7_checksums.txt",
+      "sha256": "b24e7325c78d577c98605590c6934e208869af1ca38d5ed3a66e57cab1f63399"
+    },
+    "initialAllowlist": [
+      {
+        "id": "http-missing-security-headers",
+        "path": "http/misconfiguration/http-missing-security-headers.yaml",
+        "profile": "baseline-http",
+        "maxRequests": 1
+      }
+    ]
+  },
+  "runtimeEnabled": false
+}
