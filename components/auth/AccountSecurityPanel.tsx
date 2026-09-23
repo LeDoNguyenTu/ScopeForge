@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { AssuranceState } from "@/lib/auth/assurance";
 import { useToast } from "@/components/feedback/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
+import PasskeyManager from "@/components/auth/PasskeyManager";
+import PasswordChangeForm from "@/components/auth/PasswordChangeForm";
 
 type Enrollment = { id: string; qrCode: string };
 const EMPTY_STATE: AssuranceState = { currentLevel: null, nextLevel: null, verifiedTotp: [], unverifiedTotp: [] };
@@ -119,6 +121,8 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
         )}
         {error ? <p className="authMessage" role="alert">{error}</p> : null}
       </section>
+      <PasskeyManager />
+      <PasswordChangeForm />
     </div>
   );
 }

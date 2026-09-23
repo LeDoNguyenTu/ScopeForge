@@ -4,6 +4,7 @@ import AuthForm from "@/components/AuthForm";
 
 const mocks = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
+  signInWithPasskey: vi.fn(),
   signUp: vi.fn()
 }));
 
@@ -11,6 +12,7 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     auth: {
       signInWithPassword: mocks.signInWithPassword,
+      signInWithPasskey: mocks.signInWithPasskey,
       signUp: mocks.signUp
     }
   })
@@ -38,6 +40,7 @@ vi.mock("@/components/auth/TurnstileChallenge", () => ({
 
 beforeEach(() => {
   mocks.signInWithPassword.mockReset();
+  mocks.signInWithPasskey.mockReset();
   mocks.signUp.mockReset();
 });
 
@@ -163,6 +166,17 @@ describe("AuthForm", () => {
         options: { captchaToken: "captcha-test-token" }
       });
     });
+  });
+
+  it("requires and passes the configured challenge through passkey sign-in", async () => {
+    mocks.signInWithPasskey.mockResolvedValue({ error: new Error("cancelled") });
+    render(<AuthForm mode="sign-in" captchaSiteKey="site-key" />);
+    const passkey = screen.getByRole("button", { name: "Continue with a passkey" });
+    expect(passkey).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /complete security check/i }));
+    await waitFor(() => expect(passkey).not.toBeDisabled());
+    fireEvent.click(passkey);
+    await waitFor(() => expect(mocks.signInWithPasskey).toHaveBeenCalledWith({ options: { captchaToken: "captcha-test-token" } }));
   });
 
   it("passes captchaToken and display metadata through sign-up", async () => {

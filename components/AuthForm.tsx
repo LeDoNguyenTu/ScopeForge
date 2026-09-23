@@ -8,6 +8,7 @@ import ScopeForgeWordmark from "@/components/brand/ScopeForgeWordmark";
 import { authErrorMessage } from "@/lib/auth/error-message";
 import { createClient } from "@/lib/supabase/client";
 import AuthStatusCard from "@/components/auth/AuthStatusCard";
+import PasskeySignInButton from "@/components/auth/PasskeySignInButton";
 
 function verificationCopy(status: TurnstileChallengeStatus) {
   if (status === "verified") {
@@ -149,6 +150,16 @@ export default function AuthForm({
         )}
         <button className="primaryButton authSubmit" disabled={busy || (captchaRequired && !captchaToken)} type="submit">{busy ? "Working..." : signUp ? "Create account" : "Sign in"}<ArrowRight size={16} /></button>
       </form>
+      {!signUp ? <><div className="authMethodDivider"><span>or</span></div><PasskeySignInButton
+        captchaRequired={captchaRequired}
+        captchaToken={captchaToken}
+        onAttemptComplete={() => {
+          if (!captchaRequired) return;
+          setCaptchaToken(null);
+          setCaptchaStatus("loading");
+          setCaptchaEpoch((value) => value + 1);
+        }}
+      /></> : null}
       {message && <div className="authMessage" role="status">{message}</div>}
       <p className="authSwitch">{signUp ? "Already have an account?" : "New to ScopeForge?"} <Link href={signUp ? "/auth/sign-in" : "/auth/sign-up"}>{signUp ? "Sign in" : "Create account"}</Link></p>
       <p className="authFoot"><ShieldCheck size={16} /> A dedicated workspace for the assets you control.</p>

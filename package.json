@@ -27,7 +27,7 @@
     "@cdktf/hcl2json": "0.21.0",
     "@cyclonedx/cyclonedx-library": "10.2.0",
     "@supabase/ssr": "^0.7.0",
-    "@supabase/supabase-js": "^2.55.0",
+    "@supabase/supabase-js": "^2.117.0",
     "lucide-react": "^0.468.0",
     "next": "15.5.24",
     "react": "^19.1.0",
