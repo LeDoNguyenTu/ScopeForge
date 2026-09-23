@@ -63,7 +63,7 @@ Before runtime enablement:
 5. reject startup if the provider version differs from the reviewed version
 6. update only through a reviewed PR with adapter-contract and containment regression tests
 
-Current checksum status: **not recorded because no httpx binary is currently acquired or enabled**. This is an enablement blocker, not permission to use a moving `latest` artifact.
+Reviewed upstream GitHub release metadata records `httpx_1.12.0_linux_amd64.zip` SHA-256 `9d8439e8b6c9aa7d1e2314817a392e00d5178da3af5652f7475f88868f418f76` and `httpx_1.12.0_linux_arm64.zip` SHA-256 `fd7b123c1dfbc3d69f19f524e4eebcd6ec06b9a6cbd56813c76f11645197331e`. These pins remove the moving-artifact blocker, but runtime remains disabled until the dedicated image and containment gate are accepted.
 
 ### Closed execution policy
 

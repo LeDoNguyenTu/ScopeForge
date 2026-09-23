@@ -43,6 +43,12 @@ Adding any of these later is a new roadmap decision with its own authorization, 
 
 Fresh local validation on the completion worktree installed with zero audit vulnerabilities. The complete Windows run passed 2,281 tests and exposed three timeout-only failures under parallel load; an immediate single-worker rerun of those exact three files passed all 6 tests. No executable or security-boundary change is required for this documentation-only closure.
 
+## Post-v1 roadmap adoption
+
+On 2026-09-23 the user explicitly adopted Phase 12, external provider runtime and automated pentest expansion, as new scope. The v1 completion record remains historical evidence for the closed 11-phase roadmap; it must not be interpreted as completion of the broader automated-pentesting product vision.
+
+Phase 12 starts from an estimated broader product-vision completion of approximately 75%. See `PHASE12_ROADMAP.md`.
+
 ## Durable rule
 
 Future work may extend ScopeForge, but must not retroactively turn intentionally excluded capabilities into hidden completion requirements. Conversely, this completion record must never be used to imply that an excluded provider control is active. Preserve all authorization, containment, target-verification, network, RLS, worker, cancellation, and request/runtime-budget boundaries.

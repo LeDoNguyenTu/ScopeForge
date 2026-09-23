@@ -2,26 +2,38 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
-## Completed checkpoint
+## Active post-v1 roadmap
 
-The approved ScopeForge v1 roadmap is complete: **11 of 11 delivery phases, 100%**.
+The approved ScopeForge v1 roadmap remains complete at 11 of 11 phases.
 
-Phase 11 source, operational acceptance, and closure are complete. Phase 10A2/A3 supplied the later production acceptance for private immutable repository acquisition, zero-egress scanning, webhook reconciliation, and exact-snapshot reuse. The canonical completion record is `PROJECT_COMPLETION.md`.
+The user has now explicitly adopted Phase 12, **External provider runtime and automated pentest expansion**, as new post-v1 scope.
 
-## No automatic next phase
+Current estimated broader automated-pentest product vision: approximately 75% at Phase 12 start.
 
-There is no unfinished approved-roadmap task to resume. A future capability begins a new roadmap only after the user explicitly adopts it into scope.
+Active slice: **12A external ProjectDiscovery httpx**.
 
-Potential post-v1 proposals include generic passive/active runtime-worker activation, provider-managed Turnstile enforcement, paid-plan leaked-password protection, project-specific WAF rules, hosted Security Packs, or an advanced provider that satisfies the Phase 11 Task 16 re-entry criteria. None is currently implied, enabled, or required for v1 completion.
+See:
 
-For any new phase:
+- `docs/development/PHASE12_ROADMAP.md`
+- `docs/development/PHASE12_CURRENT_STATE.md`
 
-1. start from live `main`, open PRs/issues, CI, provider state, and worktrees;
-2. write the threat model and measurable acceptance/rollback criteria before enabling authority;
-3. retain default-off capability gates until exact operational evidence passes;
-4. preserve authorization, target verification, containment, network restrictions, budgets, RLS/security controls, and worker boundaries;
-5. obtain fresh exact-SHA Linux evidence where Linux containment is required.
+## Execution order
+
+1. 12A external httpx contract, worker runtime, containment and production acceptance.
+2. 12B Nuclei allowlist-only runtime.
+3. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.
+4. 12D hosted authenticated browser/API runtime.
+5. 12E bounded web/API DAST.
+6. 12F expanded proof-only validators.
+7. 12G adaptive multi-provider orchestration/correlation.
+8. 12H benchmarks, rollback, operational acceptance and closure.
+
+Each network/process authority stays default-off until its own Linux containment and acceptance gate passes.
+
+## Storage direction
+
+Keep compact structured state in Supabase/Postgres. Put large or unstructured scan artifacts in private Cloudflare R2 with short-lived mediated access. Do not use Postgres as blob storage for raw provider output.
 
 ## Repository hygiene
 
-The reviewed cleanup reduced remote refs from 88 to 16. One safe merged manifest remote branch remains because its active worktree contains uncommitted user changes; a separate merged local-only worktree with uncommitted files is also preserved. Recheck open PRs and `git worktree list` before any later deletion. Preserve diverged and intentional branches.
+The completed v1 cleanup preserved dirty, diverged, and intentional worktrees/branches. Recheck open PRs and `git worktree list` before future branch deletion.
