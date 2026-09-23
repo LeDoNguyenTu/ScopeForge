@@ -8,6 +8,7 @@ import type {
   WorkspaceRole,
 } from "@/lib/database.types";
 import type { RetestExecutionKind } from "@/lib/security-remediation/types";
+import { useToast } from "@/components/feedback/ToastProvider";
 
 export interface FindingRetestPanelProps {
   findingId: string;
@@ -37,8 +38,9 @@ export default function FindingRetestPanel({
   retests,
 }: FindingRetestPanelProps) {
   const [consent, setConsent] = useState(false);
+  const toast = useToast();
   const [history, setHistory] = useState<readonly SecurityFindingRetestRow[]>(retests);
-  const [message, setMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const canWrite = role !== "viewer";
@@ -50,19 +52,19 @@ export default function FindingRetestPanel({
     if (!canRun || activeBlockedByRole) return;
     if (executionKind === "active_validation" && !consent) return;
 
-    setMessage(null);
+    setErrorMessage(null);
     startTransition(async () => {
       const result = await runFindingRetestAction(
         findingId,
         executionKind === "active_validation" ? consent : false,
       );
       if (!result.ok) {
-        setMessage(result.error.message);
+        setErrorMessage(result.error.message);
         return;
       }
       setHistory((current) => [result.data, ...current.filter((row) => row.id !== result.data.id)].slice(0, 50));
       setConsent(false);
-      setMessage("Finding retest completed.");
+      toast.success("Finding retest completed.");
     });
   }
 
@@ -110,7 +112,7 @@ export default function FindingRetestPanel({
             </div>
           </>
         )}
-        {message ? <div className="authMessage" role="status">{message}</div> : null}
+        {errorMessage ? <div className="authMessage" role="alert">{errorMessage}</div> : null}
       </div>
 
       <div className="auditList">

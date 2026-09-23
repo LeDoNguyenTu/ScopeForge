@@ -6,6 +6,7 @@ import { Archive, Clock3, GitCommitHorizontal, ShieldCheck } from "lucide-react"
 import { requestRepositorySnapshot } from "@/app/dashboard/assets/[assetId]/snapshot-actions";
 import type { WorkspaceRole } from "@/lib/database.types";
 import type { RepositorySnapshotHistoryItem } from "@/lib/repository-snapshots/read-model";
+import { useToast } from "@/components/feedback/ToastProvider";
 
 interface RepositorySnapshotPanelProps {
   assetId: string;
@@ -29,14 +30,13 @@ export default function RepositorySnapshotPanel({
   managedByConnectedProject = false,
 }: RepositorySnapshotPanelProps) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const canRequest = role === "owner" || role === "admin";
 
   function requestSnapshot() {
     if (!runtimeAvailable) return;
-    setMessage(null);
     setErrorMessage(null);
     startTransition(async () => {
       const result = await requestRepositorySnapshot(assetId);
@@ -44,7 +44,7 @@ export default function RepositorySnapshotPanel({
         setErrorMessage(result.error.message);
         return;
       }
-      setMessage("Snapshot request queued. Refreshing repository provenance...");
+      toast.success("Snapshot request queued.");
       router.refresh();
     });
   }
@@ -105,7 +105,6 @@ export default function RepositorySnapshotPanel({
             <div className="emptyCompact">Snapshot history is read-only for your workspace role. Owners and admins can request new hosted source snapshots.</div>
           )}
 
-          {message && <div className="authMessage" role="status">{message}</div>}
           {errorMessage && <div className="authMessage" role="alert">{errorMessage}</div>}
         </>
       )}

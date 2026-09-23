@@ -1,8 +1,13 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import FindingRemediationPanel from "@/components/findings/FindingRemediationPanel";
 import type { SecurityFindingWorkRow } from "@/lib/database.types";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
+
+const mocks = vi.hoisted(() => ({ update: vi.fn() }));
+vi.mock("@/app/dashboard/findings/[findingId]/remediation-actions", () => ({ updateFindingRemediationAction: mocks.update }));
+const renderPanel = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 const work: SecurityFindingWorkRow = {
   workspace_id: "workspace-1",
@@ -16,7 +21,7 @@ const work: SecurityFindingWorkRow = {
 
 describe("FindingRemediationPanel", () => {
   it("keeps viewers read-only", () => {
-    render(<FindingRemediationPanel findingId="finding-1" role="viewer" work={work} />);
+    renderPanel(<FindingRemediationPanel findingId="finding-1" role="viewer" work={work} />);
 
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
@@ -24,14 +29,14 @@ describe("FindingRemediationPanel", () => {
   });
 
   it("bounds editable remediation notes to 2000 characters", () => {
-    render(<FindingRemediationPanel findingId="finding-1" role="member" work={work} />);
+    renderPanel(<FindingRemediationPanel findingId="finding-1" role="member" work={work} />);
 
     expect(screen.getByRole("textbox", { name: /remediation note/i })).toHaveAttribute("maxlength", "2000");
     expect(screen.getByRole("button", { name: /save remediation/i })).toBeInTheDocument();
   });
 
   it("offers workspace members by name instead of asking for a user ID", () => {
-    render(
+    renderPanel(
       <FindingRemediationPanel
         assignees={[
           { userId: "user-1", label: "Brian", detail: "brian@example.com" },
@@ -47,5 +52,13 @@ describe("FindingRemediationPanel", () => {
     expect(screen.getByRole("combobox", { name: "Assignee" })).toHaveValue("");
     expect(screen.getByRole("option", { name: "Brian (brian@example.com)" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Assignee user ID")).not.toBeInTheDocument();
+  });
+
+  it("reports a saved remediation as a temporary toast", async () => {
+    mocks.update.mockResolvedValue({ ok: true, data: { ...work, remediation_note: "Updated" } });
+    render(<ToastProvider><FindingRemediationPanel findingId="finding-1" role="owner" work={work} /></ToastProvider>);
+    fireEvent.click(screen.getByRole("button", { name: /save remediation/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Remediation work updated."));
+    expect(document.querySelector(".verificationPanel > .authMessage[role='status']")).toBeNull();
   });
 });

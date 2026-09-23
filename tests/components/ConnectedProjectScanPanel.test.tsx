@@ -2,6 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ConnectedProjectScanPanel from "@/components/assets/ConnectedProjectScanPanel";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -28,7 +29,7 @@ const publicProject = {
 };
 
 function renderPanel(overrides: Partial<React.ComponentProps<typeof ConnectedProjectScanPanel>> = {}) {
-  return render(
+  return render(<ToastProvider>
     <ConnectedProjectScanPanel
       assetId="22222222-2222-4222-8222-222222222222"
       role="owner"
@@ -37,7 +38,8 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof ConnectedPro
       privateSnapshotRuntimeAvailable={false}
       scanRuntimeAvailable={false}
       {...overrides}
-    />,
+    />
+  </ToastProvider>,
   );
 }
 
@@ -178,6 +180,8 @@ describe("ConnectedProjectScanPanel", () => {
     await waitFor(() => expect(mocks.requestScan).toHaveBeenCalledTimes(1));
     expect(mocks.requestScan).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222");
     expect(await screen.findByText("ScopeForge queued an immutable source snapshot.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dismiss notification" })).toBeInTheDocument();
+    expect(document.querySelector(".verificationPanel > .authMessage[role='status']")).toBeNull();
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 });

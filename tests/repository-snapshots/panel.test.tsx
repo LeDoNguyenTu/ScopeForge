@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RepositorySnapshotPanel from "@/components/assets/RepositorySnapshotPanel";
 import { requestRepositorySnapshot } from "@/app/dashboard/assets/[assetId]/snapshot-actions";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
 
 const refresh = vi.fn();
 
@@ -26,6 +27,8 @@ const history = [{
   expiresAt: "2026-09-03T03:00:00.000Z",
 }];
 
+const renderPanel = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
+
 beforeEach(() => {
   refresh.mockReset();
   vi.mocked(requestRepositorySnapshot).mockReset();
@@ -33,7 +36,7 @@ beforeEach(() => {
 
 describe("RepositorySnapshotPanel", () => {
   it("shows owner/admin request controls and safe provenance without download authority", () => {
-    render(<RepositorySnapshotPanel assetId="asset-1" role="owner" history={history} runtimeAvailable />);
+    renderPanel(<RepositorySnapshotPanel assetId="asset-1" role="owner" history={history} runtimeAvailable />);
 
     expect(screen.getByRole("button", { name: /create private source snapshot/i })).toBeInTheDocument();
     expect(screen.getByText(/current public github default branch/i)).toBeInTheDocument();
@@ -45,7 +48,7 @@ describe("RepositorySnapshotPanel", () => {
   });
 
   it("keeps member/viewer history read-only", () => {
-    render(<RepositorySnapshotPanel assetId="asset-1" role="viewer" history={history} runtimeAvailable />);
+    renderPanel(<RepositorySnapshotPanel assetId="asset-1" role="viewer" history={history} runtimeAvailable />);
     expect(screen.queryByRole("button", { name: /create private source snapshot/i })).not.toBeInTheDocument();
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
     expect(screen.getByText(/aaaaaaaaaaaa on main/i)).toBeInTheDocument();
@@ -56,7 +59,7 @@ describe("RepositorySnapshotPanel", () => {
       ok: true,
       data: { taskId: "task-1" },
     });
-    render(<RepositorySnapshotPanel assetId="asset-1" role="admin" history={[]} runtimeAvailable />);
+    renderPanel(<RepositorySnapshotPanel assetId="asset-1" role="admin" history={[]} runtimeAvailable />);
 
     fireEvent.click(screen.getByRole("button", { name: /create private source snapshot/i }));
     await waitFor(() => expect(requestRepositorySnapshot).toHaveBeenCalledWith("asset-1"));
@@ -64,7 +67,7 @@ describe("RepositorySnapshotPanel", () => {
   });
 
   it("shows a disabled fail-closed control while the acquisition runtime is unavailable", () => {
-    render(<RepositorySnapshotPanel assetId="asset-1" role="owner" history={[]} runtimeAvailable={false} />);
+    renderPanel(<RepositorySnapshotPanel assetId="asset-1" role="owner" history={[]} runtimeAvailable={false} />);
 
     expect(screen.getByRole("button", { name: /snapshot runtime unavailable/i })).toBeDisabled();
     expect(screen.getByText(/acquisition worker is not enabled/i)).toBeInTheDocument();
@@ -72,7 +75,7 @@ describe("RepositorySnapshotPanel", () => {
   });
 
   it("shows provenance without a second acquisition control for connected projects", () => {
-    render(
+    renderPanel(
       <RepositorySnapshotPanel
         assetId="asset-1"
         role="owner"

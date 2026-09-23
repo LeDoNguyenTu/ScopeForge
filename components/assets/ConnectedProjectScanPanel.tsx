@@ -9,6 +9,7 @@ import {
 } from "@/app/dashboard/assets/[assetId]/project-scan-actions";
 import type { WorkspaceRole } from "@/lib/database.types";
 import type { ConnectedProjectScanReadModel } from "@/lib/project-scans/read-model";
+import { useToast } from "@/components/feedback/ToastProvider";
 
 interface ConnectedProjectScanPanelProps {
   assetId: string;
@@ -100,8 +101,8 @@ export default function ConnectedProjectScanPanel({
   scanRuntimeAvailable,
 }: ConnectedProjectScanPanelProps) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canManage = role === "owner" || role === "admin";
@@ -119,7 +120,6 @@ export default function ConnectedProjectScanPanel({
 
   function runProjectScan() {
     if (disabled) return;
-    setMessage(null);
     setErrorMessage(null);
     startTransition(async () => {
       const result = recoverable
@@ -129,7 +129,7 @@ export default function ConnectedProjectScanPanel({
         setErrorMessage(result.error.message);
         return;
       }
-      setMessage(result.message);
+      toast.success(result.message);
       if (
         result.status === "snapshot_queued"
         || result.status === "scan_queued"
@@ -197,7 +197,6 @@ export default function ConnectedProjectScanPanel({
           )}
       </button>
 
-      {message && <div className="authMessage" role="status">{message}</div>}
       {errorMessage && <div className="authMessage" role="alert">{errorMessage}</div>}
     </div>
   );
