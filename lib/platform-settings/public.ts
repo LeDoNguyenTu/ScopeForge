@@ -10,6 +10,9 @@ type PublicPlatformSettingsRow = {
   registration_enabled: boolean;
   maintenance_mode: boolean;
   maintenance_message: string;
+  maintenance_ends_at: string | null;
+  maintenance_time_zone: string | null;
+  maintenance_auto_disable: boolean;
   updated_at: string;
 };
 
@@ -17,6 +20,9 @@ const CI_PLACEHOLDER_SETTINGS: PlatformSettings = Object.freeze({
   registrationEnabled: true,
   maintenanceMode: false,
   maintenanceMessage: "ScopeForge is temporarily undergoing maintenance.",
+  maintenanceEndsAt: null,
+  maintenanceTimeZone: null,
+  maintenanceAutoDisable: true,
   updatedAt: "1970-01-01T00:00:00.000Z",
 });
 
@@ -28,6 +34,10 @@ function isPublicPlatformSettingsRow(value: unknown): value is PublicPlatformSet
     && typeof row.maintenance_message === "string"
     && row.maintenance_message.length >= 1
     && row.maintenance_message.length <= 280
+    && (row.maintenance_ends_at === null
+      || (typeof row.maintenance_ends_at === "string" && Number.isFinite(Date.parse(row.maintenance_ends_at))))
+    && (row.maintenance_time_zone === null || typeof row.maintenance_time_zone === "string")
+    && typeof row.maintenance_auto_disable === "boolean"
     && typeof row.updated_at === "string"
     && Number.isFinite(Date.parse(row.updated_at));
 }
@@ -58,7 +68,7 @@ export async function readPublicPlatformSettings(
   }
 
   const fetcher = dependencies.fetcher ?? fetch;
-  const fields = "registration_enabled,maintenance_mode,maintenance_message,updated_at";
+  const fields = "registration_enabled,maintenance_mode,maintenance_message,maintenance_ends_at,maintenance_time_zone,maintenance_auto_disable,updated_at";
   const url = `${supabaseUrl}/rest/v1/platform_settings?id=eq.true&select=${encodeURIComponent(fields)}&limit=1`;
 
   try {
@@ -78,10 +88,18 @@ export async function readPublicPlatformSettings(
       throw new Error("PUBLIC_PLATFORM_SETTINGS_INVALID");
     }
 
+    const row = payload[0];
+    const expired = row.maintenance_mode
+      && row.maintenance_auto_disable
+      && row.maintenance_ends_at !== null
+      && Date.parse(row.maintenance_ends_at) <= Date.now();
     return {
       registrationEnabled: payload[0].registration_enabled,
-      maintenanceMode: payload[0].maintenance_mode,
+      maintenanceMode: expired ? false : row.maintenance_mode,
       maintenanceMessage: payload[0].maintenance_message,
+      maintenanceEndsAt: row.maintenance_ends_at,
+      maintenanceTimeZone: row.maintenance_time_zone,
+      maintenanceAutoDisable: row.maintenance_auto_disable,
       updatedAt: payload[0].updated_at,
     };
   } catch {

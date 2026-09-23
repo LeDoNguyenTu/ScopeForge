@@ -35,6 +35,9 @@ export async function updatePlatformSettingsAction(
       registrationEnabled: checked(formData, "registrationEnabled"),
       maintenanceMode: checked(formData, "maintenanceMode"),
       maintenanceMessage: String(formData.get("maintenanceMessage") ?? ""),
+      maintenanceEndsAt: String(formData.get("maintenanceEndsAt") ?? "") || null,
+      maintenanceTimeZone: String(formData.get("maintenanceTimeZone") ?? "") || null,
+      maintenanceAutoDisable: checked(formData, "maintenanceAutoDisable"),
       reason: String(formData.get("reason") ?? ""),
     });
     revalidatePath("/");

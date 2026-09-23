@@ -17,6 +17,17 @@ Local gate: 2,325 tests passed; the two expected Windows parallel timeout failur
 
 PR #186 passed exact-head CI run `35822369679`, merged as `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`, and reached a successful Vercel production deployment. Authenticated production rendering confirmed the Account & security route, owner AAL2 enforcement, TOTP enrollment control, passkey provider capability, password controls, and zero horizontal document overflow. The rendered check exposed an overly tall mobile workspace navigation list; PR #187 added the scoped `flex-direction: row` correction and regression test, passed exact-head CI run `35823763535`, merged as `25aa2a46ce34c446f500f036787f37d9acbf5310`, and deployed successfully. The final effective 391x844, 768x1024, 1024x768, and 1440x900 production matrix passed. No Phase 11 canary was run.
 
+Four production follow-ups are also released:
+
+- PR #189 (`5175a18d3f5da4ee328c2f5a612201da990e7fe8`) recovers interrupted TOTP enrollment without exposing factor secrets. Exact-head CI run `35848037777` and exact-merge Vercel deployment `8uC7ySr9BufGHFjX8XHRcxkvuzN1` passed.
+- PR #190 (`25a080de0dde67a8f321fda43467cfa2b367de19`) renders the Supabase TOTP QR value as a browser-safe data URL while preserving the adjacent copyable manual setup key. Exact-head CI run `35852626900` and exact-merge Vercel deployment `8C7XWy5EVCNK7GTa55Wgx56oqvNR` passed.
+- PR #191 (`4a4748a72bc4b61adae98c5248324539ce738ad1`) limits blocking MFA enforcement to workspace owners/admins and platform administrators. Members/viewers receive a dismissible recommendation instead. Privileged AAL1 sessions cannot escape the challenge through the security settings route. Exact-head CI run `35857384190` and exact-merge Vercel deployment `3y4yE3Zq5mPjuXRm1ykTFFd3BDgA` passed.
+- PR #194 (`4aaecc559d7617a6e1879b235efe296cdb798296`) adds a globally synchronized maintenance completion instant, administrator-selected IANA display zone, live countdown, automatic/manual expiry control, and separated maintenance-page actions. Exact-head CI run `35906145711` and exact-merge Vercel deployment `GFbcReM691PphXmH6u85163qKtCN` passed.
+
+Production migration `20260923185307_maintenance_window_scheduling` is registered on ScopeForge Supabase `tdgpibrepzcvdivztkta`. The current authoritative state remains maintenance disabled, no completion instant or time-zone override, and automatic expiry enabled. The new columns expose SELECT-only access to `anon` and `authenticated`; no mutation grant or security-boundary relaxation was added. `/maintenance` returns a 307 redirect to `/` while the mode is disabled.
+
+Final authenticated production rendering confirmed the owner session at AAL2, the verified authenticator and passkey inventory, and the complete `/admin/settings` maintenance form without changing any factor or platform setting. A final read-only database reconciliation reconfirmed the accepted Phase 11 run as `completed / request_budget_exhausted`, exactly one request, zero provider failures, zero graph expansions, one accepted observation, zero active Phase 11 tasks, and the dedicated worker enabled.
+
 ## Phase 11 accepted
 
 The separately authorized fifth bounded production canary completed through the normal authenticated admin, policy, queue, worker, mediator, and sandbox path.
@@ -49,7 +60,7 @@ Final roadmap reconciliation recognizes Phase 10A2/A3 as the operational accepta
 
 ## Branch cleanup
 
-Cleanup rechecked open PRs, ancestry, and all worktrees. It removed the clean merged manifest worktrees/branches and three freshly verified merged post-audit remote branches. One safe manifest remote branch remains because its worktree contains uncommitted user changes; a separate merged local-only worktree with uncommitted files was also preserved. All diverged and intentional branches remain. Remote refs decreased from 88 to 16, including `origin/HEAD`.
+Cleanup was rechecked after the follow-up releases. The only open PR is Phase 12 operations PR #193. The merged PR #194 branch and merged Phase 12A foundation branch were proven reachable from `main` and deleted. Five additional fully merged, unattached local branches were removed. All remaining historical refs match the manifest's diverged or intentional preserve set, and the active Phase 12 refs were created after that audit. Dirty/diverged work was preserved. The final remote-tracking list contains 17 entries including the `origin/HEAD` alias.
 
 ## Durable boundaries
 

@@ -21,6 +21,12 @@ button, input, select, textarea { font: inherit; }
 .workspaceAppShell { --ui-border: var(--product-border); --ui-muted: var(--product-muted); background: var(--product-bg); }
 .workspaceContent { width: auto; max-width: 1680px; padding: 0 clamp(24px, 3vw, 48px) 56px; }
 .workspaceToolbar { min-height: 68px; margin-bottom: 34px; font-size: 13px; }
+.workspaceMfaRecommendation { display: flex; align-items: center; gap: 13px; margin: -16px 0 24px; padding: 13px 14px; border: 1px solid rgba(114, 230, 188, .28); border-radius: 11px; background: rgba(114, 230, 188, .07); color: #d7f4e9; }
+.workspaceMfaRecommendation > svg { flex: 0 0 auto; color: var(--product-accent); }
+.workspaceMfaRecommendation p { flex: 1; margin: 0; font-size: 13px; line-height: 1.5; }
+.workspaceMfaRecommendation a { color: var(--product-accent); font-weight: 700; text-underline-offset: 3px; }
+.workspaceMfaRecommendation button { display: grid; flex: 0 0 auto; width: 36px; min-height: 36px; padding: 0; place-items: center; border: 1px solid var(--product-border); border-radius: 8px; background: transparent; color: var(--product-muted); cursor: pointer; }
+.workspaceMfaRecommendation button:hover { border-color: #4b606d; color: var(--product-text); }
 .workspaceContent .pageHeader { margin-bottom: 26px; }
 .workspaceContent .pageHeader h1, .saasPageHeading h1 { font-size: clamp(30px, 3vw, 38px); line-height: 1.14; font-weight: 620; letter-spacing: -.035em; }
 .workspaceContent .pageHeader p, .saasPageHeading p { color: var(--product-muted); font-size: 15px; line-height: 1.65; }
@@ -71,6 +77,13 @@ button, input, select, textarea { font: inherit; }
 .authMessageError { border-color: rgba(255, 155, 134, .35); background: rgba(255, 155, 134, .08); color: #ffd0c6; }
 .authForm select { width: 100%; min-height: 48px; padding: 0 13px; border: 1px solid #293648; border-radius: 11px; background: #090e15; color: var(--product-text); }
 .securitySettingsGrid { display: grid; gap: 18px; max-width: 920px; margin: 0 auto; }
+.restrictedSecurityShell { min-height: 100vh; padding: 22px clamp(18px, 4vw, 52px) 56px; background: var(--product-bg); }
+.restrictedSecurityHeader { display: flex; align-items: center; justify-content: space-between; gap: 18px; max-width: 1040px; margin: 0 auto 32px; padding-bottom: 18px; border-bottom: 1px solid var(--product-border); }
+.restrictedSecurityHeader > a { color: var(--product-text); text-decoration: none; }
+.restrictedSecurityHeader .secondaryButton { display: inline-flex; align-items: center; gap: 8px; }
+.restrictedSecurityContent { max-width: 920px; margin: 0 auto; }
+.restrictedSecurityNotice { margin: 0 0 18px; padding: 14px 16px; border: 1px solid rgba(114, 230, 188, .28); border-radius: 11px; background: rgba(114, 230, 188, .07); color: #d7f4e9; font-size: 14px; }
+.restrictedSecurityNotice strong { display: block; margin-bottom: 2px; }
 .securitySettingsCard { display: grid; gap: 16px; }
 .securitySettingsCard h1, .securitySettingsCard h2, .securitySettingsCard p { margin: 0; }
 .securityIdentity { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 4px 0 0; }
@@ -106,6 +119,7 @@ button, input, select, textarea { font: inherit; }
 @media (max-width: 700px) {
   .workspaceContent { padding: 0 16px 32px; }
   .workspaceToolbar { min-height: 58px; margin-bottom: 24px; }
+  .workspaceMfaRecommendation { align-items: flex-start; margin-top: -8px; }
   .workspaceToolbar > span:first-child { max-width: 48vw; }
   .workspaceContent .pageHeader h1, .saasPageHeading h1 { font-size: 29px; }
   .workspaceContent .pageHeader p, .saasPageHeading p { font-size: 14px; }

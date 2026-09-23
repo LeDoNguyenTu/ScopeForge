@@ -12,6 +12,9 @@ function dependencies(overrides: Partial<PlatformSettingsServiceDependencies> = 
       registrationEnabled: true,
       maintenanceMode: false,
       maintenanceMessage: "Scheduled maintenance",
+      maintenanceEndsAt: null,
+      maintenanceTimeZone: null,
+      maintenanceAutoDisable: true,
       updatedAt: "2026-09-10T00:00:00.000Z",
     }),
     authorize: async () => ({ actorUserId: "22222222-2222-4222-8222-222222222222" }),
@@ -27,6 +30,9 @@ describe("platform settings service", () => {
       registrationEnabled: true,
       maintenanceMode: false,
       maintenanceMessage: "Scheduled maintenance",
+      maintenanceEndsAt: null,
+      maintenanceTimeZone: null,
+      maintenanceAutoDisable: true,
       updatedAt: "2026-09-10T00:00:00.000Z",
     });
   });
@@ -38,6 +44,9 @@ describe("platform settings service", () => {
         registrationEnabled: false,
         maintenanceMode: true,
         maintenanceMessage: "Emergency database maintenance",
+        maintenanceEndsAt: "2027-09-10T03:00:00.000Z",
+        maintenanceTimeZone: "Asia/Singapore",
+        maintenanceAutoDisable: true,
         reason: "Operational maintenance window",
       },
       dependencies({
@@ -65,6 +74,9 @@ describe("platform settings service", () => {
         registrationEnabled: false,
         maintenanceMode: true,
         maintenanceMessage: "Emergency database maintenance",
+        maintenanceEndsAt: "2027-09-10T03:00:00.000Z",
+        maintenanceTimeZone: "Asia/Singapore",
+        maintenanceAutoDisable: true,
         reason: "Operational maintenance window",
       },
       dependencies({
@@ -81,17 +93,43 @@ describe("platform settings service", () => {
   it("rejects unbounded messages and reasons", async () => {
     await expect(
       updatePlatformSettings(
-        { registrationEnabled: true, maintenanceMode: false, maintenanceMessage: "", reason: "valid" },
+        { registrationEnabled: true, maintenanceMode: false, maintenanceMessage: "", maintenanceEndsAt: null, maintenanceTimeZone: null, maintenanceAutoDisable: true, reason: "valid" },
         dependencies(),
       ),
     ).rejects.toEqual(expect.objectContaining<Partial<PlatformSettingsError>>({ code: "INVALID_MAINTENANCE_MESSAGE" }));
 
     await expect(
       updatePlatformSettings(
-        { registrationEnabled: true, maintenanceMode: false, maintenanceMessage: "valid", reason: "x".repeat(501) },
+        { registrationEnabled: true, maintenanceMode: false, maintenanceMessage: "valid", maintenanceEndsAt: null, maintenanceTimeZone: null, maintenanceAutoDisable: true, reason: "x".repeat(501) },
         dependencies(),
       ),
     ).rejects.toEqual(expect.objectContaining<Partial<PlatformSettingsError>>({ code: "INVALID_PLATFORM_SETTINGS_REASON" }));
+  });
+
+  it("requires a completion estimate for active maintenance and validates the display timezone", async () => {
+    await expect(updatePlatformSettings({
+      registrationEnabled: true,
+      maintenanceMode: true,
+      maintenanceMessage: "Scheduled maintenance",
+      maintenanceEndsAt: null,
+      maintenanceTimeZone: null,
+      maintenanceAutoDisable: true,
+      reason: "Planned work",
+    }, dependencies())).rejects.toEqual(expect.objectContaining<Partial<PlatformSettingsError>>({
+      code: "INVALID_MAINTENANCE_WINDOW",
+    }));
+
+    await expect(updatePlatformSettings({
+      registrationEnabled: true,
+      maintenanceMode: true,
+      maintenanceMessage: "Scheduled maintenance",
+      maintenanceEndsAt: "2027-09-10T03:00:00.000Z",
+      maintenanceTimeZone: "Not/A_Timezone",
+      maintenanceAutoDisable: false,
+      reason: "Planned work",
+    }, dependencies())).rejects.toEqual(expect.objectContaining<Partial<PlatformSettingsError>>({
+      code: "INVALID_MAINTENANCE_TIME_ZONE",
+    }));
   });
 
   it("sanitizes provider failures", async () => {
