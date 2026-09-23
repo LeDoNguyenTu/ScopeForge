@@ -94,7 +94,7 @@ button, input, select, textarea { font: inherit; }
 }
 
 @media (max-width: 960px) {
-  .immersiveDashboardLinks .sideNav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+  .immersiveDashboardLinks .sideNav { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scroll-snap-type: x proximity; }
   .immersiveDashboardLinks .sideLink { flex: 0 0 auto; min-width: 124px; scroll-snap-align: start; }
   .workspaceContent { padding: 0 24px 40px; }
 }

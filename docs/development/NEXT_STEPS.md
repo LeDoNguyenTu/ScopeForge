@@ -12,7 +12,7 @@ Current estimated broader automated-pentest product vision: approximately 75% at
 
 Active slice: **12A external ProjectDiscovery httpx**.
 
-An independently approved product UX/account-security hardening candidate is ready for exact-head CI and release on `feat/post-v1-ux-auth-security`, based on live `main` `d74adff99b9d13871afe73ba05d74d715597f5db`. Finish its PR, deployment, rendered production matrix, and passkey provider-capability check without changing Phase 12 runtime gates.
+The product UX/account-security hardening shipped in PR #186. Finish the scoped compact mobile-navigation follow-up, then continue Phase 12 without changing its runtime gates.
 
 See:
 
@@ -21,7 +21,7 @@ See:
 
 ## Execution order
 
-1. Release and verify the approved product UX/account-security candidate.
+1. Merge and verify the compact mobile-navigation follow-up to PR #186.
 2. 12A external httpx contract, worker runtime, containment and production acceptance.
 3. 12B Nuclei allowlist-only runtime.
 4. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.

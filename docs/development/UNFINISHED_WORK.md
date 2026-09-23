@@ -4,12 +4,7 @@ Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Product UX and account security
 
-Implementation and local verification are complete on `feat/post-v1-ux-auth-security`, rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db`. Remaining external gates:
-
-- exact-head CI and reviewed merge;
-- exact-main production deployment readiness;
-- authenticated rendered route/role/viewport smoke verification;
-- live passkey relying-party capability verification for `scopeforge.dev`.
+PR #186 is merged, exact-head CI passed, Vercel deployed the merge, and authenticated production rendering confirmed the account-security route plus live passkey provider capability. The only remaining UX closure item is the scoped compact mobile-navigation follow-up found during rendered narrow-screen verification.
 
 TOTP is the supported AAL2 factor. Email OTP and passkeys must not be relabeled as AAL2. Password/TOTP fallback must remain available if passkeys are provider-disabled.
 
