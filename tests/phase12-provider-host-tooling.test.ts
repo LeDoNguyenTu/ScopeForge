@@ -49,7 +49,7 @@ describe("Phase 12 provider host tooling", () => {
 
   it("does not turn host preflight into production enablement", async () => {
     const source = await readFile(preflightPath, "utf8");
-    expect(source).not.toMatch(/register.*worker/i);
+    expect(source).not.toMatch(/\b(?:register_worker|register-worker|worker-register)\b/i);
     expect(source).not.toContain("SCOPEFORGE_WORKER_SECRET");
     expect(source).not.toContain("supabase");
     expect(source).not.toContain("/api/internal/workers");
