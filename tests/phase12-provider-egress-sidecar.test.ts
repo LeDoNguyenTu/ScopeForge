@@ -45,13 +45,17 @@ describe("Phase 12 provider egress sidecar", () => {
   });
 
   it("builds a sidecar artifact that contains no external provider binary", async () => {
-    const [buildSource, containerSource] = await Promise.all([
+    const [buildSource, containerSource, entrySource] = await Promise.all([
       readFile(path.resolve("scripts/build-workers.mjs"), "utf8"),
       readFile(path.resolve("deploy/worker/Containerfile.provider-egress-sidecar"), "utf8"),
+      readFile(path.resolve("packages/provider-egress-sidecar/container-entry.ts"), "utf8"),
     ]);
     expect(buildSource).toContain("provider-egress-sidecar-entry.js");
     expect(containerSource).toContain("provider-egress-sidecar-entry.js");
     expect(containerSource).not.toContain("httpx");
     expect(containerSource).not.toContain("nuclei");
+    expect(entrySource).toContain("../provider-egress-boundary/loopback-socks5");
+    expect(entrySource).not.toContain('from "../provider-egress-boundary"');
+    expect(entrySource).not.toContain("unix-tunnel");
   });
 });
