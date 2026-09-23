@@ -26,15 +26,16 @@ beforeEach(() => {
 
 describe("AccountSecurityPanel", () => {
   it("shows the account identity and begins TOTP enrollment without reporting success", async () => {
+    const qrCode = "data:image/svg+xml;utf-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E";
     mocks.enroll.mockResolvedValue({ data: { id: "factor-1", type: "totp", totp: {
-      qr_code: "<svg xmlns='http://www.w3.org/2000/svg'></svg>", secret: "PRIVATE-SECRET", uri: "otpauth://private",
+      qr_code: qrCode, secret: "PRIVATE-SECRET", uri: "otpauth://private",
     } }, error: null });
     render(<ToastProvider><AccountSecurityPanel email="person@example.com" /></ToastProvider>);
 
     expect(await screen.findByText("person@example.com")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Set up authenticator" }));
 
-    expect(await screen.findByRole("img", { name: "Authenticator QR code" })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Authenticator QR code" })).toHaveAttribute("src", qrCode);
     expect(screen.getByLabelText("Manual setup key")).toHaveValue("PRIVATE-SECRET");
     expect(screen.getByLabelText("Verification code")).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();

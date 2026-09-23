@@ -135,7 +135,7 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
         {!enrollment ? <button className="primaryButton" disabled={pending} onClick={() => void beginEnrollment()} type="button">{state.unverifiedTotp.length > 0 ? "Restart authenticator setup" : "Set up authenticator"}</button> : (
           <form className="authForm securityEnrollment" onSubmit={verifyEnrollment}>
             <div className="securityEnrollmentSetup">
-              <img alt="Authenticator QR code" className="securityQrCode" src={`data:image/svg+xml;utf8,${encodeURIComponent(enrollment.qrCode)}`} />
+              <img alt="Authenticator QR code" className="securityQrCode" src={enrollment.qrCode} />
               <div className="securityManualKey">
                 <label htmlFor="manual-setup-key">Manual setup key</label>
                 <input autoComplete="off" id="manual-setup-key" readOnly spellCheck={false} value={enrollment.secret} />
