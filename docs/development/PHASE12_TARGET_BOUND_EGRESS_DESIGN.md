@@ -95,3 +95,20 @@ After that review:
 6. repeat the same containment path for 12B Nuclei while preserving its single-template allowlist
 
 A source-only or default-off implementation is not operational acceptance.
+
+
+## Source transport implementation
+
+The follow-on source transport implements the two sides of the networkless bridge:
+
+- `packages/provider-egress-boundary/unix-tunnel.ts` owns the host Unix listener, target TCP connection and independent byte/deadline accounting
+- `packages/provider-egress-boundary/loopback-socks5.ts` owns the provider-container loopback SOCKS5 listener
+- `packages/provider-egress-boundary/tunnel-protocol.ts` defines the single bounded connect frame and one-byte acceptance signal
+
+The host socket root is `/run/scopeforge-worker/egress`, which keeps a 64-hex task socket name within Linux `sockaddr_un` limits. The container sees only `/run/scopeforge/egress.sock`.
+
+The host side performs no DNS lookup. It receives only the exact hostname/port plus task nonce in the bounded frame, revalidates those through the task authorizer, selects an already validated pinned IPv4 address, and calls `net.createConnection` with that literal address and IPv4 family.
+
+Both halves reject pre-authorization pipelined application bytes. This keeps request payload forwarding behind successful SOCKS authorization plus host tunnel authorization.
+
+This implementation remains source-only until the actual provider images include the loopback shim and Linux acceptance proves the full process, socket, network and cleanup boundary.
