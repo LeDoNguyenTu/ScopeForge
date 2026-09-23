@@ -4,7 +4,7 @@ Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Product UX and account security
 
-PR #186 is merged, exact-head CI passed, Vercel deployed the merge, and authenticated production rendering confirmed the account-security route plus live passkey provider capability. The only remaining UX closure item is the scoped compact mobile-navigation follow-up found during rendered narrow-screen verification.
+PRs #186 and #187 are merged, both exact-head CI runs passed, Vercel deployed both merges, and authenticated production rendering confirmed the account-security route, live passkey provider capability, compact navigation, and no document-level overflow across the final viewport matrix. No product UX/account-security closure item remains.
 
 TOTP is the supported AAL2 factor. Email OTP and passkeys must not be relabeled as AAL2. Password/TOTP fallback must remain available if passkeys are provider-disabled.
 

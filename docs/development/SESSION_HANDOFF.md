@@ -4,7 +4,7 @@ Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Product hardening release
 
-PR #186 passed exact-head CI and shipped as merge `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`. Vercel completed the production deployment, and authenticated rendering confirmed owner AAL2 redirection plus live TOTP/passkey/password controls. The only active UX closure item is a compact mobile-navigation correction found in the rendered check. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
+PR #186 passed exact-head CI and shipped as merge `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`. PR #187 passed exact-head CI and shipped the rendered compact-navigation correction as merge `25aa2a46ce34c446f500f036787f37d9acbf5310`. Both Vercel deployments completed, and authenticated rendering confirmed owner AAL2 redirection, live TOTP/passkey/password controls, compact navigation, and no document-level overflow across the final viewport matrix. Product UX/account-security closure is complete. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
 
 ## Canonical resume point
 

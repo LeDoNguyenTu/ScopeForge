@@ -2,6 +2,8 @@
 
 Released by PR #186: exact head `3802f6247ef267716de0e29320668b449dff3328`, merge `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`, exact-head CI run `35822369679`, Vercel deployment `E5gKbj7eoFjSTyMYVkQ7LUwi454A`.
 
+Rendered follow-up PR #187: exact head `783d40102ea86ebdaee9b9646b3ad1e2132d10f7`, merge `25aa2a46ce34c446f500f036787f37d9acbf5310`, exact-head CI run `35823763535`, Vercel deployment `8nZYDQG7v2BFuo3wrYxKBiWvCFia`.
+
 ## Scope and invariants
 
 - Reviewed every `app/**/page.tsx` route, the shared public/auth/workspace/admin shells, and mutation-capable asset, finding, integration, workspace, and account-security controls.
@@ -44,14 +46,14 @@ Released by PR #186: exact head `3802f6247ef267716de0e29320668b449dff3328`, merg
 
 ## Rendered acceptance matrix
 
-Authenticated production rendering confirmed the new security shell and provider-backed factor inventory. Browser viewport override at the narrow breakpoint reported a 520 CSS-pixel content viewport because the existing Chrome profile is zoomed; the check still exercised the mobile CSS breakpoint and recorded no document-level horizontal overflow. The first render exposed an overly tall mobile workspace navigation list, so acceptance remains pending only for the scoped compact-navigation follow-up.
+Authenticated production rendering confirmed the new security shell and provider-backed factor inventory. The Chrome profile's zoom was accounted for when setting the final effective CSS viewports. The first narrow render exposed an overly tall mobile workspace navigation list; PR #187 fixed it, and the exact deployed CSS now reports a row flex direction, one shared link top coordinate, bounded horizontal nav scrolling, and no document-level overflow.
 
 | Viewport | Public/auth | Workspace shell | Account security | Platform admin | Horizontal overflow | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Narrow mobile breakpoint | Landing and recovery rendered; no overflow | Compact-nav follow-up in flight | Rendered; owner AAL1 redirected to required MFA | AAL2 guard exercised by shared policy/tests | None | Follow-up pending |
-| 768x1024 | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending | Pending |
-| 1024x768 | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending | Pending |
-| 1440x900 | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending | Pending |
+| 391x844 effective | Landing and recovery rendered | Compact horizontal nav verified | Security page rendered | Shared AAL2 guard/tests | None | Accepted |
+| 768x1024 effective | Automated route coverage | Compact horizontal nav verified | Security page rendered | Shared AAL2 guard/tests | None | Accepted |
+| 1024x768 effective | Automated route coverage | Workspace redirected to required MFA | Security page rendered | Admin redirected to required MFA | None | Accepted |
+| 1440x900 effective | Landing rendered | Desktop shell covered by release rendering | Security/passkeys rendered | Shared AAL2 guard/tests | None | Accepted |
 
 ## Provider-dependent evidence
 
