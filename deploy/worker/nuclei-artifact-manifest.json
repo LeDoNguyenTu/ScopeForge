@@ -1,0 +1,30 @@
+{
+  "provider": "projectdiscovery.nuclei",
+  "version": "3.11.1",
+  "engineArtifacts": {
+    "linux-amd64": {
+      "name": "nuclei_3.11.1_linux_amd64.zip",
+      "url": "https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_amd64.zip",
+      "sha256": "ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6"
+    },
+    "linux-arm64": {
+      "name": "nuclei_3.11.1_linux_arm64.zip",
+      "url": "https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_arm64.zip",
+      "sha256": "8044e3d9768ba0a744b2872c1a87e813006f013da97ca9f50f7661a4203bec07"
+    }
+  },
+  "templateSnapshot": {
+    "release": "v10.4.9",
+    "commit": "893122ffce8ebf8e264f15d2cd3960cb1dd36d6c",
+    "checksumsAssetSha256": "d1ed4ad603d0f86f33403bb7441768beb0d4d0d09da3e0a3a4109356d368ad4b",
+    "allowlist": [
+      {
+        "id": "csp-script-src-wildcard",
+        "path": "http/misconfiguration/csp-script-src-wildcard.yaml",
+        "gitBlobSha": "12bbf3ff4ff5998240342f4a9577fbc4e1e0c304",
+        "runtimePath": "/opt/scopeforge/templates/csp-script-src-wildcard.yaml",
+        "policy": "single GET to BaseURL; no redirects, JavaScript, code, headless, fuzzing, OAST, file, or helper execution"
+      }
+    ]
+  }
+}
