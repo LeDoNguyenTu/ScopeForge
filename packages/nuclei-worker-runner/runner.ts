@@ -50,7 +50,11 @@ function fixedEnvironment(): NodeJS.ProcessEnv {
 
 function createDriver(): NucleiCommandDriver {
   return Object.freeze({
-    exec(file, args, options) {
+    exec(
+      file: string,
+      args: readonly string[],
+      options: Readonly<{ timeoutMs: number; maxOutputBytes: number; signal: AbortSignal }>,
+    ) {
       return new Promise<NucleiCommandResult>((resolve, reject) => {
         execFile(file, [...args], {
           encoding: "utf8",
@@ -165,6 +169,11 @@ export async function executeNucleiRunner(
   const origin = expectedOrigin(input);
   const approved = new Set(input.request.approvedTemplateIds);
   const matches = parseLines(result.stdout).map(({ value, digest }) => {
+    for (const key of ["request", "response", "template-encoded", "interaction", "curl-command"]) {
+      if (value[key] !== undefined && value[key] !== null && value[key] !== "") {
+        throw new Error("NUCLEI_OUTPUT_SENSITIVE_FIELD_PRESENT");
+      }
+    }
     const templateId = requiredText(value["template-id"], "NUCLEI_OUTPUT_TEMPLATE_ID_INVALID", 160);
     if (!approved.has(templateId)) throw new Error("NUCLEI_OUTPUT_TEMPLATE_NOT_APPROVED");
 
