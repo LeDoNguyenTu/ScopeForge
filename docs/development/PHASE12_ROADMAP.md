@@ -63,6 +63,8 @@ The adapter, fixed runner, container entry, artifact pins and image source are i
 9. exact-head CI
 10. a separately authorized bounded production canary
 
+Artifact staging and networkless image preflight are scripted in `scripts/phase12-stage-provider-assets.sh` and `scripts/phase12-provider-host-preflight.sh`; they are preparation evidence only and do not satisfy the target-bound egress or production acceptance gates.
+
 ## 12B - Nuclei
 
 Use the existing `provider-nuclei` contract. Engine v3.11.1 and templates v10.4.7 are now pinned to exact upstream commits and Linux artifact digests. The initial source runtime allowlist contains only `http-missing-security-headers`; all other Nuclei profiles remain disabled. Runtime remains blocked on dedicated target-bound containment and operational acceptance.

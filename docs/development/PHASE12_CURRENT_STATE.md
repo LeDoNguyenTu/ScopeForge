@@ -35,6 +35,8 @@ Remaining 12A gate:
 
 No production httpx worker is currently enabled.
 
+Host preparation is now scripted in `scripts/phase12-stage-provider-assets.sh` and `scripts/phase12-provider-host-preflight.sh`. These helpers verify pinned artifacts and build/check networkless candidate images only; they intentionally do not solve or bypass the remaining target-bound egress gate. See `PHASE12_PROVIDER_HOST_PREPARATION.md`.
+
 ## 12B Nuclei safe-active runtime
 
 Source preparation is now in progress on the Phase 12 provider-runtime branch.
@@ -65,6 +67,8 @@ The runtime profile:
 - keeps the more aggressive `misconfiguration-reviewed` and `known-cve-reviewed` profiles disabled
 
 This is source preparation only. No Nuclei production execution is authorized by these files.
+
+The same host preparation helpers stage the pinned Nuclei engine and exact allowlisted template with archive SHA-256 and template Git-blob verification before building a networkless image candidate.
 
 ## Storage state
 
