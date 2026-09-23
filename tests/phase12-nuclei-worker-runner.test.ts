@@ -73,6 +73,22 @@ describe("Phase 12 Nuclei worker runner", () => {
     });
   });
 
+  it("rejects sensitive raw output fields before normalization", async () => {
+    const raw = JSON.stringify({
+      "template-id": NUCLEI_BASELINE_TEMPLATE_ID,
+      "matched-at": "https://scopeforge.dev/",
+      timestamp: "2026-09-23T12:00:00Z",
+      info: { severity: "info" },
+      request: "GET / HTTP/1.1",
+    });
+    await expect(executeNucleiRunner({
+      request,
+      context,
+      target: { hostname: "scopeforge.dev", scheme: "https", port: 443 },
+    }, new AbortController().signal, { driver: driver(raw) }))
+      .rejects.toThrow("NUCLEI_OUTPUT_SENSITIVE_FIELD_PRESENT");
+  });
+
   it("rejects output for another origin or an unapproved template", async () => {
     const otherOrigin = JSON.stringify({
       "template-id": NUCLEI_BASELINE_TEMPLATE_ID,
