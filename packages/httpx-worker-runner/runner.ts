@@ -32,7 +32,7 @@ export interface ExecuteHttpxRunnerInput {
   trustedHostname: string;
 }
 
-function fixedEnvironment(): NodeJS.ProcessEnv {
+function fixedEnvironment(): Record<string, string> {
   return {
     PATH: "/opt/scopeforge/bin:/usr/bin:/bin",
     HOME: "/tmp",
@@ -44,7 +44,11 @@ function fixedEnvironment(): NodeJS.ProcessEnv {
 
 function createDriver(): HttpxCommandDriver {
   return Object.freeze({
-    exec(file, args, options) {
+    exec(
+      file: string,
+      args: readonly string[],
+      options: Readonly<{ timeoutMs: number; maxOutputBytes: number; signal: AbortSignal }>,
+    ) {
       return new Promise<HttpxCommandResult>((resolve, reject) => {
         execFile(file, [...args], {
           encoding: "utf8",
