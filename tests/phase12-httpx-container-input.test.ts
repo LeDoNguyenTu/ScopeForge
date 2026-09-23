@@ -43,7 +43,7 @@ describe("Phase 12 httpx container input", () => {
     expect(() => parseHttpxContainerInput([...args, "--port", "8443"]))
       .toThrow("HTTPX_CONTAINER_ARGUMENTS_INVALID");
 
-    const widened = [...args];
+    const widened: string[] = [...args];
     widened[widened.indexOf("5000")] = "9000";
     expect(() => parseHttpxContainerInput(widened))
       .toThrow("HTTPX_CONTAINER_RUNTIME_INVALID");
