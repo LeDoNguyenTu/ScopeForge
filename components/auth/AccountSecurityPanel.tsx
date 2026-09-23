@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import PasskeyManager from "@/components/auth/PasskeyManager";
 import PasswordChangeForm from "@/components/auth/PasswordChangeForm";
 
-type Enrollment = { id: string; qrCode: string };
+type Enrollment = { id: string; qrCode: string; secret: string };
 const EMPTY_STATE: AssuranceState = { currentLevel: null, nextLevel: null, verifiedTotp: [], unverifiedTotp: [] };
 
 export default function AccountSecurityPanel({ email }: { email: string }) {
@@ -29,6 +29,9 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
       return;
     }
     const totp = factors.data.totp ?? [];
+    const unverifiedTotp = (factors.data.all ?? []).filter((factor) => (
+      factor.factor_type === "totp" && factor.status === "unverified"
+    ));
     const normalize = (factor: { id: string; friendly_name?: string | null }) => ({
       id: factor.id,
       friendlyName: factor.friendly_name?.trim() || "Authenticator app",
@@ -42,7 +45,7 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
       currentLevel,
       nextLevel,
       verifiedTotp: totp.filter((factor) => factor.status === "verified").map(normalize),
-      unverifiedTotp: [],
+      unverifiedTotp: unverifiedTotp.map(normalize),
     });
     setError("");
   }, []);
@@ -52,13 +55,32 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
   async function beginEnrollment() {
     setPending(true);
     setError("");
-    const result = await createClient().auth.mfa.enroll({ factorType: "totp", friendlyName: "Authenticator" });
-    if (result.error || !result.data?.totp?.qr_code) {
+    const supabase = createClient();
+    for (const factor of state.unverifiedTotp) {
+      const cleanup = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+      if (cleanup.error) {
+        setError("The unfinished authenticator setup could not be cleared. Please retry.");
+        setPending(false);
+        return;
+      }
+    }
+    const result = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Authenticator" });
+    if (result.error || !result.data?.totp?.qr_code || !result.data.totp.secret) {
       setError("Authenticator setup could not be started.");
     } else {
-      setEnrollment({ id: result.data.id, qrCode: result.data.totp.qr_code });
+      setEnrollment({ id: result.data.id, qrCode: result.data.totp.qr_code, secret: result.data.totp.secret });
     }
     setPending(false);
+  }
+
+  async function copySetupKey() {
+    if (!enrollment) return;
+    try {
+      await navigator.clipboard.writeText(enrollment.secret);
+      toast.success("Setup key copied.");
+    } catch {
+      toast.error("Setup key could not be copied.");
+    }
   }
 
   async function verifyEnrollment(event: React.FormEvent) {
@@ -110,9 +132,16 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
             <li key={factor.id}><span>{factor.friendlyName}</span><button className="secondaryButton" disabled={pending} onClick={() => void removeFactor(factor.id)} type="button">Remove</button></li>
           ))}</ul>
         )}
-        {!enrollment ? <button className="primaryButton" disabled={pending} onClick={() => void beginEnrollment()} type="button">Set up authenticator</button> : (
+        {!enrollment ? <button className="primaryButton" disabled={pending} onClick={() => void beginEnrollment()} type="button">{state.unverifiedTotp.length > 0 ? "Restart authenticator setup" : "Set up authenticator"}</button> : (
           <form className="authForm securityEnrollment" onSubmit={verifyEnrollment}>
-            <img alt="Authenticator QR code" className="securityQrCode" src={`data:image/svg+xml;utf8,${encodeURIComponent(enrollment.qrCode)}`} />
+            <div className="securityEnrollmentSetup">
+              <img alt="Authenticator QR code" className="securityQrCode" src={`data:image/svg+xml;utf8,${encodeURIComponent(enrollment.qrCode)}`} />
+              <div className="securityManualKey">
+                <label htmlFor="manual-setup-key">Manual setup key</label>
+                <input autoComplete="off" id="manual-setup-key" readOnly spellCheck={false} value={enrollment.secret} />
+                <button className="secondaryButton" onClick={() => void copySetupKey()} type="button">Copy setup key</button>
+              </div>
+            </div>
             <p className="muted">Scan this code with your authenticator app, then enter the generated code to finish.</p>
             <label htmlFor="enrollment-code">Verification code</label>
             <input id="enrollment-code" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} />
