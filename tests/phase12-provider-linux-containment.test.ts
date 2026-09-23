@@ -21,6 +21,8 @@ describe("Phase 12 provider Linux containment helper", () => {
     for (const required of [
       "--network=none",
       "--network=\"container:$sidecar_name\"",
+      "sidecar_id=\"$(podman inspect --format '{{.Id}}' \"$sidecar_name\")\"",
+      "\"container:$sidecar_name\"|\"container:$sidecar_id\"",
       "dst=/run/scopeforge/egress.sock,ro",
       "--cap-drop=all",
       "--security-opt=no-new-privileges",
