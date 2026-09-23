@@ -14,7 +14,7 @@ function policy() {
     hostname: "ScopeForge.dev",
     scheme: "https",
     port: 443,
-    resolvedIpv4Addresses: ["104.21.48.1", "172.67.1.2"],
+    resolvedAddresses: ["104.21.48.1", "172.67.1.2"],
     budget: {
       maxConnections: 2,
       maxBytesToTarget: 1024,
@@ -58,7 +58,7 @@ describe("Phase 12 target-bound provider egress policy", () => {
     ]) {
       expect(() => createProviderEgressPolicy({
         ...policy(),
-        resolvedIpv4Addresses: [address],
+        resolvedAddresses: [address],
       })).toThrow("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
     }
   });
@@ -70,7 +70,11 @@ describe("Phase 12 target-bound provider egress policy", () => {
     }
     expect(() => createProviderEgressPolicy({
       ...policy(),
-      resolvedIpv4Addresses: ["104.21.48.1", "104.21.48.1"],
+      resolvedAddresses: ["104.21.48.1", "104.21.48.1"],
+    })).toThrow("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
+    expect(() => createProviderEgressPolicy({
+      ...policy(),
+      resolvedAddresses: ["104.21.48.1", "2001:db8::1"],
     })).toThrow("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
     expect(() => createProviderEgressPolicy({
       ...policy(),

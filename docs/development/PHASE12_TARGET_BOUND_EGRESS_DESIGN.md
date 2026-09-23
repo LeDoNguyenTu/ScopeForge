@@ -24,8 +24,8 @@ The provider container remains under the accepted ScopeForge sandbox posture:
 The Phase 12 boundary is intentionally provider-neutral.
 
 1. The trusted supervisor reauthorizes the exact target node and derives one hostname, one scheme and one port.
-2. Trusted host DNS resolution is performed outside the provider container.
-3. The result is reduced to a small pinned IPv4 set. The initial profile allows at most four addresses and rejects private, loopback, link-local, carrier-grade NAT, documentation, multicast and reserved ranges. IPv6 is fail-closed until separately reviewed.
+2. Trusted host DNS resolution is performed outside the provider container. The complete raw answer set is passed into the boundary without prefiltering.
+3. The shared network-safety policy validates the entire answer set first. The initial provider profile then requires a small IPv4-only pinned set of at most four addresses and rejects private, loopback, link-local, carrier-grade NAT, documentation, multicast and reserved ranges. Any IPv6 answer makes the initial profile fail closed until IPv6 is separately reviewed.
 4. The provider container stays `--network=none`. It sees only loopback plus one task-specific read-only Unix mediator socket.
 5. A ScopeForge-owned loopback SOCKS5 shim listens only on `127.0.0.1:17777` inside the provider container.
 6. The provider receives a fixed internal proxy argument. Callers cannot supply or override it:

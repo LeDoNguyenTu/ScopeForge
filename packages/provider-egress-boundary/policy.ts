@@ -28,12 +28,15 @@ export interface ProviderEgressPolicyInput {
   hostname: string;
   scheme: "http" | "https";
   port: number;
-  resolvedIpv4Addresses: readonly string[];
+  resolvedAddresses: readonly string[];
   budget: ProviderEgressBudget;
 }
 
-export interface ProviderEgressPolicy extends ProviderEgressPolicyInput {
+export interface ProviderEgressPolicy {
+  provider: ExternalProviderKind;
   hostname: string;
+  scheme: "http" | "https";
+  port: number;
   resolvedIpv4Addresses: readonly string[];
   budget: Readonly<ProviderEgressBudget>;
 }
@@ -96,13 +99,13 @@ export function createProviderEgressPolicy(
   const hostname = canonicalHostname(input.hostname);
   let normalizedAddresses: ReturnType<typeof normalizePublicResolvedAddresses>;
   try {
-    normalizedAddresses = normalizePublicResolvedAddresses(input.resolvedIpv4Addresses);
+    normalizedAddresses = normalizePublicResolvedAddresses(input.resolvedAddresses);
   } catch {
     return fail("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
   }
   if (normalizedAddresses.length < 1
       || normalizedAddresses.length > PROVIDER_EGRESS_LIMITS.maxResolvedIpv4Addresses
-      || normalizedAddresses.length !== input.resolvedIpv4Addresses.length
+      || normalizedAddresses.length !== input.resolvedAddresses.length
       || normalizedAddresses.some(({ family }) => family !== 4)) {
     return fail("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
   }
