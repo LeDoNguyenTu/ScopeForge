@@ -88,3 +88,5 @@ PR #198 merged as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI
 The follow-on provider sandbox orchestration is now under implementation on `feat/phase-12-provider-sandbox-orchestration-20260924`. Its source gives the egress Unix socket and task nonce only to the networkless trusted sidecar; the provider joins only that sidecar's network namespace and receives neither. Runner arguments are constructed from closed typed httpx/Nuclei profiles rather than an arbitrary flag list. No worker identity, queue route, migration or production enablement has been added.
 
 Operational state is unchanged until CI and real Linux containment evidence exist: 12A and 12B are not operationally accepted.
+
+Exact-head CI is required for this security-sensitive orchestration change before merge.
