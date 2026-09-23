@@ -1,6 +1,8 @@
 import type { HttpxProviderRequest, HttpxProbe } from ".";
 
 export const HTTPX_EXECUTABLE_PROFILE_ID = "projectdiscovery-httpx-1.12.0-bounded-v1";
+export const HTTPX_LINUX_AMD64_ZIP_SHA256 = "9d8439e8b6c9aa7d1e2314817a392e00d5178da3af5652f7475f88868f418f76";
+export const HTTPX_LINUX_ARM64_ZIP_SHA256 = "fd7b123c1dfbc3d69f19f524e4eebcd6ec06b9a6cbd56813c76f11645197331e";
 
 export interface HttpxExecutionPlan {
   profileId: typeof HTTPX_EXECUTABLE_PROFILE_ID;
@@ -28,6 +30,10 @@ export function buildHttpxExecutionPlan(
   request: Readonly<HttpxProviderRequest>,
   trustedHostname: string,
 ): Readonly<HttpxExecutionPlan> {
+  if (request.maxRedirects !== 0) {
+    throw new Error("HTTPX_REDIRECT_PROFILE_NOT_RUNTIME_APPROVED");
+  }
+
   const target = targetAuthority(request, trustedHostname);
   const args = [
     "-u",
@@ -35,12 +41,16 @@ export function buildHttpxExecutionPlan(
     "-json",
     "-silent",
     "-no-color",
-    "-no-fallback",
+    "-no-stdin",
+    "-nfs",
+    "-retries",
+    "0",
+    "-t",
+    "1",
+    "-rl",
+    "1",
     "-timeout",
     "5",
-    "-maxr",
-    String(request.maxRedirects),
-    ...(request.maxRedirects > 0 ? ["-fr"] : []),
     ...request.probes.flatMap((probe) => PROBE_ARGUMENTS[probe]),
   ];
 
