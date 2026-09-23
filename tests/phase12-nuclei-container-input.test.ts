@@ -38,14 +38,14 @@ describe("Phase 12 Nuclei container input", () => {
   });
 
   it("rejects disabled profiles, unknown arguments, and widened runtime", () => {
-    const disabled = [...args];
+    const disabled: string[] = [...args];
     disabled[disabled.indexOf("baseline-http")] = "misconfiguration-reviewed";
     expect(() => parseNucleiContainerInput(disabled)).toThrow("NUCLEI_CONTAINER_PROFILE_DISABLED");
 
     expect(() => parseNucleiContainerInput([...args, "--template", "unsafe.yaml"]))
       .toThrow("NUCLEI_CONTAINER_ARGUMENT_UNKNOWN");
 
-    const widened = [...args];
+    const widened: string[] = [...args];
     widened[widened.indexOf("8000")] = "20000";
     expect(() => parseNucleiContainerInput(widened))
       .toThrow("NUCLEI_CONTAINER_RUNTIME_INVALID");
