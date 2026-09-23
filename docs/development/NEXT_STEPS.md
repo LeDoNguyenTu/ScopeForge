@@ -12,7 +12,7 @@ Current estimated broader automated-pentest product vision: approximately 75% at
 
 Active slice: **12A external ProjectDiscovery httpx**.
 
-The product UX/account-security hardening and rendered mobile-navigation follow-up shipped in PRs #186 and #187. Continue Phase 12 without changing its runtime gates.
+The product UX/account-security hardening, rendered mobile-navigation correction, TOTP recovery/QR corrections, role-scoped MFA enforcement, and scheduled maintenance controls shipped through PR #194. Continue Phase 12 without changing its runtime gates.
 
 See:
 
