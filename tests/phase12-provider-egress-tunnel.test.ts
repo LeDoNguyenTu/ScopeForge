@@ -66,6 +66,7 @@ describe("Phase 12 provider egress tunnel protocol", () => {
     expect(source).toContain("port: PROVIDER_EGRESS_LOOPBACK_PORT");
     expect(source).toContain("path: PROVIDER_EGRESS_CONTAINER_SOCKET_PATH");
     expect(source).not.toContain("createConnection({ host:");
+    expect(source).not.toContain("./unix-tunnel");
     expect(source).not.toContain("lookup(");
     expect(source).toContain("parseAuthorizedSocks5ConnectRequest");
     expect(source).toContain("dependencies.target");
