@@ -2,13 +2,13 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live provider state wins.
 
-## Product UX and account-security release candidate
+## Product UX and account-security release
 
-Branch `feat/post-v1-ux-auth-security` is rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db` (PR #185 / Phase 12A baseline). It contains the approved whole-app interface and authentication hardening: authoritative collaborator role state, dismissible auto-expiring toasts, normalized typography/layout/forms, password recovery and signed-in password changes, TOTP AAL2 enforcement for workspace owners/admins and platform administrators, capability-checked passkeys, and consistent mutation feedback.
+PR #186 merged as `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662` after exact-head CI run `35822369679` passed. Vercel reported deployment `E5gKbj7eoFjSTyMYVkQ7LUwi454A` complete for that merge and `scopeforge.dev` served the new authenticated Account & security surface. The release contains authoritative collaborator role state, dismissible auto-expiring toasts, normalized typography/layout/forms, password recovery and signed-in password changes, TOTP AAL2 enforcement for workspace owners/admins and platform administrators, capability-checked passkeys, and consistent mutation feedback.
 
 Local exact-candidate evidence: 2,325 tests passed with two known Windows concurrency timeouts; both timed tests passed in a serial rerun (4/4). Typecheck, CLI build, worker bundles, and the 42-route Next production build passed. GitNexus was rebuilt at 18,283 nodes, 30,033 edges, 781 clusters, and 300 flows. No Phase 11 canary or production security boundary changed.
 
-Remaining release gates are exact-head CI, merge, exact-main deployment readiness, rendered production viewport/role smoke coverage, and live Supabase passkey relying-party capability verification. Do not call the passkey production path accepted until that provider evidence exists.
+Authenticated production evidence confirmed owner AAL1 is redirected to required MFA enrollment, the live Supabase project exposes passkey management for `scopeforge.dev`, and no passkeys or TOTP factors are currently enrolled. A rendered narrow-screen check found one remaining compact-navigation defect; its scoped stylesheet fix and regression guard are the only UX closure item still in flight. No factor was enrolled and no password or permission was changed during verification.
 
 ## Phase 11 operational acceptance complete
 

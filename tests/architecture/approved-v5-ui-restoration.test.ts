@@ -43,4 +43,12 @@ describe("post-PR49 UI remains inactive after rollback", () => {
     expect(sample).not.toMatch(/style\s*=\s*\{/);
     expect(cinematic).not.toMatch(/style\s*=\s*\{/);
   });
+
+  it("keeps workspace navigation compact and horizontally scrollable on mobile", () => {
+    const productUi = read("app/product-ui.css");
+
+    expect(productUi).toContain(
+      ".immersiveDashboardLinks .sideNav { display: flex; flex-direction: row;",
+    );
+  });
 });

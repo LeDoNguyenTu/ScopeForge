@@ -1,6 +1,6 @@
 # Product UX and account security acceptance
 
-Candidate: `feat/post-v1-ux-auth-security`, rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db` (exact head is recorded by the PR and final handoff).
+Released by PR #186: exact head `3802f6247ef267716de0e29320668b449dff3328`, merge `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`, exact-head CI run `35822369679`, Vercel deployment `E5gKbj7eoFjSTyMYVkQ7LUwi454A`.
 
 ## Scope and invariants
 
@@ -44,11 +44,11 @@ Candidate: `feat/post-v1-ux-auth-security`, rebased onto live `main` `d74adff99b
 
 ## Rendered acceptance matrix
 
-The final exact-deployment rows are populated only after the candidate is deployed. A row is not accepted from source review alone.
+Authenticated production rendering confirmed the new security shell and provider-backed factor inventory. Browser viewport override at the narrow breakpoint reported a 520 CSS-pixel content viewport because the existing Chrome profile is zoomed; the check still exercised the mobile CSS breakpoint and recorded no document-level horizontal overflow. The first render exposed an overly tall mobile workspace navigation list, so acceptance remains pending only for the scoped compact-navigation follow-up.
 
 | Viewport | Public/auth | Workspace shell | Account security | Platform admin | Horizontal overflow | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 390x844 | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending | Pending |
+| Narrow mobile breakpoint | Landing and recovery rendered; no overflow | Compact-nav follow-up in flight | Rendered; owner AAL1 redirected to required MFA | AAL2 guard exercised by shared policy/tests | None | Follow-up pending |
 | 768x1024 | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending | Pending |
 | 1024x768 | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending | Pending |
 | 1440x900 | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending exact deployment | Pending | Pending |
@@ -56,4 +56,5 @@ The final exact-deployment rows are populated only after the candidate is deploy
 ## Provider-dependent evidence
 
 - TOTP enrollment and challenge use the configured Supabase Auth project and require an authenticated account. Production acceptance must verify enrollment, AAL1 challenge, AAL2 continuation, and factor removal without recording QR secrets or codes.
-- Passkey UI and safe fallback are implemented and tested. Production acceptance additionally requires the Supabase project to expose passkeys for `scopeforge.dev` with the relying-party configuration verified.
+- Production factor inventory returned successfully on `scopeforge.dev` and rendered `No passkeys registered yet`, confirming live passkey provider capability without creating a persistent credential.
+- TOTP enrollment/challenge/removal remain automated-test accepted. The browser smoke deliberately did not enroll or remove the user's factor, expose a QR secret, submit an OTP, or change a password.

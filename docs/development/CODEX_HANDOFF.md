@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
-Active release candidate: `feat/post-v1-ux-auth-security`, rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db`. The whole-app UX/account-security implementation and local gate are complete; exact-head CI, merge, exact-main deployment, rendered production matrix, and passkey provider capability remain. Resume from `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md` and do not rerun any Phase 11 canary.
+PR #186 shipped the whole-app UX/account-security implementation as merge `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`; exact-head CI and Vercel deployment passed, and authenticated production confirmed the security route plus passkey provider capability. A rendered narrow-screen check found one compact-navigation defect, now covered by a focused regression test and scoped stylesheet fix on `feat/post-v1-ux-auth-security`. Finish that follow-up and do not rerun any Phase 11 canary.
 
 Phase 11 source, operational acceptance, and its completion task are complete. Reconciliation against the approved v1 roadmap now records ScopeForge at **100%: 11 of 11 phases complete**. Phase 10A2/A3 supplied the later production acceptance for private acquisition and zero-egress scanning; generic disabled worker classes and rejected/deferred providers are explicit post-v1 scope, not unfinished v1 tasks. See `PROJECT_COMPLETION.md`.
 

@@ -2,9 +2,9 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
-## Active product hardening candidate
+## Product hardening release
 
-`feat/post-v1-ux-auth-security` is rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db`. Implementation and local build/test evidence are complete. Remaining gates are PR/CI/merge, exact-main deployment, authenticated production rendering, and passkey provider capability. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
+PR #186 passed exact-head CI and shipped as merge `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`. Vercel completed the production deployment, and authenticated rendering confirmed owner AAL2 redirection plus live TOTP/passkey/password controls. The only active UX closure item is a compact mobile-navigation correction found in the rendered check. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
 
 ## Canonical resume point
 
