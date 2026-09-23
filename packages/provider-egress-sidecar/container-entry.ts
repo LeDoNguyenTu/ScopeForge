@@ -1,4 +1,4 @@
-import { createProviderEgressLoopbackSocksServer } from "../provider-egress-boundary";
+import { createProviderEgressLoopbackSocksServer } from "../provider-egress-boundary/loopback-socks5";
 import { parseProviderEgressSidecarInput } from "./input";
 
 function safeCode(error: unknown): string {
