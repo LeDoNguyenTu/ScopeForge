@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { execFile } from "node:child_process";
+import { execFile, type ExecFileException } from "node:child_process";
 import type { ProviderExecutionContext } from "../capability-registry/types";
 import type { HttpxProviderRequest, HttpxRawResult } from "../provider-httpx";
 import { buildHttpxExecutionPlan } from "../provider-httpx/execution-plan";
@@ -32,13 +32,14 @@ export interface ExecuteHttpxRunnerInput {
   trustedHostname: string;
 }
 
-function fixedEnvironment(): Record<string, string> {
+function fixedEnvironment(): NodeJS.ProcessEnv {
   return {
     PATH: "/opt/scopeforge/bin:/usr/bin:/bin",
     HOME: "/tmp",
     TMPDIR: "/tmp",
     LANG: "C.UTF-8",
     LC_ALL: "C.UTF-8",
+    NODE_ENV: "production",
   };
 }
 
@@ -58,7 +59,7 @@ function createDriver(): HttpxCommandDriver {
           cwd: "/tmp",
           env: fixedEnvironment(),
           signal: options.signal,
-        }, (error, stdout, stderr) => {
+        }, (error: ExecFileException | null, stdout: string, stderr: string) => {
           if (error && typeof error.code !== "number") {
             reject(new Error("HTTPX_PROCESS_EXECUTION_FAILED"));
             return;
