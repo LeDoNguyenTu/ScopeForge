@@ -2,6 +2,21 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub and provider state wins.
 
+## Product UX and account security candidate
+
+The post-v1 UX/auth candidate on `feat/post-v1-ux-auth-security` was reconciled onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db` after Phase 12A PR #185 merged. Completed implementation includes:
+
+- controlled collaborator roles plus canonical refresh after mutations;
+- bottom-right, dismissible, auto-expiring toasts across workspace mutation workflows;
+- responsive typography, spacing, form, finding-detail, workspace, auth, and navigation refinement;
+- forgot-password/recovery and authenticated password change controls;
+- native Supabase TOTP enrollment/challenge/removal with default-on AAL2 enforcement for owners, admins, and platform administrators;
+- experimental Supabase passkey sign-in and management with password/TOTP fallback and Turnstile preservation.
+
+Local gate: 2,325 tests passed; the two expected Windows parallel timeout failures passed 4/4 serially. Typecheck, CLI, worker, and Next production builds passed. GitNexus is current. Acceptance record: `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
+
+No Phase 11 canary was run. Release/deployment/browser/provider evidence remains pending until the exact-head PR is green and merged.
+
 ## Phase 11 accepted
 
 The separately authorized fifth bounded production canary completed through the normal authenticated admin, policy, queue, worker, mediator, and sandbox path.

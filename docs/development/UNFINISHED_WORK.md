@@ -2,6 +2,17 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
+## Product UX and account security
+
+Implementation and local verification are complete on `feat/post-v1-ux-auth-security`, rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db`. Remaining external gates:
+
+- exact-head CI and reviewed merge;
+- exact-main production deployment readiness;
+- authenticated rendered route/role/viewport smoke verification;
+- live passkey relying-party capability verification for `scopeforge.dev`.
+
+TOTP is the supported AAL2 factor. Email OTP and passkeys must not be relabeled as AAL2. Password/TOTP fallback must remain available if passkeys are provider-disabled.
+
 ## Phase 11
 
 No Phase 11 closure blocker remains for the approved initial production scope.

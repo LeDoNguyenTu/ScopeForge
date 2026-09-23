@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { WORKSPACE_COOKIE } from "@/lib/workspaces/selection";
 import { enforcePlatformMaintenanceForUser } from "@/lib/platform-settings/server";
+import { enforceAssuranceForRole } from "@/lib/auth/assurance-server";
 
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
@@ -15,9 +16,10 @@ export async function switchWorkspace(form: FormData) {
   if (!user) redirect("/auth/sign-in");
   const workspaceId = String(form.get("workspaceId") ?? "");
   if (!UUID.test(workspaceId)) redirect("/dashboard/workspace?error=access");
-  const { data, error } = await supabase.from("workspace_members").select("workspace_id")
+  const { data, error } = await supabase.from("workspace_members").select("workspace_id,role")
     .eq("user_id", user.id).eq("workspace_id", workspaceId).maybeSingle();
   if (error || !data) redirect("/dashboard/workspace?error=access");
+  await enforceAssuranceForRole(supabase.auth, data.role, "/dashboard/workspace");
   (await cookies()).set(WORKSPACE_COOKIE, `${user.id}:${workspaceId}`, {
     httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30,
   });
@@ -25,7 +27,17 @@ export async function switchWorkspace(form: FormData) {
   redirect("/dashboard");
 }
 
-export async function manageCollaborator(form: FormData): Promise<{ ok: boolean; message: string }> {
+export type ManageCollaboratorResult =
+  | { ok: false; message: string }
+  | {
+      ok: true;
+      message: string;
+      operation: "add" | "role" | "remove";
+      collaboratorId?: string;
+      role?: "member" | "viewer";
+    };
+
+export async function manageCollaborator(form: FormData): Promise<ManageCollaboratorResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Sign in to manage collaborators." };
@@ -40,6 +52,10 @@ export async function manageCollaborator(form: FormData): Promise<{ ok: boolean;
       || (operation === "add" ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 : !UUID.test(collaboratorId))) {
     return { ok: false, message: "Check the email address and workspace role." };
   }
+  const { data: membership, error: membershipError } = await supabase.from("workspace_members").select("role")
+    .eq("user_id", user.id).eq("workspace_id", workspaceId).maybeSingle();
+  if (membershipError || !membership) return { ok: false, message: "Only workspace owners and admins can manage collaborators." };
+  await enforceAssuranceForRole(supabase.auth, membership.role, "/dashboard/workspace");
   // The session-scoped RPC reauthorizes and locks membership in the same transaction as the write.
   const { error } = await supabase.rpc("manage_workspace_collaborator", {
     target_workspace_id: workspaceId, operation, collaborator_role: role as "member" | "viewer",
@@ -56,5 +72,12 @@ export async function manageCollaborator(form: FormData): Promise<{ ok: boolean;
     return { ok: false, message: messages[error.message] ?? "The change could not be saved. Please try again." };
   }
   revalidatePath("/dashboard/workspace");
-  return { ok: true, message: operation === "add" ? "Collaborator added." : operation === "remove" ? "Collaborator removed." : "Role updated." };
+  const normalizedOperation = operation as "add" | "role" | "remove";
+  return {
+    ok: true,
+    message: operation === "add" ? "Collaborator added." : operation === "remove" ? "Collaborator removed." : "Role updated.",
+    operation: normalizedOperation,
+    ...(operation === "add" ? {} : { collaboratorId }),
+    ...(operation === "role" ? { role: role as "member" | "viewer" } : {}),
+  };
 }

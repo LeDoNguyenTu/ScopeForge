@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateFindingRemediationAction } from "@/app/dashboard/findings/[findingId]/remediation-actions";
 import type { SecurityFindingWorkRow, WorkspaceRole } from "@/lib/database.types";
+import { useToast } from "@/components/feedback/ToastProvider";
 
 export interface FindingRemediationPanelProps {
   assignees?: Array<{ userId: string; label: string; detail?: string }>;
@@ -20,11 +21,12 @@ export default function FindingRemediationPanel({
   currentUserId,
 }: FindingRemediationPanelProps) {
   const [note, setNote] = useState(work?.remediation_note ?? "");
+  const toast = useToast();
   const [assigneeUserId, setAssigneeUserId] = useState(work?.assignee_user_id ?? "");
   const [assignedToMe, setAssignedToMe] = useState(
     Boolean(currentUserId && work?.assignee_user_id === currentUserId),
   );
-  const [message, setMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   if (role === "viewer") {
@@ -47,7 +49,7 @@ export default function FindingRemediationPanel({
       ? (assignedToMe && currentUserId ? currentUserId : null)
       : (assigneeUserId.trim() || null);
 
-    setMessage(null);
+    setErrorMessage(null);
     startTransition(async () => {
       const result = await updateFindingRemediationAction(
         findingId,
@@ -55,13 +57,13 @@ export default function FindingRemediationPanel({
         note.trim() || null,
       );
       if (!result.ok) {
-        setMessage(result.error.message);
+        setErrorMessage(result.error.message);
         return;
       }
       setNote(result.data.remediation_note ?? "");
       setAssigneeUserId(result.data.assignee_user_id ?? "");
       setAssignedToMe(Boolean(currentUserId && result.data.assignee_user_id === currentUserId));
-      setMessage("Remediation work updated.");
+      toast.success("Remediation work updated.");
     });
   }
 
@@ -117,7 +119,7 @@ export default function FindingRemediationPanel({
             Save remediation
           </button>
         </div>
-        {message ? <div className="authMessage" role="status">{message}</div> : null}
+        {errorMessage ? <div className="authMessage" role="alert">{errorMessage}</div> : null}
       </div>
     </article>
   );

@@ -8,7 +8,9 @@ export async function GET(request: Request) {
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
   const allowedTypes: readonly string[] = ["signup", "invite", "magiclink", "recovery", "email_change", "email"] satisfies EmailOtpType[];
-  const next = url.searchParams.has("next") ? safeAuthReturnPath(url.searchParams.get("next")) : "/auth/result?status=success";
+  const next = url.searchParams.has("next")
+    ? safeAuthReturnPath(url.searchParams.get("next"))
+    : type === "recovery" ? "/auth/update-password" : "/auth/result?status=success";
 
   if (tokenHash && type && allowedTypes.includes(type)) {
     try {

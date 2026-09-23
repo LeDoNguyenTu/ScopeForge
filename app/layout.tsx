@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { scopeForgeIconMetadata } from "@/lib/brand/browser-icons";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
 import "./globals.css";
 import "./forge.css";
 import "./forge-landing.css";
@@ -15,6 +16,7 @@ import "./ui-refinement.css";
 import "./saas-dashboard.css";
 import "./csp-compatibility.css";
 import "./pre-pr49-ui-compatibility.css";
+import "./product-ui.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
@@ -32,7 +34,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><ToastProvider>{children}</ToastProvider></body>
     </html>
   );
 }

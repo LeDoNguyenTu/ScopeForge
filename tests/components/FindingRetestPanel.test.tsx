@@ -1,11 +1,16 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import FindingRetestPanel from "@/components/findings/FindingRetestPanel";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
+
+const mocks = vi.hoisted(() => ({ retest: vi.fn() }));
+vi.mock("@/app/dashboard/findings/[findingId]/remediation-actions", () => ({ runFindingRetestAction: mocks.retest }));
+const renderPanel = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 describe("FindingRetestPanel", () => {
   it("allows members to run supported passive retests without active consent UI", () => {
-    render(
+    renderPanel(
       <FindingRetestPanel
         findingId="finding-1"
         lifecycleState="resolved"
@@ -20,7 +25,7 @@ describe("FindingRetestPanel", () => {
   });
 
   it("requires explicit consent for owner/admin active CORS retests", () => {
-    render(
+    renderPanel(
       <FindingRetestPanel
         findingId="finding-1"
         lifecycleState="resolved"
@@ -35,7 +40,7 @@ describe("FindingRetestPanel", () => {
   });
 
   it("does not expose active execution to members", () => {
-    render(
+    renderPanel(
       <FindingRetestPanel
         findingId="finding-1"
         lifecycleState="resolved"
@@ -47,5 +52,13 @@ describe("FindingRetestPanel", () => {
 
     expect(screen.getByText(/owner or admin/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /run retest/i })).not.toBeInTheDocument();
+  });
+
+  it("reports a completed retest as a temporary toast", async () => {
+    mocks.retest.mockResolvedValue({ ok: true, data: { id: "retest-1", status: "passed", execution_kind: "passive_runtime", result_code: "ok", requested_at: "2026-09-23T00:00:00.000Z" } });
+    render(<ToastProvider><FindingRetestPanel findingId="finding-1" lifecycleState="resolved" role="member" executionKind="passive_runtime" retests={[]} /></ToastProvider>);
+    fireEvent.click(screen.getByRole("button", { name: /run retest/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Finding retest completed."));
+    expect(document.querySelector(".verificationPanel > .authMessage[role='status']")).toBeNull();
   });
 });

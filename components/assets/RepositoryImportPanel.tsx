@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FileClock, ShieldCheck, Upload } from "lucide-react";
 import { PHASE3_IMPORT_MAX_BODY_BYTES } from "@/lib/phase3-import/transport";
+import { useToast } from "@/components/feedback/ToastProvider";
 
 export interface RepositoryImportHistoryItem {
   id: string;
@@ -51,15 +53,15 @@ export default function RepositoryImportPanel({
   repositoryUrl,
   history,
 }: RepositoryImportPanelProps) {
+  const router = useRouter();
+  const toast = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const cliCommand = `scopeforge scan . --format hosted-json --repository ${repositoryUrl} --output scopeforge-hosted.json`;
 
   async function uploadHostedResult() {
-    setMessage(null);
     setErrorMessage(null);
 
     if (!selectedFile) {
@@ -96,9 +98,10 @@ export default function RepositoryImportPanel({
         return;
       }
 
-      setMessage(payload?.data?.replayed
+      toast.success(payload?.data?.replayed
         ? "This hosted result was already imported. No duplicate finding history was created."
         : "Hosted findings imported successfully. Refresh this asset to see the latest import history.");
+      router.refresh();
     } catch {
       setErrorMessage("The hosted Phase 3 import could not be completed safely.");
     } finally {
@@ -162,7 +165,6 @@ export default function RepositoryImportPanel({
         </button>
       </div>
 
-      {message && <div className="authMessage" role="status">{message}</div>}
       {errorMessage && <div className="authMessage" role="alert">{errorMessage}</div>}
 
       <div className="verificationHeader">

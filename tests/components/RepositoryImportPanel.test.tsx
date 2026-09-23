@@ -3,6 +3,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RepositoryImportPanel from "@/components/assets/RepositoryImportPanel";
 import { PHASE3_IMPORT_MAX_BODY_BYTES } from "@/lib/phase3-import/transport";
+import { ToastProvider } from "@/components/feedback/ToastProvider";
+
+const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 
 const history = [
   {
@@ -20,12 +24,13 @@ const history = [
 ];
 
 function renderPanel() {
-  return render(
+  return render(<ToastProvider>
     <RepositoryImportPanel
       assetId="asset-1"
       repositoryUrl="https://github.com/acme/example"
       history={history}
-    />,
+    />
+  </ToastProvider>,
   );
 }
 
@@ -89,6 +94,8 @@ describe("RepositoryImportPanel", () => {
       }),
     );
     expect(await screen.findByText(/hosted findings imported successfully/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dismiss notification" })).toBeInTheDocument();
+    expect(document.querySelector(".verificationPanel > .authMessage[role='status']")).toBeNull();
   });
 
   it("shows only the safe route error message returned by the server", async () => {

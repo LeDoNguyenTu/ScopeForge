@@ -2,6 +2,8 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
+Active release candidate: `feat/post-v1-ux-auth-security`, rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db`. The whole-app UX/account-security implementation and local gate are complete; exact-head CI, merge, exact-main deployment, rendered production matrix, and passkey provider capability remain. Resume from `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md` and do not rerun any Phase 11 canary.
+
 Phase 11 source, operational acceptance, and its completion task are complete. Reconciliation against the approved v1 roadmap now records ScopeForge at **100%: 11 of 11 phases complete**. Phase 10A2/A3 supplied the later production acceptance for private acquisition and zero-egress scanning; generic disabled worker classes and rejected/deferred providers are explicit post-v1 scope, not unfinished v1 tasks. See `PROJECT_COMPLETION.md`.
 
 The accepted fifth production canary is run `37fb0091-a7b2-4a33-8a24-6136deb61143`, action `phase11-action:dccb7c2dfc471218d15f53d4f01b44f6f53cc40b64e8a4a8dd8847c13adc354c`, task `1e6d3df7-c1b2-40e9-ba68-704c3fdda12e`, attempt `8c03e311-56c0-4b33-8520-682cb335cd5c`, and observation `phase11-obs-http:79a7ccee5eee6751f948ebd2bee1954f07f2b71a33e49b890b33278ac267f7bb`. Database verdict was `acceptance_ready = true`; Vercel prepare/finalize returned HTTP 200; Oracle cleanup returned `PHASE11_HOST_CLEANUP_PASS`; active Phase 11 tasks are zero; the worker remains enabled.

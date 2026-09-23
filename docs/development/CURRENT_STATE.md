@@ -2,6 +2,14 @@
 
 Last reconciled: 2026-09-23, Asia/Singapore. Live provider state wins.
 
+## Product UX and account-security release candidate
+
+Branch `feat/post-v1-ux-auth-security` is rebased onto live `main` `d74adff99b9d13871afe73ba05d74d715597f5db` (PR #185 / Phase 12A baseline). It contains the approved whole-app interface and authentication hardening: authoritative collaborator role state, dismissible auto-expiring toasts, normalized typography/layout/forms, password recovery and signed-in password changes, TOTP AAL2 enforcement for workspace owners/admins and platform administrators, capability-checked passkeys, and consistent mutation feedback.
+
+Local exact-candidate evidence: 2,325 tests passed with two known Windows concurrency timeouts; both timed tests passed in a serial rerun (4/4). Typecheck, CLI build, worker bundles, and the 42-route Next production build passed. GitNexus was rebuilt at 18,283 nodes, 30,033 edges, 781 clusters, and 300 flows. No Phase 11 canary or production security boundary changed.
+
+Remaining release gates are exact-head CI, merge, exact-main deployment readiness, rendered production viewport/role smoke coverage, and live Supabase passkey relying-party capability verification. Do not call the passkey production path accepted until that provider evidence exists.
+
 ## Phase 11 operational acceptance complete
 
 The separately authorized post-fix canary completed successfully:

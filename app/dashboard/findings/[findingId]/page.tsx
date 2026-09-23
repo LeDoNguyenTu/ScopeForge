@@ -125,7 +125,7 @@ export default async function FindingDetailPage({
         <article className="statCard"><div><span>Evidence</span><ShieldCheck size={18} /></div><strong>{detail.evidence.length}</strong><small>Linked immutable records</small></article>
       </section>
 
-      <section className="dashboardGrid">
+      <section className="dashboardGrid findingPrimaryGrid">
         <article className="panel findingContextPanel">
           <div className="panelTitle"><div><span>Finding details</span><h2>Where this was detected</h2></div></div>
           <div className="detailList findingDetailList">
