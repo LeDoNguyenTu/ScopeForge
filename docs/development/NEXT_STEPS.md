@@ -21,8 +21,8 @@ See:
 
 ## Execution order
 
-1. 12A external httpx contract, worker runtime, containment and production acceptance.
-2. 12B Nuclei allowlist-only runtime.
+1. 12A external httpx: use the verified artifact staging/networkless host preflight, then implement and accept the dedicated target-bound provider network/control-plane boundary before any production canary.
+2. 12B Nuclei: preserve the single-template default-off runtime foundation, use the same verified staging/preflight path, then add dedicated target-bound containment before production enablement.
 3. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.
 4. 12D hosted authenticated browser/API runtime.
 5. 12E bounded web/API DAST.
