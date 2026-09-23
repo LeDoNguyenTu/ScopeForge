@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import type { Phase10cDatabase } from "@/lib/database.phase10c.types";
+import { enforceAssuranceForRole } from "@/lib/auth/assurance-server";
 import type { PlatformAdminRole } from "@/lib/platform-admin/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -58,7 +59,9 @@ export type PlatformAdminAccessState =
   | { status: "unauthenticated" }
   | { status: "denied" };
 
-export async function getPlatformAdminAccessState(): Promise<PlatformAdminAccessState> {
+export async function getPlatformAdminAccessState(
+  { enforceMfa = true }: { enforceMfa?: boolean } = {},
+): Promise<PlatformAdminAccessState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -74,11 +77,14 @@ export async function getPlatformAdminAccessState(): Promise<PlatformAdminAccess
 
   if (error || !data) return { status: "denied" };
   assertPlatformAdminRole(data.role);
+  if (enforceMfa) {
+    await enforceAssuranceForRole(supabase.auth, "platform-admin", "/admin");
+  }
   return { status: "authorized", context: { user, role: data.role } };
 }
 
 export async function getOptionalPlatformAdmin(): Promise<PlatformAdminContext | null> {
-  const state = await getPlatformAdminAccessState();
+  const state = await getPlatformAdminAccessState({ enforceMfa: false });
   return state.status === "authorized" ? state.context : null;
 }
 

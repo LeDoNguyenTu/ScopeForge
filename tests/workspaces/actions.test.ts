@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn(), maybeSingle: vi.fn(), eq: vi.fn(), set: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn(), maybeSingle: vi.fn(), eq: vi.fn(), set: vi.fn(), enforceAssurance: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc,
   from: () => ({ select: () => ({ eq: mocks.eq }) }) }) }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: mocks.set }) }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/platform-settings/server", () => ({ enforcePlatformMaintenanceForUser: vi.fn() }));
+vi.mock("@/lib/auth/assurance-server", () => ({ enforceAssuranceForRole: mocks.enforceAssurance }));
 import { manageCollaborator, switchWorkspace } from "@/app/dashboard/workspace/actions";
 
 const userId = "11111111-1111-4111-8111-111111111111";
@@ -21,7 +22,7 @@ beforeEach(() => {
   mocks.getUser.mockResolvedValue({ data: { user: { id: userId } } });
   mocks.rpc.mockResolvedValue({ error: null });
   mocks.eq.mockReturnValue({ eq: mocks.eq, maybeSingle: mocks.maybeSingle });
-  mocks.maybeSingle.mockResolvedValue({ data: { workspace_id: workspaceId }, error: null });
+  mocks.maybeSingle.mockResolvedValue({ data: { workspace_id: workspaceId, role: "owner" }, error: null });
 });
 
 describe("workspace control actions", () => {
@@ -36,6 +37,7 @@ describe("workspace control actions", () => {
   });
   it("uses a session-authorized RPC without accepting an actor from the form", async () => {
     expect((await manageCollaborator(form({ actor: "attacker" }))).ok).toBe(true);
+    expect(mocks.enforceAssurance).toHaveBeenCalledWith(expect.anything(), "owner", "/dashboard/workspace");
     expect(mocks.rpc).toHaveBeenCalledWith("manage_workspace_collaborator", { target_workspace_id: workspaceId, operation: "add", collaborator_role: "member", collaborator_email: "collaborator@example.com" });
   });
   it("preserves a database denial and bounds unknown error details", async () => {

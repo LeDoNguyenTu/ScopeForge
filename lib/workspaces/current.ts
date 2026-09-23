@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
+import { enforceAssuranceForRole } from "@/lib/auth/assurance-server";
 import { enforcePlatformMaintenanceForUser } from "@/lib/platform-settings/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSelectedWorkspaceId } from "@/lib/workspaces/selection";
 
-export async function getDashboardContext() {
+export async function getDashboardContext({ enforceMfa = true, returnPath = "/dashboard" }: { enforceMfa?: boolean; returnPath?: string } = {}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/sign-in");
@@ -22,6 +23,10 @@ export async function getDashboardContext() {
   const membership = memberships?.[0];
   const workspace = Array.isArray(membership?.workspaces) ? membership?.workspaces[0] : membership?.workspaces;
   if (!membership || !workspace) redirect("/dashboard/workspace?error=access");
+
+  if (enforceMfa) {
+    await enforceAssuranceForRole(supabase.auth, membership.role, returnPath);
+  }
 
   return {
     supabase,

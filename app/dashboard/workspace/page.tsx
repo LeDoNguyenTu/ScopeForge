@@ -4,6 +4,7 @@ import CollaboratorControls from "@/components/workspaces/CollaboratorControls";
 import { createClient } from "@/lib/supabase/server";
 import { getSelectedWorkspaceId } from "@/lib/workspaces/selection";
 import { enforcePlatformMaintenanceForUser } from "@/lib/platform-settings/server";
+import { enforceAssuranceForRole } from "@/lib/auth/assurance-server";
 import { switchWorkspace } from "./actions";
 import "./workspace.css";
 
@@ -24,6 +25,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
     return workspace ? [{ ...workspace, role: membership.role }] : [];
   });
   const active = workspaces.find(workspace => workspace.id === selectedId) ?? workspaces[0];
+  if (active) await enforceAssuranceForRole(supabase.auth, active.role, "/dashboard/workspace");
   const canManage = active?.role === "owner" || active?.role === "admin";
   const roster = active && canManage ? await supabase.rpc("list_workspace_collaborators", { target_workspace_id: active.id }) : null;
   return <AppShell displayName={user.user_metadata?.full_name || "ScopeForge user"} workspaceName={active?.name ?? "Your workspaces"} role={active?.role ?? "No membership"}>
