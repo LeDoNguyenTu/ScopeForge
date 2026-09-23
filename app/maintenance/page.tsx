@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { readPublicPlatformSettings } from "@/lib/platform-settings/public";
+import MaintenanceWindowStatus from "@/components/maintenance/MaintenanceWindowStatus";
 
 export const metadata: Metadata = { title: "Maintenance" };
 export const dynamic = "force-dynamic";
@@ -18,9 +19,17 @@ export default async function MaintenancePage() {
         <h1 id="maintenance-title">The security workspace is temporarily unavailable.</h1>
         <p>{settings.maintenanceMessage}</p>
         <p>Authentication and platform administration remain available during maintenance.</p>
-        <div className="buttonRow">
+        {settings.maintenanceEndsAt ? (
+          <MaintenanceWindowStatus
+            endsAt={settings.maintenanceEndsAt}
+            timeZone={settings.maintenanceTimeZone}
+            autoDisable={settings.maintenanceAutoDisable}
+            serverNow={Date.now()}
+          />
+        ) : null}
+        <div className="maintenanceActions">
           <Link className="button primaryButton" href="/auth/sign-in">Sign in</Link>
-          <Link className="button" href="/admin">Admin console</Link>
+          <Link className="button secondaryButton" href="/admin">Admin console</Link>
         </div>
       </section>
     </main>

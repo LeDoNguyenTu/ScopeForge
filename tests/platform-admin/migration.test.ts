@@ -8,6 +8,10 @@ const denyPolicyMigrationPath = path.join(
   root,
   "supabase/migrations/20260910154017_phase_10c_explicit_browser_deny_policies.sql",
 );
+const maintenanceWindowMigrationPath = path.join(
+  root,
+  "supabase/migrations/20260923185307_maintenance_window_scheduling.sql",
+);
 
 describe("Phase 10C platform administration migration", () => {
   it("creates an isolated platform administrator boundary", async () => {
@@ -57,5 +61,14 @@ describe("Phase 10C platform administration migration", () => {
     expect(sql).toContain("create or replace function private.handle_new_user()");
     expect(sql).toMatch(/registration_enabled[\s\S]*REGISTRATION_DISABLED/i);
     expect(sql).toMatch(/revoke\s+all\s+on\s+function\s+private\.handle_new_user\s*\(\)/i);
+  });
+
+  it("adds a bounded public maintenance schedule without exposing administrative fields", async () => {
+    const sql = await readFile(maintenanceWindowMigrationPath, "utf8");
+    expect(sql).toMatch(/maintenance_ends_at\s+timestamptz/i);
+    expect(sql).toMatch(/maintenance_time_zone\s+text/i);
+    expect(sql).toMatch(/maintenance_auto_disable\s+boolean\s+not null\s+default true/i);
+    expect(sql).toMatch(/grant\s+select\s*\(\s*id,\s*registration_enabled,\s*maintenance_mode,\s*maintenance_message,\s*maintenance_ends_at,\s*maintenance_time_zone,\s*maintenance_auto_disable,\s*updated_at\s*\)/i);
+    expect(sql).not.toMatch(/grant\s+select\s*\([^)]*updated_by/i);
   });
 });
