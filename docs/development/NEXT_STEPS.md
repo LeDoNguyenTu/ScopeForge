@@ -21,8 +21,8 @@ See:
 
 ## Execution order
 
-1. 12A external httpx: use the verified artifact staging/networkless host preflight, then implement and accept the dedicated target-bound provider network/control-plane boundary before any production canary.
-2. 12B Nuclei: preserve the single-template default-off runtime foundation, use the same verified staging/preflight path, then add dedicated target-bound containment before production enablement.
+1. 12A external httpx: finish exact-head CI for the two-container provider sandbox orchestration, then run real Linux/Oracle containment with immutable httpx + sidecar image identities. Only after that boundary passes should the dedicated worker/control-plane path be added and a bounded production canary considered.
+2. 12B Nuclei: preserve the single-template default-off runtime foundation and reuse the same two-container target-bound sandbox only after Linux acceptance proves the shared boundary. Keep Nuclei disabled until its own operational gate passes.
 3. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.
 4. 12D hosted authenticated browser/API runtime.
 5. 12E bounded web/API DAST.

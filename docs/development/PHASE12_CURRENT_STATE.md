@@ -79,3 +79,14 @@ Supabase Storage objects: 0.
 Production repository snapshot metadata records five R2-backed snapshots. R2 is the large/unstructured artifact plane; Postgres remains the structured system of record.
 
 Phase 12 should continue moving large raw provider evidence/artifacts to private R2 rather than growing Postgres with blob-like payloads.
+
+
+## 2026-09-24 sandbox orchestration continuation
+
+PR #198 merged as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI run `35919874883` passed. It added the dedicated trusted egress sidecar image/entry, separate no-download sidecar staging, fixed internal proxy arguments for httpx and Nuclei, and extended networkless image preflight. Both providers remain default-off.
+
+The follow-on provider sandbox orchestration is now under implementation on `feat/phase-12-provider-sandbox-orchestration-20260924`. Its source gives the egress Unix socket and task nonce only to the networkless trusted sidecar; the provider joins only that sidecar's network namespace and receives neither. Runner arguments are constructed from closed typed httpx/Nuclei profiles rather than an arbitrary flag list. No worker identity, queue route, migration or production enablement has been added.
+
+Operational state is unchanged until CI and real Linux containment evidence exist: 12A and 12B are not operationally accepted.
+
+Exact-head CI is required for this security-sensitive orchestration change before merge.

@@ -129,3 +129,24 @@ The provider-side source integration is deliberately split from the external pro
 - host preparation stages and networklessly preflights the sidecar separately from provider artifacts
 
 The next sandbox layer must start the sidecar with `--network=none`, mount the task Unix socket only into that sidecar, then start the provider container in the sidecar network namespace without mounting the Unix socket or passing the nonce.
+
+
+## Provider sandbox orchestration source
+
+The next default-off source layer is now implemented in `packages/provider-runtime-sandbox`.
+
+It deliberately does not create a worker identity, queue route, database migration, capability enablement, or production canary. The sandbox plan:
+
+- validates immutable digest references for both provider and sidecar images
+- validates the task-specific egress socket is under `/run/scopeforge-worker/egress`
+- starts the trusted sidecar with `--network=none`
+- mounts the task Unix socket read-only only into that sidecar
+- gives the task nonce only to that sidecar
+- starts the provider with `--network=container:<sidecar>`, which shares only the sidecar's otherwise networkless namespace
+- does not mount the Unix socket or pass the nonce to the provider
+- constructs the exact httpx or baseline Nuclei runner arguments from typed fields, with no generic provider-flag array
+- preserves read-only rootfs, capability drop, no-new-privileges, cgroup memory/CPU/PID ceilings, no log driver, fixed uid/gid, cleared environment and noexec scratch
+- uses a fixed loopback-only readiness probe before starting the provider
+- force-removes provider then sidecar on completion, error or cancellation
+
+This remains source preparation until exact-head CI and real Linux/Oracle two-container acceptance prove the namespace, socket isolation, immutable image identities, process/resource ceilings, cancellation and cleanup behavior.
