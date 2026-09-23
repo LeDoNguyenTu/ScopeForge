@@ -13,8 +13,12 @@ describe("authentication assurance policy", () => {
     expect(assuranceDestination(role, noFactors)).toBeNull();
   });
 
-  it("challenges any enrolled user whose session is still AAL1", () => {
-    expect(assuranceDestination("viewer", enrolled, "/dashboard/findings")).toBe("/auth/mfa?next=%2Fdashboard%2Ffindings");
+  it.each(["member", "viewer"])("does not challenge an enrolled %s whose session is still AAL1", (role) => {
+    expect(assuranceDestination(role, enrolled, "/dashboard/findings")).toBeNull();
+  });
+
+  it.each(["owner", "admin", "platform-admin"])("challenges an enrolled privileged %s session at AAL1", (role) => {
+    expect(assuranceDestination(role, enrolled, "/dashboard/findings")).toBe("/auth/mfa?next=%2Fdashboard%2Ffindings");
   });
 
   it("allows an AAL2 privileged session", () => {

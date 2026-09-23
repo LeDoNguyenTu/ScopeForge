@@ -50,12 +50,11 @@ export function assuranceDestination(
   state: AssuranceState,
   returnPath = "/dashboard",
 ): string | null {
+  const requiresMfa = role === "owner" || role === "admin" || role === "platform-admin";
+  if (!requiresMfa) return null;
   if (state.currentLevel === "aal2") return null;
   if (state.verifiedTotp.length > 0) {
     return `/auth/mfa?next=${encodeURIComponent(safeAuthReturnPath(returnPath))}`;
   }
-  if (role === "owner" || role === "admin" || role === "platform-admin") {
-    return "/dashboard/settings/security?required=mfa";
-  }
-  return null;
+  return "/dashboard/settings/security?required=mfa";
 }

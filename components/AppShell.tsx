@@ -1,4 +1,5 @@
 import ImmersiveDashboardNav from "@/components/ImmersiveDashboardNav";
+import MfaRecommendationBanner from "@/components/auth/MfaRecommendationBanner";
 import Link from "next/link";
 import { BookOpen, ShieldCheck } from "lucide-react";
 
@@ -28,6 +29,7 @@ export default function AppShell({
             <Link href="/dashboard/resources"><BookOpen size={15} /> Resources</Link>
           </span>
         </div>
+        <MfaRecommendationBanner role={role} />
         {children}
       </main>
     </div>
