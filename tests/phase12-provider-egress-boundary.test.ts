@@ -8,20 +8,24 @@ import {
   PROVIDER_EGRESS_LOOPBACK_PROXY_URL,
 } from "../packages/provider-egress-boundary";
 
-function policy() {
-  return createProviderEgressPolicy({
-    provider: "httpx",
+function policyInput() {
+  return {
+    provider: "httpx" as const,
     hostname: "ScopeForge.dev",
-    scheme: "https",
+    scheme: "https" as const,
     port: 443,
-    resolvedAddresses: ["104.21.48.1", "172.67.1.2"],
+    resolvedAddresses: ["104.21.48.1", "172.67.1.2"] as const,
     budget: {
       maxConnections: 2,
       maxBytesToTarget: 1024,
       maxBytesFromTarget: 4096,
       maxWallTimeMs: 8000,
     },
-  });
+  };
+}
+
+function policy() {
+  return createProviderEgressPolicy(policyInput());
 }
 
 function socksConnect(hostname: string, port: number): Buffer {
@@ -57,7 +61,7 @@ describe("Phase 12 target-bound provider egress policy", () => {
       "2001:db8::1",
     ]) {
       expect(() => createProviderEgressPolicy({
-        ...policy(),
+        ...policyInput(),
         resolvedAddresses: [address],
       })).toThrow("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
     }
@@ -65,20 +69,20 @@ describe("Phase 12 target-bound provider egress policy", () => {
 
   it("rejects local target names, IP literals, duplicate answers and oversized budgets", () => {
     for (const hostname of ["localhost", "api.local", "127.0.0.1", "scopeforge.dev."]) {
-      expect(() => createProviderEgressPolicy({ ...policy(), hostname }))
+      expect(() => createProviderEgressPolicy({ ...policyInput(), hostname }))
         .toThrow(/PROVIDER_EGRESS_HOST/);
     }
     expect(() => createProviderEgressPolicy({
-      ...policy(),
+      ...policyInput(),
       resolvedAddresses: ["104.21.48.1", "104.21.48.1"],
     })).toThrow("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
     expect(() => createProviderEgressPolicy({
-      ...policy(),
+      ...policyInput(),
       resolvedAddresses: ["104.21.48.1", "2001:db8::1"],
     })).toThrow("PROVIDER_EGRESS_ADDRESS_SET_INVALID");
     expect(() => createProviderEgressPolicy({
-      ...policy(),
-      budget: { ...policy().budget, maxConnections: 9 },
+      ...policyInput(),
+      budget: { ...policyInput().budget, maxConnections: 9 },
     })).toThrow("PROVIDER_EGRESS_CONNECTION_BUDGET_INVALID");
   });
 
