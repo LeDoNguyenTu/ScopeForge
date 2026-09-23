@@ -63,7 +63,7 @@ The adapter, fixed runner, container entry, artifact pins and image source are i
 9. exact-head CI
 10. a separately authorized bounded production canary
 
-Artifact staging and networkless image preflight are scripted in `scripts/phase12-stage-provider-assets.sh` and `scripts/phase12-provider-host-preflight.sh`; they are preparation evidence only and do not satisfy the target-bound egress or production acceptance gates.
+Artifact staging and networkless image preflight shipped in PR #193. The target-bound egress source foundation keeps provider containers `--network=none` and uses a fixed loopback SOCKS5 plus supervisor-owned Unix tunnel design. It is still source-only until real host tunnel integration and Linux acceptance pass. See `PHASE12_TARGET_BOUND_EGRESS_DESIGN.md`.
 
 ## 12B - Nuclei
 

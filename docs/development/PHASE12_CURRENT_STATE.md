@@ -35,7 +35,7 @@ Remaining 12A gate:
 
 No production httpx worker is currently enabled.
 
-Host preparation is now scripted in `scripts/phase12-stage-provider-assets.sh` and `scripts/phase12-provider-host-preflight.sh`. These helpers verify pinned artifacts and build/check networkless candidate images only; they intentionally do not solve or bypass the remaining target-bound egress gate. See `PHASE12_PROVIDER_HOST_PREPARATION.md`.
+Host preparation shipped in PR #193 through `scripts/phase12-stage-provider-assets.sh` and `scripts/phase12-provider-host-preflight.sh`. These helpers verify pinned artifacts and build/check networkless candidate images only. The dedicated target-bound egress source foundation is now being implemented separately in `packages/provider-egress-boundary`; it preserves `--network=none` and mediates only the exact authorized hostname/port through a fixed loopback SOCKS5 boundary. See `PHASE12_PROVIDER_HOST_PREPARATION.md` and `PHASE12_TARGET_BOUND_EGRESS_DESIGN.md`.
 
 ## 12B Nuclei safe-active runtime
 
@@ -68,7 +68,7 @@ The runtime profile:
 
 This is source preparation only. No Nuclei production execution is authorized by these files.
 
-The same host preparation helpers stage the pinned Nuclei engine and exact allowlisted template with archive SHA-256 and template Git-blob verification before building a networkless image candidate.
+The same host preparation helpers stage the pinned Nuclei engine and exact allowlisted template with archive SHA-256 and template Git-blob verification before building a networkless image candidate. Nuclei is intended to reuse the same provider-neutral target-bound egress boundary as httpx, with its one-template allowlist unchanged.
 
 ## Storage state
 
