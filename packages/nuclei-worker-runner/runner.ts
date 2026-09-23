@@ -101,7 +101,9 @@ function optionalText(value: unknown, max = 160): string | undefined {
 }
 
 function expectedOrigin(input: ExecuteNucleiRunnerInput): string {
-  return `${input.target.scheme}://${input.target.hostname.toLowerCase()}:${input.target.port}`;
+  return new URL(
+    `${input.target.scheme}://${input.target.hostname.toLowerCase()}:${input.target.port}`,
+  ).origin;
 }
 
 function validateMatchedAt(value: unknown, origin: string): void {
