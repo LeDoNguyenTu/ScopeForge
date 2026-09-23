@@ -69,14 +69,26 @@ describe("Phase 12 external provider sandbox", () => {
   });
 
   it("constructs only the baseline Nuclei profile", () => {
+    const base = httpxInput();
     const plan = buildExternalProviderSandboxPlan({
-      ...httpxInput(),
+      taskId: base.taskId,
+      attemptId: base.attemptId,
       provider: "nuclei",
+      podmanBinary: base.podmanBinary,
       providerImage: `localhost/scopeforge-nuclei-worker@sha256:${"e".repeat(64)}`,
+      sidecarImage: base.sidecarImage,
+      egressSocketPath: base.egressSocketPath,
+      sessionNonce: base.sessionNonce,
+      workspaceId: base.workspaceId,
+      actionId: base.actionId,
+      authorizationId: base.authorizationId,
+      targetNodeId: base.targetNodeId,
+      trustedHostname: base.trustedHostname,
+      scheme: base.scheme,
+      port: base.port,
       maxRuntimeMs: 8_000,
       templateProfile: "baseline-http",
       minimumSeverity: "low",
-      probes: undefined as never,
     });
     expect(plan.provider.args).toEqual(expect.arrayContaining([
       "/app/nuclei-worker-entry.js",
