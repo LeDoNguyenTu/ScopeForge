@@ -92,6 +92,7 @@ export function createProviderEgressUnixTunnelServer(
   let server: Server | null = null;
   let deadlineTimer: NodeJS.Timeout | null = null;
   let closing: Promise<void> | null = null;
+  const abortHandler = () => void close().catch(() => undefined);
 
   function destroyTunnel(tunnel: ActiveTunnel): void {
     active.delete(tunnel);
@@ -225,16 +226,17 @@ export function createProviderEgressUnixTunnelServer(
     }
     deadlineTimer = setTimeout(() => void close().catch(() => undefined), remainingMs);
     deadlineTimer.unref?.();
-    dependencies.signal?.addEventListener(
-      "abort",
-      () => void close().catch(() => undefined),
-      { once: true },
-    );
+    dependencies.signal?.addEventListener("abort", abortHandler, { once: true });
+    if (dependencies.signal?.aborted) {
+      await close();
+      throw new DOMException("cancelled", "AbortError");
+    }
   }
 
   async function close(): Promise<void> {
     if (closing) return closing;
     closing = (async () => {
+      dependencies.signal?.removeEventListener("abort", abortHandler);
       if (deadlineTimer) {
         clearTimeout(deadlineTimer);
         deadlineTimer = null;

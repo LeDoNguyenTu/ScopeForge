@@ -42,9 +42,10 @@ export function createProviderEgressLoopbackSocksServer(
     fail("PROVIDER_EGRESS_SESSION_INVALID");
   }
 
-  const active = new Set<Socket>();
+  const active = new Map<Socket, () => void>();
   let server: Server | null = null;
   let closing: Promise<void> | null = null;
+  const abortHandler = () => void close().catch(() => undefined);
 
   function terminate(client: Socket, tunnel?: Socket | null, reply = false): void {
     active.delete(client);
@@ -57,7 +58,6 @@ export function createProviderEgressLoopbackSocksServer(
     if (active.size >= dependencies.policy.budget.maxConnections) {
       return terminate(client);
     }
-    active.add(client);
     let stage: "greeting" | "request" | "tunnel" | "streaming" | "closed" = "greeting";
     let pending = Buffer.alloc(0);
     let tunnel: Socket | null = null;
@@ -67,6 +67,7 @@ export function createProviderEgressLoopbackSocksServer(
       stage = "closed";
       terminate(client, tunnel, reply);
     };
+    active.set(client, () => closePair());
 
     const onHandshakeData = (chunk: Buffer) => {
       if (stage !== "greeting" && stage !== "request") return closePair();
@@ -172,17 +173,18 @@ export function createProviderEgressLoopbackSocksServer(
       });
     });
     server = nextServer;
-    dependencies.signal?.addEventListener(
-      "abort",
-      () => void close().catch(() => undefined),
-      { once: true },
-    );
+    dependencies.signal?.addEventListener("abort", abortHandler, { once: true });
+    if (dependencies.signal?.aborted) {
+      await close();
+      throw new DOMException("cancelled", "AbortError");
+    }
   }
 
   async function close(): Promise<void> {
     if (closing) return closing;
     closing = (async () => {
-      for (const client of [...active]) terminate(client);
+      dependencies.signal?.removeEventListener("abort", abortHandler);
+      for (const closePair of [...active.values()]) closePair();
       const activeServer = server;
       server = null;
       if (activeServer) {
