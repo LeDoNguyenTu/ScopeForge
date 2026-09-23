@@ -71,6 +71,12 @@ export function createProviderEgressAuthorizer(input: Readonly<{
   if (!Number.isFinite(expiresAt)) fail("PROVIDER_EGRESS_SESSION_INVALID");
 
   const now = input.now ?? Date.now;
+  const createdAt = now();
+  if (expiresAt <= createdAt
+      || expiresAt - createdAt > input.policy.budget.maxWallTimeMs) {
+    fail("PROVIDER_EGRESS_SESSION_INVALID");
+  }
+
   let connections = 0;
   let bytesToTarget = 0;
   let bytesFromTarget = 0;

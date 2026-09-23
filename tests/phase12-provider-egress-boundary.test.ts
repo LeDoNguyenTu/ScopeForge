@@ -161,13 +161,24 @@ describe("Phase 12 target-bound provider egress policy", () => {
       .toThrow("PROVIDER_EGRESS_SESSION_EXPIRED");
   });
 
+  it("rejects sessions that outlive the authoritative wall-time budget", () => {
+    expect(() => createProviderEgressAuthorizer({
+      policy: policy(),
+      session: {
+        nonce: "d".repeat(64),
+        expiresAt: "2026-09-24T00:00:09Z",
+      },
+      now: () => Date.parse("2026-09-24T00:00:00Z"),
+    })).toThrow("PROVIDER_EGRESS_SESSION_INVALID");
+  });
+
   it("rejects session substitution and extra frame fields", () => {
     const value = policy();
     const authorizer = createProviderEgressAuthorizer({
       policy: value,
       session: {
         nonce: "b".repeat(64),
-        expiresAt: "2099-01-01T00:00:00Z",
+        expiresAt: "2026-09-24T00:00:08Z",
       },
       now: () => Date.parse("2026-09-24T00:00:00Z"),
     });
