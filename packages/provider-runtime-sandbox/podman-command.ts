@@ -14,7 +14,10 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const IMAGE_DIGEST_PATTERN = /^[a-z0-9][a-z0-9._:/-]*@sha256:[a-f0-9]{64}$/;
 const SOCKET_NAME_PATTERN = /^[a-f0-9]{64}[.]sock$/;
 const HOSTNAME_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
+const SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,191}$/;
 const UNSAFE_PATH_CHARACTERS = /[,\r\n\u0000]/;
+const HTTPX_PROBES = new Set(["status", "title", "server", "content_type", "tls", "tech"]);
+const NUCLEI_SEVERITIES = new Set(["info", "low", "medium", "high", "critical"]);
 
 function fail(message: string): never {
   throw new Error(message);
@@ -22,6 +25,11 @@ function fail(message: string): never {
 
 function safeUuid(value: string, label: string): string {
   if (!UUID_PATTERN.test(value)) fail(`${label} must be a canonical UUID.`);
+  return value;
+}
+
+function safeId(value: string, label: string): string {
+  if (!SAFE_ID_PATTERN.test(value)) fail(`${label} is invalid.`);
   return value;
 }
 
@@ -87,23 +95,57 @@ function safePort(value: number): number {
   return value;
 }
 
-function safeProviderArgs(args: readonly string[]): readonly string[] {
-  if (args.length < 1 || args.length > 64) fail("Provider argument count is invalid.");
-  for (const value of args) {
-    if (typeof value !== "string"
-        || value.length < 1
-        || value.length > 2048
-        || /[\r\n\u0000]/.test(value)) {
-      fail("Provider argument is invalid.");
-    }
+function safeRuntime(value: number, provider: ExternalProviderKind): number {
+  const max = provider === "httpx" ? 8_000 : 10_000;
+  if (!Number.isInteger(value) || value < 1 || value > max) {
+    fail("Provider runtime budget is invalid.");
   }
-  return Object.freeze([...args]);
+  return value;
 }
 
 function providerEntrypoint(provider: ExternalProviderKind): string {
   return provider === "httpx"
     ? "/app/httpx-worker-entry.js"
     : "/app/nuclei-worker-entry.js";
+}
+
+function providerRunnerArgs(
+  input: ExternalProviderSandboxInput,
+  trustedHostname: string,
+  port: number,
+): readonly string[] {
+  const base = [
+    "--workspace-id", safeUuid(input.workspaceId, "Workspace identifier"),
+    "--action-id", safeId(input.actionId, "Action identifier"),
+    "--authorization-id", safeId(input.authorizationId, "Authorization identifier"),
+    "--target-node-id", safeId(input.targetNodeId, "Target-node identifier"),
+    "--trusted-hostname", trustedHostname,
+    "--scheme", input.scheme,
+    "--port", String(port),
+    "--max-runtime-ms", String(safeRuntime(input.maxRuntimeMs, input.provider)),
+  ];
+
+  if (input.provider === "httpx") {
+    if (input.probes.length < 1 || input.probes.length > HTTPX_PROBES.size) {
+      fail("httpx probe set is invalid.");
+    }
+    const probes = [...new Set(input.probes)];
+    if (probes.length !== input.probes.length
+        || probes.some((probe) => !HTTPX_PROBES.has(probe))) {
+      fail("httpx probe set is invalid.");
+    }
+    return Object.freeze([...base, "--probes", [...probes].sort().join(",")]);
+  }
+
+  if (input.templateProfile !== "baseline-http"
+      || !NUCLEI_SEVERITIES.has(input.minimumSeverity)) {
+    fail("Nuclei runtime profile is invalid.");
+  }
+  return Object.freeze([
+    ...base,
+    "--template-profile", "baseline-http",
+    "--minimum-severity", input.minimumSeverity,
+  ]);
 }
 
 export function buildExternalProviderSandboxPlan(
@@ -119,7 +161,7 @@ export function buildExternalProviderSandboxPlan(
   const sessionNonce = safeNonce(input.sessionNonce);
   const trustedHostname = safeHostname(input.trustedHostname);
   const port = safePort(input.port);
-  const providerArgs = safeProviderArgs(input.providerArgs);
+  const runnerArgs = providerRunnerArgs(input, trustedHostname, port);
 
   const suffix = `${taskId}-${attemptId}`;
   const sidecarName = `scopeforge-provider-egress-${suffix}`;
@@ -169,7 +211,7 @@ export function buildExternalProviderSandboxPlan(
       "--entrypoint=/usr/local/bin/node",
       providerImage,
       providerEntrypoint(provider),
-      ...providerArgs,
+      ...runnerArgs,
     ]),
   });
 
