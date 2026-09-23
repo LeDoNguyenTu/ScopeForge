@@ -1,0 +1,9 @@
+FROM docker.io/library/node@sha256:2c87ef9bd3c6a3bd4b472b4bec2ce9d16354b0c574f736c476489d09f560a203
+
+WORKDIR /app
+COPY --chown=65532:65532 nuclei-worker-entry.js /app/nuclei-worker-entry.js
+COPY --chown=65532:65532 nuclei /opt/scopeforge/bin/nuclei
+COPY --chown=65532:65532 nuclei-template-http-missing-security-headers.yaml /opt/scopeforge/templates/http-missing-security-headers.yaml
+
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/node", "/app/nuclei-worker-entry.js"]
