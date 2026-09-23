@@ -53,7 +53,7 @@ function fixedEnvironment(): NodeJS.ProcessEnv {
 
 function createDriver(): ExternalProviderSandboxCommandDriver {
   return Object.freeze({
-    exec(file, args, options) {
+    exec(file: string, args: readonly string[], options: { timeoutMs: number; maxOutputBytes: number }) {
       return new Promise<CommandResult>((resolve, reject) => {
         execFile(file, [...args], {
           encoding: "utf8",
@@ -119,7 +119,7 @@ export function createExternalProviderSandbox(
   const driver = dependencies.driver ?? createDriver();
 
   return Object.freeze({
-    async execute(input, signal) {
+    async execute(input: ExternalProviderSandboxInput, signal: AbortSignal) {
       if (signal.aborted) throw abortError();
       const plan = buildExternalProviderSandboxPlan(input);
       const limits = providerLimits(input);
