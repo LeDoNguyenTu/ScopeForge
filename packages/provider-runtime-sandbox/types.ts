@@ -45,3 +45,14 @@ export interface ExternalProviderSandboxPlan {
   sidecarName: string;
   providerName: string;
 }
+
+export interface ExternalProviderSandboxResult {
+  output: string;
+}
+
+export interface ExternalProviderSandbox {
+  execute(
+    input: ExternalProviderSandboxInput,
+    signal: AbortSignal,
+  ): Promise<ExternalProviderSandboxResult>;
+}
