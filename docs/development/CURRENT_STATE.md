@@ -8,7 +8,7 @@ PR #186 merged as `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662` after exact-head CI
 
 Local exact-candidate evidence: 2,325 tests passed with two known Windows concurrency timeouts; both timed tests passed in a serial rerun (4/4). Typecheck, CLI build, worker bundles, and the 42-route Next production build passed. GitNexus was rebuilt at 18,283 nodes, 30,033 edges, 781 clusters, and 300 flows. No Phase 11 canary or production security boundary changed.
 
-Authenticated production evidence confirmed owner AAL1 is redirected to required MFA enrollment, the live Supabase project exposes passkey management for `scopeforge.dev`, and no passkeys or TOTP factors are currently enrolled. A rendered narrow-screen check found one remaining compact-navigation defect; its scoped stylesheet fix and regression guard are the only UX closure item still in flight. No factor was enrolled and no password or permission was changed during verification.
+Authenticated production evidence confirmed owner AAL1 is redirected to required MFA enrollment, the live Supabase project exposes passkey management for `scopeforge.dev`, and no passkeys or TOTP factors are currently enrolled. PR #187 fixed the rendered compact-navigation defect, passed exact-head CI run `35823763535`, merged as `25aa2a46ce34c446f500f036787f37d9acbf5310`, and reached successful Vercel deployment `8nZYDQG7v2BFuo3wrYxKBiWvCFia`. Production checks at effective 391x844, 768x1024, 1024x768, and 1440x900 CSS viewports found no document-level horizontal overflow. Product UX/account-security closure is complete. No factor was enrolled and no password or permission was changed during verification.
 
 ## Phase 11 operational acceptance complete
 

@@ -12,7 +12,7 @@ Current estimated broader automated-pentest product vision: approximately 75% at
 
 Active slice: **12A external ProjectDiscovery httpx**.
 
-The product UX/account-security hardening shipped in PR #186. Finish the scoped compact mobile-navigation follow-up, then continue Phase 12 without changing its runtime gates.
+The product UX/account-security hardening and rendered mobile-navigation follow-up shipped in PRs #186 and #187. Continue Phase 12 without changing its runtime gates.
 
 See:
 
@@ -21,15 +21,14 @@ See:
 
 ## Execution order
 
-1. Merge and verify the compact mobile-navigation follow-up to PR #186.
-2. 12A external httpx contract, worker runtime, containment and production acceptance.
-3. 12B Nuclei allowlist-only runtime.
-4. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.
-5. 12D hosted authenticated browser/API runtime.
-6. 12E bounded web/API DAST.
-7. 12F expanded proof-only validators.
-8. 12G adaptive multi-provider orchestration/correlation.
-9. 12H benchmarks, rollback, operational acceptance and closure.
+1. 12A external httpx contract, worker runtime, containment and production acceptance.
+2. 12B Nuclei allowlist-only runtime.
+3. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.
+4. 12D hosted authenticated browser/API runtime.
+5. 12E bounded web/API DAST.
+6. 12F expanded proof-only validators.
+7. 12G adaptive multi-provider orchestration/correlation.
+8. 12H benchmarks, rollback, operational acceptance and closure.
 
 Each network/process authority stays default-off until its own Linux containment and acceptance gate passes.
 

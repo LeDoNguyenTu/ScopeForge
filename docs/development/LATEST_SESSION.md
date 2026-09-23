@@ -15,7 +15,7 @@ The post-v1 UX/auth candidate on `feat/post-v1-ux-auth-security` was reconciled 
 
 Local gate: 2,325 tests passed; the two expected Windows parallel timeout failures passed 4/4 serially. Typecheck, CLI, worker, and Next production builds passed. GitNexus is current. Acceptance record: `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
 
-PR #186 passed exact-head CI run `35822369679`, merged as `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`, and reached a successful Vercel production deployment. Authenticated production rendering confirmed the Account & security route, owner AAL2 enforcement, TOTP enrollment control, passkey provider capability, password controls, and zero horizontal document overflow at the tested narrow breakpoint. The rendered check also exposed an overly tall mobile workspace navigation list; a scoped `flex-direction: row` correction and regression test are the final follow-up. No Phase 11 canary was run.
+PR #186 passed exact-head CI run `35822369679`, merged as `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`, and reached a successful Vercel production deployment. Authenticated production rendering confirmed the Account & security route, owner AAL2 enforcement, TOTP enrollment control, passkey provider capability, password controls, and zero horizontal document overflow. The rendered check exposed an overly tall mobile workspace navigation list; PR #187 added the scoped `flex-direction: row` correction and regression test, passed exact-head CI run `35823763535`, merged as `25aa2a46ce34c446f500f036787f37d9acbf5310`, and deployed successfully. The final effective 391x844, 768x1024, 1024x768, and 1440x900 production matrix passed. No Phase 11 canary was run.
 
 ## Phase 11 accepted
 
