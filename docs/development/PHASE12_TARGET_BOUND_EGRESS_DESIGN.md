@@ -26,17 +26,18 @@ The Phase 12 boundary is intentionally provider-neutral.
 1. The trusted supervisor reauthorizes the exact target node and derives one hostname, one scheme and one port.
 2. Trusted host DNS resolution is performed outside the provider container. The complete raw answer set is passed into the boundary without prefiltering.
 3. The shared network-safety policy validates the entire answer set first. The initial provider profile then requires a small IPv4-only pinned set of at most four addresses and rejects private, loopback, link-local, carrier-grade NAT, documentation, multicast and reserved ranges. Any IPv6 answer makes the initial profile fail closed until IPv6 is separately reviewed.
-4. The provider container stays `--network=none`. It sees only loopback plus one task-specific read-only Unix mediator socket.
-5. A ScopeForge-owned loopback SOCKS5 shim listens only on `127.0.0.1:17777` inside the provider container.
-6. The provider receives a fixed internal proxy argument. Callers cannot supply or override it:
+4. A trusted ScopeForge egress sidecar starts with `--network=none` and is the only container that receives the task-specific Unix tunnel socket plus task nonce.
+5. The external provider container joins only the sidecar's network namespace. It does not receive the Unix socket, target IP set, session nonce, host credentials, or ordinary rootless-Podman Internet networking.
+6. The ScopeForge-owned sidecar listens only on `127.0.0.1:17777`. The provider therefore sees only the loopback SOCKS5 endpoint in the shared networkless namespace.
+7. The provider receives a fixed internal proxy argument. Callers cannot supply or override it:
    - httpx: `-http-proxy socks5://127.0.0.1:17777`
    - Nuclei: `-proxy socks5://127.0.0.1:17777`
-7. The SOCKS5 shim permits only CONNECT using the exact authoritative hostname and port. Literal-IP SOCKS requests are rejected.
-8. The shim asks the supervisor-owned Unix mediator for a tunnel using a bounded task/session nonce. The request contains no arbitrary URL or destination IP.
-9. The host mediator validates the same hostname and port again, selects only from the pinned address set, then owns the real TCP connection.
-10. Host-side connection count, upload bytes, download bytes and deadline are enforced independently of the provider process.
-11. Cancellation closes provider execution, loopback proxy state, Unix tunnel state and the host TCP connection.
-12. Redirects remain disabled in both initial provider profiles. A redirect response therefore cannot widen authority.
+8. The SOCKS5 shim permits only CONNECT using the exact authoritative hostname and port. Literal-IP SOCKS requests are rejected.
+9. The shim asks the supervisor-owned Unix mediator for a tunnel using a bounded task/session nonce. The request contains no arbitrary URL or destination IP.
+10. The host mediator validates the same hostname and port again, selects only from the pinned address set, then owns the real TCP connection.
+11. Host-side connection count, upload bytes, download bytes and deadline are enforced independently of the provider process.
+12. Cancellation closes provider execution, sidecar proxy state, Unix tunnel state and the host TCP connection.
+13. Redirects remain disabled in both initial provider profiles. A redirect response therefore cannot widen authority.
 
 ## Source foundation
 
@@ -71,7 +72,9 @@ Before this boundary may be integrated into a worker class, real Oracle/Linux ev
 - direct provider DNS fails
 - direct provider public TCP/HTTPS fails
 - host and metadata endpoints are unreachable
-- only loopback SOCKS5 is reachable inside the container
+- only loopback SOCKS5 is reachable from the provider container
+- the provider container cannot see or connect to the host Unix tunnel socket
+- only the trusted sidecar can see the task nonce and Unix tunnel mount
 - cross-host and wrong-port SOCKS5 requests fail closed
 - IP-literal SOCKS5 requests fail closed
 - the host tunnel dials only an address from the prepared pinned set
@@ -102,13 +105,13 @@ A source-only or default-off implementation is not operational acceptance.
 The follow-on source transport implements the two sides of the networkless bridge:
 
 - `packages/provider-egress-boundary/unix-tunnel.ts` owns the host Unix listener, target TCP connection and independent byte/deadline accounting
-- `packages/provider-egress-boundary/loopback-socks5.ts` owns the provider-container loopback SOCKS5 listener
+- `packages/provider-egress-boundary/loopback-socks5.ts` owns the trusted egress-sidecar loopback SOCKS5 listener
 - `packages/provider-egress-boundary/tunnel-protocol.ts` defines the single bounded connect frame and one-byte acceptance signal
 
-The host socket root is `/run/scopeforge-worker/egress`, which keeps a 64-hex task socket name within Linux `sockaddr_un` limits. The container sees only `/run/scopeforge/egress.sock`.
+The host socket root is `/run/scopeforge-worker/egress`, which keeps a 64-hex task socket name within Linux `sockaddr_un` limits. Only the trusted sidecar sees `/run/scopeforge/egress.sock`; the external provider container must not mount that path.
 
 The host side performs no DNS lookup. It receives only the exact hostname/port plus task nonce in the bounded frame, revalidates those through the task authorizer, selects an already validated pinned IPv4 address, and calls `net.createConnection` with that literal address and IPv4 family.
 
 Both halves reject pre-authorization pipelined application bytes. This keeps request payload forwarding behind successful SOCKS authorization plus host tunnel authorization.
 
-This implementation remains source-only until the actual provider images include the loopback shim and Linux acceptance proves the full process, socket, network and cleanup boundary.
+This implementation remains source-only until a dedicated sidecar entry/image and provider sandbox orchestration are wired and Linux acceptance proves the two-container network namespace, socket isolation, process limits and cleanup boundary.

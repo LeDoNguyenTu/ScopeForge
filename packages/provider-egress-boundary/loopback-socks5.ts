@@ -4,14 +4,15 @@ import {
   type Server,
   type Socket,
 } from "node:net";
-import type { ProviderEgressPolicy } from "./policy";
 import {
   parseAuthorizedSocks5ConnectRequest,
   parseSocks5Greeting,
   SOCKS5_CONNECT_SUCCESS_RESPONSE,
   SOCKS5_NO_AUTH_RESPONSE,
+  type ProviderEgressSocksTarget,
 } from "./socks5";
 import {
+  PROVIDER_EGRESS_LIMITS,
   PROVIDER_EGRESS_LOOPBACK_HOST,
   PROVIDER_EGRESS_LOOPBACK_PORT,
 } from "./policy";
@@ -30,7 +31,7 @@ function fail(code: string): never {
 }
 
 export interface ProviderEgressLoopbackSocksDependencies {
-  policy: Readonly<ProviderEgressPolicy>;
+  target: Readonly<ProviderEgressSocksTarget>;
   sessionNonce: string;
   signal?: AbortSignal;
 }
@@ -55,7 +56,7 @@ export function createProviderEgressLoopbackSocksServer(
   }
 
   function handleClient(client: Socket): void {
-    if (active.size >= dependencies.policy.budget.maxConnections) {
+    if (active.size >= PROVIDER_EGRESS_LIMITS.maxConnections) {
       return terminate(client);
     }
     let stage: "greeting" | "request" | "tunnel" | "streaming" | "closed" = "greeting";
@@ -93,7 +94,7 @@ export function createProviderEgressLoopbackSocksServer(
 
       let request;
       try {
-        request = parseAuthorizedSocks5ConnectRequest(pending, dependencies.policy);
+        request = parseAuthorizedSocks5ConnectRequest(pending, dependencies.target);
       } catch {
         return closePair(true);
       }

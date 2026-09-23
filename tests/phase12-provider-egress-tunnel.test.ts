@@ -68,6 +68,9 @@ describe("Phase 12 provider egress tunnel protocol", () => {
     expect(source).not.toContain("createConnection({ host:");
     expect(source).not.toContain("lookup(");
     expect(source).toContain("parseAuthorizedSocks5ConnectRequest");
+    expect(source).toContain("dependencies.target");
+    expect(source).not.toContain("resolvedIpv4Addresses");
+    expect(source).not.toContain("dependencies.policy");
   });
 
   it("rejects pipelined pre-authorization application bytes in both halves", async () => {
