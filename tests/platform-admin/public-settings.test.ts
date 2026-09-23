@@ -10,7 +10,7 @@ describe("public platform settings read model", () => {
   it("uses only the publishable Supabase credential and requests the narrow public fields", async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe(
-        "https://example.supabase.co/rest/v1/platform_settings?id=eq.true&select=registration_enabled%2Cmaintenance_mode%2Cmaintenance_message%2Cupdated_at&limit=1",
+        "https://example.supabase.co/rest/v1/platform_settings?id=eq.true&select=registration_enabled%2Cmaintenance_mode%2Cmaintenance_message%2Cmaintenance_ends_at%2Cmaintenance_time_zone%2Cmaintenance_auto_disable%2Cupdated_at&limit=1",
       );
       expect(init?.headers).toEqual({
         apikey: "sb_publishable_example",
@@ -21,6 +21,9 @@ describe("public platform settings read model", () => {
         registration_enabled: false,
         maintenance_mode: true,
         maintenance_message: "Scheduled maintenance",
+        maintenance_ends_at: "2026-09-10T03:00:00.000Z",
+        maintenance_time_zone: "Asia/Singapore",
+        maintenance_auto_disable: false,
         updated_at: "2026-09-10T02:00:00.000Z",
       }]), { status: 200, headers: { "content-type": "application/json" } });
     });
@@ -35,6 +38,9 @@ describe("public platform settings read model", () => {
       registrationEnabled: false,
       maintenanceMode: true,
       maintenanceMessage: "Scheduled maintenance",
+      maintenanceEndsAt: "2026-09-10T03:00:00.000Z",
+      maintenanceTimeZone: "Asia/Singapore",
+      maintenanceAutoDisable: false,
       updatedAt: "2026-09-10T02:00:00.000Z",
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -52,9 +58,34 @@ describe("public platform settings read model", () => {
       registrationEnabled: true,
       maintenanceMode: false,
       maintenanceMessage: "ScopeForge is temporarily undergoing maintenance.",
+      maintenanceEndsAt: null,
+      maintenanceTimeZone: null,
+      maintenanceAutoDisable: true,
       updatedAt: "1970-01-01T00:00:00.000Z",
     });
     expect(globalFetch).not.toHaveBeenCalled();
+  });
+
+  it("treats an expired automatic window as disabled while preserving the estimate", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify([{
+      registration_enabled: true,
+      maintenance_mode: true,
+      maintenance_message: "Scheduled maintenance",
+      maintenance_ends_at: "2020-01-01T00:00:00.000Z",
+      maintenance_time_zone: null,
+      maintenance_auto_disable: true,
+      updated_at: "2019-12-31T23:00:00.000Z",
+    }]), { status: 200 }));
+
+    await expect(readPublicPlatformSettings({
+      fetcher,
+      supabaseUrl: "https://example.supabase.co",
+      publishableKey: "sb_publishable_example",
+    })).resolves.toEqual(expect.objectContaining({
+      maintenanceMode: false,
+      maintenanceEndsAt: "2020-01-01T00:00:00.000Z",
+      maintenanceAutoDisable: true,
+    }));
   });
 
   it("does not fail open on the placeholder tuple outside CI", async () => {
@@ -95,6 +126,9 @@ describe("public platform settings read model", () => {
       registration_enabled: "yes",
       maintenance_mode: false,
       maintenance_message: "ok",
+      maintenance_ends_at: null,
+      maintenance_time_zone: null,
+      maintenance_auto_disable: true,
       updated_at: "2026-09-10T02:00:00.000Z",
     }]), { status: 200 }));
 

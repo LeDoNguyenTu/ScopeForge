@@ -54,6 +54,9 @@ export type PlatformSettingsTable = {
     registration_enabled: boolean;
     maintenance_mode: boolean;
     maintenance_message: string;
+    maintenance_ends_at: string | null;
+    maintenance_time_zone: string | null;
+    maintenance_auto_disable: boolean;
     updated_by: string | null;
     created_at: string;
     updated_at: string;
@@ -63,6 +66,9 @@ export type PlatformSettingsTable = {
     registration_enabled?: boolean;
     maintenance_mode?: boolean;
     maintenance_message?: string;
+    maintenance_ends_at?: string | null;
+    maintenance_time_zone?: string | null;
+    maintenance_auto_disable?: boolean;
     updated_by?: string | null;
     created_at?: string;
     updated_at?: string;
@@ -71,6 +77,9 @@ export type PlatformSettingsTable = {
     registration_enabled?: boolean;
     maintenance_mode?: boolean;
     maintenance_message?: string;
+    maintenance_ends_at?: string | null;
+    maintenance_time_zone?: string | null;
+    maintenance_auto_disable?: boolean;
     updated_by?: string | null;
     updated_at?: string;
   };

@@ -3,9 +3,14 @@ import type { Phase10cDatabase } from "@/lib/database.phase10c.types";
 import { PlatformAdminAuthorizationError, requirePlatformAdmin } from "@/lib/platform-admin/authorization";
 import type { PlatformSettings } from "@/lib/platform-admin/types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isValidTimeZone, zonedLocalDateTimeToIso } from "@/lib/platform-settings/time-zone";
+
+const LOCAL_DATE_TIME_FORMAT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
 
 export type PlatformSettingsErrorCode =
   | "INVALID_MAINTENANCE_MESSAGE"
+  | "INVALID_MAINTENANCE_WINDOW"
+  | "INVALID_MAINTENANCE_TIME_ZONE"
   | "INVALID_PLATFORM_SETTINGS_REASON"
   | "PLATFORM_SETTINGS_READ_FAILED"
   | "PLATFORM_SETTINGS_UPDATE_FAILED";
@@ -21,6 +26,9 @@ export interface PlatformSettingsUpdateInput {
   registrationEnabled: boolean;
   maintenanceMode: boolean;
   maintenanceMessage: string;
+  maintenanceEndsAt: string | null;
+  maintenanceTimeZone: string | null;
+  maintenanceAutoDisable: boolean;
   reason: string;
 }
 
@@ -58,6 +66,46 @@ function normalizeReason(value: string): string {
   return reason;
 }
 
+function normalizeMaintenanceWindow(input: PlatformSettingsUpdateInput): Pick<PlatformSettings,
+  "maintenanceEndsAt" | "maintenanceTimeZone" | "maintenanceAutoDisable"
+> {
+  if (!input.maintenanceMode) {
+    return { maintenanceEndsAt: null, maintenanceTimeZone: null, maintenanceAutoDisable: true };
+  }
+
+  const endsAt = input.maintenanceEndsAt?.trim() ?? "";
+  const timeZone = input.maintenanceTimeZone?.trim() || null;
+  if (timeZone && (timeZone.length > 100 || !isValidTimeZone(timeZone))) {
+    throw new PlatformSettingsError(
+      "INVALID_MAINTENANCE_TIME_ZONE",
+      "Choose a valid IANA time zone or follow each browser's local time.",
+    );
+  }
+  const canonicalEnd = LOCAL_DATE_TIME_FORMAT.test(endsAt)
+    ? (timeZone ? zonedLocalDateTimeToIso(endsAt, timeZone) : null)
+    : (Number.isFinite(Date.parse(endsAt)) ? new Date(endsAt).toISOString() : null);
+  if (!canonicalEnd || Date.parse(canonicalEnd) <= Date.now()) {
+    throw new PlatformSettingsError(
+      "INVALID_MAINTENANCE_WINDOW",
+      "Active maintenance requires a future completion estimate.",
+    );
+  }
+
+  return {
+    maintenanceEndsAt: canonicalEnd,
+    maintenanceTimeZone: timeZone,
+    maintenanceAutoDisable: input.maintenanceAutoDisable,
+  };
+}
+
+function effectiveSettings(settings: PlatformSettings, now = Date.now()): PlatformSettings {
+  const expired = settings.maintenanceMode
+    && settings.maintenanceAutoDisable
+    && settings.maintenanceEndsAt !== null
+    && Date.parse(settings.maintenanceEndsAt) <= now;
+  return expired ? { ...settings, maintenanceMode: false } : settings;
+}
+
 function createDefaultDependencies(): PlatformSettingsServiceDependencies {
   const admin = createAdminClient<Phase10cDatabase>();
 
@@ -65,16 +113,19 @@ function createDefaultDependencies(): PlatformSettingsServiceDependencies {
     readSettings: async () => {
       const { data, error } = await admin
         .from("platform_settings")
-        .select("registration_enabled,maintenance_mode,maintenance_message,updated_at")
+        .select("registration_enabled,maintenance_mode,maintenance_message,maintenance_ends_at,maintenance_time_zone,maintenance_auto_disable,updated_at")
         .eq("id", true)
         .single();
       if (error || !data) throw new Error("PLATFORM_SETTINGS_QUERY_FAILED");
-      return {
+      return effectiveSettings({
         registrationEnabled: data.registration_enabled,
         maintenanceMode: data.maintenance_mode,
         maintenanceMessage: data.maintenance_message,
+        maintenanceEndsAt: data.maintenance_ends_at,
+        maintenanceTimeZone: data.maintenance_time_zone,
+        maintenanceAutoDisable: data.maintenance_auto_disable,
         updatedAt: data.updated_at,
-      };
+      });
     },
     authorize: async () => {
       const context = await requirePlatformAdmin();
@@ -87,16 +138,22 @@ function createDefaultDependencies(): PlatformSettingsServiceDependencies {
           registration_enabled: input.registrationEnabled,
           maintenance_mode: input.maintenanceMode,
           maintenance_message: input.maintenanceMessage,
+          maintenance_ends_at: input.maintenanceEndsAt,
+          maintenance_time_zone: input.maintenanceTimeZone,
+          maintenance_auto_disable: input.maintenanceAutoDisable,
           updated_by: actorUserId ?? null,
         })
         .eq("id", true)
-        .select("registration_enabled,maintenance_mode,maintenance_message,updated_at")
+        .select("registration_enabled,maintenance_mode,maintenance_message,maintenance_ends_at,maintenance_time_zone,maintenance_auto_disable,updated_at")
         .single();
       if (error || !data) throw new Error("PLATFORM_SETTINGS_UPDATE_FAILED");
       return {
         registrationEnabled: data.registration_enabled,
         maintenanceMode: data.maintenance_mode,
         maintenanceMessage: data.maintenance_message,
+        maintenanceEndsAt: data.maintenance_ends_at,
+        maintenanceTimeZone: data.maintenance_time_zone,
+        maintenanceAutoDisable: data.maintenance_auto_disable,
         updatedAt: data.updated_at,
       };
     },
@@ -144,11 +201,15 @@ export async function updatePlatformSettings(
   const deps = dependencies ?? createDefaultDependencies();
   const message = normalizeMessage(input.maintenanceMessage);
   const reason = normalizeReason(input.reason);
+  const window = normalizeMaintenanceWindow(input);
   const actor = await deps.authorize();
   const requestedMetadata = {
     registrationEnabled: input.registrationEnabled,
     maintenanceMode: input.maintenanceMode,
     maintenanceMessageLength: message.length,
+    maintenanceEndsAt: window.maintenanceEndsAt,
+    maintenanceTimeZone: window.maintenanceTimeZone,
+    maintenanceAutoDisable: window.maintenanceAutoDisable,
   };
 
   try {
@@ -164,6 +225,7 @@ export async function updatePlatformSettings(
         registrationEnabled: input.registrationEnabled,
         maintenanceMode: input.maintenanceMode,
         maintenanceMessage: message,
+        ...window,
       },
       actor.actorUserId,
     );
@@ -176,6 +238,9 @@ export async function updatePlatformSettings(
         registrationEnabled: settings.registrationEnabled,
         maintenanceMode: settings.maintenanceMode,
         maintenanceMessageLength: settings.maintenanceMessage.length,
+        maintenanceEndsAt: settings.maintenanceEndsAt,
+        maintenanceTimeZone: settings.maintenanceTimeZone,
+        maintenanceAutoDisable: settings.maintenanceAutoDisable,
       },
     });
     return settings;

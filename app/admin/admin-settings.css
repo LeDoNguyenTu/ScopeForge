@@ -15,6 +15,14 @@
 .adminSettingsTextGroup label { min-width: 0; }
 .adminSettingsSubmit { padding-top: 4px; display: grid; gap: 8px; }
 .adminSettingsSubmit .adminButton { justify-self: start; }
+.adminMaintenanceWindow { min-width: 0; margin: 0; padding: 14px; border: 1px solid var(--line-soft); border-radius: 12px; background: rgba(5,9,14,.34); }
+.adminMaintenanceWindow legend { padding: 0 6px; color: var(--text); font-size: 12px; font-weight: 750; }
+.adminMaintenanceFields { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.adminMaintenanceFields label { min-width: 0; display: grid; gap: 7px; }
+.adminMaintenanceFields input { min-width: 0; width: 100%; min-height: 42px; padding: 0 11px; border: 1px solid #2a394c; border-radius: 9px; color: var(--text); background: #091019; }
+.adminMaintenanceFields input:focus { outline: 2px solid rgba(115,239,188,.34); outline-offset: 1px; }
+.adminFieldHint { margin: 0; color: var(--muted); font-size: 10.5px; line-height: 1.55; }
+.adminMaintenanceAutoDisable { justify-self: start; margin-top: 2px; }
 .adminDangerPanel { border-color: rgba(255,141,107,.22); background: linear-gradient(145deg, rgba(40,20,18,.35), rgba(16,23,34,.78)); }
 
 @media (max-width: 1050px) {
@@ -27,5 +35,6 @@
   .adminSettingsToggleRow { grid-template-columns: 1fr; gap: 11px; }
   .adminSettingsToggle { width: 100%; justify-content: flex-start; white-space: normal; }
   .adminSettingsTextGroup { grid-template-columns: 1fr; }
+  .adminMaintenanceFields { grid-template-columns: 1fr; }
   .adminSettingsSubmit .adminButton { width: 100%; justify-self: stretch; }
 }
