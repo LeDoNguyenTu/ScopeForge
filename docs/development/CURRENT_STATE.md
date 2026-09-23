@@ -10,6 +10,12 @@ Local exact-candidate evidence: 2,325 tests passed with two known Windows concur
 
 Authenticated production evidence confirmed owner AAL1 is redirected to required MFA enrollment, the live Supabase project exposes passkey management for `scopeforge.dev`, and no passkeys or TOTP factors are currently enrolled. PR #187 fixed the rendered compact-navigation defect, passed exact-head CI run `35823763535`, merged as `25aa2a46ce34c446f500f036787f37d9acbf5310`, and reached successful Vercel deployment `8nZYDQG7v2BFuo3wrYxKBiWvCFia`. Production checks at effective 391x844, 768x1024, 1024x768, and 1440x900 CSS viewports found no document-level horizontal overflow. Product UX/account-security closure is complete. No factor was enrolled and no password or permission was changed during verification.
 
+Subsequent production corrections are released through PR #191: interrupted TOTP setup recovers safely, the QR image renders from the provider data URL, a copyable manual setup key remains beside it, and only privileged roles are blocked for AAL2. Members and viewers receive a dismissible recommendation rather than an application-wide gate. The challenge no longer links through to the authenticated security dashboard. PRs #189, #190, and #191 passed exact-head CI runs `35848037777`, `35852626900`, and `35857384190`; their exact merge deployments all completed successfully.
+
+PR #194 merged as `4aaecc559d7617a6e1879b235efe296cdb798296` after exact-head CI run `35906145711` passed and exact-merge Vercel deployment `GFbcReM691PphXmH6u85163qKtCN` completed. Maintenance windows now use one absolute server-backed completion instant with an administrator-selected IANA display zone, a live global countdown, and explicit automatic or manual expiry. The public Sign in and Admin console actions are visually separated. Forward-only migration `20260923185307_maintenance_window_scheduling` is registered in production; maintenance remains disabled, its optional end/time-zone fields are null, automatic expiry is enabled, and `/maintenance` redirects to `/`.
+
+Final authenticated rendering confirmed the owner account at AAL2, loaded its verified authenticator/passkey inventory, and rendered the complete production `/admin/settings` maintenance form. No factor, password, role, or platform setting was changed. Final read-only database evidence reconfirmed one accepted Phase 11 observation, zero active Phase 11 tasks, and the dedicated worker enabled.
+
 ## Phase 11 operational acceptance complete
 
 The separately authorized post-fix canary completed successfully:

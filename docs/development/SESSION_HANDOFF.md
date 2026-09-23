@@ -4,7 +4,7 @@ Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Product hardening release
 
-PR #186 passed exact-head CI and shipped as merge `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662`. PR #187 passed exact-head CI and shipped the rendered compact-navigation correction as merge `25aa2a46ce34c446f500f036787f37d9acbf5310`. Both Vercel deployments completed, and authenticated rendering confirmed owner AAL2 redirection, live TOTP/passkey/password controls, compact navigation, and no document-level overflow across the final viewport matrix. Product UX/account-security closure is complete. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
+PRs #186 and #187 released the whole-app UX/account-security implementation and rendered compact-navigation correction. PRs #189-#191 then released recoverable TOTP setup, the QR/manual-key presentation, and privileged-role-only MFA enforcement. PR #194 released globally synchronized maintenance scheduling with administrator-selected time-zone display and automatic/manual expiry. All exact-head CI and exact-merge Vercel deployments completed successfully. Final authenticated rendering confirmed AAL2 factor inventory and the production admin settings form without changing any account or platform state. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
 
 ## Canonical resume point
 
@@ -29,7 +29,7 @@ Exactly one request was charged. Provider failures and graph expansions were zer
 
 PR #182, merge `81ac30c773b7b9485d019f0a9b3df86535a06412`, deployment `dpl_46A1x9oNBJW9G1shiKEDTb7D7eQc`, and migration `20260922150155_complete_clean_budget_exhaustion` remain the released fix baseline. Preserve all five canaries and do not manufacture or rerun acceptance.
 
-The temporary verification proof was removed after acceptance. Branch cleanup reduced remote refs from 88 to 16. One safe manifest remote branch and one merged local-only branch remain because their active worktrees contain uncommitted user files; every diverged and intentional branch was preserved.
+The temporary verification proof was removed after acceptance. The latest cleanup deleted the merged PR #194 and Phase 12A foundation remote branches plus five fully merged, unattached local branches. The final remote-tracking list contains 17 entries including the `origin/HEAD` alias; the 12 historical diverged refs, intentional demo ref, `main`, and active Phase 12 refs remain preserved.
 
 ## Project completion boundary
 
