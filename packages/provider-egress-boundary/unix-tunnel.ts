@@ -8,9 +8,9 @@ import {
 import path from "node:path";
 import {
   createProviderEgressAuthorizer,
-  type ProviderEgressPolicy,
   type ProviderEgressSession,
 } from "./authorizer";
+import type { ProviderEgressPolicy } from "./policy";
 import {
   decodeProviderEgressConnectFrame,
   PROVIDER_EGRESS_TUNNEL_ACCEPTED,
