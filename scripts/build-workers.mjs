@@ -30,6 +30,11 @@ await build({
 });
 await build({
   ...shared,
+  entryPoints: ["packages/nuclei-worker-runner/container-entry.ts"],
+  outfile: `${outdir}/nuclei-worker-entry.js`,
+});
+await build({
+  ...shared,
   entryPoints: ["packages/hosted-scanner-runner/container-entry.ts"],
   outfile: `${outdir}/hosted-scanner-entry.js`,
   external: [
