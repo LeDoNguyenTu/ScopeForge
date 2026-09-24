@@ -19,6 +19,11 @@ describe("responsive platform admin shell", () => {
     expect(css).toContain(".platformAdminMobileNav");
     expect(css).not.toContain("grid-template-columns: repeat(5, minmax(0, 1fr))");
     expect(css).not.toContain("min-width: 110px");
+    const navigation = read("components/platform-admin/AdminNavigation.tsx");
+    const preview = read("app/preview/admin/page.tsx");
+    expect(navigation).toContain("useLayoutEffect");
+    expect(navigation).toContain("activeHref?: string");
+    expect(preview).toContain('providers: "/admin/providers"');
   });
 
   it("keeps server-side platform authorization in the layout without throwing for expected navigation states", () => {
