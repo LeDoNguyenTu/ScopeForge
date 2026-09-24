@@ -23,11 +23,15 @@ export default async function SecurityRunDetailPage({
 }) {
   const { runId } = await params;
   const { supabase, workspace, role, displayName } = await getDashboardContext();
-  const [platformAdmin, model] = await Promise.all([
+  const [platformAdmin, model, assetResult] = await Promise.all([
     getOptionalPlatformAdmin(),
     loadPentestRunReadModel(supabase as unknown as Phase11ReadClient, workspace.id, runId),
+    supabase.from("assets").select("id,name").eq("workspace_id", workspace.id),
   ]);
   if (!model) notFound();
+  if (assetResult.error) throw new Error(assetResult.error.message);
+  const assetNames = new Map((assetResult.data ?? []).map((asset) => [asset.id, asset.name]));
+  const rootAssetName = assetNames.get(model.run.root_asset_id) ?? "Authorized asset";
 
   const coverage = model.coverage;
   return (
@@ -86,7 +90,8 @@ export default async function SecurityRunDetailPage({
           <aside className={styles.panel}>
             <div className={styles.panelHeader}><div><span className={styles.panelKicker}>Run boundary</span><h2>Authoritative summary</h2></div></div>
             <div className={styles.factList}>
-              <div className={styles.fact}><span>Root asset</span><strong className={styles.code}>{model.run.root_asset_id}</strong></div>
+              <div className={styles.fact}><span>Root asset</span><strong>{rootAssetName}</strong></div>
+              <div className={styles.fact}><span>Asset ID</span><strong className={styles.code}>{model.run.root_asset_id}</strong></div>
               <div className={styles.fact}><span>Stop reason</span><strong>{model.run.stop_reason?.replaceAll("_", " ") ?? "Not recorded"}</strong></div>
               <div className={styles.fact}><span>Graph nodes</span><strong>{model.graphNodes.length}</strong></div>
               <div className={styles.fact}><span>Graph edges</span><strong>{model.graphEdges.length}</strong></div>
