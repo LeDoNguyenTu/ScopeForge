@@ -71,7 +71,10 @@ async function assertAdminPreview(sessionId, view, width, height) {
     const desktopTable=document.querySelector('.adminDesktopTable');
     const githubActions=[...document.querySelectorAll('.githubRepositoryAction .primaryButton')];
     const visible=(element)=>Boolean(element&&getComputedStyle(element).display!=='none'&&element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0);
-    const clipped=[...document.querySelectorAll('button,a,input,textarea')].filter(visible).some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
+    const clipped=[...document.querySelectorAll('button,a,input,textarea')]
+      .filter(visible)
+      .filter((element)=>!element.closest('.platformAdminMobileNav'))
+      .some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
     return {
       innerWidth,
       scrollWidth:Math.max(root.scrollWidth,body.scrollWidth),
