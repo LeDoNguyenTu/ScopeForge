@@ -121,8 +121,8 @@
 .adminProviderProgress { margin: 13px 0; padding: 12px; border: 1px solid var(--line-soft); border-radius: 11px; background: rgba(7,10,16,.32); }
 .adminProviderProgress > div:first-child { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 10px; }
 .adminProviderProgress > div:first-child strong { color: var(--text); }
-.adminProviderProgressTrack { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 4px; margin: 9px 0 7px; }
-.adminProviderProgressSegment { height: 5px; border-radius: 999px; background: #25303d; }
+.adminProviderProgressTrack { display: flex; gap: 4px; margin: 9px 0 7px; }
+.adminProviderProgressSegment { flex: 1 1 0; height: 5px; border-radius: 999px; background: #25303d; }
 .adminProviderProgress-passed { background: var(--accent); }
 .adminProviderProgress-pending { background: var(--medium); }
 .adminProviderProgress-locked { background: #334052; }
