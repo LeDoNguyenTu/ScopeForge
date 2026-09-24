@@ -56,8 +56,8 @@
 .readinessRow > div:first-child { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .readinessRow span { color: #789096; font-size: 9px; }
 .readinessRow strong { font-size: 9.5px; font-weight: 700; }
-.gateTrack { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 4px; margin-top: 7px; }
-.gateTrack > span { height: 4px; border-radius: 999px; background: #203138; }
+.gateTrack { display: flex; gap: 4px; margin-top: 7px; }
+.gateTrack > span { flex: 1 1 0; height: 4px; border-radius: 999px; background: #203138; }
 .gatePassed { background: #69e4c6 !important; }
 .gatePending { background: #d2a958 !important; }
 .gateLocked { background: #32434a !important; }
