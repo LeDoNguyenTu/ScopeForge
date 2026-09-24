@@ -1,6 +1,6 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-23, Asia/Singapore. Live provider state wins.
+Last reconciled: 2026-09-24, Asia/Singapore. Live provider state wins.
 
 ## Product UX and account-security release
 
@@ -188,3 +188,12 @@ Do not replace it with a mutable tag or enable additional execution classes to c
 Operational acceptance is complete with the exact evidence recorded above. Continue to preserve the accepted boundaries and do not roll production back to pre-fix application code while migration `20260922150155` remains active.
 
 Canonical handoff: `docs/development/CODEX_HANDOFF_PHASE11.md`.
+
+
+## Phase 12 external-provider continuation
+
+Phase 12 remains active post-v1 scope. PR #198 merged the dedicated trusted egress sidecar and fixed provider proxy wiring as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI `35919874883`. PR #199 merged the two-container provider sandbox orchestration as `a75ff01bc1f6ab7b5214bb8b90eba56b6f9b0bf0` after exact-head CI `35935363334`. PR #200 merged target-free Linux containment verification tooling as `c9ae240224356a4ef81950014891a9b696a5fa8b` after exact-head CI `35936024843`.
+
+httpx and Nuclei remain default-off and are not operationally accepted. No Phase 12 worker execution class, queue route, database migration, production target authority, or canary has been enabled. The next gate is a real run of `scripts/phase12-provider-linux-containment.sh` on the dedicated accepted Linux/Oracle worker with local immutable provider and sidecar image digests, followed by real host-tunnel, pinned-IP, resource-budget, cancellation, cleanup, and rollback evidence before any control-plane integration.
+
+Live control-plane reconciliation on 2026-09-24 found no Phase 12 worker execution class, 2 completed and 3 preserved dead-letter Phase 11 HTTP tasks with no active Phase 11 HTTP queue work, and zero direct private-table grants to `anon` or `authenticated`. One unrelated public repository snapshot task remained queued and was left untouched.
