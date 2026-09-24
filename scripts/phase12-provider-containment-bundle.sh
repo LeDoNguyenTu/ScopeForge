@@ -40,7 +40,7 @@ source_sha="$(git -C "$repo_root" rev-parse HEAD)"
   exit 73
 }
 
-for command in git npm node podman sha256sum sed; do
+for command in awk git npm node podman sha256sum sed; do
   command -v "$command" >/dev/null 2>&1 || {
     printf 'Required command is unavailable: %s\n' "$command" >&2
     exit 69
