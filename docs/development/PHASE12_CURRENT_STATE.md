@@ -85,8 +85,16 @@ Phase 12 should continue moving large raw provider evidence/artifacts to private
 
 PR #198 merged as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI run `35919874883` passed. It added the dedicated trusted egress sidecar image/entry, separate no-download sidecar staging, fixed internal proxy arguments for httpx and Nuclei, and extended networkless image preflight. Both providers remain default-off.
 
-The follow-on provider sandbox orchestration is now under implementation on `feat/phase-12-provider-sandbox-orchestration-20260924`. Its source gives the egress Unix socket and task nonce only to the networkless trusted sidecar; the provider joins only that sidecar's network namespace and receives neither. Runner arguments are constructed from closed typed httpx/Nuclei profiles rather than an arbitrary flag list. No worker identity, queue route, migration or production enablement has been added.
+PR #199 merged as `a75ff01bc1f6ab7b5214bb8b90eba56b6f9b0bf0` after exact-head CI run `35935363334` passed the full validation gate. The merged provider sandbox gives the egress Unix socket and task nonce only to the networkless trusted sidecar; the provider joins only that sidecar's network namespace and receives neither. Runner arguments are constructed from closed typed httpx/Nuclei profiles rather than an arbitrary flag list. No worker identity, queue route, migration or production enablement was added.
 
-Operational state is unchanged until CI and real Linux containment evidence exist: 12A and 12B are not operationally accepted.
+A target-free Linux containment helper is now being prepared in `scripts/phase12-provider-linux-containment.sh`. It requires a clean exact source SHA, rootless Podman, cgroup v2, and local immutable provider/sidecar image digests. It is designed to prove direct DNS/public TCP/metadata access are blocked, the fixed loopback proxy is reachable, the provider cannot see the task Unix socket or container-engine sockets, and the provider shares only the trusted sidecar network namespace. It does not run httpx/Nuclei scanning or contact a production target.
 
-Exact-head CI is required for this security-sensitive orchestration change before merge.
+Operational state remains unchanged until this helper is run successfully on the dedicated Linux/Oracle worker host and the remaining host-tunnel/cancellation/budget acceptance gates pass. 12A and 12B are not operationally accepted.
+
+
+### Live control-plane verification after PR #199
+
+- Supabase worker execution-class constraints still contain no Phase 12 provider class.
+- Phase 11 HTTP tasks are 2 completed and 3 preserved dead-letter, with no queued, leased or retry-wait Phase 11 HTTP task.
+- One unrelated public repository snapshot task remains queued and is intentionally untouched.
+- The private worker schema currently grants no table privileges to `anon` or `authenticated`. Supabase still reports its generic RLS-disabled advisory for nine private worker tables, so any RLS change remains a separately reviewed control-plane migration rather than an automatic Phase 12 change.
