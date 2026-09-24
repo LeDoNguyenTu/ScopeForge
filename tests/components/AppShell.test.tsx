@@ -63,7 +63,7 @@ describe("AppShell", () => {
 
   it("keeps the active horizontal workspace destination visible when navigation changes", async () => {
     const source = await import("node:fs/promises").then(({ readFile }) => readFile("components/SideNav.tsx", "utf8"));
-    expect(source).toContain('closest(".immersiveDashboardLinks")');
+    expect(source).toContain('closest(".sideNav")');
     expect(source).toContain("useLayoutEffect");
     expect(source).toContain("rail.scrollTo");
     expect(source).toContain('pathname === "/preview/security-runs"');
