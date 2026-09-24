@@ -197,3 +197,10 @@ Phase 12 remains active post-v1 scope. PR #198 merged the dedicated trusted egre
 httpx and Nuclei remain default-off and are not operationally accepted. No Phase 12 worker execution class, queue route, database migration, production target authority, or canary has been enabled. The next gate is a real run of `scripts/phase12-provider-linux-containment.sh` on the dedicated accepted Linux/Oracle worker with local immutable provider and sidecar image digests, followed by real host-tunnel, pinned-IP, resource-budget, cancellation, cleanup, and rollback evidence before any control-plane integration.
 
 Live control-plane reconciliation on 2026-09-24 found no Phase 12 worker execution class, 2 completed and 3 preserved dead-letter Phase 11 HTTP tasks with no active Phase 11 HTTP queue work, and zero direct private-table grants to `anon` or `authenticated`. One unrelated public repository snapshot task remained queued and was left untouched.
+
+
+## Phase 12 frontend parity
+
+The Phase 12 frontend-runtime visibility branch adds product surfaces for the backend security engine without expanding execution authority. Workspace users gain Security Runs history/details backed only by existing RLS-safe public summaries. Platform administrators gain Provider Runtime readiness showing the accepted first-party HTTP runtime separately from default-off httpx and Nuclei.
+
+The presentation model explicitly keeps external provider enablement at zero and renders real Linux containment as pending, with worker/control-plane and production canary gates locked. Preview/browser-smoke coverage includes mobile and desktop provider/runtime surfaces so frontend regressions are treated as release blockers.
