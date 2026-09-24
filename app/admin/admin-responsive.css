@@ -51,3 +51,10 @@
   .adminMobileDatum { padding: 9px 10px; }
   .adminPageHeaderActions .adminBadge { width: 100%; justify-content: center; }
 }
+
+.adminProviderBoundary, .adminProviderGates { margin-top: 12px; }
+.adminProviderGateLabel { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.adminProviderGateLabel svg { flex: 0 0 auto; }
+@media (max-width: 760px) {
+  .adminProviderGateLabel { align-items: flex-start; }
+}
