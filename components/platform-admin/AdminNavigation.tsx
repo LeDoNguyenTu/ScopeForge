@@ -39,8 +39,9 @@ function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
     const nav = navRef.current;
     const link = activeLinkRef.current;
     if (!nav || !link) return;
-    const targetLeft = link.offsetLeft - Math.max(0, (nav.clientWidth - link.offsetWidth) / 2);
-    nav.scrollTo({ left: Math.max(0, targetLeft), behavior: "auto" });
+    const targetLeft = Math.max(0, link.offsetLeft - Math.max(0, (nav.clientWidth - link.offsetWidth) / 2));
+    if (typeof nav.scrollTo === "function") nav.scrollTo({ left: targetLeft, behavior: "auto" });
+    else nav.scrollLeft = targetLeft;
   }, [mobile, pathname]);
 
   return (
