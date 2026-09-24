@@ -2,9 +2,9 @@
 
 Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
 
-## Active dashboard/MFA correction
+## Dashboard/MFA correction
 
-`fix/dashboard-onboarding-ux` still needs exact-head Linux CI, merge, production deployment confirmation, and authenticated rendered verification. Its source work addresses automatic post-enrollment navigation, platform-admin-only mandatory MFA enrollment, optional recommendations for workspace roles, capability-aware scan controls, clearer repository import, and the attack-surface overview. No production database or worker change is required.
+No dashboard/MFA correction item remains. PR #203 passed exact-head Linux CI, merged as `eba081c806f8da078a3fd6b84b06de2bfd32ded4`, reached READY production deployment `dpl_6L2DTXRFjpp3WMrj3iWdeLSLogFq`, and passed authenticated read-only rendering. Platform-admin-only mandatory enrollment, enrolled-factor challenges, post-enrollment navigation, optional workspace-role recommendations, capability-aware scan controls, optional repository import, and the factual attack-surface overview are released. No production database or worker change was required.
 
 ## Product UX and account security
 

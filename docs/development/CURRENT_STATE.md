@@ -1,9 +1,9 @@
 # ScopeForge Current State
 
 Last reconciled: 2026-09-24, Asia/Singapore. Live provider state wins.
-## 2026-09-24 dashboard and MFA correction candidate
+## 2026-09-24 dashboard and MFA correction released
 
-Branch `fix/dashboard-onboarding-ux` is rebased onto live `origin/main` `86c20e8c9a440f9d604a180db82288d8cc18608d`. It corrects the authenticated UX defects reported after the prior release without changing database schema, RLS, worker authority, target verification, containment, or runtime budgets:
+PR #203 merged as `eba081c806f8da078a3fd6b84b06de2bfd32ded4` and corrected the authenticated UX defects reported after the prior release without changing database schema, RLS, worker authority, target verification, containment, or runtime budgets:
 
 - only platform administrators are required to enroll MFA; workspace owners, admins, members, and viewers receive a dismissible recommendation when no factor exists;
 - every role that has voluntarily enrolled TOTP is still challenged at AAL1, so optional enrollment does not make the second factor optional at sign-in;
@@ -13,7 +13,7 @@ Branch `fix/dashboard-onboarding-ux` is rebased onto live `origin/main` `86c20e8
 - repository assets no longer render irrelevant website runtime panels, and local hosted-JSON import is labeled as an optional advanced workflow with clearer file selection, command copying, and privacy guidance;
 - the decorative WebGL attack-surface view is replaced by readable asset cards using only canonical asset, verification, and sampled-finding facts.
 
-Local evidence currently includes 118 focused auth/component/Phase 12 compatibility tests, the Phase 3 architecture guard, typecheck, and the production build. A broad Windows regression run excluding the two Linux-only Phase 12 path/shell suites passed 2,413 tests with 26 skips. Those two suites deterministically reject Windows-normalized paths while exercising Linux socket and Bash contracts; this machine has no WSL distribution, so exact-head Linux CI remains authoritative for them. GitNexus was rebuilt and its generated count updates are part of the candidate. No Phase 11 canary was run.
+Local evidence includes 118 focused auth/component/Phase 12 compatibility tests, the Phase 3 architecture guard, typecheck, and the 47-route production build. A broad Windows regression run excluding the two Linux-only Phase 12 path/shell suites passed 2,413 tests with 26 skips. Exact-head Linux CI run `35990129643` then passed the complete suite, typecheck, CLI and worker builds, benchmarks, production build, CSP browser smoke, and production V5/Turnstile diagnostic. Vercel deployment `dpl_6L2DTXRFjpp3WMrj3iWdeLSLogFq` is READY for the exact merge and aliases `scopeforge.dev`. Authenticated production rendering confirmed automatic stale-MFA-route recovery, five factual asset cards, the optional repository import, and unavailable-worker explanations with no misleading action buttons. GitNexus was rebuilt at 18,938 nodes, 31,090 edges, 810 clusters, and 300 flows. No Phase 11 canary was run.
 ## Product UX and account-security release
 
 PR #186 merged as `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662` after exact-head CI run `35822369679` passed. Vercel reported deployment `E5gKbj7eoFjSTyMYVkQ7LUwi454A` complete for that merge and `scopeforge.dev` served the new authenticated Account & security surface. The release contains authoritative collaborator role state, dismissible auto-expiring toasts, normalized typography/layout/forms, password recovery and signed-in password changes, TOTP AAL2 enforcement for workspace owners/admins and platform administrators, capability-checked passkeys, and consistent mutation feedback.
