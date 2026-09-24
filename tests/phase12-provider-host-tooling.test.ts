@@ -7,12 +7,15 @@ const root = process.cwd();
 const stagingPath = path.join(root, "scripts/phase12-stage-provider-assets.sh");
 const sidecarStagingPath = path.join(root, "scripts/phase12-stage-egress-sidecar.sh");
 const preflightPath = path.join(root, "scripts/phase12-provider-host-preflight.sh");
+const containmentBundlePath = path.join(root, "scripts/phase12-provider-containment-bundle.sh");
+const gitignorePath = path.join(root, ".gitignore");
 
 describe("Phase 12 provider host tooling", () => {
   it("keeps the shell helpers syntactically valid", () => {
     execFileSync("bash", ["-n", stagingPath], { stdio: "pipe" });
     execFileSync("bash", ["-n", sidecarStagingPath], { stdio: "pipe" });
     execFileSync("bash", ["-n", preflightPath], { stdio: "pipe" });
+    execFileSync("bash", ["-n", containmentBundlePath], { stdio: "pipe" });
   });
 
   it("stages only digest-pinned reviewed release artifacts without executing them", async () => {
@@ -58,6 +61,36 @@ describe("Phase 12 provider host tooling", () => {
     }
     expect(source).not.toContain("--privileged");
     expect(source).not.toContain("--network=host");
+  });
+
+
+  it("keeps generated provider contexts outside source-dirty acceptance state", async () => {
+    const gitignore = await readFile(gitignorePath, "utf8");
+    expect(gitignore).toContain(".scopeforge-provider-build/");
+  });
+
+  it("bundles only target-free staging, immutable preflight and containment evidence", async () => {
+    const source = await readFile(containmentBundlePath, "utf8");
+    for (const required of [
+      "npm ci --ignore-scripts --no-audit --no-fund",
+      "npm run build:workers",
+      "phase12-stage-provider-assets.sh",
+      "phase12-stage-egress-sidecar.sh",
+      "phase12-provider-host-preflight.sh",
+      "phase12-provider-linux-containment.sh",
+      "PHASE12_PROVIDER_CONTAINMENT_BUNDLE_PASS",
+      "ACCEPTANCE_EVIDENCE.txt",
+      "provider_image=",
+      "sidecar_image=",
+      "git -C \"$repo_root\" status --porcelain",
+    ]) {
+      expect(source).toContain(required);
+    }
+    expect(source).not.toContain("SCOPEFORGE_WORKER_SECRET");
+    expect(source).not.toContain("supabase");
+    expect(source).not.toContain("/api/internal/workers");
+    expect(source).not.toContain("--network=host");
+    expect(source).not.toMatch(/\b(?:register_worker|register-worker|worker-register)\b/i);
   });
 
   it("does not turn host preflight into production enablement", async () => {

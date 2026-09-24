@@ -3,6 +3,7 @@ node_modules/
 out/
 .scopeforge-build/
 .scopeforge-worker-build/
+.scopeforge-provider-build/
 .env
 .env.local
 .env.*.local
