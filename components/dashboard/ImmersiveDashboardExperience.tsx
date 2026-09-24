@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ArrowRight, Boxes, Bug, CheckCircle2, ChevronDown, CircleCheck, Plus, ShieldCheck } from "lucide-react";
 import { DashboardResources } from "@/components/ResourceLibrary";
 import DashboardWorkbench, { type DashboardFinding } from "@/components/dashboard/DashboardWorkbench";
+import SecurityEngineSnapshot, { type DashboardSecurityEngineState } from "@/components/dashboard/SecurityEngineSnapshot";
 import type { AttackSurfaceAssetInput, AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
 
 export interface DashboardNextAction { href: string; label: string; title: string; copy: string; }
 
-export default function ImmersiveDashboardExperience({ model, nextAction, assets = [], findings = [] }: {
+export default function ImmersiveDashboardExperience({ model, nextAction, engine, assets = [], findings = [] }: {
   model: AttackSurfaceModel;
   nextAction: DashboardNextAction;
+  engine: DashboardSecurityEngineState;
   assets?: readonly AttackSurfaceAssetInput[];
   findings?: readonly DashboardFinding[];
 }) {
@@ -16,7 +18,7 @@ export default function ImmersiveDashboardExperience({ model, nextAction, assets
   const steps = [
     { title: "Register your scope", done: metrics.registeredAssets > 0, href: "/dashboard/assets/new", copy: "Add the assets your team controls." },
     { title: "Verify ownership", done: metrics.registeredAssets > 0 && metrics.verifiedAssets === metrics.registeredAssets, href: nextAction.href, copy: "Confirm control before remote testing." },
-    { title: "Review security evidence", done: false, href: "/dashboard/findings", copy: metrics.openFindings ? `${metrics.openFindings} findings need review.` : "Evidence appears after a supported scan." },
+    { title: "Review security runs", done: engine.recentRunCount > 0, href: "/dashboard/security-runs", copy: engine.latestRun ? `Latest run: ${engine.latestRun.status.replaceAll("_", " ")}.` : "Authorized execution history appears here." },
   ];
   return (
     <div className="saasDashboard">
@@ -27,6 +29,7 @@ export default function ImmersiveDashboardExperience({ model, nextAction, assets
         <Link href="/dashboard/assets"><div><span>Verified assets</span><CircleCheck size={18} /></div><strong>{metrics.verifiedAssets}<em> / {metrics.registeredAssets}</em></strong><small>Ownership confirmed</small></Link>
         <Link href="/dashboard/assets"><div><span>Verification coverage</span><ShieldCheck size={18} /></div><strong>{metrics.verificationPercent}%</strong><progress className="saasCoverageTrack" value={metrics.verificationPercent} max={100} aria-hidden="true" /></Link>
       </section>
+      <SecurityEngineSnapshot engine={engine} />
       <section className="saasNextAction"><span className="saasActionIcon"><ShieldCheck size={22} /></span><div><span className="saasEyebrow">RECOMMENDED NEXT STEP</span><h2>{nextAction.title}</h2><p>{nextAction.copy}</p></div><Link href={nextAction.href}>{nextAction.label} <ArrowRight size={15} /></Link></section>
       <div className="saasMainGrid">
         <DashboardWorkbench assets={assets} findings={findings} totalFindings={metrics.openFindings} />
