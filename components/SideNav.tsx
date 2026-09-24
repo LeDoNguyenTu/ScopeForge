@@ -27,7 +27,7 @@ export default function SideNav() {
 
   useLayoutEffect(() => {
     const link = activeLinkRef.current;
-    const rail = link?.closest(".immersiveDashboardLinks");
+    const rail = link?.closest(".sideNav");
     if (!link || !(rail instanceof HTMLElement)) return;
 
     const centerActiveLink = () => {
