@@ -25,6 +25,12 @@ function humanize(value: string): string {
   return value.replaceAll("_", " ");
 }
 
+function runStatusClass(status: string): string {
+  if (status === "completed") return "saasEngineStatus saasEngineStatusGood";
+  if (status === "failed" || status === "cancelled") return "saasEngineStatus saasEngineStatusWarn";
+  return "saasEngineStatus saasEngineStatusActive";
+}
+
 export default function SecurityEngineSnapshot({
   engine,
 }: {
@@ -79,7 +85,7 @@ export default function SecurityEngineSnapshot({
               <span className="saasEyebrow">LATEST EXECUTION</span>
               <h3>{latest ? humanize(latest.status) : "No security run recorded yet"}</h3>
             </div>
-            {latest ? <span className="saasEngineStatus">{humanize(latest.status)}</span> : null}
+            {latest ? <span className={runStatusClass(latest.status)}>{humanize(latest.status)}</span> : null}
           </div>
           {latest ? (
             <>

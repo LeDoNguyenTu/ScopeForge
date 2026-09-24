@@ -252,15 +252,18 @@
 .saasEngineStatus {
   flex: 0 0 auto;
   padding: 5px 8px;
-  border: 1px solid #46705f;
+  border: 1px solid #40525a;
   border-radius: 999px;
-  color: #a5e5ca;
-  background: #183027;
+  color: #b5c8ce;
+  background: #172229;
   font-size: 8px;
   font-weight: 750;
   text-transform: uppercase;
   letter-spacing: .055em;
 }
+.saasEngineStatusGood { border-color: #46705f; color: #a5e5ca; background: #183027; }
+.saasEngineStatusWarn { border-color: #7b5844; color: #f0b896; background: #352319; }
+.saasEngineStatusActive { border-color: #46697b; color: #acd9ef; background: #172b35; }
 .saasEngineLatest > p {
   margin: 13px 0 0;
   color: #879ca0;
