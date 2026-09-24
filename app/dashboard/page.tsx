@@ -4,7 +4,10 @@ import {
   buildAttackSurfaceModel,
   type AttackSurfaceFindingInput,
 } from "@/lib/dashboard/attack-surface-model";
+import type { Phase11ReadClient } from "@/lib/database.phase11.types";
+import { listPentestRunSummaries } from "@/lib/pentest-runs/read-model";
 import { getOptionalPlatformAdmin } from "@/lib/platform-admin/authorization";
+import { runtimeReadinessSummary } from "@/lib/provider-runtime/readiness";
 import { getDashboardContext } from "@/lib/workspaces/current";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +27,7 @@ export default async function DashboardPage() {
     { data: assets, error: assetsError },
     { count: openFindingCount, error: findingCountError },
     { data: findingSample, error: findingSampleError },
+    recentRuns,
   ] = await Promise.all([
     getOptionalPlatformAdmin(),
     supabase
@@ -43,6 +47,7 @@ export default async function DashboardPage() {
       .in("lifecycle_state", [...ACTIVE_FINDING_STATES])
       .order("last_seen_at", { ascending: false })
       .limit(250),
+    listPentestRunSummaries(supabase as unknown as Phase11ReadClient, workspace.id, 20),
   ]);
 
   if (assetsError) throw new Error(assetsError.message);
@@ -62,6 +67,8 @@ export default async function DashboardPage() {
     openFindingCount: openFindingCount ?? 0,
   });
 
+  const readiness = runtimeReadinessSummary();
+  const latestRun = recentRuns[0] ?? null;
   const firstNeedsProof = workspaceAssets.find((asset) => asset.verification_status !== "verified");
   const openWorkCount = surfaceModel.metrics.openFindings;
 
@@ -106,6 +113,18 @@ export default async function DashboardPage() {
         model={surfaceModel}
         assets={workspaceAssets}
         findings={findingSample ?? []}
+        engine={{
+          recentRunCount: recentRuns.length,
+          operationalRuntimes: readiness.operational,
+          validatingRuntimes: readiness.preparedExternal,
+          enabledExternalRuntimes: readiness.enabledExternal,
+          latestRun: latestRun ? {
+            runId: latestRun.run_id,
+            status: latestRun.status,
+            stopReason: latestRun.stop_reason,
+            updatedAt: latestRun.updated_at,
+          } : null,
+        }}
         nextAction={{
           href: nextHref,
           label: nextActionLabel,

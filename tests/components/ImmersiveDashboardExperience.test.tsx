@@ -7,6 +7,19 @@ vi.mock("@/components/dashboard/WebGLAttackSurface", () => ({
   default: () => <div data-testid="webgl-scene">WebGL scene</div>,
 }));
 
+const engine = {
+  recentRunCount: 2,
+  operationalRuntimes: 1,
+  validatingRuntimes: 2,
+  enabledExternalRuntimes: 0,
+  latestRun: {
+    runId: "run-accepted",
+    status: "completed",
+    stopReason: "request_budget_exhausted",
+    updatedAt: "2026-09-24T07:42:00Z",
+  },
+};
+
 const model: AttackSurfaceModel = {
   nodes: [
     {
@@ -41,6 +54,7 @@ describe("ImmersiveDashboardExperience", () => {
   it("puts workspace metrics and the work queue ahead of the optional map", () => {
     render(<ImmersiveDashboardExperience
       model={model}
+      engine={engine}
       nextAction={{
         href: "/dashboard/findings",
         label: "Review findings",
@@ -58,6 +72,11 @@ describe("ImmersiveDashboardExperience", () => {
     expect(screen.getByText("Open findings")).toBeInTheDocument();
     expect(screen.getByText("Verification coverage")).toBeInTheDocument();
     expect(screen.getByText("75%")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "What ScopeForge can execute" })).toBeInTheDocument();
+    expect(screen.getByText("Operational runtimes")).toBeInTheDocument();
+    expect(screen.getByText("Under validation")).toBeInTheDocument();
+    expect(screen.getByText("External enabled")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open security runs/i })).toHaveAttribute("href", "/dashboard/security-runs");
     expect(screen.getByRole("region", { name: "Workspace work queue" })).toBeInTheDocument();
     const reviewLinks = screen.getAllByRole("link", { name: /Review findings/i });
     expect(reviewLinks).toHaveLength(1);
@@ -67,6 +86,7 @@ describe("ImmersiveDashboardExperience", () => {
   it("does not present concept-only telemetry as real workspace facts", () => {
     render(<ImmersiveDashboardExperience
       model={model}
+      engine={engine}
       nextAction={{
         href: "/dashboard/assets",
         label: "Review assets",
@@ -79,6 +99,8 @@ describe("ImmersiveDashboardExperience", () => {
     expect(text).not.toMatch(/sensors/i);
     expect(text).not.toMatch(/risk paths/i);
     expect(text).not.toMatch(/exposure score/i);
+    expect(text).toMatch(/external httpx and nuclei capability is visible/i);
+    expect(text).toMatch(/production execution stays disabled/i);
   });
 
   it("shows a truthful no-finding priority state", () => {
@@ -94,6 +116,7 @@ describe("ImmersiveDashboardExperience", () => {
           affectedAssets: 0,
         },
       }}
+      engine={{ ...engine, recentRunCount: 0, latestRun: null }}
       nextAction={{
         href: "/dashboard/assets/new",
         label: "Register asset",
@@ -105,5 +128,6 @@ describe("ImmersiveDashboardExperience", () => {
     expect(screen.getByRole("heading", { name: "No findings to review yet" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Register your first asset" })).toBeInTheDocument();
     expect(screen.queryByText("Topology active")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "No security run recorded yet" })).toBeInTheDocument();
   });
 });

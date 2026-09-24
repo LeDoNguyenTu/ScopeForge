@@ -140,3 +140,203 @@
   .mobileMapLegend a > div { flex: 1; min-width: 0; }.mobileMapLegend strong { display: block; font-size: 12px; overflow-wrap: anywhere; }.mobileMapLegend small { display: block; margin-top: 5px; font-size: 10px; }
   .mapLegendNumber { display: grid; place-items: center; flex: 0 0 24px; height: 24px; border-radius: 50%; background: #19372f; color: #a8e9d4; font-size: 11px; }.mapLegendNumber-risk { background: #4b3025; color: #ffc095; }.mapLegendNumber-pending { background: #443823; color: #eacc94; }
 }
+
+
+/* Workspace security engine visibility */
+.saasEnginePanel {
+  padding: 22px;
+  border: 1px solid #315448;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(118,224,188,.08), transparent 24rem),
+    linear-gradient(145deg, #14241f, #131d25 58%, #111920);
+  overflow: hidden;
+}
+.saasEngineHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.saasEngineHeader h2 {
+  margin: 8px 0 7px;
+  font-size: 20px;
+  font-weight: 550;
+  letter-spacing: -.025em;
+}
+.saasEngineHeader p {
+  max-width: 760px;
+  margin: 0;
+  color: #9fb3b3;
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+.saasEngineCta {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #477866;
+  border-radius: 7px;
+  color: #c0ead9;
+  background: #183027;
+  font-size: 11px;
+  font-weight: 650;
+}
+.saasEngineCta:hover { background: #1d3a2f; border-color: #5c907b; }
+.saasEngineMetrics {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 9px;
+  margin-top: 18px;
+}
+.saasEngineMetrics > div {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid #2a3b3d;
+  border-radius: 9px;
+  background: rgba(8,16,19,.55);
+}
+.saasEngineMetrics span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #9eb2b4;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+}
+.saasEngineMetrics span svg { color: #7bd7b8; flex: 0 0 auto; }
+.saasEngineMetrics strong {
+  display: block;
+  margin: 10px 0 6px;
+  font-size: 25px;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+}
+.saasEngineMetrics small {
+  display: block;
+  color: #758b90;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.saasEngineBody {
+  display: grid;
+  grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.saasEngineLatest,
+.saasEnginePipeline {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #283a3c;
+  border-radius: 9px;
+  background: rgba(8,15,19,.48);
+}
+.saasEngineSectionHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.saasEngineSectionHeading h3 {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 550;
+  text-transform: capitalize;
+}
+.saasEngineStatus {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid #40525a;
+  border-radius: 999px;
+  color: #b5c8ce;
+  background: #172229;
+  font-size: 8px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .055em;
+}
+.saasEngineStatusGood { border-color: #46705f; color: #a5e5ca; background: #183027; }
+.saasEngineStatusWarn { border-color: #7b5844; color: #f0b896; background: #352319; }
+.saasEngineStatusActive { border-color: #46697b; color: #acd9ef; background: #172b35; }
+.saasEngineLatest > p {
+  margin: 13px 0 0;
+  color: #879ca0;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.saasEngineCode {
+  color: #b4c8ca;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+.saasEngineFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 13px;
+  margin-top: 9px;
+  color: #71878c;
+  font-size: 9px;
+}
+.saasEnginePipeline > .saasEyebrow { display: block; margin-bottom: 13px; }
+.saasEnginePipeline > div {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 14px minmax(0,1fr) 14px minmax(0,1fr) 14px minmax(0,1fr);
+  align-items: center;
+  gap: 5px;
+}
+.saasEnginePipeline > div > span {
+  min-width: 0;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid #2b4040;
+  border-radius: 8px;
+  background: #101d1d;
+}
+.saasEnginePipeline > div > span svg { color: #80d8ba; }
+.saasEnginePipeline strong { font-size: 10px; }
+.saasEnginePipeline small { color: #788d91; font-size: 8px; line-height: 1.35; }
+.saasEnginePipeline i { height: 1px; background: #3a5d52; }
+.saasEngineTruth {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #5d5235;
+  border-radius: 8px;
+  color: #d7c28e;
+  background: rgba(93,75,35,.16);
+}
+.saasEngineTruth svg { flex: 0 0 auto; margin-top: 1px; }
+.saasEngineTruth p { margin: 0; font-size: 9.5px; line-height: 1.55; }
+
+@media (max-width: 1050px) {
+  .saasEngineMetrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .saasEngineBody { grid-template-columns: 1fr; }
+}
+@media (max-width: 650px) {
+  .saasEnginePanel { padding: 17px; }
+  .saasEngineHeader { flex-direction: column; gap: 14px; }
+  .saasEngineCta { width: 100%; }
+  .saasEnginePipeline > div {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  .saasEnginePipeline i { display: none; }
+}
+@media (max-width: 420px) {
+  .saasEngineMetrics { grid-template-columns: 1fr; }
+  .saasEnginePipeline > div { grid-template-columns: 1fr; }
+  .saasEnginePipeline > div > span { min-height: 62px; }
+  .saasEngineSectionHeading { flex-direction: column; }
+}
