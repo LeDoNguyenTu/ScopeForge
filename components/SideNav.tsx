@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { BookOpen, Boxes, Bug, Gauge, Radar, Settings, Users } from "lucide-react";
 
@@ -25,7 +25,7 @@ export default function SideNav() {
   const pathname = usePathname();
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const link = activeLinkRef.current;
     const rail = link?.closest(".immersiveDashboardLinks");
     if (!link || !(rail instanceof HTMLElement)) return;
