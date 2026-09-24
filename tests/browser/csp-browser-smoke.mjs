@@ -177,7 +177,7 @@ async function main() {
     const dashboard = await execute(sessionId, `return {workspaceShell:Boolean(document.querySelector('.workspaceAppShell')),immersiveShell:Boolean(document.querySelector('.immersiveAppShell')),saas:Boolean(document.querySelector('.saasDashboard')),living:Boolean(document.querySelector('.livingDashboard')),heading:[...document.querySelectorAll('h1')].some((el)=>el.textContent?.includes('Security overview')),metrics:document.querySelectorAll('.saasMetrics > a').length,workbench:Boolean(document.querySelector('[aria-label="Workspace work queue"]'))};`);
     if (!dashboard?.workspaceShell || dashboard.immersiveShell || !dashboard.saas || dashboard.living || !dashboard.heading || dashboard.metrics !== 4 || !dashboard.workbench) throw new Error(`Pre-PR49 dashboard composition regressed: ${JSON.stringify(dashboard)}`);
     await execute(sessionId, "document.querySelector('.saasMapPanel summary')?.click(); return true;");
-    await waitFor(sessionId, "dashboard map WebGL", "return document.querySelector('[data-testid=\"webgl-attack-surface\"]')?.dataset.rendererState === 'webgl';", 15000);
+    await waitFor(sessionId, "dashboard attack-surface asset cards", "return document.querySelectorAll('.assetSurfaceGrid[aria-label=\"Registered attack surface\"] .assetSurfaceEntry').length > 0 && !document.querySelector('[data-testid=\"webgl-attack-surface\"]');");
     assertCleanLogs(await browserLogs(sessionId), "/preview/dashboard");
     await captureScreenshot(sessionId, "dashboard-pre-pr49.png");
     await assertSecurityRunsPreview(sessionId, 390, 844);
