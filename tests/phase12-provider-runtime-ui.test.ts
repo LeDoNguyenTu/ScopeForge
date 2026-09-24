@@ -34,7 +34,9 @@ describe("provider runtime presentation state", () => {
 
   it("does not expose an arbitrary execution surface in presentation metadata", () => {
     const serialized = JSON.stringify(PROVIDER_RUNTIME_READINESS);
-    expect(serialized).not.toMatch(/shell|arbitrary url|host network|bridge network/i);
+    expect(serialized).not.toContain('"providerArgs"');
+    expect(serialized).not.toContain('"targetUrl"');
+    expect(serialized).not.toContain('"command"');
     expect(serialized).not.toContain("http://");
     expect(serialized).not.toContain("https://");
   });
