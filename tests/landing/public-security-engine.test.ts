@@ -6,6 +6,7 @@ describe("public automated security engine story", () => {
     const page = await readFile("app/page.tsx", "utf8");
     const engine = await readFile("components/landing/PublicSecurityEngine.tsx", "utf8");
     const css = await readFile("app/ui-refinement.css", "utf8");
+    const nav = await readFile("components/landing/PublicNav.tsx", "utf8");
 
     expect(page).toContain("PublicSecurityEngine");
     expect(engine).toContain("runtimeReadinessSummary");
@@ -24,5 +25,6 @@ describe("public automated security engine story", () => {
     expect(engine).not.toContain("Run provider");
     expect(css).toContain(".publicEngine");
     expect(css).toContain("@media (max-width: 560px)");
+    expect(nav).toContain('href="/#engine">Engine');
   });
 });
