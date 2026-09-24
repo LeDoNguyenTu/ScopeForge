@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Boxes, Bug, Gauge, Settings, Users } from "lucide-react";
+import { BookOpen, Boxes, Bug, Gauge, Radar, Settings, Users } from "lucide-react";
 
 const items = [
   { href: "/dashboard", label: "Overview", Icon: Gauge, match: "exact" as const },
   { href: "/dashboard/assets", label: "Assets", Icon: Boxes, match: "prefix" as const },
   { href: "/dashboard/findings", label: "Findings", Icon: Bug, match: "prefix" as const },
+  { href: "/dashboard/security-runs", label: "Security runs", Icon: Radar, match: "prefix" as const },
   { href: "/dashboard/resources", label: "Resources", Icon: BookOpen, match: "prefix" as const },
   { href: "/dashboard/workspace", label: "Workspace", Icon: Users, match: "prefix" as const },
   { href: "/dashboard/settings/security", label: "Account & security", Icon: Settings, match: "prefix" as const },
