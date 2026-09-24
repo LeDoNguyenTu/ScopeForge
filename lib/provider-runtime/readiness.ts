@@ -95,12 +95,33 @@ export const PROVIDER_RUNTIME_READINESS: readonly ProviderRuntimeReadiness[] = O
   },
 ]);
 
-export const PHASE12_NEXT_RUNTIME = Object.freeze({
-  slice: "12C",
-  title: "Network and service discovery",
-  status: "planned" as const,
-  detail: "Provider-neutral design remains required. Nmap enablement stays blocked pending the licensing and runtime decision.",
-});
+export const PHASE12_RUNTIME_ROADMAP = Object.freeze([
+  { slice: "12A", title: "External HTTP probing", state: "validation" as const, detail: "ProjectDiscovery httpx is source-ready but still blocked on real Linux containment, worker routing and production acceptance." },
+  { slice: "12B", title: "Safe-active template checks", state: "validation" as const, detail: "Nuclei is constrained to the reviewed baseline allowlist and remains default-off until its own acceptance gate passes." },
+  { slice: "12C", title: "Network and service discovery", state: "planned" as const, detail: "Provider-neutral discovery design is next. Nmap enablement remains blocked pending licensing and runtime review." },
+  { slice: "12D", title: "Authenticated browser and API runtime", state: "planned" as const, detail: "Session-bearing browser and API execution stays separately gated behind explicit credential and target authority." },
+  { slice: "12E", title: "Bounded web and API DAST", state: "planned" as const, detail: "Broader active testing will reuse the same authorization, containment, cancellation and evidence boundaries." },
+  { slice: "12F", title: "Proof-only validators", state: "planned" as const, detail: "Validation expands only through narrow proof contracts, never unrestricted exploit or post-exploitation authority." },
+  { slice: "12G", title: "Adaptive provider orchestration", state: "planned" as const, detail: "The planner will correlate accepted providers while preserving independent capability and budget limits." },
+  { slice: "12H", title: "Production acceptance and hardening", state: "planned" as const, detail: "Benchmarks, rollback, operational acceptance and closure complete the Phase 12 release boundary." },
+]);
+
+export const PHASE12_NEXT_RUNTIME = PHASE12_RUNTIME_ROADMAP.find((item) => item.slice === "12C")!;
+
+export function providerGateSummary(provider: ProviderRuntimeReadiness) {
+  const passed = provider.gates.filter((gate) => gate.state === "passed").length;
+  const pending = provider.gates.filter((gate) => gate.state === "pending").length;
+  const locked = provider.gates.filter((gate) => gate.state === "locked").length;
+  const nextGate = provider.gates.find((gate) => gate.state !== "passed") ?? null;
+  return Object.freeze({
+    passed,
+    pending,
+    locked,
+    total: provider.gates.length,
+    nextGate,
+    accepted: passed === provider.gates.length,
+  });
+}
 
 export function runtimeReadinessSummary() {
   const operational = PROVIDER_RUNTIME_READINESS.filter((provider) => provider.availability === "operational").length;
