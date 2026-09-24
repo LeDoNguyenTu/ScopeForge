@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
   Activity,
@@ -30,9 +31,22 @@ function isActivePath(pathname: string, href: string): boolean {
 
 function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement | null>(null);
+  const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    if (!mobile) return;
+    const nav = navRef.current;
+    const link = activeLinkRef.current;
+    if (!nav || !link) return;
+    const targetLeft = Math.max(0, link.offsetLeft - Math.max(0, (nav.clientWidth - link.offsetWidth) / 2));
+    if (typeof nav.scrollTo === "function") nav.scrollTo({ left: targetLeft, behavior: "auto" });
+    else nav.scrollLeft = targetLeft;
+  }, [mobile, pathname]);
 
   return (
     <nav
+      ref={navRef}
       className={mobile ? "platformAdminMobileNav" : "platformAdminNav"}
       aria-label={mobile ? "Platform administration mobile" : "Platform administration"}
     >
@@ -44,6 +58,7 @@ function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
             href={href}
             className={active ? "isActive" : undefined}
             aria-current={active ? "page" : undefined}
+            ref={active ? activeLinkRef : undefined}
           >
             <Icon size={mobile ? 18 : 17} aria-hidden="true" />
             <span>{label}</span>

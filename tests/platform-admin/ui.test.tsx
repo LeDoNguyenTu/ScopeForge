@@ -22,6 +22,14 @@ describe("platform admin UI boundary", () => {
     }
   });
 
+  it("centers the active administration destination inside the mobile navigation rail", async () => {
+    const navigation = await read("components/platform-admin/AdminNavigation.tsx");
+    expect(navigation).toContain("activeLinkRef");
+    expect(navigation).toContain("nav.scrollTo");
+    expect(navigation).toContain("targetLeft");
+    expect(navigation).toContain('aria-current={active ? "page" : undefined}');
+  });
+
   it("keeps trusted Supabase credentials out of client admin components", async () => {
     const source = [
       await read("components/platform-admin/UserAdminControls.tsx"),
