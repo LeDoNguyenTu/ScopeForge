@@ -93,3 +93,17 @@ No unrestricted shell, arbitrary payload runner, brute-force credential attack, 
 ## Completion definition
 
 Phase 12 reaches 100% only when each adopted slice has source tests plus its required operational acceptance. A source-only or default-off provider is not counted as operationally complete.
+
+## Frontend parity requirement
+
+Every operational capability must have a truthful user-facing representation. Backend capability that cannot be understood from the product UI is not considered product-complete.
+
+Phase 12 frontend surfaces must:
+
+- show workspace security-run history, action state, coverage and normalized observations from existing RLS-safe read models
+- show provider readiness separately from run results
+- distinguish operational, validation-only, pending and locked runtime states
+- never present source-complete httpx/Nuclei work as production-enabled
+- expose no arbitrary provider flags, raw shell control, unrestricted target entry, private worker state or raw evidence blobs
+- remain responsive and keyboard-accessible on the established mobile/desktop acceptance matrix
+- include preview/browser-smoke coverage so visual regressions are release blockers rather than documentation notes
