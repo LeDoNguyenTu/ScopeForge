@@ -4,8 +4,10 @@ import AccountSecurityPanel from "@/components/auth/AccountSecurityPanel";
 import { ToastProvider } from "@/components/feedback/ToastProvider";
 
 const mocks = vi.hoisted(() => ({
+  replace: vi.fn(), refresh: vi.fn(),
   listFactors: vi.fn(), getAal: vi.fn(), enroll: vi.fn(), challengeAndVerify: vi.fn(), unenroll: vi.fn(),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ auth: { mfa: {
   listFactors: mocks.listFactors,
   getAuthenticatorAssuranceLevel: mocks.getAal,
@@ -25,6 +27,19 @@ beforeEach(() => {
 });
 
 describe("AccountSecurityPanel", () => {
+  it("automatically leaves required enrollment once the session reaches AAL2", async () => {
+    mocks.getAal.mockResolvedValue({ data: { currentLevel: "aal2", nextLevel: "aal2" }, error: null });
+    render(<ToastProvider><AccountSecurityPanel email="person@example.com" requiredEnrollment /></ToastProvider>);
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/dashboard"));
+    expect(mocks.refresh).toHaveBeenCalled();
+  });
+
+  it("keeps voluntary AAL2 settings visits on the security page", async () => {
+    mocks.getAal.mockResolvedValue({ data: { currentLevel: "aal2", nextLevel: "aal2" }, error: null });
+    render(<ToastProvider><AccountSecurityPanel email="person@example.com" /></ToastProvider>);
+    await screen.findByText("AAL2");
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
   it("shows the account identity and begins TOTP enrollment without reporting success", async () => {
     const qrCode = "data:image/svg+xml;utf-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E";
     mocks.enroll.mockResolvedValue({ data: { id: "factor-1", type: "totp", totp: {

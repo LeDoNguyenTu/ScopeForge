@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   getAal: vi.fn(),
   listFactors: vi.fn(),
+  getOptionalPlatformAdmin: vi.fn(),
   redirect: vi.fn((destination: string) => { throw new Error(`NEXT_REDIRECT:${destination}`); }),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: {
   mfa: { getAuthenticatorAssuranceLevel: mocks.getAal, listFactors: mocks.listFactors },
 } }) }));
 vi.mock("@/lib/workspaces/current", () => ({ getDashboardContext: mocks.getDashboardContext }));
+vi.mock("@/lib/platform-admin/authorization", () => ({ getOptionalPlatformAdmin: mocks.getOptionalPlatformAdmin }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, usePathname: () => "/dashboard/settings/security" }));
 vi.mock("@/components/auth/MfaChallengeForm", () => ({ default: () => <div>MFA challenge form</div> }));
 vi.mock("@/components/auth/AccountSecurityPanel", () => ({ default: () => <div>Account security controls</div> }));
@@ -31,6 +33,7 @@ function setAssurance({ verified }: { verified: boolean }) {
 describe("privileged MFA pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getOptionalPlatformAdmin.mockResolvedValue(null);
     mocks.getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
     mocks.getDashboardContext.mockResolvedValue({
       user: { email: "owner@example.com" },
@@ -52,14 +55,27 @@ describe("privileged MFA pages", () => {
   it("redirects a privileged AAL1 session with a verified factor back to the challenge", async () => {
     setAssurance({ verified: true });
 
-    await expect(AccountSecurityPage()).rejects.toThrow("NEXT_REDIRECT:/auth/mfa?next=%2Fdashboard%2Fsettings%2Fsecurity");
+    await expect(AccountSecurityPage({ searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_REDIRECT:/auth/mfa?next=%2Fdashboard%2Fsettings%2Fsecurity");
   });
 
   it("keeps first-time privileged enrollment available without dashboard navigation", async () => {
+    mocks.getOptionalPlatformAdmin.mockResolvedValue({ role: "admin" });
     setAssurance({ verified: false });
-    render(await AccountSecurityPage());
+    render(await AccountSecurityPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByText("Account security controls")).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Dashboard command navigation" })).not.toBeInTheDocument();
+  });
+
+  it("does not lock a workspace owner without factors into enrollment", async () => {
+    setAssurance({ verified: false });
+    render(await AccountSecurityPage({ searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("navigation", { name: "Dashboard command navigation" })).toBeInTheDocument();
+  });
+
+  it("redirects stale required-enrollment links once AAL2 is established", async () => {
+    setAssurance({ verified: true });
+    mocks.getAal.mockResolvedValue({ data: { currentLevel: "aal2", nextLevel: "aal2" }, error: null });
+    await expect(AccountSecurityPage({ searchParams: Promise.resolve({ required: "mfa" }) })).rejects.toThrow("NEXT_REDIRECT:/dashboard");
   });
 });

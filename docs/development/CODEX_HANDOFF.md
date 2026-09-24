@@ -1,6 +1,8 @@
 # ScopeForge Codex Handoff
 
-Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
+
+The active dashboard/MFA correction candidate is `fix/dashboard-onboarding-ux`, rebased onto live `main` `86c20e8c9a440f9d604a180db82288d8cc18608d`. It changes mandatory enrollment from workspace owners/admins to platform administrators only, preserves AAL2 challenge enforcement for every account that has enrolled TOTP, fixes the post-enrollment dashboard transition, and clarifies dashboard/asset scanning workflows. See `LATEST_SESSION.md` for validation and resume details. Do not enable disabled workers to make the UI actions pass.
 
 PR #186 shipped the whole-app UX/account-security implementation and PR #187 shipped the rendered compact-navigation correction. Follow-up PRs #189-#191 released recoverable TOTP enrollment, the provider QR data URL plus copyable manual key, and privileged-role-only blocking MFA enforcement. PR #194 released server-backed maintenance scheduling, global countdown, time-zone display, automatic/manual expiry, and separated maintenance-page actions. Every exact-head CI and exact-merge Vercel deployment passed. Final authenticated production rendering confirmed AAL2 factor inventory and the complete admin form without changing account or platform state. Product UX/account-security and maintenance closure is complete. Do not rerun any Phase 11 canary.
 

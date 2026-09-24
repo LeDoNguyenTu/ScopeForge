@@ -36,6 +36,7 @@ import {
   HOSTED_REPOSITORY_SNAPSHOT_RUNTIME_ENABLED,
 } from "@/lib/repository-snapshots/runtime";
 import { getDashboardContext } from "@/lib/workspaces/current";
+import { readRuntimeWorkerCapabilities } from "@/lib/runtime-workers/capabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +187,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
   }
 
   const isVerified = asset.verification_status === "verified";
+  const runtimeCapabilities = readRuntimeWorkerCapabilities();
   const jobSummary = latestJob ? {
     id: latestJob.id,
     status: latestJob.status,
@@ -216,7 +218,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
 
       <section className="assetDetailGrid">
         <article className="panel">
-          <div className="panelTitle"><div><span>Control status</span><h2>Authorization boundary</h2></div></div>
+          <div className="panelTitle"><div><span>Control status</span><h2>Asset details</h2></div></div>
           <dl className="detailList">
             <div><dt>Asset type</dt><dd>{asset.kind.replaceAll("_", " ")}</dd></div>
             <div><dt>Hostname</dt><dd>{asset.hostname ?? "Not applicable"}</dd></div>
@@ -225,8 +227,8 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
           </dl>
         </article>
         <article className="panel">
-          <div className="panelTitle"><div><span>Security testing</span><h2>Separated execution boundaries</h2></div><Activity size={18} /></div>
-          <div className="guardrail"><ShieldCheck size={17} /><p><strong>Passive and active authority remain separate.</strong> Passive observation collects bounded HTTPS/TLS metadata. The active CORS profile requires explicit owner/admin authorization for one fixed-origin GET. Crawling, fuzzing, authentication replay, exploit payloads, and destructive behavior remain disabled.</p></div>
+          <div className="panelTitle"><div><span>Security testing</span><h2>{asset.kind === "repository" ? "Review your repository" : "Check your website"}</h2></div><Activity size={18} /></div>
+          <div className="guardrail"><ShieldCheck size={17} /><p>{asset.kind === "repository" ? <>Use the connected GitHub project scan below when available. Already scanned locally or in CI? The optional import section accepts the resulting JSON file, not your source code.</> : <>Verification confirms control of this asset; it does not start a scan. Website checks are available only when their workers are enabled. Active checks require separate owner/admin consent.</>}</p></div>
         </article>
       </section>
 
@@ -264,18 +266,20 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
               managedByConnectedProject={Boolean(connectedProjectScan)}
             />
           </section>
-          <section className="panel verificationSection">
+          <details className="panel verificationSection assetOptionalSection">
+            <summary>Import an existing local scan <span>Optional · JSON results from your computer or CI</span></summary>
             <RepositoryImportPanel
               assetId={asset.id}
               repositoryUrl={asset.canonical_target}
               history={repositoryImportHistory}
             />
-          </section>
+          </details>
         </>
       )}
 
-      <section className="panel verificationSection">
+      {asset.kind !== "repository" && <><section className="panel verificationSection">
         <RuntimeObservationPanel
+          runtimeAvailable={runtimeCapabilities.passiveRuntime}
           assetId={asset.id}
           assetKind={asset.kind}
           verificationStatus={asset.verification_status}
@@ -286,6 +290,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
 
       <section className="panel verificationSection">
         <ActiveValidationPanel
+          runtimeAvailable={runtimeCapabilities.activeCors}
           assetId={asset.id}
           assetKind={asset.kind}
           verificationStatus={asset.verification_status}
@@ -293,12 +298,12 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
           latestJob={activeJobSummary}
           observation={activeObservation}
         />
-      </section>
+      </section></>}
 
       <section className="panel assetPanel">
         <div className="panelTitle"><div><span>Audit activity</span><h2>Recent security-control events</h2></div><FileClock size={18} /></div>
         {!events?.length ? <div className="emptyCompact">No asset audit events have been recorded yet.</div> : <div className="auditList">
-          {events.map((event) => <div className="auditRow" key={event.id}><span className="auditDot" /><div><strong>{event.event_type.replaceAll(".", " ")}</strong><small>{new Date(event.created_at).toLocaleString()}</small></div></div>)}
+          {events.map((event) => <div className="auditRow" key={event.id}><span className="auditDot" /><div><strong>{event.event_type.replace(/[._]/g, " ")}</strong><small>{new Date(event.created_at).toLocaleString()}</small></div></div>)}
         </div>}
       </section>
     </AppShell>

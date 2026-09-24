@@ -50,11 +50,11 @@ export function assuranceDestination(
   state: AssuranceState,
   returnPath = "/dashboard",
 ): string | null {
-  const requiresMfa = role === "owner" || role === "admin" || role === "platform-admin";
-  if (!requiresMfa) return null;
   if (state.currentLevel === "aal2") return null;
+  // Enrollment is optional for workspace roles, but an enrolled factor must
+  // never become an optional sign-in challenge.
   if (state.verifiedTotp.length > 0) {
     return `/auth/mfa?next=${encodeURIComponent(safeAuthReturnPath(returnPath))}`;
   }
-  return "/dashboard/settings/security?required=mfa";
+  return role === "platform-admin" ? "/dashboard/settings/security?required=mfa" : null;
 }

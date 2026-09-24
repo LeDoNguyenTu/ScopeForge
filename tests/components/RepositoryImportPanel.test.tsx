@@ -39,11 +39,18 @@ afterEach(() => {
 });
 
 describe("RepositoryImportPanel", () => {
+  it("explains the optional local workflow and prevents an empty upload", () => {
+    renderPanel();
+    expect(screen.getByRole("button", { name: /import hosted findings/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Copy command" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/hosted json file/i)).toHaveAttribute("aria-describedby", "hosted-json-help");
+    expect(screen.getByText(/optional local or CI workflow/i)).toBeInTheDocument();
+  });
   it("shows the privacy-reduced export command, disclosure, history and canonical findings link", () => {
     renderPanel();
 
     expect(screen.getByText(
-      "scopeforge scan . --format hosted-json --repository https://github.com/acme/example --output scopeforge-hosted.json",
+      "npm run scopeforge -- scan /path/to/your-repository --format hosted-json --repository https://github.com/acme/example --output scopeforge-hosted.json",
     )).toBeInTheDocument();
     expect(screen.getByText(/source snippets/i)).toBeInTheDocument();
     expect(screen.getByText(/secret values/i)).toBeInTheDocument();

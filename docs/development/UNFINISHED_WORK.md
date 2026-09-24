@@ -1,6 +1,10 @@
 # ScopeForge Unfinished Work
 
-Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
+
+## Active dashboard/MFA correction
+
+`fix/dashboard-onboarding-ux` still needs exact-head Linux CI, merge, production deployment confirmation, and authenticated rendered verification. Its source work addresses automatic post-enrollment navigation, platform-admin-only mandatory MFA enrollment, optional recommendations for workspace roles, capability-aware scan controls, clearer repository import, and the attack-surface overview. No production database or worker change is required.
 
 ## Product UX and account security
 

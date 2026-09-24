@@ -8,7 +8,7 @@ const DISMISSED_KEY = "scopeforge:mfa-recommendation-dismissed";
 
 export default function MfaRecommendationBanner({ role }: { role: string }) {
   const [visible, setVisible] = useState(false);
-  const optionalForRole = role === "member" || role === "viewer";
+  const optionalForRole = role !== "platform-admin";
 
   useEffect(() => {
     if (!optionalForRole) return;
@@ -19,15 +19,25 @@ export default function MfaRecommendationBanner({ role }: { role: string }) {
     }
 
     let active = true;
+    let verified = false;
+    let unsubscribe: (() => void) | undefined;
     void import("@/lib/supabase/client").then(({ createClient }) => {
       if (!active) return;
-      return createClient().auth.mfa.listFactors();
+      const { auth } = createClient();
+      const { data } = auth.onAuthStateChange((event) => {
+        if (event === "MFA_CHALLENGE_VERIFIED" || event === "SIGNED_OUT") {
+          verified = true;
+          if (active) setVisible(false);
+        }
+      });
+      unsubscribe = () => data.subscription.unsubscribe();
+      return auth.mfa.listFactors();
     }).then((result) => {
-      if (!active || !result || result.error) return;
+      if (!active || verified || !result || result.error) return;
       const hasVerifiedTotp = (result.data?.totp ?? []).some((factor) => factor.status === "verified");
-      if (!hasVerifiedTotp) setVisible(true);
-    });
-    return () => { active = false; };
+      setVisible(!hasVerifiedTotp);
+    }).catch(() => { /* A recommendation must not interrupt workspace access. */ });
+    return () => { active = false; unsubscribe?.(); };
   }, [optionalForRole]);
 
   function dismiss() {

@@ -1,6 +1,10 @@
 # ScopeForge Session Handoff
 
-Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
+
+## Active correction candidate
+
+Resume `fix/dashboard-onboarding-ux` in `D:\PROJECTS\ScopeForge-dashboard-ux`. The candidate is rebased onto `origin/main` `86c20e8c9a440f9d604a180db82288d8cc18608d`; focused tests, typecheck, production build, and rendered desktop/mobile preview pass. Finish exact-head Linux CI, merge, verify the Vercel deployment and authenticated production rendering, then remove this temporary worktree only when clean and merged. Do not run another Phase 11 canary.
 
 ## Product hardening release
 

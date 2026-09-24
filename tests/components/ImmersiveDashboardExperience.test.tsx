@@ -51,7 +51,8 @@ describe("ImmersiveDashboardExperience", () => {
 
     expect(screen.getByText("WORKSPACE OVERVIEW")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Security overview" })).toBeInTheDocument();
-    expect(screen.getByTestId("webgl-scene")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Customer portal.*example.com/i, hidden: true })).toHaveAttribute("href", "/dashboard/assets/asset-a");
+    expect(screen.queryByTestId("webgl-scene")).not.toBeInTheDocument();
     expect(screen.getByText("Registered assets")).toBeInTheDocument();
     expect(screen.getByText("Verified assets")).toBeInTheDocument();
     expect(screen.getByText("Open findings")).toBeInTheDocument();

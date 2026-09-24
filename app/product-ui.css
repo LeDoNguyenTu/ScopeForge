@@ -111,7 +111,8 @@ button, input, select, textarea { font: inherit; }
 }
 
 @media (max-width: 960px) {
-  .immersiveDashboardLinks .sideNav { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+  .immersiveDashboardLinks .sideNav { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .immersiveDashboardLinks .sideNav::-webkit-scrollbar { display: none; }
   .immersiveDashboardLinks .sideLink { flex: 0 0 auto; min-width: 124px; scroll-snap-align: start; }
   .workspaceContent { padding: 0 24px 40px; }
 }
@@ -138,6 +139,33 @@ button, input, select, textarea { font: inherit; }
   .workspaceToolbar { justify-content: flex-end; }
   .workspaceSettingsCard { padding: 17px; }
 }
+
+.assetSurfaceGrid { list-style: none; padding: 0; margin: 20px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 14px; }
+.assetSurfaceGrid > li { min-width: 0; }
+.assetSurfaceEntry { display: flex; flex-direction: column; height: 100%; gap: 10px; padding: 20px; border: 1px solid #2a3c46; border-radius: 12px; background: #0c171e; }
+.assetSurfaceEntry:hover { border-color: #6edbb5; background: #12222a; }
+.assetSurfaceEntry:focus-visible, .assetOptionalSection > summary:focus-visible { outline: 2px solid #6edbb5; outline-offset: 4px; }
+.assetSurfaceKind { display: flex; justify-content: space-between; gap: 12px; color: #a1b4c0; font-size: 12px; text-transform: capitalize; }
+.assetSurfaceEntry > strong { font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
+.assetSurfaceTarget { font-size: 13px; line-height: 1.6; color: #a1b4c0; overflow-wrap: anywhere; margin-bottom: auto; }
+.assetSurfaceStatus { font-size: 12px; color: #b7cec5; padding-top: 14px; border-top: 1px solid #273943; }
+.assetSurfaceFindings, .assetSurfaceEmpty { font-size: 13px; line-height: 1.5; color: #f2c68a; }
+.assetSurfaceEmpty { color: #a1b4c0; }
+.assetOptionalSection > summary { cursor: pointer; font-size: 16px; font-weight: 650; line-height: 1.5; }
+.assetOptionalSection > summary > span { display: block; margin: 6px 0 0 19px; font-size: 13px; font-weight: 400; color: #a1b4c0; }
+.assetOptionalSection[open] > summary { padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid #2a3c46; }
+.hostedFileField { display: grid; gap: 10px; min-width: 0; }
+.hostedFileField label { font-size: 14px; font-weight: 650; }
+.hostedFileField input[type="file"] { display: block; max-width: 100%; width: 100%; padding: 12px; border: 1px solid #344a55; border-radius: 10px; color: #cad7df; background: #0b151d; font: inherit; font-size: 14px; }
+.hostedFileField input::file-selector-button { padding: 10px 14px; margin-right: 14px; border: 1px solid #415661; border-radius: 7px; background: #1a2c36; color: #e1eaf0; font: inherit; cursor: pointer; }
+.hostedFileField small { color: #a1b4c0; font-size: 13px; line-height: 1.6; }
+.assetOptionalSection .instructionStep > div { min-width: 0; }
+.assetOptionalSection .instructionStep > div > code { display: block; margin: 12px 0; padding: 14px; border: 1px solid #2a3c46; border-radius: 8px; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.7; }
+.assetOptionalSection .instructionStep a { color: #8ce5c2; text-decoration: underline; text-underline-offset: 3px; }
+.workspaceContent .consentRow { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; line-height: 1.6; }
+.workspaceContent .consentRow input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: #6ee7bd; }
+.workspaceContent .detailList dd { text-transform: none; }
+.workspaceContent .verificationPanel .primaryButton.compact { justify-self: start; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }

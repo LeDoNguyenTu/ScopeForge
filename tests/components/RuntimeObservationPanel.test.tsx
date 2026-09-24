@@ -22,12 +22,18 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof RuntimeObser
       verificationStatus="verified"
       latestJob={null}
       observations={[]}
+      runtimeAvailable
       {...overrides}
     />,
   );
 }
 
 describe("RuntimeObservationPanel", () => {
+  it("explains unavailable workers before offering a run", () => {
+    renderPanel({ runtimeAvailable: false });
+    expect(screen.getByText(/not enabled on this deployment/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /run passive observation/i })).not.toBeInTheDocument();
+  });
   it("explains why an unverified asset cannot run a passive observation", () => {
     renderPanel({ verificationStatus: "unverified" });
 

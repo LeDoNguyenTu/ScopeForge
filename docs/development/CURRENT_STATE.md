@@ -1,7 +1,19 @@
 # ScopeForge Current State
 
 Last reconciled: 2026-09-24, Asia/Singapore. Live provider state wins.
+## 2026-09-24 dashboard and MFA correction candidate
 
+Branch `fix/dashboard-onboarding-ux` is rebased onto live `origin/main` `86c20e8c9a440f9d604a180db82288d8cc18608d`. It corrects the authenticated UX defects reported after the prior release without changing database schema, RLS, worker authority, target verification, containment, or runtime budgets:
+
+- only platform administrators are required to enroll MFA; workspace owners, admins, members, and viewers receive a dismissible recommendation when no factor exists;
+- every role that has voluntarily enrolled TOTP is still challenged at AAL1, so optional enrollment does not make the second factor optional at sign-in;
+- successful required enrollment refreshes server state and automatically opens `/dashboard`; stale `?required=mfa` links also return an AAL2 session to the dashboard;
+- the recommendation disappears on the provider's `MFA_CHALLENGE_VERIFIED` event;
+- website scan actions are hidden when their separately accepted worker capability is disabled, with an explanation shown before any click;
+- repository assets no longer render irrelevant website runtime panels, and local hosted-JSON import is labeled as an optional advanced workflow with clearer file selection, command copying, and privacy guidance;
+- the decorative WebGL attack-surface view is replaced by readable asset cards using only canonical asset, verification, and sampled-finding facts.
+
+Local evidence currently includes 118 focused auth/component/Phase 12 compatibility tests, the Phase 3 architecture guard, typecheck, and the production build. A broad Windows regression run excluding the two Linux-only Phase 12 path/shell suites passed 2,413 tests with 26 skips. Those two suites deterministically reject Windows-normalized paths while exercising Linux socket and Bash contracts; this machine has no WSL distribution, so exact-head Linux CI remains authoritative for them. GitNexus was rebuilt and its generated count updates are part of the candidate. No Phase 11 canary was run.
 ## Product UX and account-security release
 
 PR #186 merged as `c921b9d37e47c2e5bf7b031bab4432cdb9ed8662` after exact-head CI run `35822369679` passed. Vercel reported deployment `E5gKbj7eoFjSTyMYVkQ7LUwi454A` complete for that merge and `scopeforge.dev` served the new authenticated Account & security surface. The release contains authoritative collaborator role state, dismissible auto-expiring toasts, normalized typography/layout/forms, password recovery and signed-in password changes, TOTP AAL2 enforcement for workspace owners/admins and platform administrators, capability-checked passkeys, and consistent mutation feedback.

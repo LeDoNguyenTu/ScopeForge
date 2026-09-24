@@ -59,7 +59,16 @@ export default function RepositoryImportPanel({
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const cliCommand = `scopeforge scan . --format hosted-json --repository ${repositoryUrl} --output scopeforge-hosted.json`;
+  const cliCommand = `npm run scopeforge -- scan /path/to/your-repository --format hosted-json --repository ${repositoryUrl} --output scopeforge-hosted.json`;
+
+  async function copyCommand() {
+    try {
+      await navigator.clipboard.writeText(cliCommand);
+      toast.success("Command copied. Replace /path/to/your-repository with your local repository folder.");
+    } catch {
+      toast.error("Could not copy. Select and copy the command below.");
+    }
+  }
 
   async function uploadHostedResult() {
     setErrorMessage(null);
@@ -100,7 +109,7 @@ export default function RepositoryImportPanel({
 
       toast.success(payload?.data?.replayed
         ? "This hosted result was already imported. No duplicate finding history was created."
-        : "Hosted findings imported successfully. Refresh this asset to see the latest import history.");
+        : "Hosted findings imported successfully. Import history is updating.");
       router.refresh();
     } catch {
       setErrorMessage("The hosted Phase 3 import could not be completed safely.");
@@ -113,9 +122,9 @@ export default function RepositoryImportPanel({
     <div className="verificationPanel">
       <div className="verificationHeader">
         <div>
-          <span className="sectionEyebrow">Hosted Phase 3 import</span>
-          <h2>Bring local repository findings into the canonical ledger</h2>
-          <p>Run ScopeForge locally or in CI, then upload the privacy-reduced hosted JSON result for this exact repository asset.</p>
+          <span className="sectionEyebrow">Local scan results</span>
+          <h2>Import a scan you already ran</h2>
+          <p>This is an optional local or CI workflow, not a required verification step. It uploads a results file; it does not scan GitHub or accept a source-code ZIP.</p>
         </div>
         <Link className="secondaryButton compact" href="/dashboard/findings">
           View canonical findings
@@ -126,9 +135,10 @@ export default function RepositoryImportPanel({
         <div className="instructionStep">
           <span>1</span>
           <div>
-            <strong>Generate a hosted result</strong>
-            <p>Run this command from the repository root:</p>
+            <strong>Generate the results file on your computer</strong>
+            <p>First follow the <Link href="/dashboard/resources">ScopeForge local scanning guide</Link>. From your ScopeForge tool folder, run this command. Replace <code>/path/to/your-repository</code> with the local folder containing this repository; quote paths containing spaces.</p>
             <code>{cliCommand}</code>
+            <button className="secondaryButton compact" type="button" onClick={() => void copyCommand()}>Copy command</button>
           </div>
         </div>
       </div>
@@ -142,22 +152,25 @@ export default function RepositoryImportPanel({
         <div className="instructionStep">
           <span>2</span>
           <div>
-            <strong>Upload the hosted JSON</strong>
-            <p>The server revalidates the envelope, repository binding, scanner registry, identities, and 3.5 MB request limit before any trusted persistence.</p>
+            <strong>Select the generated scopeforge-hosted.json file</strong>
+            <p>Find the output file in your ScopeForge tool folder. We validate that the results belong to this repository before saving them.</p>
           </div>
         </div>
-        <div>
+        <div className="hostedFileField">
           <label htmlFor="phase3-hosted-json">Hosted JSON file</label>
           <input
             accept="application/json,.json"
+            aria-describedby="hosted-json-help"
+            disabled={busy}
             id="phase3-hosted-json"
             onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
             type="file"
           />
+          <small id="hosted-json-help">ScopeForge hosted JSON only · maximum 3.5 MB. Do not select your source files or a repository archive.</small>
         </div>
         <button
           className="primaryButton compact"
-          disabled={busy}
+          disabled={busy || !selectedFile}
           onClick={uploadHostedResult}
           type="button"
         >
@@ -176,7 +189,7 @@ export default function RepositoryImportPanel({
       </div>
 
       {history.length === 0 ? (
-        <div className="emptyCompact">No hosted Phase 3 imports have been recorded for this repository yet.</div>
+        <div className="emptyCompact">No local results imported yet. Connected GitHub scans have their own history above.</div>
       ) : (
         <div className="auditList">
           {history.map((item) => (
