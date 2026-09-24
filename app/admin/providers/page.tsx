@@ -70,14 +70,14 @@ export default function ProviderRuntimePage() {
                 <div className="adminStatusRow"><span>Production execution</span><strong className={provider.enabled ? "adminStatusGood" : "adminStatusWarn"}>{provider.enabled ? "Enabled" : "Disabled"}</strong></div>
                 <div className="adminStatusRow"><span>Capabilities</span><strong>{provider.capabilityIds.join(", ")}</strong></div>
               </div>
-              <div className="adminActionCard" style={{ marginTop: 12 }}>
+              <div className="adminActionCard adminProviderBoundary">
                 <h3>Safety boundary</h3>
                 <p>{provider.safetyBoundary}</p>
               </div>
-              <div className="adminStatusRows" style={{ marginTop: 12 }}>
+              <div className="adminStatusRows adminProviderGates">
                 {provider.gates.map((gate) => (
                   <div className="adminStatusRow" key={gate.id} title={gate.detail}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <span className="adminProviderGateLabel">
                       {gateIcon(gate.state)}
                       {gate.label}
                     </span>
