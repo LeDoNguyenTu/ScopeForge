@@ -15,7 +15,7 @@ export default function PublicNav() {
         </Link>
 
         <div className="forgePublicLinks commandPublicLinks">
-          <Link href="/#platform">Product</Link>
+          <Link href="/#engine">Engine</Link>
           <Link href="/#security-model">Security</Link>
           <Link href="/resources" aria-current={pathname === "/resources" ? "page" : undefined}>Resources</Link>
           <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer"><Github size={14} /> GitHub</a>
@@ -40,7 +40,7 @@ export default function PublicNav() {
         >
           <summary aria-label="Open navigation menu"><Menu size={20} /></summary>
           <div className="forgeMobileMenuPanel commandMobileMenuPanel">
-            <Link href="/#platform">Product</Link>
+            <Link href="/#engine">Engine</Link>
             <Link href="/#security-model">Security</Link>
             <Link href="/resources" aria-current={pathname === "/resources" ? "page" : undefined}>Resources</Link>
             <a href="https://github.com/LeDoNguyenTu/ScopeForge" target="_blank" rel="noreferrer">GitHub</a>
