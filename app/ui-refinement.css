@@ -492,10 +492,10 @@
 /* Phase 12 adds Security runs as a first-class workspace destination. Keep the
    command navigation single-line and internally scrollable instead of
    compressing labels or causing document-level overflow. */
-.immersiveDashboardLinks { min-width: 0; max-width: min(760px, 58vw); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.immersiveDashboardLinks { min-width: 0; max-width: min(760px, 58vw); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-padding-inline: 12px; }
 .immersiveDashboardLinks::-webkit-scrollbar { display: none; }
 .immersiveDashboardLinks .sideNav { display: flex; width: max-content; min-width: 100%; flex-wrap: nowrap; gap: 5px; }
-.immersiveDashboardLinks .sideLink { flex: 0 0 auto; white-space: nowrap; }
+.immersiveDashboardLinks .sideLink { flex: 0 0 auto; white-space: nowrap; scroll-snap-align: center; }
 @media (max-width: 900px) {
   .immersiveDashboardLinks { max-width: 52vw; }
 }
