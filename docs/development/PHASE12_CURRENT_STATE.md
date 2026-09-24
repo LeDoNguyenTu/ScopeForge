@@ -120,3 +120,6 @@ Current implementation on `feat/phase-12-frontend-runtime-visibility-20260924` a
 - mobile/desktop overflow and browser-smoke coverage
 
 The UI intentionally provides no provider enable button. httpx and Nuclei remain visibly disabled until their Linux containment, worker/control-plane and production canary gates actually pass.
+
+
+Exact-head full CI and rendered browser acceptance are required before this frontend-runtime visibility work may merge.
