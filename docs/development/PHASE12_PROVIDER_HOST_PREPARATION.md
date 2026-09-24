@@ -31,6 +31,36 @@ Required host tools:
 
 Run under the dedicated non-root worker account. Do not run the acceptance helper as root.
 
+
+## One-command target-free preparation
+
+For the normal 12A or 12B host-preparation pass, prefer the coordinator so the
+staging, immutable-image identities, preflight output and containment evidence
+stay tied to one exact source SHA:
+
+```bash
+scripts/phase12-provider-containment-bundle.sh httpx linux-amd64
+```
+
+Repeat separately with `nuclei` for 12B.
+
+The coordinator:
+
+- starts only from a clean exact source checkout
+- installs dependencies with lifecycle scripts disabled and rebuilds the worker bundles
+- stages the checksum-pinned provider artifact and the locally built trusted sidecar
+- runs both networkless immutable-image preflights
+- extracts and validates the resulting image digest references
+- runs the target-free two-container containment helper
+- writes a compact evidence bundle under `.artifacts/phase12-provider-acceptance/`
+- leaves the generated build contexts under the ignored `.scopeforge-provider-build/` tree so they do not invalidate the containment helper's clean-checkout gate
+
+It still does not contact an authorized target, register a worker, mutate
+Supabase, create a queue route, or enable a provider. A successful bundle is
+preparation and containment evidence only.
+
+The manual sequence below remains useful for diagnosis and independent reruns.
+
 ## 1. Build worker bundles
 
 ```bash
