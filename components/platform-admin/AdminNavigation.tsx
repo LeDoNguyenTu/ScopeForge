@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
   Activity,
@@ -34,7 +34,7 @@ function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
   const navRef = useRef<HTMLElement | null>(null);
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!mobile) return;
     const nav = navRef.current;
     const link = activeLinkRef.current;
