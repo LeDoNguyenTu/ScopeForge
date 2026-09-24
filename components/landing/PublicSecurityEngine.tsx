@@ -20,8 +20,9 @@ export default function PublicSecurityEngine() {
           <span className="forgeEyebrow"><Radar size={24} /> Automated security engine</span>
           <h2 id="public-engine-heading">From verified scope to bounded evidence.</h2>
           <p>
-            ScopeForge does more than collect findings. It plans authorized security work, executes only
-            through accepted runtimes, records coverage and reduces provider output into reviewable evidence.
+            ScopeForge's automated pentest loop does more than collect findings. It plans authorized security
+            work, executes only through accepted runtimes, records coverage and reduces provider output into
+            reviewable evidence.
           </p>
         </div>
         <Link href="/auth/sign-up">
