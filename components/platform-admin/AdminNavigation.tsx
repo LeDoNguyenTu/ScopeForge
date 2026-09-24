@@ -8,6 +8,7 @@ import {
   FlaskConical,
   LayoutDashboard,
   ScrollText,
+  ServerCog,
   Settings,
   Users,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const navigation = [
   ["/admin/users", "Users", Users],
   ["/admin/workspaces", "Workspaces", Activity],
   ["/admin/phase11", "Phase 11", FlaskConical],
+  ["/admin/providers", "Providers", ServerCog],
   ["/admin/audit", "Audit", ScrollText],
   ["/admin/settings", "Settings", Settings],
 ] as const;
