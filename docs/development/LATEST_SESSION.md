@@ -1,6 +1,16 @@
 # ScopeForge Latest Session
 
-Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub and provider state wins.
+Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub and provider state wins.
+
+## Dashboard usability and MFA follow-up in progress
+
+Live `origin/main` was verified at `86c20e8c9a440f9d604a180db82288d8cc18608d`; the isolated worktree is `D:\PROJECTS\ScopeForge-dashboard-ux` on `fix/dashboard-onboarding-ux`. The primary checkout's unrelated local GitNexus metadata edits remain untouched.
+
+The candidate makes platform administrators the only roles required to enroll MFA. Workspace roles get a dismissible recommendation, but an already-enrolled authenticator still requires an AAL2 challenge for every role. Required enrollment now transitions to `/dashboard` automatically after verification, and stale required-enrollment URLs recover without a manual refresh.
+
+Dashboard and asset usability corrections replace the decorative map with factual asset cards, disclose disabled website-worker capability before an action is offered, remove website-only panels from repository assets, and make local JSON import clearly optional and understandable. Rendered review covered the current authenticated production dashboard and a built local populated preview at desktop and 390x844. Production was read-only; no scan, factor, password, role, platform setting, migration, or Phase 11 canary was created.
+
+Validation so far: focused auth/UI/architecture tests pass, typecheck passes, and the production build passes. A broad Windows regression run excluding the two Linux-only Phase 12 path/shell suites passed 2,413 tests with 26 skips. Those suites deterministically reject Windows-normalized paths while exercising Linux socket and Bash contracts, and no WSL distribution is installed. Run exact-head Linux CI before merge. GitNexus change detection reports critical reach because the central assurance policy affects 23 execution flows; the explicit role matrix and page tests cover the intended boundary.
 
 ## Product UX and account security release
 

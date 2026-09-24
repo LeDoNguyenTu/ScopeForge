@@ -33,6 +33,7 @@ export interface ActiveValidationPanelObservation {
 }
 
 interface ActiveValidationPanelProps {
+  runtimeAvailable?: boolean;
   assetId: string;
   assetKind: AssetKind;
   verificationStatus: AssetVerificationStatus;
@@ -71,6 +72,7 @@ function safeTerminalMessage(job: ActiveValidationPanelJob): string {
 }
 
 export default function ActiveValidationPanel({
+  runtimeAvailable = false,
   assetId,
   assetKind,
   verificationStatus,
@@ -157,7 +159,9 @@ export default function ActiveValidationPanel({
         </div>
       </div>
 
-      {!active && (
+      {!runtimeAvailable && <div className="guardrail" role="status"><ShieldCheck size={17} /><p><strong>CORS checks are not enabled on this deployment.</strong> Your asset remains verified. No request was sent. A platform administrator must complete worker setup and acceptance before this check becomes available.</p></div>}
+
+      {!active && runtimeAvailable && (
         <div className="challengeBox">
           <label className="consentRow">
             <input

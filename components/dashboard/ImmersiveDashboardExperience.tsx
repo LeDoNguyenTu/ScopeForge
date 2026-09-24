@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRight, Boxes, Bug, CheckCircle2, ChevronDown, CircleCheck, Plus, ShieldCheck } from "lucide-react";
 import { DashboardResources } from "@/components/ResourceLibrary";
 import DashboardWorkbench, { type DashboardFinding } from "@/components/dashboard/DashboardWorkbench";
-import WebGLAttackSurface from "@/components/dashboard/WebGLAttackSurface";
 import type { AttackSurfaceAssetInput, AttackSurfaceModel } from "@/lib/dashboard/attack-surface-model";
 
 export interface DashboardNextAction { href: string; label: string; title: string; copy: string; }
@@ -33,7 +32,24 @@ export default function ImmersiveDashboardExperience({ model, nextAction, assets
         <DashboardWorkbench assets={assets} findings={findings} totalFindings={metrics.openFindings} />
         <aside className="saasWorkflow" aria-label="Workspace workflow"><span className="saasEyebrow">SCOPE TO PROOF</span><h2>Your security workflow</h2><p>Keep each step connected to evidence.</p><ol>{steps.map((step, index) => <li key={step.title}><span className={step.done ? "isComplete" : ""}>{step.done ? <CheckCircle2 size={17} /> : index + 1}</span><div><Link href={step.href}>{step.title} <ArrowRight size={12} /></Link><p>{step.copy}</p></div></li>)}</ol><Link className="saasGuideLink" href="/dashboard/resources">Open checklists and guides <ArrowRight size={14} /></Link></aside>
       </div>
-      <details className="saasMapPanel"><summary><span><Boxes size={18} /><strong>Attack surface map</strong><small>{metrics.registeredAssets} registered assets</small></span><ChevronDown size={17} /></summary><div className="saasMapBody"><p>Showing up to 10 assets, prioritized by sampled finding severity. Verified ownership does not mean an asset is vulnerability-free.</p><div className="livingMapCanvas"><WebGLAttackSurface model={model} /></div><ol className="mobileMapLegend">{model.nodes.map((node, index) => <li key={node.id}><Link href={`/dashboard/assets/${node.id}`}><span className={`mapLegendNumber mapLegendNumber-${node.state}`}>{index + 1}</span><div><strong>{node.label}</strong><small>{node.findingCount ? `${node.findingCount} sampled findings` : node.verificationStatus === "verified" ? "Verified ownership" : "Needs verification"}</small></div><ArrowRight size={13} /></Link></li>)}</ol><Link href="/dashboard/assets">Open asset inventory <ArrowRight size={14} /></Link></div></details>
+      <details className="saasMapPanel" open>
+        <summary><span><Boxes size={18} /><strong>Attack surface overview</strong><small>{metrics.registeredAssets} registered assets</small></span><ChevronDown size={17} /></summary>
+        <div className="saasMapBody">
+          <p>Your registered scope, prioritized by sampled findings. Ownership verification is separate from security results; no inferred network connections are shown.</p>
+          {model.nodes.length === 0 ? <p>Register an application, API, or repository to see it here.</p> : <ul className="assetSurfaceGrid" aria-label="Registered attack surface">
+            {model.nodes.map((node) => <li key={node.id}>
+              <Link href={`/dashboard/assets/${node.id}`} className="assetSurfaceEntry">
+                <span className="assetSurfaceKind">{node.kind.replaceAll("_", " ")} <ArrowRight aria-hidden="true" size={16} /></span>
+                <strong>{node.label}</strong><span className="assetSurfaceTarget">{node.canonicalTarget}</span>
+                <span className="assetSurfaceStatus">{node.verificationStatus === "verified" ? "Ownership verified" : "Needs verification"}</span>
+                <span className={node.findingCount ? "assetSurfaceFindings" : "assetSurfaceEmpty"}>{node.findingCount ? `${node.findingCount} sampled findings · highest: ${node.severity}` : "No findings in the current sample"}</span>
+              </Link>
+            </li>)}
+          </ul>}
+          <Link href="/dashboard/assets">View all {metrics.registeredAssets} assets <ArrowRight size={14} /></Link>
+          {metrics.registeredAssets > model.nodes.length && <p>Showing the {model.nodes.length} highest-priority assets. Open the inventory for the complete list.</p>}
+        </div>
+      </details>
       <DashboardResources />
     </div>
   );

@@ -22,12 +22,19 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof ActiveValida
       role="owner"
       latestJob={null}
       observation={null}
+      runtimeAvailable
       {...overrides}
     />,
   );
 }
 
 describe("ActiveValidationPanel", () => {
+  it("does not collect consent or offer execution when workers are disabled", () => {
+    renderPanel({ runtimeAvailable: false });
+    expect(screen.getByText(/not enabled on this deployment/i)).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /authorize and run/i })).not.toBeInTheDocument();
+  });
   it("keeps repository and unverified assets outside the active boundary", () => {
     const { rerender } = renderPanel({ assetKind: "repository" });
     expect(screen.getByText(/repository assets are not supported/i)).toBeInTheDocument();

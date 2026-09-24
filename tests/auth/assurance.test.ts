@@ -5,16 +5,16 @@ const noFactors = { currentLevel: "aal1" as const, nextLevel: "aal1" as const, v
 const enrolled = { currentLevel: "aal1" as const, nextLevel: "aal2" as const, verifiedTotp: [{ id: "factor-1", friendlyName: "Authenticator" }], unverifiedTotp: [] };
 
 describe("authentication assurance policy", () => {
-  it.each(["owner", "admin"])("requires %s to enroll a verified factor", (role) => {
+  it.each(["platform-admin"])("requires %s to enroll a verified factor", (role) => {
     expect(assuranceDestination(role, noFactors)).toBe("/dashboard/settings/security?required=mfa");
   });
 
-  it.each(["member", "viewer"])("allows %s without an enrolled factor", (role) => {
+  it.each(["owner", "admin", "member", "viewer"])("allows %s without an enrolled factor", (role) => {
     expect(assuranceDestination(role, noFactors)).toBeNull();
   });
 
-  it.each(["member", "viewer"])("does not challenge an enrolled %s whose session is still AAL1", (role) => {
-    expect(assuranceDestination(role, enrolled, "/dashboard/findings")).toBeNull();
+  it.each(["member", "viewer"])("honors voluntarily enabled MFA for %s at AAL1", (role) => {
+    expect(assuranceDestination(role, enrolled, "/dashboard/findings")).toBe("/auth/mfa?next=%2Fdashboard%2Ffindings");
   });
 
   it.each(["owner", "admin", "platform-admin"])("challenges an enrolled privileged %s session at AAL1", (role) => {

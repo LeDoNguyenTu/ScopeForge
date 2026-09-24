@@ -1,11 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AppShell from "@/components/AppShell";
 
-const mocks = vi.hoisted(() => ({ listFactors: vi.fn() }));
+const mocks = vi.hoisted(() => ({ listFactors: vi.fn(), onAuthStateChange: vi.fn(), unsubscribe: vi.fn() }));
 
 vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ auth: { mfa: { listFactors: mocks.listFactors } } }),
+  createClient: () => ({ auth: { mfa: { listFactors: mocks.listFactors }, onAuthStateChange: mocks.onAuthStateChange } }),
 }));
 
 vi.mock("@/app/actions", () => ({
@@ -26,6 +26,7 @@ describe("AppShell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
+    mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: mocks.unsubscribe } } });
     mocks.listFactors.mockResolvedValue({
       data: { all: [], phone: [], totp: [], webauthn: [], recovery_code: [] },
       error: null,
@@ -68,14 +69,20 @@ describe("AppShell", () => {
     expect(admin.parentElement).toHaveClass("workspaceToolbarActions");
   });
 
-  it("offers non-privileged users a dismissible MFA recommendation without blocking dashboard content", async () => {
-    render(<AppShell {...props} role="viewer"><p>Viewer dashboard</p></AppShell>);
+  it.each(["owner", "admin", "member", "viewer"])("offers %s an optional, live-updating MFA recommendation", async (role) => {
+    render(<AppShell {...props} role={role}><p>Viewer dashboard</p></AppShell>);
 
     const recommendation = await screen.findByRole("status", { name: "Two-step verification recommendation" });
     expect(screen.getByText("Viewer dashboard")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Set up two-step verification" })).toHaveAttribute("href", "/dashboard/settings/security");
 
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss MFA recommendation" }));
+    act(() => mocks.onAuthStateChange.mock.calls[0][0]("MFA_CHALLENGE_VERIFIED"));
     expect(recommendation).not.toBeInTheDocument();
+  });
+
+  it("allows a user to dismiss the recommendation", async () => {
+    render(<AppShell {...props} role="viewer"><p>Content</p></AppShell>);
+    fireEvent.click(await screen.findByRole("button", { name: "Dismiss MFA recommendation" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

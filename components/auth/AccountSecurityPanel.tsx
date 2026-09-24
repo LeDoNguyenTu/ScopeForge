@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { AssuranceState } from "@/lib/auth/assurance";
 import { useToast } from "@/components/feedback/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -10,7 +11,8 @@ import PasswordChangeForm from "@/components/auth/PasswordChangeForm";
 type Enrollment = { id: string; qrCode: string; secret: string };
 const EMPTY_STATE: AssuranceState = { currentLevel: null, nextLevel: null, verifiedTotp: [], unverifiedTotp: [] };
 
-export default function AccountSecurityPanel({ email }: { email: string }) {
+export default function AccountSecurityPanel({ email, requiredEnrollment = false }: { email: string; requiredEnrollment?: boolean }) {
+  const router = useRouter();
   const toast = useToast();
   const [state, setState] = useState(EMPTY_STATE);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
@@ -51,6 +53,13 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  useEffect(() => {
+    if (requiredEnrollment && state.currentLevel === "aal2") {
+      router.replace("/dashboard");
+      router.refresh();
+    }
+  }, [requiredEnrollment, state.currentLevel, router]);
 
   async function beginEnrollment() {
     setPending(true);
@@ -98,6 +107,7 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
     setCode("");
     await refresh();
     toast.success("Authenticator app enabled.");
+    router.refresh();
     setPending(false);
   }
 
@@ -126,7 +136,8 @@ export default function AccountSecurityPanel({ email }: { email: string }) {
       <section className="panel securitySettingsCard" aria-labelledby="authenticator-heading">
         <p className="eyebrow">Two-step verification</p>
         <h2 id="authenticator-heading">Authenticator app</h2>
-        <p className="muted">Use a six-digit code after your password. Owners and admins must keep a verified factor enrolled.</p>
+        <p className="muted">Use a six-digit code after your password. Required for platform administrators; recommended for everyone else.</p>
+        {requiredEnrollment && state.currentLevel === "aal2" ? <p role="status">Two-step verification is ready. Opening your dashboard…</p> : null}
         {state.verifiedTotp.length === 0 ? <p>No authenticator is enrolled yet.</p> : (
           <ul className="securityFactorList">{state.verifiedTotp.map((factor) => (
             <li key={factor.id}><span>{factor.friendlyName}</span><button className="secondaryButton" disabled={pending} onClick={() => void removeFactor(factor.id)} type="button">Remove</button></li>

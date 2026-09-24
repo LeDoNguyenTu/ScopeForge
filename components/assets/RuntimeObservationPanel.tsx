@@ -36,6 +36,7 @@ export interface RuntimeObservationPanelObservation {
 }
 
 interface RuntimeObservationPanelProps {
+  runtimeAvailable?: boolean;
   assetId: string;
   assetKind: AssetKind;
   verificationStatus: AssetVerificationStatus;
@@ -72,6 +73,7 @@ function safeTerminalMessage(job: RuntimeObservationPanelJob): string {
 }
 
 export default function RuntimeObservationPanel({
+  runtimeAvailable = false,
   assetId,
   assetKind,
   verificationStatus,
@@ -143,12 +145,14 @@ export default function RuntimeObservationPanel({
           <h2>Bounded HTTPS and TLS checks</h2>
           <p>HTTPS only on port 443 with GET requests, fresh DNS classification, pinned connections, and same-host redirects. No crawling, fuzzing, authentication replay, or exploit payloads.</p>
         </div>
-        {!active && (
+        {!active && runtimeAvailable && (
           <button className="primaryButton compact" disabled={busy} onClick={runObservation} type="button">
             <RefreshCw size={14} /> {busy ? "Running..." : "Run passive observation"}
           </button>
         )}
       </div>
+
+      {!runtimeAvailable && <div className="guardrail" role="status"><ShieldCheck size={17} /><p><strong>Website checks are not enabled on this deployment.</strong> Your asset remains verified. No scan was started. A platform administrator must complete worker setup and acceptance before these checks become available.</p></div>}
 
       {active && latestJob && (
         <div className="challengeBox">
