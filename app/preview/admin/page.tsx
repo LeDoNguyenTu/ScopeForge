@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Boxes, Bug, FolderKanban, ScanSearch, ShieldAlert, Users } from "lucide-react";
+import { Boxes, Bug, CircleDashed, FolderKanban, ScanSearch, ServerCog, ShieldAlert, Users } from "lucide-react";
 import AdminMetricCard from "@/components/platform-admin/AdminMetricCard";
 import AdminNavigation from "@/components/platform-admin/AdminNavigation";
 import AdminPageHeader from "@/components/platform-admin/AdminPageHeader";
 import PlatformSettingsForm from "@/components/platform-admin/PlatformSettingsForm";
 import GitHubRepositoryPicker from "@/components/integrations/GitHubRepositoryPicker";
 import type { GitHubRepositorySummary } from "@/lib/github-app/types";
+import { PROVIDER_RUNTIME_READINESS, runtimeReadinessSummary } from "@/lib/provider-runtime/readiness";
 import "../../admin/admin.css";
 import "../../admin/admin-responsive.css";
 import "../../admin/admin-settings.css";
@@ -15,7 +16,7 @@ import "../../dashboard/integrations/github/github-integration.css";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin design preview", robots: { index: false, follow: false } };
 
-const views = ["overview", "users", "workspaces", "audit", "settings", "github"] as const;
+const views = ["overview", "users", "workspaces", "providers", "audit", "settings", "github"] as const;
 type PreviewView = (typeof views)[number];
 
 function normalizeView(value: string | undefined): PreviewView {
@@ -109,6 +110,47 @@ function WorkspacesPreview() {
   );
 }
 
+
+function ProvidersPreview() {
+  const summary = runtimeReadinessSummary();
+  return (
+    <>
+      <AdminPageHeader
+        eyebrow="Execution control plane"
+        title="Provider runtime"
+        description="Synthetic rendering of the same release-truth provider readiness model used by the authenticated control plane."
+        actions={<span className="adminBadge adminBadgeActive">Fail closed by default</span>}
+      />
+      <section className="adminMetricGrid" aria-label="Sample provider runtime statistics">
+        <AdminMetricCard label="Operational" value={String(summary.operational)} hint="Accepted runtime providers" icon={ServerCog} />
+        <AdminMetricCard label="External prepared" value={String(summary.preparedExternal)} hint="Source-ready, default-off" icon={ScanSearch} />
+        <AdminMetricCard label="External enabled" value={String(summary.enabledExternal)} hint="Production external providers" icon={ShieldAlert} />
+        <AdminMetricCard label="Containment pending" value={String(summary.pendingContainment)} hint="Require real Linux evidence" icon={CircleDashed} />
+      </section>
+      <section className="adminPanelGrid">
+        {PROVIDER_RUNTIME_READINESS.map((provider) => (
+          <article className={provider.availability === "operational" ? "adminPanel adminPanelPrimary" : "adminPanel"} key={provider.providerId}>
+            <div className="adminPanelHeading">
+              <div><span className="adminPanelKicker">{provider.providerId}</span><h2>{provider.displayName}</h2></div>
+              <span className={provider.availability === "operational" ? "adminBadge adminBadgeActive" : "adminBadge"}>
+                {provider.availability === "operational" ? "Operational" : "Validation only"}
+              </span>
+            </div>
+            <p>{provider.summary}</p>
+            <div className="adminStatusRows">
+              <div className="adminStatusRow"><span>Version</span><strong>{provider.version}</strong></div>
+              <div className="adminStatusRow"><span>Production execution</span><strong className={provider.enabled ? "adminStatusGood" : "adminStatusWarn"}>{provider.enabled ? "Enabled" : "Disabled"}</strong></div>
+              {provider.gates.slice(-3).map((gate) => (
+                <div className="adminStatusRow" key={gate.id}><span>{gate.label}</span><strong className={gate.state === "passed" ? "adminStatusGood" : gate.state === "pending" ? "adminStatusWarn" : "adminMuted"}>{gate.state}</strong></div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </section>
+    </>
+  );
+}
+
 function AuditPreview() {
   const events = [
     ["user.suspended", "13 Sep 2026, 08:51", "6c507ba4-5af4-4f69-bc2e-65d219a51810", "Repeated abuse response review"],
@@ -154,6 +196,7 @@ function PreviewContent({ view }: { view: PreviewView }) {
   switch (view) {
     case "users": return <UsersPreview />;
     case "workspaces": return <WorkspacesPreview />;
+    case "providers": return <ProvidersPreview />;
     case "audit": return <AuditPreview />;
     case "settings": return <SettingsPreview />;
     case "github": return <GitHubPreview />;
