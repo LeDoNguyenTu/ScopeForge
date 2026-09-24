@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
+import CapabilityRoadmap from "@/components/security-runs/CapabilityRoadmap";
+import ProviderRuntimeCard from "@/components/security-runs/ProviderRuntimeCard";
 import { PROVIDER_RUNTIME_READINESS, runtimeReadinessSummary } from "@/lib/provider-runtime/readiness";
 import styles from "@/app/dashboard/security-runs/security-runs.module.css";
 
@@ -23,45 +25,57 @@ export default function SecurityRunsPreview() {
         <span><strong>Design preview</strong> · Synthetic run data. No provider execution is available from this page.</span>
         <Link href="/preview/dashboard">Dashboard preview</Link>
       </div>
+
       <div className={styles.page}>
         <header className={styles.hero}>
           <div className={styles.heroCopy}>
             <span className={styles.eyebrow}>AUTOMATED SECURITY ENGINE</span>
             <h1>Security runs</h1>
-            <p>Understand what ScopeForge planned, executed and observed, while provider readiness remains explicit and fail-closed.</p>
+            <p>Follow an authorized pentest from planning to reduced evidence while runtime readiness remains explicit and fail-closed.</p>
           </div>
           <span className={styles.heroBadge}><ShieldCheck size={14} aria-hidden="true" /> Authorization first</span>
         </header>
+
         <section className={styles.metricGrid}>
           <article className={styles.metric}><span>Recorded runs</span><strong>2</strong><small>Synthetic preview records</small></article>
           <article className={styles.metric}><span>Completed</span><strong>1</strong><small>One accepted terminal run</small></article>
           <article className={styles.metric}><span>Active</span><strong>0</strong><small>No synthetic active work</small></article>
-          <article className={styles.metric}><span>External enabled</span><strong>{readiness.enabledExternal}</strong><small>httpx and Nuclei remain default-off</small></article>
+          <article className={styles.metric}><span>External enabled</span><strong>{readiness.enabledExternal}</strong><small>{readiness.preparedExternal} external runtimes remain validation-only</small></article>
         </section>
+
+        <section className={styles.engineBanner}>
+          <div>
+            <span className={styles.panelKicker}>What ScopeForge can execute now</span>
+            <h2>{readiness.operational} operational runtime, {readiness.preparedExternal} under validation</h2>
+            <p>The first-party HTTP runtime is accepted. httpx and Nuclei stay visibly locked until their own Linux and control-plane gates pass.</p>
+          </div>
+          <Link href="/preview/admin?view=providers">Provider control plane <ArrowRight size={13} aria-hidden="true" /></Link>
+        </section>
+
         <section className={styles.grid}>
           <article className={styles.panel}>
             <div className={styles.panelHeader}><div><span className={styles.panelKicker}>Workspace history</span><h2>Recent security runs</h2></div></div>
             <div className={styles.runList}>
               {sampleRuns.map((run) => (
                 <article className={styles.run} key={run.id}>
-                  <div className={styles.runTop}><div><h3>{run.asset}</h3><p>Run {run.id}</p></div><span className={run.status === "completed" ? `${styles.status} ${styles.statusGood}` : `${styles.status} ${styles.statusWarn}`}>{run.status}</span></div>
+                  <div className={styles.runTop}>
+                    <div><h3>{run.asset}</h3><p>Run {run.id}</p></div>
+                    <span className={run.status === "completed" ? `${styles.status} ${styles.statusGood}` : `${styles.status} ${styles.statusWarn}`}>{run.status}</span>
+                  </div>
                   <div className={styles.runMeta}><span>Updated {run.updated}</span><span>Stop: {run.stop}</span><span>Details require sign-in <ArrowRight size={11} aria-hidden="true" /></span></div>
                 </article>
               ))}
             </div>
           </article>
+
           <aside className={styles.panel}>
             <div className={styles.panelHeader}><div><span className={styles.panelKicker}>Execution availability</span><h2>Provider runtime</h2></div></div>
             <div className={styles.providerList}>
-              {PROVIDER_RUNTIME_READINESS.map((provider) => (
-                <article className={styles.provider} key={provider.providerId}>
-                  <div className={styles.providerTop}><div><h3>{provider.displayName}</h3><p>{provider.providerId} · v{provider.version}</p></div><span className={provider.enabled ? `${styles.status} ${styles.statusGood}` : `${styles.status} ${styles.statusWarn}`}>{provider.enabled ? "Operational" : "Validation only"}</span></div>
-                  <p>{provider.summary}</p>
-                </article>
-              ))}
+              {PROVIDER_RUNTIME_READINESS.map((provider) => <ProviderRuntimeCard compact key={provider.providerId} provider={provider} />)}
             </div>
           </aside>
         </section>
+
         <section className={styles.panel}>
           <div className={styles.panelHeader}><div><span className={styles.panelKicker}>How the engine works</span><h2>From authorization to evidence</h2></div></div>
           <div className={styles.flow}>
@@ -71,6 +85,8 @@ export default function SecurityRunsPreview() {
             <article className={styles.flowStep}><span>04</span><strong>Reduce evidence</strong><p>Compact observations and explicit coverage.</p></article>
           </div>
         </section>
+
+        <CapabilityRoadmap />
       </div>
     </AppShell>
   );

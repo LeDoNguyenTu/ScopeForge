@@ -51,6 +51,9 @@ describe("platform admin UI boundary", () => {
     const readiness = await read("lib/provider-runtime/readiness.ts");
     expect(page).toContain("Provider runtime");
     expect(page).toContain("Fail closed by default");
+    expect(page).toContain("Prepared does not mean enabled");
+    expect(page).toContain("providerGateSummary");
+    expect(page).toContain("Phase 12 capability expansion");
     expect(page).not.toContain("enableProvider");
     expect(page).not.toContain("Run provider");
     expect(readiness).toContain('enabled: false');
