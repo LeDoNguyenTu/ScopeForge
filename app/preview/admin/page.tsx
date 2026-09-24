@@ -7,7 +7,7 @@ import AdminPageHeader from "@/components/platform-admin/AdminPageHeader";
 import PlatformSettingsForm from "@/components/platform-admin/PlatformSettingsForm";
 import GitHubRepositoryPicker from "@/components/integrations/GitHubRepositoryPicker";
 import type { GitHubRepositorySummary } from "@/lib/github-app/types";
-import { PROVIDER_RUNTIME_READINESS, runtimeReadinessSummary } from "@/lib/provider-runtime/readiness";
+import { PHASE12_RUNTIME_ROADMAP, PROVIDER_RUNTIME_READINESS, providerGateSummary, runtimeReadinessSummary } from "@/lib/provider-runtime/readiness";
 import "../../admin/admin.css";
 import "../../admin/admin-responsive.css";
 import "../../admin/admin-settings.css";
@@ -127,25 +127,55 @@ function ProvidersPreview() {
         <AdminMetricCard label="External enabled" value={String(summary.enabledExternal)} hint="Production external providers" icon={ShieldAlert} />
         <AdminMetricCard label="Containment pending" value={String(summary.pendingContainment)} hint="Require real Linux evidence" icon={CircleDashed} />
       </section>
+
+      <section className="adminProviderTruth">
+        <div><span className="adminPanelKicker">Operator truth</span><h2>Prepared does not mean enabled</h2><p>Provider cards mirror backend release gates instead of implying that source-complete code is runnable.</p></div>
+        <div className="adminProviderTruthStats">
+          <span><strong>{summary.operational}</strong> operational</span>
+          <span><strong>{summary.preparedExternal}</strong> validating</span>
+          <span><strong>{summary.enabledExternal}</strong> external enabled</span>
+        </div>
+      </section>
+
       <section className="adminPanelGrid">
-        {PROVIDER_RUNTIME_READINESS.map((provider) => (
-          <article className={provider.availability === "operational" ? "adminPanel adminPanelPrimary" : "adminPanel"} key={provider.providerId}>
-            <div className="adminPanelHeading">
-              <div><span className="adminPanelKicker">{provider.providerId}</span><h2>{provider.displayName}</h2></div>
-              <span className={provider.availability === "operational" ? "adminBadge adminBadgeActive" : "adminBadge"}>
-                {provider.availability === "operational" ? "Operational" : "Validation only"}
-              </span>
-            </div>
-            <p>{provider.summary}</p>
-            <div className="adminStatusRows">
-              <div className="adminStatusRow"><span>Version</span><strong>{provider.version}</strong></div>
-              <div className="adminStatusRow"><span>Production execution</span><strong className={provider.enabled ? "adminStatusGood" : "adminStatusWarn"}>{provider.enabled ? "Enabled" : "Disabled"}</strong></div>
-              {provider.gates.slice(-3).map((gate) => (
-                <div className="adminStatusRow" key={gate.id}><span>{gate.label}</span><strong className={gate.state === "passed" ? "adminStatusGood" : gate.state === "pending" ? "adminStatusWarn" : "adminMuted"}>{gate.state}</strong></div>
-              ))}
-            </div>
-          </article>
-        ))}
+        {PROVIDER_RUNTIME_READINESS.map((provider) => {
+          const gates = providerGateSummary(provider);
+          return (
+            <article className={provider.availability === "operational" ? "adminPanel adminPanelPrimary" : "adminPanel"} key={provider.providerId}>
+              <div className="adminPanelHeading">
+                <div><span className="adminPanelKicker">{provider.providerId}</span><h2>{provider.displayName}</h2></div>
+                <span className={provider.availability === "operational" ? "adminBadge adminBadgeActive" : "adminBadge"}>
+                  {provider.availability === "operational" ? "Operational" : "Validation only"}
+                </span>
+              </div>
+              <p>{provider.summary}</p>
+              <div className="adminProviderProgress">
+                <div><span>Acceptance gates</span><strong>{gates.passed} / {gates.total} passed</strong></div>
+                <div className="adminProviderProgressTrack">
+                  {provider.gates.map((gate) => <span className={`adminProviderProgressSegment adminProviderProgress-${gate.state}`} key={gate.id} />)}
+                </div>
+                <small>{gates.nextGate ? `Next blocker: ${gates.nextGate.label}` : "Operationally accepted"}</small>
+              </div>
+              <div className="adminStatusRows">
+                <div className="adminStatusRow"><span>Version</span><strong>{provider.version}</strong></div>
+                <div className="adminStatusRow"><span>Production execution</span><strong className={provider.enabled ? "adminStatusGood" : "adminStatusWarn"}>{provider.enabled ? "Enabled" : "Disabled"}</strong></div>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="adminSection">
+        <h2>Phase 12 capability expansion</h2>
+        <div className="adminProviderRoadmap">
+          {PHASE12_RUNTIME_ROADMAP.map((item) => (
+            <article key={item.slice}>
+              <div><span className="adminPanelKicker">{item.slice}</span><span className={item.state === "validation" ? "adminBadge adminBadgePending" : "adminBadge"}>{item.state}</span></div>
+              <h3>{item.title}</h3>
+              <p>{item.detail}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </>
   );
