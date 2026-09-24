@@ -13,6 +13,7 @@ import {
 import CommandCenterLandingHero from "@/components/landing/CommandCenterLandingHero";
 import PublicNav from "@/components/landing/PublicNav";
 import PublicFooter from "@/components/landing/PublicFooter";
+import PublicSecurityEngine from "@/components/landing/PublicSecurityEngine";
 import { readPublicPlatformSettings } from "@/lib/platform-settings/public";
 import { shouldEnterMaintenance } from "@/lib/platform-settings/server";
 
@@ -56,6 +57,8 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      <PublicSecurityEngine />
 
       <section id="security-model" className="forgeSecurityModel commandBelowFold">
         <div className="forgeSecurityIntro">
