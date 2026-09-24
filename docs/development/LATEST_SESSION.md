@@ -2,15 +2,17 @@
 
 Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub and provider state wins.
 
-## Dashboard usability and MFA follow-up in progress
+## Dashboard usability and MFA follow-up released
 
-Live `origin/main` was verified at `86c20e8c9a440f9d604a180db82288d8cc18608d`; the isolated worktree is `D:\PROJECTS\ScopeForge-dashboard-ux` on `fix/dashboard-onboarding-ux`. The primary checkout's unrelated local GitNexus metadata edits remain untouched.
+PR #203 passed exact-head Linux CI run `35990129643` and merged as `eba081c806f8da078a3fd6b84b06de2bfd32ded4`. Vercel production deployment `dpl_6L2DTXRFjpp3WMrj3iWdeLSLogFq` is READY for that merge and aliases `scopeforge.dev`. The primary checkout's unrelated local GitNexus metadata edits remained untouched.
 
-The candidate makes platform administrators the only roles required to enroll MFA. Workspace roles get a dismissible recommendation, but an already-enrolled authenticator still requires an AAL2 challenge for every role. Required enrollment now transitions to `/dashboard` automatically after verification, and stale required-enrollment URLs recover without a manual refresh.
+The release makes platform administrators the only roles required to enroll MFA. Workspace roles get a dismissible recommendation, but an already-enrolled authenticator still requires an AAL2 challenge for every role. Required enrollment now transitions to `/dashboard` automatically after verification, and stale required-enrollment URLs recover without a manual refresh.
 
 Dashboard and asset usability corrections replace the decorative map with factual asset cards, disclose disabled website-worker capability before an action is offered, remove website-only panels from repository assets, and make local JSON import clearly optional and understandable. Rendered review covered the current authenticated production dashboard and a built local populated preview at desktop and 390x844. Production was read-only; no scan, factor, password, role, platform setting, migration, or Phase 11 canary was created.
 
-Validation so far: focused auth/UI/architecture tests pass, typecheck passes, and the production build passes. A broad Windows regression run excluding the two Linux-only Phase 12 path/shell suites passed 2,413 tests with 26 skips. Those suites deterministically reject Windows-normalized paths while exercising Linux socket and Bash contracts, and no WSL distribution is installed. Run exact-head Linux CI before merge. GitNexus change detection reports critical reach because the central assurance policy affects 23 execution flows; the explicit role matrix and page tests cover the intended boundary.
+Validation: focused auth/UI/architecture tests, typecheck, and the 47-route production build passed locally. A broad Windows regression run excluding the two Linux-only Phase 12 path/shell suites passed 2,413 tests with 26 skips. Exact-head Linux CI then passed the complete suite plus CLI/worker builds, benchmarks, browser/CSP smoke, and production diagnostics. The first CI run exposed only a stale WebGL browser assertion; that failed fixture was updated to require the replacement factual asset cards, and the exact-head rerun passed. GitNexus change detection reports critical reach because the central assurance policy affects 23 execution flows; the explicit role matrix and page tests cover the intended boundary.
+
+Final authenticated production rendering confirmed that an AAL2 session visiting stale `?required=mfa` state returns automatically to `/dashboard`, the overview renders five linked factual asset cards without an inferred network graph, repository import is collapsed and labeled optional, and disabled website-worker capabilities show explanations without runnable controls. No scan, factor, password, role, platform setting, migration, or Phase 11 canary was created.
 
 ## Product UX and account security release
 

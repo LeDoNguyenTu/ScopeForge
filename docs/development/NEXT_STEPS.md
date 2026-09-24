@@ -12,7 +12,7 @@ Current estimated broader automated-pentest product vision: approximately 75% at
 
 Active slice: **12A external ProjectDiscovery httpx**.
 
-The product UX/account-security hardening, rendered mobile-navigation correction, TOTP recovery/QR corrections, and scheduled maintenance controls shipped through PR #194. A 2026-09-24 correction candidate narrows mandatory enrollment to platform administrators, preserves challenges for every enrolled account, and improves dashboard/asset workflow clarity. Release that candidate without changing Phase 12 runtime gates, then continue Phase 12.
+The product UX/account-security hardening, rendered mobile-navigation correction, TOTP recovery/QR corrections, and scheduled maintenance controls shipped through PR #194. PR #203 released the 2026-09-24 correction that narrows mandatory enrollment to platform administrators, preserves challenges for every enrolled account, and improves dashboard/asset workflow clarity without changing Phase 12 runtime gates. Continue Phase 12 from the live roadmap below.
 
 See:
 

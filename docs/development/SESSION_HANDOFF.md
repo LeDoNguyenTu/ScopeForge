@@ -2,9 +2,9 @@
 
 Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
 
-## Active correction candidate
+## Dashboard and MFA correction released
 
-Resume `fix/dashboard-onboarding-ux` in `D:\PROJECTS\ScopeForge-dashboard-ux`. The candidate is rebased onto `origin/main` `86c20e8c9a440f9d604a180db82288d8cc18608d`; focused tests, typecheck, production build, and rendered desktop/mobile preview pass. Finish exact-head Linux CI, merge, verify the Vercel deployment and authenticated production rendering, then remove this temporary worktree only when clean and merged. Do not run another Phase 11 canary.
+PR #203 passed exact-head CI run `35990129643`, merged as `eba081c806f8da078a3fd6b84b06de2bfd32ded4`, and reached READY Vercel deployment `dpl_6L2DTXRFjpp3WMrj3iWdeLSLogFq` on `scopeforge.dev`. Authenticated production rendering confirmed stale required-MFA recovery, the factual asset overview, optional repository import, and capability-aware website controls. No production state was mutated and no Phase 11 canary was run. The temporary `D:\PROJECTS\ScopeForge-dashboard-ux` worktree can be removed after this docs-only closure is merged and clean.
 
 ## Product hardening release
 
