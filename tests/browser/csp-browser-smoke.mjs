@@ -160,6 +160,35 @@ async function assertSecurityRunsPreview(sessionId, width, height) {
   await captureScreenshot(sessionId, `security-runs-${width}.png`);
 }
 
+async function assertPublicEngine(sessionId, width, height) {
+  await setWindowRect(sessionId, width, height);
+  await navigate(sessionId, "/");
+  await waitFor(sessionId, "public automated security engine", "return Boolean(document.querySelector('#engine.publicEngine') && [...document.querySelectorAll('#engine h2')].some((el)=>el.textContent?.includes('From verified scope to bounded evidence'))); ");
+  await execute(sessionId, "document.querySelector('#engine')?.scrollIntoView({block:'start'}); return true;");
+  await sleep(160);
+
+  const geometry = await execute(sessionId, `
+    const engine=document.querySelector('#engine.publicEngine');
+    if(!engine)return null;
+    const rect=engine.getBoundingClientRect();
+    const visible=(element)=>Boolean(element&&getComputedStyle(element).display!=='none'&&element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0);
+    const clipped=[...engine.querySelectorAll('a,article,div')].filter(visible).some((element)=>{const r=element.getBoundingClientRect();return r.left < -1 || r.right > innerWidth + 1;});
+    return {
+      width:rect.width,
+      clipped,
+      runtimeCards:engine.querySelectorAll('.publicEngineTruth > div').length,
+      flowCards:engine.querySelectorAll('.publicEngineFlow > article').length,
+      boundary:Boolean(engine.querySelector('.publicEngineBoundary')),
+      automatedPentest:(engine.textContent||'').includes('automated pentest loop'),
+    };
+  `);
+  if (!geometry || geometry.clipped || geometry.width > width + 1 || geometry.runtimeCards !== 3 || geometry.flowCards !== 4 || !geometry.boundary || !geometry.automatedPentest) {
+    throw new Error(`Public engine composition regressed at ${width}px: ${JSON.stringify(geometry)}`);
+  }
+  assertCleanLogs(await browserLogs(sessionId), "/#engine");
+  await captureScreenshot(sessionId, `landing-engine-${width}.png`);
+}
+
 async function main() {
   const session = await webdriver("POST", "/session", {
     capabilities: { alwaysMatch: {
@@ -203,6 +232,9 @@ async function main() {
     await captureScreenshot(sessionId, "dashboard-pre-pr49.png");
     await assertSecurityRunsPreview(sessionId, 390, 844);
     await assertSecurityRunsPreview(sessionId, 1440, 1100);
+
+    await assertPublicEngine(sessionId, 1440, 1100);
+    await assertPublicEngine(sessionId, 390, 844);
 
 
     for (const view of ["overview", "users", "workspaces", "providers", "audit", "settings", "github"]) {
