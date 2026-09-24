@@ -237,10 +237,19 @@ function PreviewContent({ view }: { view: PreviewView }) {
 export default async function AdminPreview({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   if (process.env.VERCEL_ENV !== "preview" && process.env.NODE_ENV !== "development") notFound();
   const view = normalizeView((await searchParams).view);
+  const activeHref = {
+    overview: "/admin",
+    users: "/admin/users",
+    workspaces: "/admin/workspaces",
+    providers: "/admin/providers",
+    audit: "/admin/audit",
+    settings: "/admin/settings",
+    github: undefined,
+  } satisfies Record<PreviewView, string | undefined>;
 
   return (
     <div className="platformAdminShell adminPreviewShell">
-      <AdminNavigation email="preview.admin@example.invalid" role="owner" />
+      <AdminNavigation email="preview.admin@example.invalid" role="owner" activeHref={activeHref[view]} />
       <main className="platformAdminMain" id="platform-admin-content">
         <PreviewNotice view={view} />
         <PreviewContent view={view} />

@@ -111,9 +111,9 @@ button, input, select, textarea { font: inherit; }
 }
 
 @media (max-width: 960px) {
-  .immersiveDashboardLinks .sideNav { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .immersiveDashboardLinks .sideNav { display: flex; flex-direction: row; width: 100%; min-width: 0; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-padding-inline: 12px; padding-bottom: 4px; scrollbar-width: none; scroll-snap-type: x proximity; }
   .immersiveDashboardLinks .sideNav::-webkit-scrollbar { display: none; }
-  .immersiveDashboardLinks .sideLink { flex: 0 0 auto; min-width: 124px; scroll-snap-align: start; }
+  .immersiveDashboardLinks .sideLink { flex: 0 0 auto; min-width: 124px; scroll-snap-align: center; }
   .workspaceContent { padding: 0 24px 40px; }
 }
 

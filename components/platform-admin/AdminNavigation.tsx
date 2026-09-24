@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
   Activity,
@@ -29,12 +29,13 @@ function isActivePath(pathname: string, href: string): boolean {
   return href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
+function AdminNavLinks({ mobile = false, activeHref }: { mobile?: boolean; activeHref?: string }) {
   const pathname = usePathname();
+  const activePathname = activeHref ?? pathname;
   const navRef = useRef<HTMLElement | null>(null);
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!mobile) return;
     const nav = navRef.current;
     const link = activeLinkRef.current;
@@ -42,7 +43,7 @@ function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
     const targetLeft = Math.max(0, link.offsetLeft - Math.max(0, (nav.clientWidth - link.offsetWidth) / 2));
     if (typeof nav.scrollTo === "function") nav.scrollTo({ left: targetLeft, behavior: "auto" });
     else nav.scrollLeft = targetLeft;
-  }, [mobile, pathname]);
+  }, [mobile, activePathname]);
 
   return (
     <nav
@@ -51,7 +52,7 @@ function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
       aria-label={mobile ? "Platform administration mobile" : "Platform administration"}
     >
       {navigation.map(([href, label, Icon]) => {
-        const active = isActivePath(pathname, href);
+        const active = isActivePath(activePathname, href);
         return (
           <Link
             key={href}
@@ -72,9 +73,11 @@ function AdminNavLinks({ mobile = false }: { mobile?: boolean }) {
 export default function AdminNavigation({
   email,
   role,
+  activeHref,
 }: {
   email: string;
   role: "owner" | "admin";
+  activeHref?: string;
 }) {
   const roleLabel = role === "owner" ? "Platform owner" : "Platform admin";
 
@@ -86,7 +89,7 @@ export default function AdminNavigation({
           <span className="platformAdminBrandContext">Control plane</span>
         </Link>
 
-        <AdminNavLinks />
+        <AdminNavLinks activeHref={activeHref} />
 
         <div className="platformAdminIdentity">
           <span title={email}>{email}</span>
@@ -109,7 +112,7 @@ export default function AdminNavigation({
         </Link>
       </header>
 
-      <AdminNavLinks mobile />
+      <AdminNavLinks mobile activeHref={activeHref} />
     </>
   );
 }
