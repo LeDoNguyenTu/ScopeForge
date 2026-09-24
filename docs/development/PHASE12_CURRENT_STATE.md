@@ -103,3 +103,20 @@ Operational state remains unchanged until this helper is run successfully on the
 ### Current external blocker
 
 Repository preparation for the first two-container Linux containment run is complete. The remaining next action requires access to the dedicated accepted Linux/Oracle worker host and locally built immutable httpx plus provider-egress-sidecar image digests. No qualifying host session was available during the 2026-09-24 repository continuation, so no containment pass is claimed and no provider worker/control-plane/database enablement was attempted.
+
+
+## Frontend/runtime visibility continuation
+
+Phase 12 now treats frontend parity as part of product completion rather than optional presentation work.
+
+Current implementation on `feat/phase-12-frontend-runtime-visibility-20260924` adds:
+
+- workspace `/dashboard/security-runs` using the existing RLS-safe run summary read model
+- per-run `/dashboard/security-runs/[runId]` for action state, coverage, graph counts and normalized observations
+- platform-admin `/admin/providers` showing operational versus validation-only providers and each acceptance gate
+- a single provider-readiness presentation model derived from the actual provider identifiers/versions
+- navigation and dashboard next-action integration
+- preview-only `/preview/security-runs` and `/preview/admin?view=providers` surfaces
+- mobile/desktop overflow and browser-smoke coverage
+
+The UI intentionally provides no provider enable button. httpx and Nuclei remain visibly disabled until their Linux containment, worker/control-plane and production canary gates actually pass.
