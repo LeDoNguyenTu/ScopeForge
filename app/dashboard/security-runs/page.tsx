@@ -28,10 +28,13 @@ function providerStatus(provider: (typeof PROVIDER_RUNTIME_READINESS)[number]) {
 
 export default async function SecurityRunsPage() {
   const { supabase, workspace, role, displayName } = await getDashboardContext();
-  const [platformAdmin, runs] = await Promise.all([
+  const [platformAdmin, runs, assetResult] = await Promise.all([
     getOptionalPlatformAdmin(),
     listPentestRunSummaries(supabase as unknown as Phase11ReadClient, workspace.id, 20),
+    supabase.from("assets").select("id,name").eq("workspace_id", workspace.id),
   ]);
+  if (assetResult.error) throw new Error(assetResult.error.message);
+  const assetNames = new Map((assetResult.data ?? []).map((asset) => [asset.id, asset.name]));
   const readiness = runtimeReadinessSummary();
   const completed = runs.filter((run) => run.status === "completed").length;
   const active = runs.filter((run) => run.status === "created" || run.status === "running" || run.status === "waiting_approval").length;
@@ -83,7 +86,7 @@ export default async function SecurityRunsPage() {
                   <Link className={styles.run} href={`/dashboard/security-runs/${run.run_id}`} key={run.run_id}>
                     <div className={styles.runTop}>
                       <div>
-                        <h3>{run.root_asset_id}</h3>
+                        <h3>{assetNames.get(run.root_asset_id) ?? "Authorized asset"}</h3>
                         <p>Run {run.run_id}</p>
                       </div>
                       <span className={statusClass(run.status)}>{run.status.replaceAll("_", " ")}</span>
@@ -119,6 +122,7 @@ export default async function SecurityRunsPage() {
                       <span className={status.className}>{status.label}</span>
                     </div>
                     <p>{provider.summary}</p>
+                    {!provider.enabled ? <p>Next gate: {provider.gates.find((gate) => gate.state !== "passed")?.label ?? "Operational acceptance"}</p> : null}
                   </article>
                 );
               })}
