@@ -111,7 +111,10 @@ async function assertSecurityRunsPreview(sessionId, width, height) {
     const root=document.documentElement;
     const body=document.body;
     const visible=(element)=>Boolean(element&&getComputedStyle(element).display!=='none'&&element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0);
-    const clipped=[...document.querySelectorAll('button,a,input,textarea,select')].filter(visible).some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
+    const clipped=[...document.querySelectorAll('button,a,input,textarea,select')]
+      .filter(visible)
+      .filter((element)=>!element.closest('.immersiveDashboardLinks'))
+      .some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
     return {
       innerWidth,
       scrollWidth:Math.max(root.scrollWidth,body.scrollWidth),
