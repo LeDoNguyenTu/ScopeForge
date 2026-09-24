@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Network, Radar } from "lucide-react";
 import { notFound } from "next/navigation";
 import AppShell from "@/components/AppShell";
+import RunJourney from "@/components/security-runs/RunJourney";
 import type { Phase11ReadClient } from "@/lib/database.phase11.types";
 import { getOptionalPlatformAdmin } from "@/lib/platform-admin/authorization";
 import { loadPentestRunReadModel } from "@/lib/pentest-runs/read-model";
@@ -61,6 +62,14 @@ export default async function SecurityRunDetailPage({
           <article className={styles.metric}><span>Requests</span><strong>{coverage?.request_count ?? 0}</strong><small>Authoritative accounted requests</small></article>
           <article className={styles.metric}><span>Provider failures</span><strong>{coverage?.provider_failure_count ?? 0}</strong><small>{coverage?.graph_expansion_count ?? 0} graph expansions</small></article>
         </section>
+
+        <RunJourney
+          status={model.run.status}
+          actionCount={model.actions.length}
+          observationCount={model.observations.length}
+          coveredNodeCount={coverage?.covered_node_count ?? 0}
+          stopReason={model.run.stop_reason}
+        />
 
         <section className={styles.grid}>
           <article className={styles.panel}>
