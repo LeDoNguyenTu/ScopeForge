@@ -30,9 +30,38 @@ export default function SideNav() {
     const rail = link?.closest(".immersiveDashboardLinks");
     if (!link || !(rail instanceof HTMLElement)) return;
 
-    const targetLeft = Math.max(0, link.offsetLeft - Math.max(0, (rail.clientWidth - link.offsetWidth) / 2));
-    if (typeof rail.scrollTo === "function") rail.scrollTo({ left: targetLeft, behavior: "auto" });
-    else rail.scrollLeft = targetLeft;
+    const centerActiveLink = () => {
+      const railRect = rail.getBoundingClientRect();
+      const linkRect = link.getBoundingClientRect();
+      const maxScrollLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      const targetLeft = rail.scrollLeft
+        + (linkRect.left - railRect.left)
+        - Math.max(0, (rail.clientWidth - linkRect.width) / 2);
+      const nextLeft = Math.min(maxScrollLeft, Math.max(0, targetLeft));
+
+      if (Math.abs(rail.scrollLeft - nextLeft) < 1) return;
+      if (typeof rail.scrollTo === "function") rail.scrollTo({ left: nextLeft, behavior: "auto" });
+      else rail.scrollLeft = nextLeft;
+    };
+
+    centerActiveLink();
+
+    const frame = typeof window.requestAnimationFrame === "function"
+      ? window.requestAnimationFrame(centerActiveLink)
+      : null;
+    const observer = typeof ResizeObserver === "function"
+      ? new ResizeObserver(centerActiveLink)
+      : null;
+
+    observer?.observe(rail);
+    observer?.observe(link);
+    window.addEventListener("resize", centerActiveLink);
+
+    return () => {
+      if (frame !== null && typeof window.cancelAnimationFrame === "function") window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener("resize", centerActiveLink);
+    };
   }, [pathname]);
 
   return (
