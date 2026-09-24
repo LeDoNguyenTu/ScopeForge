@@ -1,6 +1,6 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-23, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
 
 ## Active post-v1 roadmap
 
@@ -31,6 +31,8 @@ See:
 8. 12H benchmarks, rollback, operational acceptance and closure.
 
 Each network/process authority stays default-off until its own Linux containment and acceptance gate passes.
+
+Frontend parity is now a parallel release requirement. Keep `/dashboard/security-runs` and `/admin/providers` synchronized with actual backend acceptance state as each Phase 12 provider advances. Never make a locked provider appear runnable merely because its adapter or sandbox source exists.
 
 ## Storage direction
 
