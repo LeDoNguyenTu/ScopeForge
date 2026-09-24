@@ -2,6 +2,24 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 describe("workspace security run UI", () => {
+  it("surfaces the backend engine on the primary workspace dashboard using real read models", async () => {
+    const page = await readFile("app/dashboard/page.tsx", "utf8");
+    const snapshot = await readFile("components/dashboard/SecurityEngineSnapshot.tsx", "utf8");
+    const css = await readFile("app/saas-dashboard.css", "utf8");
+    expect(page).toContain("listPentestRunSummaries");
+    expect(page).toContain("runtimeReadinessSummary");
+    expect(page).toContain("recentRunCount");
+    expect(snapshot).toContain("What ScopeForge can execute");
+    expect(snapshot).toContain("Operational runtimes");
+    expect(snapshot).toContain("Under validation");
+    expect(snapshot).toContain("External enabled");
+    expect(snapshot).toContain("/dashboard/security-runs");
+    expect(snapshot).not.toContain("enableProvider");
+    expect(snapshot).not.toContain("Run provider");
+    expect(css).toContain(".saasEnginePanel");
+    expect(css).toContain("@media (max-width: 420px)");
+  });
+
   it("renders real read-model history and separates provider readiness from run state", async () => {
     const page = await readFile("app/dashboard/security-runs/page.tsx", "utf8");
     expect(page).toContain("listPentestRunSummaries");
