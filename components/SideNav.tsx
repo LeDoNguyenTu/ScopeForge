@@ -30,8 +30,9 @@ export default function SideNav() {
     const rail = link?.closest(".immersiveDashboardLinks");
     if (!link || !(rail instanceof HTMLElement)) return;
 
-    const targetLeft = link.offsetLeft - Math.max(0, (rail.clientWidth - link.offsetWidth) / 2);
-    rail.scrollTo({ left: Math.max(0, targetLeft), behavior: "auto" });
+    const targetLeft = Math.max(0, link.offsetLeft - Math.max(0, (rail.clientWidth - link.offsetWidth) / 2));
+    if (typeof rail.scrollTo === "function") rail.scrollTo({ left: targetLeft, behavior: "auto" });
+    else rail.scrollLeft = targetLeft;
   }, [pathname]);
 
   return (
