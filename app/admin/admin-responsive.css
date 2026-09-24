@@ -51,3 +51,18 @@
   .adminMobileDatum { padding: 9px 10px; }
   .adminPageHeaderActions .adminBadge { width: 100%; justify-content: center; }
 }
+
+.adminProviderBoundary, .adminProviderGates { margin-top: 12px; }
+.adminProviderGateLabel { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.adminProviderGateLabel svg { flex: 0 0 auto; }
+@media (max-width: 760px) {
+  .adminProviderGateLabel { align-items: flex-start; }
+}
+
+.adminProviderGate { padding: 11px; border: 1px solid var(--line-soft); border-radius: 10px; background: rgba(7,10,16,.38); }
+.adminProviderGateTop { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; }
+.adminProviderGate small { display: block; margin-top: 7px; color: var(--muted-2); font-size: 9.5px; line-height: 1.5; }
+@media (max-width: 760px) {
+  .adminProviderGateTop { align-items: flex-start; }
+  .adminProviderGateTop strong { text-align: right; }
+}

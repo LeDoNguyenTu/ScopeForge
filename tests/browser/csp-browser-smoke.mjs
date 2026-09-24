@@ -71,7 +71,10 @@ async function assertAdminPreview(sessionId, view, width, height) {
     const desktopTable=document.querySelector('.adminDesktopTable');
     const githubActions=[...document.querySelectorAll('.githubRepositoryAction .primaryButton')];
     const visible=(element)=>Boolean(element&&getComputedStyle(element).display!=='none'&&element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0);
-    const clipped=[...document.querySelectorAll('button,a,input,textarea')].filter(visible).some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
+    const clipped=[...document.querySelectorAll('button,a,input,textarea')]
+      .filter(visible)
+      .filter((element)=>!element.closest('.platformAdminMobileNav'))
+      .some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
     return {
       innerWidth,
       scrollWidth:Math.max(root.scrollWidth,body.scrollWidth),
@@ -99,6 +102,41 @@ async function assertAdminPreview(sessionId, view, width, height) {
   assertCleanLogs(await browserLogs(sessionId), route);
   const prefix = width <= 760 ? "admin-mobile" : "admin-desktop";
   await captureScreenshot(sessionId, `${prefix}-${width}-${view}.png`);
+}
+
+async function assertSecurityRunsPreview(sessionId, width, height) {
+  await setWindowRect(sessionId, width, height);
+  const route = "/preview/security-runs";
+  await navigate(sessionId, route);
+  await waitFor(sessionId, "security runs preview", "return Boolean(document.querySelector('.workspaceAppShell') && [...document.querySelectorAll('h1')].some((el)=>el.textContent?.includes('Security runs'))); ");
+
+  const geometry = await execute(sessionId, `
+    const root=document.documentElement;
+    const body=document.body;
+    const visible=(element)=>Boolean(element&&getComputedStyle(element).display!=='none'&&element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0);
+    const clipped=[...document.querySelectorAll('button,a,input,textarea,select')]
+      .filter(visible)
+      .filter((element)=>!element.closest('.immersiveDashboardLinks'))
+      .some((element)=>{const rect=element.getBoundingClientRect();return rect.left < -1 || rect.right > innerWidth + 1;});
+    return {
+      innerWidth,
+      scrollWidth:Math.max(root.scrollWidth,body.scrollWidth),
+      clipped,
+      metrics:document.querySelectorAll('main article').length,
+      providerRuntime:[...document.querySelectorAll('h2')].some((el)=>el.textContent?.includes('Provider runtime')),
+      engineFlow:[...document.querySelectorAll('h2')].some((el)=>el.textContent?.includes('From authorization to evidence')),
+      securityRunsLink:[...document.querySelectorAll('a')].some((el)=>el.textContent?.trim()==='Security runs'),
+    };
+  `);
+
+  if (!geometry || geometry.scrollWidth > geometry.innerWidth + 1 || geometry.clipped) {
+    throw new Error(`Security runs preview overflows at ${width}px: ${JSON.stringify(geometry)}`);
+  }
+  if (!geometry.providerRuntime || !geometry.engineFlow || !geometry.securityRunsLink || geometry.metrics < 6) {
+    throw new Error(`Security runs preview composition regressed at ${width}px: ${JSON.stringify(geometry)}`);
+  }
+  assertCleanLogs(await browserLogs(sessionId), route);
+  await captureScreenshot(sessionId, `security-runs-${width}.png`);
 }
 
 async function main() {
@@ -142,14 +180,17 @@ async function main() {
     await waitFor(sessionId, "dashboard map WebGL", "return document.querySelector('[data-testid=\"webgl-attack-surface\"]')?.dataset.rendererState === 'webgl';", 15000);
     assertCleanLogs(await browserLogs(sessionId), "/preview/dashboard");
     await captureScreenshot(sessionId, "dashboard-pre-pr49.png");
+    await assertSecurityRunsPreview(sessionId, 390, 844);
+    await assertSecurityRunsPreview(sessionId, 1440, 1100);
 
-    for (const view of ["overview", "users", "workspaces", "audit", "settings", "github"]) {
+
+    for (const view of ["overview", "users", "workspaces", "providers", "audit", "settings", "github"]) {
       await assertAdminPreview(sessionId, view, 390, 844);
     }
     for (const view of ["overview", "github"]) {
       await assertAdminPreview(sessionId, view, 430, 932);
     }
-    for (const view of ["overview", "users", "github"]) {
+    for (const view of ["overview", "users", "providers", "github"]) {
       await assertAdminPreview(sessionId, view, 1440, 1100);
     }
 

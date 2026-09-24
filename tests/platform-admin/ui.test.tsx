@@ -17,7 +17,7 @@ describe("platform admin UI boundary", () => {
     expect(layout).toContain('access.status === "denied"');
     expect(layout).not.toContain("requirePlatformAdmin");
     expect(layout).toContain("AdminNavigation");
-    for (const label of ["Overview", "Users", "Workspaces", "Audit", "Settings", "Back to workspace"]) {
+    for (const label of ["Overview", "Users", "Workspaces", "Phase 11", "Providers", "Audit", "Settings", "Back to workspace"]) {
       expect(navigation).toContain(label);
     }
   });
@@ -44,6 +44,20 @@ describe("platform admin UI boundary", () => {
     expect(source).toContain("active findings");
     expect(source).toContain("Audit trail");
     expect(source).toContain("PlatformSettingsForm");
+  });
+
+  it("exposes provider readiness without enabling a provider from the UI", async () => {
+    const page = await read("app/admin/providers/page.tsx");
+    const readiness = await read("lib/provider-runtime/readiness.ts");
+    expect(page).toContain("Provider runtime");
+    expect(page).toContain("Fail closed by default");
+    expect(page).not.toContain("enableProvider");
+    expect(page).not.toContain("Run provider");
+    expect(readiness).toContain('enabled: false');
+    expect(readiness).toContain('id: "linux"');
+    expect(readiness).toContain('state: "pending"');
+    expect(readiness).toContain('id: "control-plane"');
+    expect(readiness).toContain('state: "locked"');
   });
 
   it("adds a server-confirmed platform admin entry to the normal dashboard", async () => {

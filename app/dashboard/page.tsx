@@ -71,28 +71,28 @@ export default async function DashboardPage() {
       ? `/dashboard/assets/${firstNeedsProof.id}`
       : openWorkCount > 0
         ? "/dashboard/findings"
-        : "/dashboard/assets";
+        : "/dashboard/security-runs";
   const nextTitle = workspaceAssets.length === 0
     ? "Register your first asset"
     : firstNeedsProof
       ? "Verify asset control"
       : openWorkCount > 0
         ? `${openWorkCount} finding${openWorkCount === 1 ? "" : "s"} need review`
-        : "Your verified scope is ready";
+        : "Review your security engine";
   const nextCopy = workspaceAssets.length === 0
     ? "Start by defining an application, API, or repository that belongs in this workspace's authorized scope."
     : firstNeedsProof
       ? "Proof of control remains the safety boundary before any remote observation or active validation can run."
       : openWorkCount > 0
         ? "Review canonical evidence, validation confidence, and lifecycle history before choosing the next remediation step."
-        : "Review verified assets and run only the bounded security workflows that match the authorization policy.";
+        : "See recent security runs, execution coverage, normalized observations, and which provider runtimes are actually available.";
   const nextActionLabel = workspaceAssets.length === 0
     ? "Register asset"
     : firstNeedsProof
       ? "Continue verification"
       : openWorkCount > 0
         ? "Review findings"
-        : "Review assets";
+        : "Open security runs";
 
   return (
     <AppShell

@@ -27,7 +27,7 @@ describe("responsive admin visual acceptance fixture", () => {
   it("covers the representative admin and connected-project visual states", () => {
     if (!existsSync(previewPath)) return;
     const preview = read("app/preview/admin/page.tsx");
-    for (const view of ["overview", "users", "workspaces", "audit", "settings", "github"]) {
+    for (const view of ["overview", "users", "workspaces", "providers", "audit", "settings", "github"]) {
       expect(preview).toContain(`"${view}"`);
     }
   });
@@ -40,5 +40,6 @@ describe("responsive admin visual acceptance fixture", () => {
     expect(browser).toContain("scrollWidth");
     expect(browser).toContain("390");
     expect(browser).toContain("430");
+    expect(browser).toContain("/preview/security-runs");
   });
 });
