@@ -76,14 +76,17 @@ export default function ProviderRuntimePage() {
               </div>
               <div className="adminStatusRows adminProviderGates">
                 {provider.gates.map((gate) => (
-                  <div className="adminStatusRow" key={gate.id} title={gate.detail}>
-                    <span className="adminProviderGateLabel">
-                      {gateIcon(gate.state)}
-                      {gate.label}
-                    </span>
-                    <strong className={gateClass(gate.state)}>
-                      {gate.state === "passed" ? "Passed" : gate.state === "pending" ? "Pending" : "Locked"}
-                    </strong>
+                  <div className="adminProviderGate" key={gate.id}>
+                    <div className="adminProviderGateTop">
+                      <span className="adminProviderGateLabel">
+                        {gateIcon(gate.state)}
+                        {gate.label}
+                      </span>
+                      <strong className={gateClass(gate.state)}>
+                        {gate.state === "passed" ? "Passed" : gate.state === "pending" ? "Pending" : "Locked"}
+                      </strong>
+                    </div>
+                    <small>{gate.detail}</small>
                   </div>
                 ))}
               </div>
