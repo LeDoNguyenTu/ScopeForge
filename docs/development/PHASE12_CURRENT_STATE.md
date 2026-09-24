@@ -1,6 +1,6 @@
 # Phase 12 current state
 
-Last reconciled: 2026-09-23, Asia/Singapore.
+Last reconciled: 2026-09-24, Asia/Singapore.
 
 ## Baseline
 
@@ -87,7 +87,7 @@ PR #198 merged as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI
 
 PR #199 merged as `a75ff01bc1f6ab7b5214bb8b90eba56b6f9b0bf0` after exact-head CI run `35935363334` passed the full validation gate. The merged provider sandbox gives the egress Unix socket and task nonce only to the networkless trusted sidecar; the provider joins only that sidecar's network namespace and receives neither. Runner arguments are constructed from closed typed httpx/Nuclei profiles rather than an arbitrary flag list. No worker identity, queue route, migration or production enablement was added.
 
-A target-free Linux containment helper is now being prepared in `scripts/phase12-provider-linux-containment.sh`. It requires a clean exact source SHA, rootless Podman, cgroup v2, and local immutable provider/sidecar image digests. It is designed to prove direct DNS/public TCP/metadata access are blocked, the fixed loopback proxy is reachable, the provider cannot see the task Unix socket or container-engine sockets, and the provider shares only the trusted sidecar network namespace. It does not run httpx/Nuclei scanning or contact a production target.
+PR #200 merged as `c9ae240224356a4ef81950014891a9b696a5fa8b` after exact-head CI run `35936024843` passed the full validation gate. The target-free Linux containment helper is now released at `scripts/phase12-provider-linux-containment.sh`. It requires a clean exact source SHA, rootless Podman, cgroup v2, and local immutable provider/sidecar image digests. It is designed to prove direct DNS/public TCP/metadata access are blocked, the fixed loopback proxy is reachable, the provider cannot see the task Unix socket or container-engine sockets, and the provider shares only the trusted sidecar network namespace. It does not run httpx/Nuclei scanning or contact a production target.
 
 Operational state remains unchanged until this helper is run successfully on the dedicated Linux/Oracle worker host and the remaining host-tunnel/cancellation/budget acceptance gates pass. 12A and 12B are not operationally accepted.
 
@@ -98,3 +98,8 @@ Operational state remains unchanged until this helper is run successfully on the
 - Phase 11 HTTP tasks are 2 completed and 3 preserved dead-letter, with no queued, leased or retry-wait Phase 11 HTTP task.
 - One unrelated public repository snapshot task remains queued and is intentionally untouched.
 - The private worker schema currently grants no table privileges to `anon` or `authenticated`. Supabase still reports its generic RLS-disabled advisory for nine private worker tables, so any RLS change remains a separately reviewed control-plane migration rather than an automatic Phase 12 change.
+
+
+### Current external blocker
+
+Repository preparation for the first two-container Linux containment run is complete. The remaining next action requires access to the dedicated accepted Linux/Oracle worker host and locally built immutable httpx plus provider-egress-sidecar image digests. No qualifying host session was available during the 2026-09-24 repository continuation, so no containment pass is claimed and no provider worker/control-plane/database enablement was attempted.
