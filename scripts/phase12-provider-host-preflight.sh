@@ -87,6 +87,7 @@ sandbox=(
   --cap-drop=ALL
   --security-opt=no-new-privileges
   --pids-limit=8
+  --env=UV_THREADPOOL_SIZE=1
   --memory=268435456
   --memory-swap=268435456
   --cpus=0.5

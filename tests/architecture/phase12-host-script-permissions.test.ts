@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 
 it("commits the Phase 12 coordinator and directly invoked helpers as executable", () => {
@@ -15,4 +16,10 @@ it("commits the Phase 12 coordinator and directly invoked helpers as executable"
     const entry = entries.split("\n").find((line) => line.endsWith(`\t${script}`));
     expect(entry, `${script} must execute on a clean Linux checkout`).toMatch(/^100755 /);
   }
+});
+
+it("bounds the preflight DNS thread pool within the eight-task ceiling", () => {
+  const script = readFileSync("scripts/phase12-provider-host-preflight.sh", "utf8");
+  expect(script).toContain("--pids-limit=8");
+  expect(script).toContain("--env=UV_THREADPOOL_SIZE=1");
 });
