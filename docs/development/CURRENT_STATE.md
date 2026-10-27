@@ -1,6 +1,20 @@
 # ScopeForge Current State
 
-Last reconciled: 2026-09-24, Asia/Singapore. Live provider state wins.
+Last reconciled: 2026-10-28, Asia/Bangkok. Live provider state wins.
+
+## 2026-10-28 live repository and Phase 12 reconciliation
+
+GitHub authentication is `LeDoNguyenTu` and the repository is `LeDoNguyenTu/ScopeForge`. Local `main` and `origin/main` both resolve to `9324dd177bd75b060b197416f3025eb10d28c194`, the merge of PR #211. There are zero open pull requests. Exact-main CI run `36074135221` passed. Vercel team `itsbrian`, project `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`, reports exact-main deployment `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs` READY, and `https://scopeforge.dev/` returned HTTP 200.
+
+Phase 12 source is released through the target-bound egress boundary (PR #196), host tunnel (#197), trusted sidecar (#198), two-container sandbox (#199), target-free Linux helper (#200), frontend/runtime visibility and product surfaces (#202, #205-#209), and deterministic target-free containment bundle (#211). httpx and Nuclei remain default-off. No Phase 12 worker execution class, queue route, migration, production target authority or canary has been accepted. The next host command is `scripts/phase12-provider-containment-bundle.sh`; issue #214 is the remaining real host-tunnel/pinned-IP/budget/cancellation/cleanup acceptance harness.
+
+Issues #212 and #213 track the remaining admin-redirect telemetry and mobile workspace-rail polish. Supabase connection `214nsa` was verified against project `tdgpibrepzcvdivztkta` on 2026-10-28. Read-only evidence reconfirmed three registered execution classes, no Phase 12 provider worker, two completed and three preserved dead-letter Phase 11 HTTP tasks with zero active Phase 11 HTTP tasks, one unrelated queued public snapshot task, and zero direct private-table grants to `anon` or `authenticated`. No database mutation was performed.
+
+## 2026-09-30 Phase 11 idle polling reduced
+
+The accepted Oracle/Linux service `scopeforge-worker@phase11-http.service` was verified active before change. Its host environment was backed up at `/etc/scopeforge/workers/phase11-http.env.bak-20260930T20260929T230108Z`; the live poll interval was `5000` ms, and only `SCOPEFORGE_WORKER_POLL_MS` was changed to `60000`. Only that service was restarted. It returned to `active (running)` and emitted `worker_runtime_started` with execution class `phase11_http_discovery_v1`.
+
+The accepted worker ID, execution class, immutable runtime image, and all non-poll environment content remained unchanged. The two other active worker environments were also found at `2000` ms; they were backed up as `/etc/scopeforge/workers/private-snapshot.env.bak-20260930T230500Z` and `/etc/scopeforge/workers/repository-scan.env.bak-20260930T230500Z`, changed only to `60000`, and their corresponding services restarted. All three services returned active/running with clean startup events. No database mutation, execution-class/image change, credential rotation, or Phase 11 acceptance rerun occurred.
 ## 2026-09-24 dashboard and MFA correction released
 
 PR #203 merged as `eba081c806f8da078a3fd6b84b06de2bfd32ded4` and corrected the authenticated UX defects reported after the prior release without changing database schema, RLS, worker authority, target verification, containment, or runtime budgets:
@@ -204,15 +218,15 @@ Canonical handoff: `docs/development/CODEX_HANDOFF_PHASE11.md`.
 
 ## Phase 12 external-provider continuation
 
-Phase 12 remains active post-v1 scope. PR #198 merged the dedicated trusted egress sidecar and fixed provider proxy wiring as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI `35919874883`. PR #199 merged the two-container provider sandbox orchestration as `a75ff01bc1f6ab7b5214bb8b90eba56b6f9b0bf0` after exact-head CI `35935363334`. PR #200 merged target-free Linux containment verification tooling as `c9ae240224356a4ef81950014891a9b696a5fa8b` after exact-head CI `35936024843`.
+Phase 12 remains active post-v1 scope. PRs #196 and #197 merged the target-bound egress policy/server and networkless host tunnel. PR #198 merged the dedicated trusted egress sidecar and fixed provider proxy wiring as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI `35919874883`. PR #199 merged the two-container provider sandbox orchestration as `a75ff01bc1f6ab7b5214bb8b90eba56b6f9b0bf0` after exact-head CI `35935363334`. PR #200 merged target-free Linux containment verification tooling as `c9ae240224356a4ef81950014891a9b696a5fa8b` after exact-head CI `35936024843`. PR #211 merged deterministic build/stage/preflight coordination and target-free evidence bundling as current main `9324dd177bd75b060b197416f3025eb10d28c194`.
 
-httpx and Nuclei remain default-off and are not operationally accepted. No Phase 12 worker execution class, queue route, database migration, production target authority, or canary has been enabled. The next gate is a real run of `scripts/phase12-provider-linux-containment.sh` on the dedicated accepted Linux/Oracle worker with local immutable provider and sidecar image digests, followed by real host-tunnel, pinned-IP, resource-budget, cancellation, cleanup, and rollback evidence before any control-plane integration.
+httpx and Nuclei remain default-off and are not operationally accepted. No Phase 12 worker execution class, queue route, database migration, production target authority, or canary has been enabled. The next gate starts with a real run of `scripts/phase12-provider-containment-bundle.sh` on the dedicated accepted Linux/Oracle worker, followed by issue #214's real host-tunnel, pinned-IP, resource-budget, cancellation, cleanup and rollback evidence before any control-plane integration.
 
 Live control-plane reconciliation on 2026-09-24 found no Phase 12 worker execution class, 2 completed and 3 preserved dead-letter Phase 11 HTTP tasks with no active Phase 11 HTTP queue work, and zero direct private-table grants to `anon` or `authenticated`. One unrelated public repository snapshot task remained queued and was left untouched.
 
 
 ## Phase 12 frontend parity
 
-The Phase 12 frontend-runtime visibility branch adds product surfaces for the backend security engine without expanding execution authority. Workspace users gain Security Runs history/details backed only by existing RLS-safe public summaries. Platform administrators gain Provider Runtime readiness showing the accepted first-party HTTP runtime separately from default-off httpx and Nuclei.
+PR #202 and follow-up PRs #205-#209 released product surfaces for the backend security engine without expanding execution authority. Workspace users have Security Runs history/details backed only by existing RLS-safe public summaries. Platform administrators have Provider Runtime readiness showing the accepted first-party HTTP runtime separately from default-off httpx and Nuclei. Dashboard and public engine surfaces are also released. Issue #213 tracks the remaining mobile workspace-rail polish.
 
 The presentation model explicitly keeps external provider enablement at zero and renders real Linux containment as pending, with worker/control-plane and production canary gates locked. Preview/browser-smoke coverage includes mobile and desktop provider/runtime surfaces so frontend regressions are treated as release blockers.

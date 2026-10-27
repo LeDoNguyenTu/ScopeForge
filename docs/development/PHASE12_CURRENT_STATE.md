@@ -1,6 +1,17 @@
 # Phase 12 current state
 
-Last reconciled: 2026-09-24, Asia/Singapore.
+Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
+
+## Exact repository and release checkpoint
+
+- GitHub repository and authenticated owner: `LeDoNguyenTu/ScopeForge` / `LeDoNguyenTu`.
+- Exact `main`: `9324dd177bd75b060b197416f3025eb10d28c194` (merge of PR #211).
+- Open pull requests: zero.
+- Exact-main CI: run `36074135221`, success.
+- Vercel team/project: `itsbrian` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`.
+- Exact-main production deployment: `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs`, READY and serving `scopeforge.dev`; the production root returned HTTP 200 on 2026-10-28.
+
+Supabase connection `214nsa` now exposes the required ScopeForge project `tdgpibrepzcvdivztkta` in `ACTIVE_HEALTHY` state. The read-only control-plane snapshot below was refreshed on 2026-10-28. No database mutation was performed.
 
 ## Baseline
 
@@ -11,7 +22,7 @@ Last reconciled: 2026-09-24, Asia/Singapore.
 
 ## 12A external ProjectDiscovery httpx
 
-Source/runtime preparation is substantially complete and remains default-off.
+Source/runtime preparation is substantially complete and remains default-off. No Phase 12 provider is operationally accepted.
 
 Released through PR #185:
 
@@ -23,7 +34,16 @@ Released through PR #185:
 - target binding, output bounds, cancellation plumbing, hostile-output checks, privacy-reduced evidence
 - worker bundle generation
 
-Remaining 12A gate:
+Released target-bound containment foundations:
+
+- PR #196: target policy and provider egress boundary
+- PR #197: networkless provider egress tunnel
+- PR #198: trusted egress sidecar and fixed provider proxy wiring
+- PR #199: two-container provider sandbox orchestration
+- PR #200: target-free Linux containment helper
+- PR #211: deterministic target-free build, staging, preflight and evidence bundle
+
+Remaining 12A gate, tracked in issue #214:
 
 1. build the exact httpx image on the accepted Linux worker host
 2. record its immutable image digest
@@ -35,11 +55,11 @@ Remaining 12A gate:
 
 No production httpx worker is currently enabled.
 
-Host preparation shipped in PR #193 through `scripts/phase12-stage-provider-assets.sh` and `scripts/phase12-provider-host-preflight.sh`. These helpers verify pinned artifacts and build/check networkless candidate images only. The dedicated target-bound egress source foundation is now being implemented separately in `packages/provider-egress-boundary`; it preserves `--network=none` and mediates only the exact authorized hostname/port through a fixed loopback SOCKS5 boundary. See `PHASE12_PROVIDER_HOST_PREPARATION.md` and `PHASE12_TARGET_BOUND_EGRESS_DESIGN.md`.
+Host preparation shipped in PR #193 through `scripts/phase12-stage-provider-assets.sh` and `scripts/phase12-provider-host-preflight.sh`. PRs #196-#200 then released the provider-neutral target-bound egress boundary, host tunnel, trusted sidecar, two-container sandbox and target-free containment helper. PR #211 added `scripts/phase12-provider-containment-bundle.sh`, which is now the preferred first command on the accepted Linux/Oracle host because it deterministically builds, stages and preflights the immutable provider and sidecar images before invoking target-free containment evidence. It does not contact an external target and does not establish operational acceptance. See `PHASE12_PROVIDER_HOST_PREPARATION.md` and `PHASE12_TARGET_BOUND_EGRESS_DESIGN.md`.
 
 ## 12B Nuclei safe-active runtime
 
-Source preparation is now in progress on the Phase 12 provider-runtime branch.
+Source preparation is merged and remains default-off.
 
 Pinned supply-chain identities:
 
@@ -81,7 +101,7 @@ Production repository snapshot metadata records five R2-backed snapshots. R2 is 
 Phase 12 should continue moving large raw provider evidence/artifacts to private R2 rather than growing Postgres with blob-like payloads.
 
 
-## 2026-09-24 sandbox orchestration continuation
+## Released containment preparation through PR #211
 
 PR #198 merged as `c9b6509506f2a12f8848ddcab5f4ee5eebe19c15` after exact-head CI run `35919874883` passed. It added the dedicated trusted egress sidecar image/entry, separate no-download sidecar staging, fixed internal proxy arguments for httpx and Nuclei, and extended networkless image preflight. Both providers remain default-off.
 
@@ -89,27 +109,29 @@ PR #199 merged as `a75ff01bc1f6ab7b5214bb8b90eba56b6f9b0bf0` after exact-head CI
 
 PR #200 merged as `c9ae240224356a4ef81950014891a9b696a5fa8b` after exact-head CI run `35936024843` passed the full validation gate. The target-free Linux containment helper is now released at `scripts/phase12-provider-linux-containment.sh`. It requires a clean exact source SHA, rootless Podman, cgroup v2, and local immutable provider/sidecar image digests. It is designed to prove direct DNS/public TCP/metadata access are blocked, the fixed loopback proxy is reachable, the provider cannot see the task Unix socket or container-engine sockets, and the provider shares only the trusted sidecar network namespace. It does not run httpx/Nuclei scanning or contact a production target.
 
+PR #211 merged as `9324dd177bd75b060b197416f3025eb10d28c194`. Its target-free coordinator `scripts/phase12-provider-containment-bundle.sh` builds and stages the exact provider/sidecar candidates, validates host commands, runs preflight and produces the target-free containment evidence bundle. Exact-main CI run `36074135221` passed and exact-main Vercel deployment `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs` is READY.
+
 Operational state remains unchanged until this helper is run successfully on the dedicated Linux/Oracle worker host and the remaining host-tunnel/cancellation/budget acceptance gates pass. 12A and 12B are not operationally accepted.
 
 
-### Live control-plane verification after PR #199
+### Last verified control-plane snapshot (2026-10-28)
 
-- Supabase worker execution-class constraints still contain no Phase 12 provider class.
+- Registered worker classes are `phase11_http_discovery_v1`, `phase3_repository_scan_no_egress_v1`, and `repository_snapshot_github_private_v1`; there is no registered Phase 12 provider worker.
 - Phase 11 HTTP tasks are 2 completed and 3 preserved dead-letter, with no queued, leased or retry-wait Phase 11 HTTP task.
 - One unrelated public repository snapshot task remains queued and is intentionally untouched.
-- The private worker schema currently grants no table privileges to `anon` or `authenticated`. Supabase still reports its generic RLS-disabled advisory for nine private worker tables, so any RLS change remains a separately reviewed control-plane migration rather than an automatic Phase 12 change.
+- The private schema grants no direct table privileges to `anon` or `authenticated`. The historical nine-table RLS advisor snapshot was not refreshed during this read-only checkpoint; any RLS change remains a separately reviewed migration.
 
 
-### Current external blocker
+### Current acceptance gap
 
-Repository preparation for the first two-container Linux containment run is complete. The remaining next action requires access to the dedicated accepted Linux/Oracle worker host and locally built immutable httpx plus provider-egress-sidecar image digests. No qualifying host session was available during the 2026-09-24 repository continuation, so no containment pass is claimed and no provider worker/control-plane/database enablement was attempted.
+Target-free containment preparation is source-complete but not operationally accepted until `scripts/phase12-provider-containment-bundle.sh` passes on the dedicated accepted Linux/Oracle worker host. The next source/runtime slice is issue #214: one deterministic acceptance harness composing the existing host tunnel and two-container sandbox to prove pinned-IP dialing, hostile-frame rejection, connection/byte/runtime budgets, cancellation, resource ceilings and idempotent cleanup. No worker registration, queue route, migration, production target authority or canary belongs in that slice.
 
 
 ## Frontend/runtime visibility continuation
 
 Phase 12 now treats frontend parity as part of product completion rather than optional presentation work.
 
-Current implementation on `feat/phase-12-frontend-runtime-visibility-20260924` adds:
+PR #202 merged the initial frontend/runtime visibility as `86c20e8c9a440f9d604a180db82288d8cc18608d`. PRs #205-#209 then released the product polish, dashboard/public security-engine surfaces and mobile active-item positioning. The released product includes:
 
 - workspace `/dashboard/security-runs` using the existing RLS-safe run summary read model
 - per-run `/dashboard/security-runs/[runId]` for action state, coverage, graph counts and normalized observations
@@ -122,4 +144,12 @@ Current implementation on `feat/phase-12-frontend-runtime-visibility-20260924` a
 The UI intentionally provides no provider enable button. httpx and Nuclei remain visibly disabled until their Linux containment, worker/control-plane and production canary gates actually pass.
 
 
-Exact-head full CI and rendered browser acceptance are required before this frontend-runtime visibility work may merge.
+These surfaces are merged and deployed. Issue #213 tracks the remaining mobile polish defect: make the workspace rail use one horizontal scroll owner without changing the separate admin rail or reintroducing document-level overflow. Issue #212 separately tracks expected unauthenticated admin redirects polluting production error telemetry; it is observability noise, not evidence of an authorization bypass.
+
+## Conservative completion estimate
+
+- Approved v1 roadmap: 100% (11 of 11 phases).
+- Phase 11 source and operational acceptance: 100%.
+- Broader automated-pentest product vision: retain the approximately 75% Phase 12-start estimate until the roadmap is re-estimated from accepted capabilities.
+- Phase 12 provider operational acceptance: 0 providers accepted; httpx and Nuclei remain default-off.
+- Phase 12 source preparation: substantial, but not assigned a completion percentage because the real Linux host-tunnel acceptance, control-plane design and bounded production canaries have not occurred.

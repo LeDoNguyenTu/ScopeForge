@@ -1,6 +1,6 @@
 # ScopeForge Next Steps
 
-Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 
 ## Active post-v1 roadmap
 
@@ -10,7 +10,7 @@ The user has now explicitly adopted Phase 12, **External provider runtime and au
 
 Current estimated broader automated-pentest product vision: approximately 75% at Phase 12 start.
 
-Active slice: **12A external ProjectDiscovery httpx**.
+Active slice: **12A external ProjectDiscovery httpx containment acceptance**. Exact `main` is `9324dd177bd75b060b197416f3025eb10d28c194`; exact-main CI run `36074135221` passed, production deployment `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs` is READY, and there are no open pull requests.
 
 The product UX/account-security hardening, rendered mobile-navigation correction, TOTP recovery/QR corrections, and scheduled maintenance controls shipped through PR #194. PR #203 released the 2026-09-24 correction that narrows mandatory enrollment to platform administrators, preserves challenges for every enrolled account, and improves dashboard/asset workflow clarity without changing Phase 12 runtime gates. Continue Phase 12 from the live roadmap below.
 
@@ -21,18 +21,21 @@ See:
 
 ## Execution order
 
-1. 12A external httpx: run `scripts/phase12-provider-linux-containment.sh` on the dedicated Linux/Oracle host using the exact merged source SHA and immutable httpx + sidecar image identities. Then verify the real host tunnel, pinned-IP dialing, byte/runtime budgets, process-tree cancellation and cleanup. Only after all containment gates pass should the dedicated worker/control-plane path be added and a bounded production canary considered.
-2. 12B Nuclei: preserve the single-template default-off runtime foundation and reuse the same two-container target-bound sandbox only after Linux acceptance proves the shared boundary. Keep Nuclei disabled until its own operational gate passes.
-3. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.
-4. 12D hosted authenticated browser/API runtime.
-5. 12E bounded web/API DAST.
-6. 12F expanded proof-only validators.
-7. 12G adaptive multi-provider orchestration/correlation.
-8. 12H benchmarks, rollback, operational acceptance and closure.
+1. 12A target-free host evidence: run `scripts/phase12-provider-containment-bundle.sh` on the dedicated accepted Linux/Oracle host using exact clean source SHA `9324dd177bd75b060b197416f3025eb10d28c194`. This PR #211 coordinator is the preferred first command because it builds/stages immutable images, validates host prerequisites and invokes the target-free containment proof. A passing run is required but does not itself accept external provider execution.
+2. 12A real host-tunnel acceptance, issue #214: add and run one deterministic Linux harness that composes the existing target-bound host tunnel and two-container sandbox. Prove pinned public-IP dialing, hostile host/port/nonce/frame rejection, connection/byte/runtime budgets, cancellation, resource ceilings and idempotent cleanup. Keep it acceptance-only: no worker registration, queue route, migration, production target authority or canary.
+3. 12B Nuclei: preserve the single-template default-off runtime foundation and reuse the same two-container target-bound sandbox only after Linux acceptance proves the shared boundary. Keep Nuclei disabled until its own operational gate passes.
+4. 12C network/service discovery with Nmap or a reviewed provider-neutral alternative.
+5. 12D hosted authenticated browser/API runtime.
+6. 12E bounded web/API DAST.
+7. 12F expanded proof-only validators.
+8. 12G adaptive multi-provider orchestration/correlation.
+9. 12H benchmarks, rollback, operational acceptance and closure.
 
 Each network/process authority stays default-off until its own Linux containment and acceptance gate passes.
 
-Frontend parity is now a parallel release requirement. Keep `/dashboard/security-runs` and `/admin/providers` synchronized with actual backend acceptance state as each Phase 12 provider advances. Never make a locked provider appear runnable merely because its adapter or sandbox source exists.
+Frontend parity is released through PRs #202 and #205-#209. Keep `/dashboard/security-runs`, run detail, `/admin/providers`, dashboard and public engine surfaces synchronized with actual backend acceptance state. Issue #213 is the remaining workspace mobile-rail polish. Issue #212 is the production admin-redirect telemetry follow-up. Never make a locked provider appear runnable merely because its adapter or sandbox source exists.
+
+Read-only Supabase verification on 2026-10-28 through connection `214nsa` confirmed the required project `tdgpibrepzcvdivztkta`: no registered Phase 12 provider worker, no active Phase 11 HTTP task, zero direct `anon`/`authenticated` grants on private tables, and one unrelated queued public repository snapshot task intentionally untouched. No database mutation was performed.
 
 ## Storage direction
 

@@ -25,6 +25,16 @@ export async function updateSession(request: NextRequest, requestHeaders: Header
     }
   );
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  const adminNavigation = request.nextUrl.pathname === "/admin"
+    || request.nextUrl.pathname.startsWith("/admin/");
+  if (!user && adminNavigation && (request.method === "GET" || request.method === "HEAD")) {
+    const signInUrl = request.nextUrl.clone();
+    signInUrl.pathname = "/auth/sign-in";
+    signInUrl.search = "";
+    const redirect = NextResponse.redirect(signInUrl);
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
+  }
   return response;
 }

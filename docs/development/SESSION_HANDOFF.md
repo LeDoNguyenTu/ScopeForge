@@ -1,6 +1,23 @@
 # ScopeForge Session Handoff
 
-Last reconciled: 2026-09-24, Asia/Singapore. Live GitHub/provider state wins.
+Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
+
+## Canonical resume point
+
+The approved v1 roadmap and Phase 11 acceptance remain complete. Active work is the separately adopted Phase 12 roadmap.
+
+- exact `main`: `9324dd177bd75b060b197416f3025eb10d28c194` (PR #211)
+- open pull requests: zero
+- open issues: #212 admin redirect telemetry, #213 mobile workspace rail, #214 real host-tunnel Linux acceptance harness, #215 handoff reconciliation
+- exact-main CI: `36074135221`, success
+- exact-main production: `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs`, READY on `scopeforge.dev`; root HTTP 200
+- Phase 12 external providers: default-off; no operationally accepted httpx or Nuclei execution
+- next host command: `scripts/phase12-provider-containment-bundle.sh` on the accepted Linux/Oracle host
+- next source/runtime slice: issue #214; acceptance tooling only, with no worker/control-plane/database enablement
+
+PRs #196-#200 released the target policy, host tunnel, trusted sidecar, two-container sandbox and target-free Linux containment helper. PR #211 added the deterministic target-free build/stage/preflight/evidence coordinator. PRs #202 and #205-#209 released Security Runs, run detail, Provider Runtime, dashboard/public engine surfaces and mobile active-item positioning. Issue #213 remains as a polish follow-up, not an unshipped frontend foundation.
+
+Supabase connection `214nsa` was verified on 2026-10-28 against ScopeForge project `tdgpibrepzcvdivztkta`. Read-only evidence confirms no registered Phase 12 provider worker, zero active Phase 11 HTTP tasks, one unrelated queued public snapshot task, and zero direct private-table grants to `anon` or `authenticated`. No database mutation was performed.
 
 ## Dashboard and MFA correction released
 
@@ -10,9 +27,9 @@ PR #203 passed exact-head CI run `35990129643`, merged as `eba081c806f8da078a3fd
 
 PRs #186 and #187 released the whole-app UX/account-security implementation and rendered compact-navigation correction. PRs #189-#191 then released recoverable TOTP setup, the QR/manual-key presentation, and privileged-role-only MFA enforcement. PR #194 released globally synchronized maintenance scheduling with administrator-selected time-zone display and automatic/manual expiry. All exact-head CI and exact-merge Vercel deployments completed successfully. Final authenticated rendering confirmed AAL2 factor inventory and the production admin settings form without changing any account or platform state. See `docs/validation/post-v1/PRODUCT_UX_AUTH_ACCEPTANCE.md`.
 
-## Canonical resume point
+## Phase 11 closure reference
 
-Phase 11 is operationally accepted for the approved initial scope. Read `CURRENT_STATE.md`, `LATEST_SESSION.md`, and `CODEX_HANDOFF_PHASE11.md` before future work.
+Phase 11 is operationally accepted for the approved initial scope. Do not rerun its canary. Read `CURRENT_STATE.md`, `PHASE12_CURRENT_STATE.md`, and `NEXT_STEPS.md` before future work.
 
 - Phase 11 source: 100%
 - Phase 11 operational acceptance: 100%
