@@ -4,4 +4,4 @@ WORKDIR /app
 COPY --chown=65532:65532 provider-egress-sidecar-entry.js /app/provider-egress-sidecar-entry.js
 
 USER 65532:65532
-ENTRYPOINT ["/usr/local/bin/node", "/app/provider-egress-sidecar-entry.js"]
+ENTRYPOINT ["/usr/local/bin/node", "--v8-pool-size=1", "/app/provider-egress-sidecar-entry.js"]

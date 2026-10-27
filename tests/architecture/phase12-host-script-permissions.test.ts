@@ -23,3 +23,9 @@ it("bounds the preflight DNS thread pool within the eight-task ceiling", () => {
   expect(script).toContain("--pids-limit=8");
   expect(script).toContain("--env=UV_THREADPOOL_SIZE=1");
 });
+
+it("reserves sidecar PID capacity for a fixed readiness exec without raising the ceiling", () => {
+  const containerfile = readFileSync("deploy/worker/Containerfile.provider-egress-sidecar", "utf8");
+  expect(containerfile).toContain('"--v8-pool-size=1"');
+  expect(readFileSync("scripts/phase12-provider-linux-containment.sh", "utf8")).toContain("--pids-limit=8");
+});
