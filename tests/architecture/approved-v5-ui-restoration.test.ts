@@ -48,9 +48,10 @@ describe("post-PR49 UI remains inactive after rollback", () => {
     const productUi = read("app/product-ui.css");
 
     expect(productUi).toContain(
-      ".immersiveDashboardLinks .sideNav { display: flex; flex-direction: row; width: 100%; min-width: 0;",
+      ".immersiveDashboardLinks .sideNav { display: flex; flex-direction: row; flex: 0 0 auto; width: max-content; min-width: 100%;",
     );
-    expect(productUi).toContain("scroll-padding-inline: 12px");
+    expect(read("app/ui-refinement.css")).toContain("scroll-padding-inline: 12px");
+    expect(productUi).not.toMatch(/\.immersiveDashboardLinks \.sideNav\s*\{[^}]*overflow-x:\s*auto/);
     expect(productUi).toContain("scroll-snap-align: center");
   });
 });

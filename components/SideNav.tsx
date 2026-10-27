@@ -17,6 +17,7 @@ const items = [
 
 function isActivePath(pathname: string, href: string, match: "exact" | "prefix"): boolean {
   if (pathname === "/preview/security-runs") return href === "/dashboard/security-runs";
+  if (pathname === "/preview/workspace") return href === "/dashboard/workspace";
   if (match === "exact") return pathname === href || pathname === "/preview/dashboard";
   return pathname.startsWith(href);
 }
@@ -27,7 +28,7 @@ export default function SideNav() {
 
   useLayoutEffect(() => {
     const link = activeLinkRef.current;
-    const rail = link?.closest(".sideNav");
+    const rail = link?.closest(".immersiveDashboardLinks");
     if (!link || !(rail instanceof HTMLElement)) return;
 
     const centerActiveLink = () => {
