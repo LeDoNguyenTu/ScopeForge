@@ -5,11 +5,11 @@ Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 ## Exact repository and release checkpoint
 
 - GitHub repository and authenticated owner: `LeDoNguyenTu/ScopeForge` / `LeDoNguyenTu`.
-- Exact `main`: `9324dd177bd75b060b197416f3025eb10d28c194` (merge of PR #211).
-- Open pull requests: zero.
-- Exact-main CI: run `36074135221`, success.
+- Exact `origin/main`: `2a7eba25dcd6060dbfd1ad9e048f4ea4deb0d564` (merge of PR #216).
+- Open pull requests: #217 (navigation), #218 (host preparation).
+- Main CI: run `40551443353`, success.
 - Vercel team/project: `itsbrian` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`.
-- Exact-main production deployment: `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs`, READY and serving `scopeforge.dev`; the production root returned HTTP 200 on 2026-10-28.
+- Main production deployment: `dpl_55gguyeyJShZDVQhvb7ToBYRDQ4F`, READY and serving `scopeforge.dev`.
 
 Supabase connection `214nsa` now exposes the required ScopeForge project `tdgpibrepzcvdivztkta` in `ACTIVE_HEALTHY` state. The read-only control-plane snapshot below was refreshed on 2026-10-28. No database mutation was performed.
 
@@ -43,12 +43,12 @@ Released target-bound containment foundations:
 - PR #200: target-free Linux containment helper
 - PR #211: deterministic target-free build, staging, preflight and evidence bundle
 
-Remaining 12A gate, tracked in issue #214:
+Remaining 12A gates (the pre-control-plane harness is tracked in issue #214):
 
-1. build the exact httpx image on the accepted Linux worker host
-2. record its immutable image digest
-3. prove a target-bound egress design that does not create generic scanner Internet authority
-4. prove process-tree cancellation and CPU/memory/PID/disk/runtime/output ceilings
+1. complete the review/merge gate for PR #218's target-free host corrections; exact-source httpx/sidecar images and containment evidence are already recorded
+2. implement issue #214's real host-tunnel acceptance harness, with separately reviewed exact-target authorization required for successful external contact
+3. prove pinned-IP dialing, hostile-frame rejection, connection/byte/deadline budgets and target TCP cleanup
+4. prove process-tree cancellation and CPU/memory/PID/disk/runtime/output ceilings with the real provider process
 5. register/enable a dedicated worker class only after the database/control-plane design is reviewed
 6. run exact-head CI and a separately authorized bounded production canary
 7. record rollback and cleanup evidence
@@ -124,7 +124,7 @@ Operational state remains unchanged until this helper is run successfully on the
 
 ### Current acceptance gap
 
-Target-free containment preparation is source-complete but not operationally accepted until `scripts/phase12-provider-containment-bundle.sh` passes on the dedicated accepted Linux/Oracle worker host. The next source/runtime slice is issue #214: one deterministic acceptance harness composing the existing host tunnel and two-container sandbox to prove pinned-IP dialing, hostile-frame rejection, connection/byte/runtime budgets, cancellation, resource ceilings and idempotent cleanup. No worker registration, queue route, migration, production target authority or canary belongs in that slice.
+Target-free httpx containment passed on the dedicated Oracle host for PR #218's exact runtime candidate `8472f33c9c2ad04b29e436b07b551ac8ed062ae2`, after correcting file modes and fitting readiness/DNS work within the original PID ceiling. Post-run checks found zero acceptance containers and zero egress sockets; all three accepted worker services remained active. The next source/runtime slice is issue #214: one deterministic acceptance harness composing the existing host tunnel and two-container sandbox to prove pinned-IP dialing, hostile-frame rejection, connection/byte/runtime budgets, cancellation, resource ceilings and idempotent cleanup. No worker registration, queue route, migration, production target authority or canary belongs in that slice. This target-free evidence does not operationally accept httpx or Nuclei.
 
 
 ## Frontend/runtime visibility continuation
@@ -144,7 +144,7 @@ PR #202 merged the initial frontend/runtime visibility as `86c20e8c9a440f9d604a1
 The UI intentionally provides no provider enable button. httpx and Nuclei remain visibly disabled until their Linux containment, worker/control-plane and production canary gates actually pass.
 
 
-These surfaces are merged and deployed. Issue #213 tracks the remaining mobile polish defect: make the workspace rail use one horizontal scroll owner without changing the separate admin rail or reintroducing document-level overflow. Issue #212 separately tracks expected unauthenticated admin redirects polluting production error telemetry; it is observability noise, not evidence of an authorization bypass.
+These surfaces are merged and deployed. Issue #213's remaining mobile polish is implemented and visually verified in PR #217, pending owner merge approval. Issue #212's expected unauthenticated admin redirect telemetry correction is released through PR #216 and verified in production.
 
 ## Conservative completion estimate
 
