@@ -5,11 +5,11 @@ Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 ## Exact repository and release checkpoint
 
 - GitHub repository and authenticated owner: `LeDoNguyenTu/ScopeForge` / `LeDoNguyenTu`.
-- Exact `origin/main`: `2a7eba25dcd6060dbfd1ad9e048f4ea4deb0d564` (merge of PR #216).
-- Open pull requests: #217 (navigation), #218 (host preparation).
-- Main CI: run `40551443353`, success.
+- Exact released `main`: `a577739230a2b717caabfc28e8a33cad2a2e0c64` (merge of PR #218).
+- PRs #216-#218: merged after owner-authorized administrative merges.
+- Final main CI: run `40560380937`, success; candidate CI runs for all three PRs also passed.
 - Vercel team/project: `itsbrian` / `prj_r7X4rdsjvwzp2tvuSA4D39gpITb8`.
-- Main production deployment: `dpl_55gguyeyJShZDVQhvb7ToBYRDQ4F`, READY and serving `scopeforge.dev`.
+- Main production deployment: `dpl_6eHQiN19RLYsXLFreRYxVFYh9UhR`, READY and serving `scopeforge.dev`.
 
 Supabase connection `214nsa` now exposes the required ScopeForge project `tdgpibrepzcvdivztkta` in `ACTIVE_HEALTHY` state. The read-only control-plane snapshot below was refreshed on 2026-10-28. No database mutation was performed.
 
@@ -45,7 +45,7 @@ Released target-bound containment foundations:
 
 Remaining 12A gates (the pre-control-plane harness is tracked in issue #214):
 
-1. complete the review/merge gate for PR #218's target-free host corrections; exact-source httpx/sidecar images and containment evidence are already recorded
+1. preserve PR #218's merged target-free host corrections and the exact-source image/containment evidence already recorded
 2. implement issue #214's real host-tunnel acceptance harness, with separately reviewed exact-target authorization required for successful external contact
 3. prove pinned-IP dialing, hostile-frame rejection, connection/byte/deadline budgets and target TCP cleanup
 4. prove process-tree cancellation and CPU/memory/PID/disk/runtime/output ceilings with the real provider process
@@ -144,7 +144,7 @@ PR #202 merged the initial frontend/runtime visibility as `86c20e8c9a440f9d604a1
 The UI intentionally provides no provider enable button. httpx and Nuclei remain visibly disabled until their Linux containment, worker/control-plane and production canary gates actually pass.
 
 
-These surfaces are merged and deployed. Issue #213's remaining mobile polish is implemented and visually verified in PR #217, pending owner merge approval. Issue #212's expected unauthenticated admin redirect telemetry correction is released through PR #216 and verified in production.
+These surfaces are merged and deployed. Issue #213's mobile navigation correction is released through PR #217 and verified with authenticated production rendering and keyboard focus checks. Issue #212's expected unauthenticated admin redirect telemetry correction is released through PR #216 and verified in production. Both issues are closed.
 
 ## Conservative completion estimate
 
