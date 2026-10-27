@@ -19,3 +19,9 @@ Local verification on 2026-10-28:
 Starting a local preview server was rejected by automatic tool policy, so the local HTTP smoke check was not run. CI, deployment and the production telemetry verification window remain pending for this candidate. Issue #212 must remain open until production requests and logs demonstrate the required result.
 
 The handoff reconciliation for #215 records merged work through PR #211 and fresh read-only Supabase evidence on connection `214nsa` for `tdgpibrepzcvdivztkta`. Phase 12 external providers remain default-off.
+
+## Dependency gate correction
+
+PR #216's first Linux CI run `40548129772` stopped at the unchanged `npm audit --audit-level=info` gate with six findings. The candidate updates Next.js from 15.5.24 to 15.5.28, Vitest to 4.1.12, Sharp to 0.35.5, Vite to 8.3.5 and source-map-js to 1.2.2. All stay within their existing major versions. The patch resolves the [Next.js image optimization advisory](https://github.com/advisories/GHSA-2464-fhr4-w9xw), [Server Actions advisory](https://github.com/advisories/GHSA-p3m5-59mp-jv5r), and findings reported for the other locked dependencies.
+
+Fresh `npm audit --audit-level=info` reports zero vulnerabilities. On the patched dependencies, 104 focused security, auth, platform-admin and architecture test files passed: 510 tests passed and 3 skipped. TypeScript passed. Full Linux CI and the new production build remain required for the updated candidate.
