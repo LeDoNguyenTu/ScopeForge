@@ -17,6 +17,7 @@ const items = [
 
 function isActivePath(pathname: string, href: string, match: "exact" | "prefix"): boolean {
   if (pathname === "/preview/security-runs") return href === "/dashboard/security-runs";
+  if (pathname === "/preview/workspace") return href === "/dashboard/workspace";
   if (match === "exact") return pathname === href || pathname === "/preview/dashboard";
   return pathname.startsWith(href);
 }
@@ -27,8 +28,14 @@ export default function SideNav() {
 
   useLayoutEffect(() => {
     const link = activeLinkRef.current;
-    const rail = link?.closest(".sideNav");
+    const rail = link?.closest(".immersiveDashboardLinks");
     if (!link || !(rail instanceof HTMLElement)) return;
+
+    const updateScrollEdges = () => {
+      const maxScrollLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      rail.toggleAttribute("data-scroll-start", rail.scrollLeft > 1);
+      rail.toggleAttribute("data-scroll-end", rail.scrollLeft < maxScrollLeft - 1);
+    };
 
     const centerActiveLink = () => {
       const railRect = rail.getBoundingClientRect();
@@ -39,9 +46,13 @@ export default function SideNav() {
         - Math.max(0, (rail.clientWidth - linkRect.width) / 2);
       const nextLeft = Math.min(maxScrollLeft, Math.max(0, targetLeft));
 
-      if (Math.abs(rail.scrollLeft - nextLeft) < 1) return;
+      if (Math.abs(rail.scrollLeft - nextLeft) < 1) {
+        updateScrollEdges();
+        return;
+      }
       if (typeof rail.scrollTo === "function") rail.scrollTo({ left: nextLeft, behavior: "auto" });
       else rail.scrollLeft = nextLeft;
+      updateScrollEdges();
     };
 
     centerActiveLink();
@@ -56,11 +67,15 @@ export default function SideNav() {
     observer?.observe(rail);
     observer?.observe(link);
     window.addEventListener("resize", centerActiveLink);
+    rail.addEventListener("scroll", updateScrollEdges, { passive: true });
 
     return () => {
       if (frame !== null && typeof window.cancelAnimationFrame === "function") window.cancelAnimationFrame(frame);
       observer?.disconnect();
       window.removeEventListener("resize", centerActiveLink);
+      rail.removeEventListener("scroll", updateScrollEdges);
+      rail.removeAttribute("data-scroll-start");
+      rail.removeAttribute("data-scroll-end");
     };
   }, [pathname]);
 
