@@ -9,14 +9,7 @@ const CONTROL_TIMEOUT_MS = 30_000;
 const CONTROL_OUTPUT_BYTES = 65_536;
 const SIDECAR_READY_ATTEMPTS = 20;
 const SIDECAR_READY_DELAY_MS = 50;
-const SIDECAR_READY_PROBE = [
-  "const net=require('node:net');",
-  "const s=net.connect({host:'127.0.0.1',port:17777});",
-  "s.setTimeout(250);",
-  "s.once('connect',()=>{s.destroy();process.exit(0)});",
-  "s.once('timeout',()=>{s.destroy();process.exit(2)});",
-  "s.once('error',()=>process.exit(3));",
-].join("");
+const SIDECAR_LOOPBACK_LISTENER = /^\s*\d+:\s+0100007F:4571\s+\S+\s+0A\b/m;
 
 interface CommandResult {
   exitCode: number;
@@ -178,14 +171,13 @@ export function createExternalProviderSandbox(
           const probe = await driver.exec(plan.sidecar.file, [
             "exec",
             plan.sidecarName,
-            "/usr/local/bin/node",
-            "-e",
-            SIDECAR_READY_PROBE,
+            "/bin/cat",
+            "/proc/net/tcp",
           ], {
             timeoutMs: 1_000,
             maxOutputBytes: 4_096,
           });
-          if (probe.exitCode === 0) {
+          if (probe.exitCode === 0 && SIDECAR_LOOPBACK_LISTENER.test(probe.stdout)) {
             ready = true;
             break;
           }
