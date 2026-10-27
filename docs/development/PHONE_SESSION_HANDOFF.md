@@ -10,10 +10,15 @@ Updated 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 - Five production admin routes redirect 307 with nonce CSP; no new admin runtime errors in the observed verification window beginning `2026-10-27T17:34:17Z`.
 - Issues #212 and #215: closed. Dependency audit: zero findings after patch-level updates.
 
-## Open releases
+- Final released `main`: `a577739230a2b717caabfc28e8a33cad2a2e0c64` (PR #218), following PR #217 merge `444d7ffcfb59527d7aa141f4570606b6d9093771`.
+- Final deployment: `dpl_6eHQiN19RLYsXLFreRYxVFYh9UhR`, READY on `scopeforge.dev`. Main CI `40560380937`: success.
+- Authenticated production Chrome verified Security Runs and Workspace navigation, active-link visibility, one scroll owner, no page overflow and keyboard focus visibility. Effective production viewport was 520 CSS pixels; CI screenshots cover 390, 768 and 1440.
+- Issue #213 is closed. Fresh read-only database checks reconfirmed the unchanged control-plane boundary.
 
-- PR #217: `fix/workspace-navigation-scroll-owner-20261028`, head `a966e6cb4d32207777c2fc80720759f1f99142cc`, base `main`. CI `40550299116` passed; mobile/tablet/desktop screenshots inspected. One workspace scroll owner plus conditional edge fade. Owner administrative merge approval is pending. Issue #213 remains open until release verification.
-- PR #218: `fix/phase12-host-script-permissions-20261028`, stacked on #217. Runtime source `8472f33c9c2ad04b29e436b07b551ac8ed062ae2`; final CI and administrative merge approval remain required. Documentation-only continuation commits may advance the branch; verify the live head and checks before merging.
+## Completed releases
+
+- PR #217: candidate `a966e6cb4d32207777c2fc80720759f1f99142cc`, CI `40550299116` passed; mobile/tablet/desktop screenshots inspected. Merged after explicit owner administrative authorization and verified in production.
+- PR #218: candidate `a818f2e946bcb2ef7e16ab0fc84cda90f670bcae`, CI `40553671820` passed. Merged after #217 with separate explicit owner administrative authorization. Runtime source `8472f33c9c2ad04b29e436b07b551ac8ed062ae2` retains the real Oracle evidence; comparison confirms the merged runtime files are identical.
 
 ## Oracle evidence
 
@@ -35,4 +40,4 @@ httpx and Nuclei remain default-off. No Phase 12 execution class, queue route, m
 
 GitHub owner: `LeDoNguyenTu`. Supabase connection `214nsa` exposes correct project `tdgpibrepzcvdivztkta`; fresh read-only evidence shows no Phase 12 provider worker, zero active Phase 11 HTTP tasks, one unrelated queued public snapshot task and zero direct private-table grants to `anon`/`authenticated`. Leave the queued task untouched.
 
-Before continuing, fetch/prune, inspect all open PRs/issues and current CI, inspect the worktree, and read the canonical handoffs. Normal GitHub merge is blocked by branch policy and auto-merge is disabled; administrative merge authorization granted for #216 must not be silently expanded to other PRs.
+Before continuing, fetch/prune, inspect all open PRs/issues and current CI, inspect the worktree, and read the canonical handoffs. Normal GitHub merge is blocked by branch policy and auto-merge is disabled. Explicit owner authorizations for #216, #217 and #218 were used for those PRs only; future administrative merges need their own applicable authority.

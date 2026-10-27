@@ -6,16 +6,16 @@ Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 
 The approved v1 roadmap and Phase 11 acceptance remain complete. Active work is the separately adopted Phase 12 roadmap.
 
-- exact `origin/main`: `2a7eba25dcd6060dbfd1ad9e048f4ea4deb0d564` (PR #216)
-- open pull requests: #217 navigation, #218 host preparation
-- open issues: #213 mobile workspace rail, #214 real host-tunnel Linux acceptance harness; #212/#215 are closed
-- main CI: `40551443353`, success
-- main production: `dpl_55gguyeyJShZDVQhvb7ToBYRDQ4F`, READY on `scopeforge.dev`; five checked admin routes returned 307 with nonce CSP and no new runtime errors
+- exact released `main`: `a577739230a2b717caabfc28e8a33cad2a2e0c64` (PR #218)
+- PRs #216, #217 and #218: merged after explicit owner administrative merge authorization
+- open implementation issue: #214 real host-tunnel Linux acceptance harness; #212/#213/#215 are closed
+- main CI: `40560380937`, success; all three candidate CI runs also passed
+- main production: `dpl_6eHQiN19RLYsXLFreRYxVFYh9UhR`, READY on `scopeforge.dev`; authenticated navigation/keyboard checks and five unauthenticated admin redirect checks passed
 - Phase 12 external providers: default-off; no operationally accepted httpx or Nuclei execution
 - target-free host evidence: `scripts/phase12-provider-containment-bundle.sh httpx linux-amd64` passed on Oracle at runtime source `8472f33c9c2ad04b29e436b07b551ac8ed062ae2`; no acceptance container or egress socket remained
 - next source/runtime slice: issue #214; acceptance tooling only, with no worker/control-plane/database enablement
 
-Phone-readable continuation checkpoint: `PHONE_SESSION_HANDOFF.md`. PR #217 passed CI and screenshot inspection and awaits the owner's administrative merge decision. PR #218's final CI must pass before merge approval; its target-free host evidence is retained separately from external-provider operational acceptance.
+Phone-readable continuation checkpoint: `PHONE_SESSION_HANDOFF.md`. Navigation and host-preparation corrections are released; target-free host evidence remains separate from external-provider operational acceptance. Continue with issue #214's harness before any Phase 12 worker/control-plane design or enablement.
 
 PRs #196-#200 released the target policy, host tunnel, trusted sidecar, two-container sandbox and target-free Linux containment helper. PR #211 added the deterministic target-free build/stage/preflight/evidence coordinator. PRs #202 and #205-#209 released Security Runs, run detail, Provider Runtime, dashboard/public engine surfaces and mobile active-item positioning. Issue #213 remains as a polish follow-up, not an unshipped frontend foundation.
 
