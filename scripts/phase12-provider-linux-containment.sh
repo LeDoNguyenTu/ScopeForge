@@ -153,17 +153,10 @@ podman create \
 
 podman start "$sidecar_name" >/dev/null
 
-ready_probe='
-const net=require("node:net");
-const s=net.connect({host:"127.0.0.1",port:17777});
-s.setTimeout(250);
-s.once("connect",()=>{s.destroy();process.exit(0)});
-s.once("timeout",()=>{s.destroy();process.exit(2)});
-s.once("error",()=>process.exit(3));
-'
 ready=0
 for _ in $(seq 1 30); do
-  if podman exec "$sidecar_name" /usr/local/bin/node -e "$ready_probe" >/dev/null 2>&1; then
+  if podman exec "$sidecar_name" /bin/cat /proc/net/tcp 2>/dev/null \
+      | awk '$2 == "0100007F:4571" && $4 == "0A" { ready=1 } END { exit ready ? 0 : 1 }'; then
     ready=1
     break
   fi
@@ -230,7 +223,7 @@ provider_exit="$(podman wait "$provider_name")"
   exit 65
 }
 
-if podman exec "$sidecar_name" /usr/local/bin/node -e 'process.exit(require("node:fs").existsSync("/run/scopeforge/egress.sock")?0:2)' >/dev/null 2>&1; then
+if podman exec "$sidecar_name" /usr/bin/test -S /run/scopeforge/egress.sock >/dev/null 2>&1; then
   :
 else
   printf 'Trusted sidecar cannot see the task Unix socket.\n' >&2

@@ -124,7 +124,7 @@ describe("Phase 12 external provider sandbox", () => {
     const driver: ExternalProviderSandboxCommandDriver = {
       exec: vi.fn(async (_file, args) => {
         mutableCalls.push([...args]);
-        if (args[0] === "exec") return { exitCode: 0, stdout: "" };
+        if (args[0] === "exec") return { exitCode: 0, stdout: "  0: 0100007F:4571 00000000:0000 0A\n" };
         if (args[0] === "wait") return { exitCode: 0, stdout: "0\n" };
         if (args[0] === "start" && args[1] === "--attach") {
           return { exitCode: 0, stdout: "{\"ok\":true}\n" };
@@ -142,9 +142,22 @@ describe("Phase 12 external provider sandbox", () => {
     expect(mutableCalls[0]).toContain("--network=none");
     expect(mutableCalls[1][0]).toBe("start");
     expect(mutableCalls[2][0]).toBe("exec");
+    expect(mutableCalls[2].slice(2)).toEqual(["/bin/cat", "/proc/net/tcp"]);
     expect(mutableCalls[3][0]).toBe("create");
     expect(mutableCalls[3].join(" ")).toContain("--network=container:");
     const removals = mutableCalls.filter((args) => args[0] === "rm");
     expect(removals).toHaveLength(2);
   });
+
+  it.each([" 0: 00000000:4571 00000000:0000 0A\n", " 0: 0100007F:4571 00000000:0000 01\n"])(
+    "does not start the provider for a non-loopback or non-listening readiness record", async (stdout) => {
+      const exec = vi.fn(async () => ({ exitCode: 0, stdout }));
+      await expect(createExternalProviderSandbox({ driver: { exec } }).execute(
+        httpxInput(), new AbortController().signal,
+      )).rejects.toThrow(/did not become ready/);
+      const calls = exec.mock.calls as unknown as Array<[string, readonly string[]]>;
+      expect(calls.filter(([, args]) => args[0] === "create")).toHaveLength(1);
+      expect(calls.filter(([, args]) => args[0] === "rm")).toHaveLength(1);
+    },
+  );
 });

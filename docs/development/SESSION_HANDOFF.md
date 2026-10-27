@@ -6,14 +6,16 @@ Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 
 The approved v1 roadmap and Phase 11 acceptance remain complete. Active work is the separately adopted Phase 12 roadmap.
 
-- exact `main`: `9324dd177bd75b060b197416f3025eb10d28c194` (PR #211)
-- open pull requests: zero
-- open issues: #212 admin redirect telemetry, #213 mobile workspace rail, #214 real host-tunnel Linux acceptance harness, #215 handoff reconciliation
-- exact-main CI: `36074135221`, success
-- exact-main production: `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs`, READY on `scopeforge.dev`; root HTTP 200
+- exact `origin/main`: `2a7eba25dcd6060dbfd1ad9e048f4ea4deb0d564` (PR #216)
+- open pull requests: #217 navigation, #218 host preparation
+- open issues: #213 mobile workspace rail, #214 real host-tunnel Linux acceptance harness; #212/#215 are closed
+- main CI: `40551443353`, success
+- main production: `dpl_55gguyeyJShZDVQhvb7ToBYRDQ4F`, READY on `scopeforge.dev`; five checked admin routes returned 307 with nonce CSP and no new runtime errors
 - Phase 12 external providers: default-off; no operationally accepted httpx or Nuclei execution
-- next host command: `scripts/phase12-provider-containment-bundle.sh` on the accepted Linux/Oracle host
+- target-free host evidence: `scripts/phase12-provider-containment-bundle.sh httpx linux-amd64` passed on Oracle at runtime source `8472f33c9c2ad04b29e436b07b551ac8ed062ae2`; no acceptance container or egress socket remained
 - next source/runtime slice: issue #214; acceptance tooling only, with no worker/control-plane/database enablement
+
+Phone-readable continuation checkpoint: `PHONE_SESSION_HANDOFF.md`. PR #217 passed CI and screenshot inspection and awaits the owner's administrative merge decision. PR #218's final CI must pass before merge approval; its target-free host evidence is retained separately from external-provider operational acceptance.
 
 PRs #196-#200 released the target policy, host tunnel, trusted sidecar, two-container sandbox and target-free Linux containment helper. PR #211 added the deterministic target-free build/stage/preflight/evidence coordinator. PRs #202 and #205-#209 released Security Runs, run detail, Provider Runtime, dashboard/public engine surfaces and mobile active-item positioning. Issue #213 remains as a polish follow-up, not an unshipped frontend foundation.
 

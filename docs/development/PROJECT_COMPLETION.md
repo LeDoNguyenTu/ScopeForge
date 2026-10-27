@@ -49,7 +49,7 @@ On 2026-09-23 the user explicitly adopted Phase 12, external provider runtime an
 
 Phase 12 starts from an estimated broader product-vision completion of approximately 75%. See `PHASE12_ROADMAP.md`.
 
-Current post-v1 checkpoint is `main` `9324dd177bd75b060b197416f3025eb10d28c194`, successful exact-main CI run `36074135221`, and READY Vercel production deployment `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs`. These later releases do not change the historical v1 completion evidence above. Phase 12 still has zero operationally accepted external providers; see `PHASE12_CURRENT_STATE.md` and `UNFINISHED_WORK.md` for the active post-v1 work.
+Current post-v1 checkpoint is `origin/main` `2a7eba25dcd6060dbfd1ad9e048f4ea4deb0d564`, successful main CI run `40551443353`, and READY Vercel production deployment `dpl_55gguyeyJShZDVQhvb7ToBYRDQ4F`. These later releases do not change the historical v1 completion evidence above. Phase 12 has target-free httpx containment evidence at candidate `8472f33c9c2ad04b29e436b07b551ac8ed062ae2`, while zero external providers are operationally accepted. See `PHASE12_CURRENT_STATE.md` and `UNFINISHED_WORK.md` for the active post-v1 work.
 
 ## Durable rule
 
