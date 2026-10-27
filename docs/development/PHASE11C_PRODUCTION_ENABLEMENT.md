@@ -63,12 +63,18 @@ SCOPEFORGE_WORKER_BASE_URL=https://scopeforge.dev
 SCOPEFORGE_WORKER_ID=<existing registered worker UUID>
 SCOPEFORGE_WORKER_SECRET=<existing 64-hex worker credential>
 SCOPEFORGE_WORKER_EXECUTION_CLASS=phase11_http_discovery_v1
-SCOPEFORGE_WORKER_POLL_MS=2000
+SCOPEFORGE_WORKER_POLL_MS=60000
 SCOPEFORGE_PODMAN_BINARY=/usr/bin/podman
 SCOPEFORGE_RUNTIME_IMAGE=localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a
 ```
 
 The runtime rejects a non-HTTPS control origin, malformed worker identity/credential, unsupported execution class, non-absolute Podman path, or mutable image reference.
+
+## 2026-09-30 idle-poll quota reduction
+
+On the accepted Oracle/Linux host, `/etc/scopeforge/workers/phase11-http.env` was backed up as `/etc/scopeforge/workers/phase11-http.env.bak-20260930T20260929T230108Z`. The live value was `5000` ms (the older `2000` ms example was stale); only `SCOPEFORGE_WORKER_POLL_MS` was changed to `60000`, and only `scopeforge-worker@phase11-http.service` was restarted.
+
+Post-change verification: the service was `active (running)`, emitted `worker_runtime_started` with execution class `phase11_http_discovery_v1`, and retained worker ID `cd9a7769-e21f-4f75-84c3-ffe2d1f4616e` and runtime image `localhost/scopeforge-runtime-worker@sha256:dd3014df27dd6d560b78ed6bdab9081a7da3648604dfdc44c6b35f9246de1c2a`. The backup and live environment matched after removing the poll line, confirming no other environment change. No database mutation or Phase 11 acceptance rerun was performed.
 
 ## Host preflight
 

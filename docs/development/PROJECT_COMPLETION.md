@@ -1,6 +1,6 @@
 # ScopeForge approved roadmap completion
 
-Last reconciled: 2026-09-23, Asia/Singapore. Live repository and provider state wins.
+Last reconciled: 2026-10-28, Asia/Bangkok. Live repository and provider state wins.
 
 ## Decision
 
@@ -48,6 +48,8 @@ Fresh local validation on the completion worktree installed with zero audit vuln
 On 2026-09-23 the user explicitly adopted Phase 12, external provider runtime and automated pentest expansion, as new scope. The v1 completion record remains historical evidence for the closed 11-phase roadmap; it must not be interpreted as completion of the broader automated-pentesting product vision.
 
 Phase 12 starts from an estimated broader product-vision completion of approximately 75%. See `PHASE12_ROADMAP.md`.
+
+Current post-v1 checkpoint is `main` `9324dd177bd75b060b197416f3025eb10d28c194`, successful exact-main CI run `36074135221`, and READY Vercel production deployment `dpl_3woeXP9VsmezyAoXgKMfpeneKNHs`. These later releases do not change the historical v1 completion evidence above. Phase 12 still has zero operationally accepted external providers; see `PHASE12_CURRENT_STATE.md` and `UNFINISHED_WORK.md` for the active post-v1 work.
 
 ## Durable rule
 
