@@ -6,4 +6,6 @@ The mobile workspace rail had two horizontal scroll owners. `SideNav` centered i
 
 Local regression coverage reproduced the wrong scroll target before implementation. After the fix, 15 focused navigation/shell/architecture tests and TypeScript passed. Added a CI WebDriver check for the Security Runs and Workspace previews at 390, 768 and 1440 pixels, asserting one scroll owner, active-link positioning, `aria-current`, no page overflow and screenshots.
 
-Rendered Linux CI acceptance and visual inspection remain pending. No change to the separate admin navigation, authorization, workers, queue or provider capabilities.
+The first Linux CI run `40549041861` passed and screenshots confirmed correct active-item positioning. Visual inspection still showed fragments of adjacent labels at the rail edges. A conditional mobile edge fade now marks offscreen navigation, with scroll-state attributes updated from the sole scroll owner. The fade disappears at each completed edge and does not affect keyboard access or accessible labels. Fresh CI screenshots remain required for this refinement.
+
+No change to the separate admin navigation, authorization, workers, queue or provider capabilities.

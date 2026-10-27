@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import SideNav from "@/components/SideNav";
 
@@ -20,6 +20,12 @@ it("centers the active link by scrolling the outer workspace rail", () => {
   const rail = container.querySelector(".immersiveDashboardLinks");
   expect(scrollTo).toHaveBeenCalledWith({ left: 255, behavior: "auto" });
   expect(scrollTo.mock.instances.every((instance) => instance === rail)).toBe(true);
+  expect(rail).not.toHaveAttribute("data-scroll-start");
+  expect(rail).toHaveAttribute("data-scroll-end");
+  (rail as HTMLElement).scrollLeft = 255;
+  fireEvent.scroll(rail as HTMLElement);
+  expect(rail).toHaveAttribute("data-scroll-start");
+  expect(rail).toHaveAttribute("data-scroll-end");
   expect(screen.getByRole("link", { name: "Security runs" })).toHaveAttribute("aria-current", "page");
 });
 
