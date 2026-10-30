@@ -2,15 +2,18 @@
 
 ## 2026-10-30 current checkpoint
 
-Main is `e53c056d9b2897e77715bb98e5f530071587ea9f` after authorized PR #219;
-main CI `40561994431` passed. PR #220 now supplies the #214 host-tunnel acceptance
+Main is `7e62d103afbcf3561461cb2fe329d9cc214b4f08` after owner-authorized PR #220,
+deployed READY as `dpl_F8BZ15BQbDLcnmYZWB7qGLgsk3TF` on `scopeforge.dev`.
+Candidate CI `41033282669` and main CI `41038513290` passed.
+PR #220 now supplies the #214 host-tunnel acceptance
 harness. Exact executable source `fad381480dc1961e4e3fcc606112f37851354f9f`
 passed the controlled external HTTPS fixture on Oracle, plus 44 focused Linux
 tests. Hostile frames, pinned dialing, budgets, real-provider cancellation, actual
 cgroups/capability masks, scratch exhaustion and cleanup passed. The temporary
 Vercel fixture was deleted; no acceptance containers, sockets or target TCP
 connections remained, and all three production worker services stayed active.
-Final candidate CI/merge are still release gates. See
+#214 is closed. Production root returned 200 and all five admin routes returned
+307 with nonce CSP and no authorization error text. See
 `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`. External providers remain
 default-off; no worker/control-plane/database enablement or canary occurred.
 Older snapshots below are historical where they conflict with this checkpoint.

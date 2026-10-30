@@ -89,7 +89,14 @@ Phase 11 canary occurred. Kernel CPU/memory/PID ceilings were sampled with the r
 native provider; deliberate native memory/PID/CPU/output exhaustion is not claimed.
 Scratch exhaustion and existing output-capture bounds have separate checks.
 
-Exact-head full CI and merge remain release gates for PR #220. The next scope is a
+PR #220 passed exact-head full CI `41033282669` at `6ce5efea`, then merged with
+explicit owner administrative authorization as `7e62d103afbcf3561461cb2fe329d9cc214b4f08`.
+The exact merge is deployed READY as `dpl_F8BZ15BQbDLcnmYZWB7qGLgsk3TF` on
+`scopeforge.dev`; main CI `41038513290` passed. The executable harness and
+runtime sources are identical to the Oracle-tested candidate. Production root
+returned 200, and five admin routes returned 307 with nonce CSP and no authorization
+error text. No runtime errors were found on the checked admin routes in the window
+beginning `2026-10-30T10:09:00Z`. Issue #214 closed on merge. The next scope is a
 separately reviewed dedicated worker/control-plane design, followed by its own
 acceptance, rollback and bounded production-canary authorization. Keep providers
 default-off.

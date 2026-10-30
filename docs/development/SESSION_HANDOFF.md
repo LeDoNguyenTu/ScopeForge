@@ -2,10 +2,13 @@
 
 ## 2026-10-30 resume point
 
-- Released main: `e53c056d9b2897e77715bb98e5f530071587ea9f`; main CI `40561994431` passed.
-- Open PR #220: acceptance-only #214 harness; exact executable source
+- Released main: `7e62d103afbcf3561461cb2fe329d9cc214b4f08`; candidate CI `41033282669`
+  passed, as did main CI `41038513290`. Deployment
+  `dpl_F8BZ15BQbDLcnmYZWB7qGLgsk3TF` is READY on `scopeforge.dev`.
+- PR #220 merged after explicit owner administrative authorization; #214 closed.
+  Its acceptance-only harness has exact executable source
   `fad381480dc1961e4e3fcc606112f37851354f9f` passed real Oracle external-fixture
-  acceptance and 44 focused Linux tests. Final candidate CI/merge remain gates.
+  acceptance and 44 focused Linux tests. Production root/admin redirect checks passed.
 - Worktree: `/home/scopeforge-worker/phase12-host-tunnel-20261030`; private bounded
   evidence: `.artifacts/host-tunnel.evidence.json`. The temporary fixture project
   was deleted; independent host container/socket/TCP cleanup passed.

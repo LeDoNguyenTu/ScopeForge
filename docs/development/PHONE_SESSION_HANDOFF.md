@@ -2,16 +2,19 @@
 
 ## Current: 2026-10-30
 
-- Released main `e53c056d` (PR #219), main CI `40561994431` passed.
-- PR #220 implements #214. Exact executable source `fad38148` passed real Oracle
+- Released main `7e62d103` (PR #220), candidate CI `41033282669` passed;
+  main CI `41038513290` passed. Deployment `dpl_F8BZ15BQbDLcnmYZWB7qGLgsk3TF`
+  is READY on `scopeforge.dev`; root/admin redirect checks passed.
+- PR #220 merged with explicit owner administrative authorization; #214 closed.
+  Exact executable source `fad38148` passed real Oracle
   external HTTPS fixture acceptance and 44 focused Linux tests, including actual
   supervisor SIGTERM cleanup followed by a successful rerun.
 - Pinned dialing, hostile requests, connection/byte/deadline budgets,
   real-provider cancellation, kernel ceilings, zero capabilities, scratch
   exhaustion and cleanup passed. Temporary fixture project/deployment deleted.
 - Host evidence: `/home/scopeforge-worker/phase12-host-tunnel-20261030/.artifacts/host-tunnel.evidence.json`.
-- Final candidate CI/review/merge still required. Earlier administrative merge
-  authorizations do not grant authority for #220.
+- Owner authorization for #220 was used for that PR only. No merge permission
+  is inferred for later PRs.
 - After release, review the dedicated Phase 12 worker/control-plane design.
   No database, worker or capability enablement was performed. Providers stay off;
   Phase 11 acceptance remains complete without another canary.

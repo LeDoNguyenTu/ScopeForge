@@ -2,11 +2,14 @@
 
 ## 2026-10-30 execution order
 
-1. Finish exact-head CI/review and merge of PR #220 for #214. The executable
+1. Preserve the released PR #220/#214 acceptance evidence. Main
+   `7e62d103afbcf3561461cb2fe329d9cc214b4f08` is deployed READY as
+   `dpl_F8BZ15BQbDLcnmYZWB7qGLgsk3TF`; candidate CI `41033282669` passed.
+   Main CI `41038513290` passed. The executable
    candidate `fad381480dc1961e4e3fcc606112f37851354f9f` already passed real Oracle
    external-fixture acceptance and 44 focused Linux tests; fixture/host cleanup is
    verified. See `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`.
-2. After that release, prepare the dedicated Phase 12 worker/control-plane design
+2. Prepare the dedicated Phase 12 worker/control-plane design
    and its authorization, migration, rollback and bounded-canary gates for review.
    Do not register/enable a worker or mutate Supabase from the harness release.
 3. Keep httpx/Nuclei default-off until their own operational acceptance. Preserve
