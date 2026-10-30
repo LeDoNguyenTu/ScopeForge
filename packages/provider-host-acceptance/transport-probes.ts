@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { access } from "node:fs/promises";
 import { createConnection, type Socket } from "node:net";
+import { connect as connectTls } from "node:tls";
 import {
   createProviderEgressUnixTunnelServer,
   providerEgressHostSocketPath,
@@ -115,11 +116,16 @@ export async function runHostTunnelTransportProbes(policy: Readonly<ProviderEgre
           await closed(client);
           acceptanceAssert(tunnel.snapshot().bytesToTarget === 0);
         } else if (scenario === "download") {
-          // Controlled HTTP fixture only. No arbitrary path, body or native provider flags.
-          acceptanceAssert(policy.scheme === "http");
-          client.write(`GET / HTTP/1.0\r\nHost: ${policy.hostname}\r\n\r\n`);
           let received = 0;
           client.on("data", (bytes) => { received += bytes.length; });
+          if (policy.scheme === "https") {
+            // The first TLS response already exceeds the one-byte download ceiling.
+            // SNI and normal certificate verification remain bound to the reviewed hostname.
+            const tls = connectTls({ socket: client, servername: policy.hostname });
+            tls.on("error", () => undefined);
+          } else {
+            client.write(`GET / HTTP/1.0\r\nHost: ${policy.hostname}\r\n\r\n`);
+          }
           await closed(client);
           acceptanceAssert(connector.observedTargetBytes() > 1
             && received === 0 && tunnel.snapshot().bytesFromTarget === 0);

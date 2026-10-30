@@ -19,8 +19,6 @@ async function main() {
   acceptanceAssert(file.isFile() && file.size <= 4096);
   const bytes = await readFile(authorizationFile);
   const authorization = validateAcceptanceAuthorization(bytes, authorizationDigest, sourceSha);
-  // Initial deterministic fixture contract intentionally permits only HTTP (never a generic HTTPS scanner).
-  acceptanceAssert(authorization.target.scheme === "http");
   const rootless = await acceptancePodman(["info", "--format", "{{.Host.Security.Rootless}}"]);
   acceptanceAssert(rootless.exitCode === 0 && rootless.stdout.trim() === "true");
   for (const image of [authorization.providerImage, authorization.sidecarImage]) {

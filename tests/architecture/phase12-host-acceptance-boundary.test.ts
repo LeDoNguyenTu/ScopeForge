@@ -15,7 +15,7 @@ describe("Phase 12 acceptance-only dependency boundary", () => {
       }
       const environments = [...source.matchAll(/process\.env\.([A-Z_]+)/g)].map((match) => match[1]);
       expect(environments.every((name) => ["HOME", "XDG_RUNTIME_DIR"].includes(name))).toBe(true);
-      expect(source).not.toMatch(/\b(?:fetch|eval)\s*\(|\bimport\s*\(|shell:\s*true/);
+      expect(source).not.toMatch(/\b(?:fetch|eval)\s*\(|\bimport\s*\(|shell:\s*true|rejectUnauthorized:\s*false/);
     }
   });
 });
