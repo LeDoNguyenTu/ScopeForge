@@ -27,6 +27,8 @@ jobs:
           package-manager-cache: false
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm audit --audit-level=info
+      - name: Prepare private Unix tunnel fixture root
+        run: sudo install -d -o "$(id -u)" -g "$(id -g)" -m 0700 /run/scopeforge-worker/egress
       - run: npm test
       - run: npm run typecheck
       - run: npm run build:cli

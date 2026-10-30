@@ -13,7 +13,7 @@ Successful target contact requires a separately reviewed JSON authority file and
 the SHA-256 of its exact bytes, supplied out of band. The digest prevents accidental
 substitution; it is not a cryptographic reviewer signature. Only the authorized
 operator may invoke the host entry. The initial harness requires a controlled
-HTTP fixture, never an arbitrary production scan target. Example schema (all
+HTTP or HTTPS fixture, never an arbitrary production scan target. Example schema (all
 placeholders must be replaced after review, and image references must be immutable):
 
 ```json
@@ -45,7 +45,7 @@ from the reviewed address set fail before the tunnel starts.
 3. Start a separately authorized controlled fixture at the exact reviewed
    hostname/port. It must serve only a fixed HTTP 200 response, wait at least
    500 ms before responding, hold idle TCP connections for at least two seconds,
-   cap connections and input, and terminate automatically. It must contain no
+   cap input/requests, and expire automatically. It must contain no
    production data, credentials or state-changing routes.
 4. Invoke the host-only entry from the checkout root:
 
@@ -64,6 +64,8 @@ root, UID, capabilities, no-new-privileges, private socket mount and 8 MiB
 noexec/nosuid/nodev scratch. A fixed diagnostic inside the provider image tests
 DNS/public/metadata denial, wrong-host/port/IP-literal SOCKS denial and socket
 absence. It cannot receive arbitrary commands or provider-native flags.
+The diagnostic also attempts to exceed the 8 MiB scratch filesystem and requires
+`ENOSPC`; the partial file is removed before the real provider starts.
 
 Cleanup always attempts every container removal, repeats removals and tunnel
 closure, checks absence, and destroys active host TCP connections. Evidence
@@ -73,9 +75,10 @@ output, full container inspection and arbitrary subprocess errors.
 
 ## Acceptance limits
 
-Configured/observed ceilings do not by themselves prove deliberate CPU, memory,
-PID, scratch or output exhaustion by the real native provider. Record such stress
-probes separately before claiming every issue #214 gate passed. A source test or
-local fixture is not external-provider operational acceptance. No Phase 12
+The real provider's kernel CPU/memory/PID ceilings are read directly while it is
+running. This does not claim deliberate CPU/memory/PID/output exhaustion by the
+native binary. Scratch exhaustion is checked by the fixed diagnostic; output
+remains subject to the existing externally enforced 32 KiB capture limit. A source
+test or local fixture is not external-provider operational acceptance. No Phase 12
 execution class, queue/database integration or production canary is authorized by
 this harness. Keep httpx and Nuclei default-off.

@@ -31,7 +31,7 @@ async function main() {
   phase = "provider-success";
   const success = await runComposedHttpxProbe(authorization, policy, false);
   phase = "transport-budgets";
-  const transport = await runHostTunnelTransportProbes(policy);
+  const transport = await runHostTunnelTransportProbes(policy, Date.parse(authorization.expiresAt));
   phase = "provider-cancellation";
   const cancellation = await runComposedHttpxProbe(authorization, policy, true);
   process.stdout.write(`${JSON.stringify({ schemaVersion: 1, result: "PASS", sourceSha,

@@ -74,7 +74,12 @@ async function assertContainerBoundary(name: string, role: "provider" | "sidecar
   acceptanceAssert(inspected.Config.User === "65532:65532", "PHASE12_CONTAINER_USER_INVALID");
   const binds = inspected.Mounts.filter((mount: { Type: string }) => mount.Type === "bind");
   if (role === "provider") {
+    const plan = buildExternalProviderSandboxPlan(input);
+    const sidecarId = await acceptancePodman(["inspect", "--format", "{{.Id}}", plan.sidecarName]);
+    acceptanceAssert(sidecarId.exitCode === 0 && /^[a-f0-9]{64}$/.test(sidecarId.stdout.trim()),
+      "PHASE12_SIDECAR_ID_INVALID");
     acceptanceAssert(binds.length === 0 && host.NetworkMode.startsWith("container:")
+      && [plan.sidecarName, sidecarId.stdout.trim()].includes(host.NetworkMode.slice("container:".length))
       && !JSON.stringify(inspected.Config).includes(input.sessionNonce), "PHASE12_PROVIDER_MOUNT_INVALID");
   } else {
     acceptanceAssert(host.NetworkMode === "none" && binds.length === 1
@@ -93,10 +98,14 @@ export async function runComposedHttpxProbe(
   const nonce = randomBytes(32).toString("hex");
   const socketPath = providerEgressHostSocketPath(randomBytes(32).toString("hex"));
   const controller = new AbortController();
+  const authorityExpiresAt = Date.parse(authorization.expiresAt);
+  acceptanceAssert(authorityExpiresAt > Date.now(), "PHASE12_ACCEPTANCE_AUTHORITY_EXPIRED");
+  const authorityTimer = setTimeout(() => controller.abort(), authorityExpiresAt - Date.now());
+  authorityTimer.unref();
   const active = new Set<Socket>();
-  const connector = connectAcceptanceTarget(policy, active);
+  const connector = connectAcceptanceTarget(policy, active, authorityExpiresAt);
   const tunnel = createProviderEgressUnixTunnelServer({ socketPath, policy,
-    session: { nonce, expiresAt: new Date(Date.now() + policy.budget.maxWallTimeMs).toISOString() },
+    session: { nonce, expiresAt: new Date(Math.min(Date.now() + policy.budget.maxWallTimeMs, authorityExpiresAt)).toISOString() },
     signal: controller.signal, connectTarget: connector.connectTarget });
   const taskId = randomUUID();
   const input: HttpxExternalProviderSandboxInput = { provider: "httpx", taskId, attemptId: randomUUID(),
@@ -148,9 +157,11 @@ export async function runComposedHttpxProbe(
           const tested = await acceptancePodman(["start", "--attach", probeName]);
           acceptanceAssert(tested.exitCode === 0, "PHASE12_NAMESPACE_PROBE_FAILED");
           namespace = JSON.parse(tested.stdout);
-          acceptanceAssert(namespace && Object.values(namespace).length === 8
-            && Object.values(namespace).every((value) => value === true) && connector.dials.length === 0,
-          "PHASE12_NAMESPACE_EVIDENCE_INVALID");
+          const expected = ["scratchBounded", "dnsBlocked", "publicTcpBlocked", "metadataBlocked", "wrongHost",
+            "wrongPort", "literalIp", "socketAbsent", "engineSocketsAbsent"];
+          acceptanceAssert(namespace && Object.keys(namespace).length === expected.length
+            && expected.every((key) => namespace?.[key] === true) && connector.dials.length === 0,
+            "PHASE12_NAMESPACE_EVIDENCE_INVALID");
           acceptanceAssert((await acceptancePodman(["rm", "--force", "--ignore", probeName])).exitCode === 0);
         }
       }
@@ -183,6 +194,7 @@ export async function runComposedHttpxProbe(
       acceptanceAssert(cancelledWithActiveTarget);
     }
   } finally {
+    clearTimeout(authorityTimer);
     controller.abort();
     // Both removals are always attempted, including after partial create/start failure.
     const removed: boolean[] = [];

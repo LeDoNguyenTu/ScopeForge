@@ -13,13 +13,17 @@ export function acceptanceAssert(condition: unknown, code = "PHASE12_ACCEPTANCE_
   if (!condition) throw new Error(code);
 }
 
-export function connectAcceptanceTarget(policy: Readonly<ProviderEgressPolicy>, active: Set<Socket>) {
+export function connectAcceptanceTarget(
+  policy: Readonly<ProviderEgressPolicy>, active: Set<Socket>, authorityExpiresAt: number,
+) {
   const dials: { address: string; port: number }[] = [];
   let targetBytes = 0;
   return {
     dials,
     observedTargetBytes: () => targetBytes,
     connectTarget(address: string, port: number) {
+      acceptanceAssert(Number.isFinite(authorityExpiresAt) && Date.now() < authorityExpiresAt,
+        "PHASE12_ACCEPTANCE_AUTHORITY_EXPIRED");
       acceptanceAssert(policy.resolvedIpv4Addresses.includes(address) && port === policy.port);
       dials.push({ address, port });
       const socket = createConnection({ host: address, port, family: 4 });
@@ -76,7 +80,7 @@ async function sendFrame(socketPath: string, frame: unknown, accepted: boolean):
 }
 
 /** Uses real pinned dialing; there is deliberately no injectable connector in this executable harness. */
-export async function runHostTunnelTransportProbes(policy: Readonly<ProviderEgressPolicy>) {
+export async function runHostTunnelTransportProbes(policy: Readonly<ProviderEgressPolicy>, authorityExpiresAt: number) {
   const results: Record<string, boolean> = {};
   const allDials: { address: string; port: number }[] = [];
   const scenarios = ["hostileFrames", "connections", "upload", "download", "deadline", "cancellation"] as const;
@@ -87,9 +91,10 @@ export async function runHostTunnelTransportProbes(policy: Readonly<ProviderEgre
       maxConnections: scenario === "connections" ? 1 : 8,
       maxBytesToTarget: scenario === "upload" ? 1 : policy.budget.maxBytesToTarget,
       maxBytesFromTarget: scenario === "download" ? 1 : policy.budget.maxBytesFromTarget,
-      maxWallTimeMs: scenario === "deadline" ? 600 : 4_000 };
+      maxWallTimeMs: Math.min(scenario === "deadline" ? 600 : 4_000, authorityExpiresAt - Date.now()) };
+    acceptanceAssert(budget.maxWallTimeMs > 0, "PHASE12_ACCEPTANCE_AUTHORITY_EXPIRED");
     const active = new Set<Socket>();
-    const connector = connectAcceptanceTarget(policy, active);
+    const connector = connectAcceptanceTarget(policy, active, authorityExpiresAt);
     const controller = new AbortController();
     const tunnel = createProviderEgressUnixTunnelServer({ socketPath, policy: { ...policy, budget },
       session: { nonce, expiresAt: new Date(Date.now() + budget.maxWallTimeMs).toISOString() },

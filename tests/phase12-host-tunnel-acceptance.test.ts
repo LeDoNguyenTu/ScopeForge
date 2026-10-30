@@ -28,9 +28,17 @@ const authorization = () => ({
 describe("host-owned pinned connector", () => {
   it("rejects an unpinned IP or wrong port before opening a socket", async () => {
     const policy = await prepareHostTunnelAcceptance(validate(), async () => ["93.184.216.34"]);
-    const connector = connectAcceptanceTarget(policy, new Set());
+    const connector = connectAcceptanceTarget(policy, new Set(), now + 3_600_000);
     expect(() => connector.connectTarget("127.0.0.1", 443)).toThrow();
     expect(() => connector.connectTarget("93.184.216.34", 80)).toThrow();
+    expect(connector.dials).toEqual([]);
+  });
+
+  it("rejects expired authority before dialing even when the IP and port match", async () => {
+    const policy = await prepareHostTunnelAcceptance(validate(), async () => ["93.184.216.34"]);
+    const fixturePolicy = { ...policy, port: 9, resolvedIpv4Addresses: ["127.0.0.1"] };
+    const connector = connectAcceptanceTarget(fixturePolicy, new Set(), Date.now() - 1);
+    expect(() => connector.connectTarget("127.0.0.1", 9)).toThrow();
     expect(connector.dials).toEqual([]);
   });
 
@@ -44,7 +52,7 @@ describe("host-owned pinned connector", () => {
       const policy = { ...(await prepareHostTunnelAcceptance(validate(), async () => ["93.184.216.34"])),
         port: address.port, resolvedIpv4Addresses: ["127.0.0.1"] };
       const active = new Set<Socket>();
-      const connector = connectAcceptanceTarget(policy, active);
+      const connector = connectAcceptanceTarget(policy, active, Date.now() + 10_000);
       const socket = connector.connectTarget("127.0.0.1", address.port);
       socket.resume();
       await new Promise<void>((resolve) => socket.once("close", resolve));

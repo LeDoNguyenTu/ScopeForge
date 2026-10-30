@@ -32,8 +32,12 @@ function rejected(kind) {
   });
 }
 (async () => {
+  let scratchBounded = false;
+  try {fs.writeFileSync("/tmp/scopeforge-scratch-probe",Buffer.alloc(8388609))}
+  catch (error) {scratchBounded = error.code === "ENOSPC"}
+  finally {try {fs.unlinkSync("/tmp/scopeforge-scratch-probe")} catch {}}
   const dnsBlocked = await new Promise(resolve => dns.lookup(hostname, error => resolve(Boolean(error))));
-  const results = {dnsBlocked, publicTcpBlocked: await denied("1.1.1.1",443),
+  const results = {scratchBounded, dnsBlocked, publicTcpBlocked: await denied("1.1.1.1",443),
     metadataBlocked: await denied("169.254.169.254",80),
     wrongHost: await rejected("host"), wrongPort: await rejected("port"), literalIp: await rejected("ip"),
     socketAbsent: !fs.existsSync("/run/scopeforge/egress.sock"),
