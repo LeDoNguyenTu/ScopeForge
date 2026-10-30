@@ -2,15 +2,17 @@
 
 ## 2026-10-30 acceptance checkpoint
 
-Main advanced through authorized docs PR #219 to
-`e53c056d9b2897e77715bb98e5f530071587ea9f`; main CI `40561994431` passed.
-Issue #214's harness is implemented in PR #220. Exact executable candidate
+Main advanced through owner-authorized PR #220 to
+`7e62d103afbcf3561461cb2fe329d9cc214b4f08`, deployed READY as
+`dpl_F8BZ15BQbDLcnmYZWB7qGLgsk3TF` on `scopeforge.dev`. Candidate CI
+`41033282669` and main CI `41038513290` passed.
+Issue #214 is closed and its harness is released in PR #220. Exact executable candidate
 `fad381480dc1961e4e3fcc606112f37851354f9f` passed the controlled external HTTPS
 fixture on the accepted Oracle host and all 44 focused Linux tests. Budget,
 hostile-frame, cancellation, resource/scratch and cleanup gates passed; the
 temporary fixture was deleted and all production worker services remained active.
 See `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`.
-Final candidate CI/review/merge remain release gates. No external provider is
+Production root/admin redirect checks passed. No external provider is
 operationally accepted or enabled. The next scope is a reviewed dedicated
 worker/control-plane design. This checkpoint supersedes older unimplemented-harness
 statements below; prior target-free runtime evidence remains valid.

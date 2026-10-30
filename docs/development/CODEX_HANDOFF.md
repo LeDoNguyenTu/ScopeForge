@@ -2,14 +2,17 @@
 
 ## 2026-10-30 current checkpoint
 
-Released main is `e53c056d9b2897e77715bb98e5f530071587ea9f` (authorized docs PR #219);
-main CI `40561994431` passed. PR #220 implements issue #214's acceptance-only host
+Released main is `7e62d103afbcf3561461cb2fe329d9cc214b4f08` (owner-authorized PR #220),
+deployed READY as `dpl_F8BZ15BQbDLcnmYZWB7qGLgsk3TF` on `scopeforge.dev`.
+Candidate CI `41033282669` and main CI `41038513290` passed.
+PR #220 implements issue #214's acceptance-only host
 harness. Exact executable candidate `fad381480dc1961e4e3fcc606112f37851354f9f`
 passed the real Oracle external-fixture run and 44 focused Linux tests, including
 supervisor interruption cleanup. The
 temporary fixture was deleted and independent host cleanup checks passed.
 See `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`.
-PR #220 still needs final exact-head CI and its own applicable merge authority.
+PR #220 is merged and #214 is closed. Production root returned 200 and all five
+admin routes returned 307 with nonce CSP and no authorization error text.
 The next implementation scope is a reviewed dedicated Phase 12 worker/control-plane
 design; providers remain default-off. No database or production worker change was
 made. This checkpoint supersedes older pending-harness statements below.
