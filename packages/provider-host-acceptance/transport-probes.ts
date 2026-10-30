@@ -8,8 +8,8 @@ import {
   type ProviderEgressPolicy,
 } from "../provider-egress-boundary";
 
-export function acceptanceAssert(condition: unknown): asserts condition {
-  if (!condition) throw new Error("PHASE12_ACCEPTANCE_CHECK_FAILED");
+export function acceptanceAssert(condition: unknown, code = "PHASE12_ACCEPTANCE_CHECK_FAILED"): asserts condition {
+  if (!condition) throw new Error(code);
 }
 
 export function connectAcceptanceTarget(policy: Readonly<ProviderEgressPolicy>, active: Set<Socket>) {

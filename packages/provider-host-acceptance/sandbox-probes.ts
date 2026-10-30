@@ -15,9 +15,11 @@ export interface ResourceSnapshot { memory: string; swap: string; pids: string; 
   effectiveCapabilities: string; boundingCapabilities: string }
 
 export function validateResourceSnapshot(value: ResourceSnapshot, role: "provider" | "sidecar"): ResourceSnapshot {
-  acceptanceAssert(value.memory === "268435456" && value.swap === "0"
-    && value.pids === (role === "provider" ? "32" : "8") && value.cpu === "50000 100000"
-    && /^0{16}$/.test(value.effectiveCapabilities) && /^0{16}$/.test(value.boundingCapabilities));
+  acceptanceAssert(value.memory === "268435456" && value.swap === "0", "PHASE12_MEMORY_LIMIT_INVALID");
+  acceptanceAssert(value.pids === (role === "provider" ? "32" : "8"), "PHASE12_PID_LIMIT_INVALID");
+  acceptanceAssert(value.cpu === "50000 100000", "PHASE12_CPU_LIMIT_INVALID");
+  acceptanceAssert(/^0{16}$/.test(value.effectiveCapabilities) && /^0{16}$/.test(value.boundingCapabilities),
+    "PHASE12_CAPABILITY_MASK_INVALID");
   return Object.freeze({ memory: value.memory, swap: value.swap, pids: value.pids, cpu: value.cpu,
     effectiveCapabilities: value.effectiveCapabilities, boundingCapabilities: value.boundingCapabilities });
 }
@@ -68,21 +70,21 @@ async function assertContainerBoundary(name: string, role: "provider" | "sidecar
   const inspected = JSON.parse(result.stdout);
   const host = inspected.HostConfig;
   acceptanceAssert(host.ReadonlyRootfs === true && host.Privileged === false
-    && host.SecurityOpt.includes("no-new-privileges") && host.CapDrop.length > 0);
-  acceptanceAssert(inspected.Config.User === "65532:65532");
+    && host.SecurityOpt.includes("no-new-privileges") && host.CapDrop.length > 0, "PHASE12_SECURITY_OPTIONS_INVALID");
+  acceptanceAssert(inspected.Config.User === "65532:65532", "PHASE12_CONTAINER_USER_INVALID");
   const binds = inspected.Mounts.filter((mount: { Type: string }) => mount.Type === "bind");
   if (role === "provider") {
     acceptanceAssert(binds.length === 0 && host.NetworkMode.startsWith("container:")
-      && !JSON.stringify(inspected.Config).includes(input.sessionNonce));
+      && !JSON.stringify(inspected.Config).includes(input.sessionNonce), "PHASE12_PROVIDER_MOUNT_INVALID");
   } else {
     acceptanceAssert(host.NetworkMode === "none" && binds.length === 1
       && binds[0].Source === input.egressSocketPath && binds[0].Destination === "/run/scopeforge/egress.sock"
-      && binds[0].RW === false);
+      && binds[0].RW === false, "PHASE12_SIDECAR_MOUNT_INVALID");
   }
   const scratch = inspected.Mounts.find((mount: { Destination: string }) => mount.Destination === "/tmp");
   const scratchConfig = JSON.stringify(scratch ?? host.Tmpfs?.["/tmp"]);
   acceptanceAssert(scratchConfig && scratchConfig.includes("noexec") && scratchConfig.includes("nosuid")
-    && scratchConfig.includes("nodev") && /size=(?:8388608|8192k|8m)/.test(scratchConfig));
+    && scratchConfig.includes("nodev") && /size=(?:8388608|8192k|8m)/.test(scratchConfig), "PHASE12_SCRATCH_LIMIT_INVALID");
 }
 
 export async function runComposedHttpxProbe(
@@ -122,7 +124,7 @@ export async function runComposedHttpxProbe(
             if (providerResources && (!cancel || active.size > 0)) break;
             await new Promise<void>((resolve) => setTimeout(resolve, 25));
           }
-          acceptanceAssert(providerResources);
+          acceptanceAssert(providerResources, "PHASE12_PROVIDER_CGROUP_NOT_OBSERVED");
           if (cancel) {
             acceptanceAssert(active.size > 0);
             cancelledWithActiveTarget = true;
@@ -142,12 +144,13 @@ export async function runComposedHttpxProbe(
             "--v8-pool-size=1", "-e", namespaceProbeProgram(policy.hostname, policy.port)];
           probeArgs[probeArgs.indexOf("--name") + 1] = probeName;
           const created = await acceptancePodman(probeArgs);
-          acceptanceAssert(created.exitCode === 0);
+          acceptanceAssert(created.exitCode === 0, "PHASE12_NAMESPACE_CREATE_FAILED");
           const tested = await acceptancePodman(["start", "--attach", probeName]);
-          acceptanceAssert(tested.exitCode === 0);
+          acceptanceAssert(tested.exitCode === 0, "PHASE12_NAMESPACE_PROBE_FAILED");
           namespace = JSON.parse(tested.stdout);
           acceptanceAssert(namespace && Object.values(namespace).length === 8
-            && Object.values(namespace).every((value) => value === true) && connector.dials.length === 0);
+            && Object.values(namespace).every((value) => value === true) && connector.dials.length === 0,
+          "PHASE12_NAMESPACE_EVIDENCE_INVALID");
           acceptanceAssert((await acceptancePodman(["rm", "--force", "--ignore", probeName])).exitCode === 0);
         }
       }
