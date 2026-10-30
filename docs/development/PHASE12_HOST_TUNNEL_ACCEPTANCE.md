@@ -72,6 +72,9 @@ closure, checks absence, and destroys active host TCP connections. Evidence
 includes source, images, reviewed authority digest, target pins, traffic counters,
 cgroup snapshots and cleanup facts. It excludes nonce, raw response/provider
 output, full container inspection and arbitrary subprocess errors.
+SIGINT and SIGTERM feed the same abort boundary; an operator interruption must
+finish cleanup before the host entry exits. Pre-cancelled executions create no
+socket or container, and authority expiry cancels active transport/provider work.
 
 ## Acceptance limits
 

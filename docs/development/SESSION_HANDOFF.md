@@ -1,5 +1,20 @@
 # ScopeForge Session Handoff
 
+## 2026-10-30 resume point
+
+- Released main: `e53c056d9b2897e77715bb98e5f530071587ea9f`; main CI `40561994431` passed.
+- Open PR #220: acceptance-only #214 harness; exact executable source
+  `fad381480dc1961e4e3fcc606112f37851354f9f` passed real Oracle external-fixture
+  acceptance and 44 focused Linux tests. Final candidate CI/merge remain gates.
+- Worktree: `/home/scopeforge-worker/phase12-host-tunnel-20261030`; private bounded
+  evidence: `.artifacts/host-tunnel.evidence.json`. The temporary fixture project
+  was deleted; independent host container/socket/TCP cleanup passed.
+- Next scope after merge: dedicated Phase 12 worker/control-plane design for review.
+  No database/worker/capability enablement is part of this PR. Providers stay off.
+
+See `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md` and
+`PHONE_SESSION_HANDOFF.md`. This checkpoint supersedes older unfinished-harness text below.
+
 Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 
 ## Canonical resume point

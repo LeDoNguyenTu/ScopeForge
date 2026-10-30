@@ -1,5 +1,20 @@
 # Phase 12 current state
 
+## 2026-10-30 acceptance checkpoint
+
+Main advanced through authorized docs PR #219 to
+`e53c056d9b2897e77715bb98e5f530071587ea9f`; main CI `40561994431` passed.
+Issue #214's harness is implemented in PR #220. Exact executable candidate
+`fad381480dc1961e4e3fcc606112f37851354f9f` passed the controlled external HTTPS
+fixture on the accepted Oracle host and all 44 focused Linux tests. Budget,
+hostile-frame, cancellation, resource/scratch and cleanup gates passed; the
+temporary fixture was deleted and all production worker services remained active.
+See `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`.
+Final candidate CI/review/merge remain release gates. No external provider is
+operationally accepted or enabled. The next scope is a reviewed dedicated
+worker/control-plane design. This checkpoint supersedes older unimplemented-harness
+statements below; prior target-free runtime evidence remains valid.
+
 Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 
 ## Exact repository and release checkpoint

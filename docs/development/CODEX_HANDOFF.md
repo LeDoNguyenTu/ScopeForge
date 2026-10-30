@@ -1,5 +1,19 @@
 # ScopeForge Codex Handoff
 
+## 2026-10-30 current checkpoint
+
+Released main is `e53c056d9b2897e77715bb98e5f530071587ea9f` (authorized docs PR #219);
+main CI `40561994431` passed. PR #220 implements issue #214's acceptance-only host
+harness. Exact executable candidate `fad381480dc1961e4e3fcc606112f37851354f9f`
+passed the real Oracle external-fixture run and 44 focused Linux tests, including
+supervisor interruption cleanup. The
+temporary fixture was deleted and independent host cleanup checks passed.
+See `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`.
+PR #220 still needs final exact-head CI and its own applicable merge authority.
+The next implementation scope is a reviewed dedicated Phase 12 worker/control-plane
+design; providers remain default-off. No database or production worker change was
+made. This checkpoint supersedes older pending-harness statements below.
+
 Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 
 Current released `main` and `origin/main` are `a577739230a2b717caabfc28e8a33cad2a2e0c64` (PR #218), deployed READY as `dpl_6eHQiN19RLYsXLFreRYxVFYh9UhR` on `scopeforge.dev`. PRs #216-#218 are merged after the owner's explicit administrative merge authorizations. Candidate CI runs `40548572541`, `40550299116`, and `40553671820` passed; final main CI `40560380937` also passed. Issues #212, #213 and #215 are closed. Fresh production admin checks returned 307 with nonce CSP, and the final verification window beginning `2026-10-27T18:32:00Z` reported no runtime errors on the checked admin/workspace routes.
