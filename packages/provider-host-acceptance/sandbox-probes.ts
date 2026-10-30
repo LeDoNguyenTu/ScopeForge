@@ -167,6 +167,12 @@ export async function runComposedHttpxProbe(
       const result = await createExternalProviderSandbox({ driver }).execute(input, controller.signal);
       acceptanceAssert(!cancel);
       const record = JSON.parse(result.output).record;
+      if (!record || record.status !== 200 || connector.dials.length === 0
+          || tunnel.snapshot().bytesToTarget === 0 || tunnel.snapshot().bytesFromTarget === 0) {
+        process.stderr.write(`${JSON.stringify({ phase: "provider-summary", hasRecord: Boolean(record),
+          status: Number.isInteger(record?.status) ? record.status : null,
+          dialCount: connector.dials.length, traffic: tunnel.snapshot() })}\n`);
+      }
       acceptanceAssert(record?.status === 200 && connector.dials.length > 0
         && tunnel.snapshot().bytesToTarget > 0 && tunnel.snapshot().bytesFromTarget > 0,
       "PHASE12_PROVIDER_RESULT_INVALID");
