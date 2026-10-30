@@ -50,4 +50,16 @@ describe.skipIf(process.platform !== "linux")("real Unix tunnel transport probes
       await expect(runHostTunnelTransportProbes(policy, Date.now() + 30_000)).rejects.toThrow();
     });
   });
+
+  it("cleans the active Unix and TCP transport when the supervisor is interrupted", async () => {
+    await fixture(true, async (policy) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 100);
+      try {
+        await expect(runHostTunnelTransportProbes(policy, Date.now() + 30_000, controller.signal))
+          .rejects.toThrow();
+        expect(controller.signal.aborted).toBe(true);
+      } finally { clearTimeout(timer); }
+    });
+  });
 });

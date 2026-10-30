@@ -80,7 +80,10 @@ async function sendFrame(socketPath: string, frame: unknown, accepted: boolean):
 }
 
 /** Uses real pinned dialing; there is deliberately no injectable connector in this executable harness. */
-export async function runHostTunnelTransportProbes(policy: Readonly<ProviderEgressPolicy>, authorityExpiresAt: number) {
+export async function runHostTunnelTransportProbes(
+  policy: Readonly<ProviderEgressPolicy>, authorityExpiresAt: number, signal?: AbortSignal,
+) {
+  if (signal?.aborted) throw new DOMException("cancelled", "AbortError");
   const results: Record<string, boolean> = {};
   const allDials: { address: string; port: number }[] = [];
   const scenarios = ["hostileFrames", "connections", "upload", "download", "deadline", "cancellation"] as const;
@@ -96,9 +99,10 @@ export async function runHostTunnelTransportProbes(policy: Readonly<ProviderEgre
     const active = new Set<Socket>();
     const connector = connectAcceptanceTarget(policy, active, authorityExpiresAt);
     const controller = new AbortController();
+    const executionSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
     const tunnel = createProviderEgressUnixTunnelServer({ socketPath, policy: { ...policy, budget },
       session: { nonce, expiresAt: new Date(Date.now() + budget.maxWallTimeMs).toISOString() },
-      signal: controller.signal, connectTarget: connector.connectTarget });
+      signal: executionSignal, connectTarget: connector.connectTarget });
     const frame = { schemaVersion: 1, operation: "connect", nonce, hostname: policy.hostname, port: policy.port };
     let client: Socket | undefined;
     try {

@@ -94,10 +94,13 @@ async function assertContainerBoundary(name: string, role: "provider" | "sidecar
 
 export async function runComposedHttpxProbe(
   authorization: Readonly<AcceptanceAuthorization>, policy: Readonly<ProviderEgressPolicy>, cancel: boolean,
+  signal?: AbortSignal,
 ) {
+  if (signal?.aborted) throw new DOMException("cancelled", "AbortError");
   const nonce = randomBytes(32).toString("hex");
   const socketPath = providerEgressHostSocketPath(randomBytes(32).toString("hex"));
   const controller = new AbortController();
+  const executionSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
   const authorityExpiresAt = Date.parse(authorization.expiresAt);
   acceptanceAssert(authorityExpiresAt > Date.now(), "PHASE12_ACCEPTANCE_AUTHORITY_EXPIRED");
   const authorityTimer = setTimeout(() => controller.abort(), authorityExpiresAt - Date.now());
@@ -106,7 +109,7 @@ export async function runComposedHttpxProbe(
   const connector = connectAcceptanceTarget(policy, active, authorityExpiresAt);
   const tunnel = createProviderEgressUnixTunnelServer({ socketPath, policy,
     session: { nonce, expiresAt: new Date(Math.min(Date.now() + policy.budget.maxWallTimeMs, authorityExpiresAt)).toISOString() },
-    signal: controller.signal, connectTarget: connector.connectTarget });
+    signal: executionSignal, connectTarget: connector.connectTarget });
   const taskId = randomUUID();
   const input: HttpxExternalProviderSandboxInput = { provider: "httpx", taskId, attemptId: randomUUID(),
     workspaceId: taskId, actionId: "phase12-acceptance:httpx", authorizationId: authorization.authorizationId,
@@ -175,7 +178,7 @@ export async function runComposedHttpxProbe(
   try {
     await tunnel.start();
     try {
-      const result = await createExternalProviderSandbox({ driver }).execute(input, controller.signal);
+      const result = await createExternalProviderSandbox({ driver }).execute(input, executionSignal);
       acceptanceAssert(!cancel);
       const record = JSON.parse(result.output).record;
       if (!record || record.status !== 200 || connector.dials.length === 0

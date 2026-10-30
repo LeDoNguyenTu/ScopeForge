@@ -27,13 +27,18 @@ async function main() {
   }
   phase = "dns";
   const policy = await prepareHostTunnelAcceptance(authorization);
+  const interrupted = new AbortController();
+  const onInterrupt = () => interrupted.abort();
+  process.once("SIGINT", onInterrupt);
+  process.once("SIGTERM", onInterrupt);
+  try {
   // Establish a real 200 response before using the controlled endpoint in exhaustion probes.
   phase = "provider-success";
-  const success = await runComposedHttpxProbe(authorization, policy, false);
+  const success = await runComposedHttpxProbe(authorization, policy, false, interrupted.signal);
   phase = "transport-budgets";
-  const transport = await runHostTunnelTransportProbes(policy, Date.parse(authorization.expiresAt));
+  const transport = await runHostTunnelTransportProbes(policy, Date.parse(authorization.expiresAt), interrupted.signal);
   phase = "provider-cancellation";
-  const cancellation = await runComposedHttpxProbe(authorization, policy, true);
+  const cancellation = await runComposedHttpxProbe(authorization, policy, true, interrupted.signal);
   process.stdout.write(`${JSON.stringify({ schemaVersion: 1, result: "PASS", sourceSha,
     providerImage: authorization.providerImage, sidecarImage: authorization.sidecarImage,
     authorizationId: authorization.authorizationId,
@@ -41,6 +46,10 @@ async function main() {
     target: authorization.target, pinnedIpv4Addresses: policy.resolvedIpv4Addresses,
     success, transport, cancellation,
     operationalProviderAccepted: false, productionEnablement: false })}\n`);
+  } finally {
+    process.removeListener("SIGINT", onInterrupt);
+    process.removeListener("SIGTERM", onInterrupt);
+  }
 }
 
 void main().catch((error: unknown) => {

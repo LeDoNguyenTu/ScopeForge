@@ -5,8 +5,8 @@ import {
   prepareHostTunnelAcceptance,
   validateAcceptanceAuthorization,
 } from "../packages/provider-host-acceptance/authorization";
-import { connectAcceptanceTarget } from "../packages/provider-host-acceptance/transport-probes";
-import { validateResourceSnapshot } from "../packages/provider-host-acceptance/sandbox-probes";
+import { connectAcceptanceTarget, runHostTunnelTransportProbes } from "../packages/provider-host-acceptance/transport-probes";
+import { runComposedHttpxProbe, validateResourceSnapshot } from "../packages/provider-host-acceptance/sandbox-probes";
 
 const now = Date.parse("2026-10-30T10:00:00Z");
 const sourceSha = "a".repeat(40);
@@ -26,6 +26,14 @@ const authorization = () => ({
 });
 
 describe("host-owned pinned connector", () => {
+  it("rejects pre-cancelled execution before creating sockets or containers", async () => {
+    const approved = validate();
+    const policy = await prepareHostTunnelAcceptance(approved, async () => ["93.184.216.34"]);
+    await expect(runHostTunnelTransportProbes(policy, Date.now() + 10_000, AbortSignal.abort()))
+      .rejects.toMatchObject({ name: "AbortError" });
+    await expect(runComposedHttpxProbe(approved, policy, false, AbortSignal.abort()))
+      .rejects.toMatchObject({ name: "AbortError" });
+  });
   it("rejects an unpinned IP or wrong port before opening a socket", async () => {
     const policy = await prepareHostTunnelAcceptance(validate(), async () => ["93.184.216.34"]);
     const connector = connectAcceptanceTarget(policy, new Set(), now + 3_600_000);
