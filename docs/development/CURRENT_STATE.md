@@ -1,5 +1,20 @@
 # ScopeForge Current State
 
+## 2026-10-30 current checkpoint
+
+Main is `e53c056d9b2897e77715bb98e5f530071587ea9f` after authorized PR #219;
+main CI `40561994431` passed. PR #220 now supplies the #214 host-tunnel acceptance
+harness. Exact executable source `fad381480dc1961e4e3fcc606112f37851354f9f`
+passed the controlled external HTTPS fixture on Oracle, plus 44 focused Linux
+tests. Hostile frames, pinned dialing, budgets, real-provider cancellation, actual
+cgroups/capability masks, scratch exhaustion and cleanup passed. The temporary
+Vercel fixture was deleted; no acceptance containers, sockets or target TCP
+connections remained, and all three production worker services stayed active.
+Final candidate CI/merge are still release gates. See
+`../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`. External providers remain
+default-off; no worker/control-plane/database enablement or canary occurred.
+Older snapshots below are historical where they conflict with this checkpoint.
+
 Last reconciled: 2026-10-28, Asia/Bangkok. Live provider state wins.
 
 ## 2026-10-28 live repository and Phase 12 reconciliation

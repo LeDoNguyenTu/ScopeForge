@@ -1,17 +1,29 @@
 # ScopeForge Unfinished Work
 
-Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
+Last reconciled: 2026-10-30, Asia/Bangkok. Live GitHub/provider state wins.
 
 ## Active Phase 12 post-v1 work
 
 The approved v1 roadmap remains complete. These are adopted post-v1 Phase 12 items, not reopened v1 blockers:
 
-1. **Issue #214 - real host-tunnel Linux acceptance harness.** Compose the existing target-bound host tunnel and two-container sandbox in deterministic acceptance tooling. Target-free httpx containment already passed on Oracle at source `8472f33c9c2ad04b29e436b07b551ac8ed062ae2`; the next harness must prove pinned-IP dialing, hostile-frame rejection, budgets, cancellation, resource ceilings and idempotent cleanup. Do not add a worker class, queue route, migration, production target authority or canary in this slice.
-2. **Operational acceptance after #214.** Only after the shared Linux boundary passes may a dedicated Phase 12 worker/control-plane design and separately authorized bounded canaries be considered. httpx and Nuclei remain default-off.
+1. **Issue #214 / PR #220 release gates.** The acceptance harness is implemented.
+   Exact executable candidate `fad381480dc1961e4e3fcc606112f37851354f9f` passed real
+   Oracle external-fixture acceptance and 44 focused Linux tests. Pinned-IP dialing,
+   hostile requests, connection/byte/deadline budgets, real-provider cancellation,
+   kernel ceilings, scratch exhaustion and cleanup passed. The temporary fixture
+   was deleted. Final exact-head CI/review/merge remain; see
+   `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`.
+2. **Dedicated Phase 12 worker/control-plane design and operational acceptance.**
+   Prepare the separately reviewed authorization/class/queue/database/rollback
+   design only after #220. No such enablement or production canary is part of the
+   harness. httpx and Nuclei remain default-off.
 
 Issue #213 and PR #218's preparation fixes are released. PR #217 merged as `444d7ffcfb59527d7aa141f4570606b6d9093771`; PR #218 merged as `a577739230a2b717caabfc28e8a33cad2a2e0c64`. Production navigation and redirect checks passed. No navigation/preparation merge gate remains.
 
-Released `main`: `a577739230a2b717caabfc28e8a33cad2a2e0c64`, main CI `40560380937` successful, Vercel deployment `dpl_6eHQiN19RLYsXLFreRYxVFYh9UhR` READY. Issues #212, #213 and #215 are closed. Read-only Supabase verification on 2026-10-28 reconfirmed project `tdgpibrepzcvdivztkta`, no registered Phase 12 provider worker, zero active Phase 11 HTTP tasks, one unrelated queued public snapshot task, and zero direct private-table grants to `anon` or `authenticated`.
+Released `main`: `e53c056d9b2897e77715bb98e5f530071587ea9f` (PR #219), main CI
+`40561994431` successful; prior runtime baseline `a5777392` remains unchanged.
+Issues #212, #213 and #215 are closed. The 2026-10-28 read-only Supabase snapshot
+remains historical; this harness work made no database changes.
 
 ## Dashboard/MFA correction
 

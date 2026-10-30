@@ -1,5 +1,19 @@
 # ScopeForge Next Steps
 
+## 2026-10-30 execution order
+
+1. Finish exact-head CI/review and merge of PR #220 for #214. The executable
+   candidate `fad381480dc1961e4e3fcc606112f37851354f9f` already passed real Oracle
+   external-fixture acceptance and 44 focused Linux tests; fixture/host cleanup is
+   verified. See `../validation/post-v1/PHASE12_HOST_TUNNEL_ACCEPTANCE.md`.
+2. After that release, prepare the dedicated Phase 12 worker/control-plane design
+   and its authorization, migration, rollback and bounded-canary gates for review.
+   Do not register/enable a worker or mutate Supabase from the harness release.
+3. Keep httpx/Nuclei default-off until their own operational acceptance. Preserve
+   Phase 11 acceptance without rerunning it. Later 12B-12H ordering below remains.
+
+This current order supersedes older instructions to implement/run #214 from scratch.
+
 Last reconciled: 2026-10-28, Asia/Bangkok. Live GitHub/provider state wins.
 
 ## Active post-v1 roadmap

@@ -35,6 +35,11 @@ await build({
 });
 await build({
   ...shared,
+  entryPoints: ["packages/provider-host-acceptance/entry.ts"],
+  outfile: `${outdir}/provider-host-acceptance.cjs`,
+});
+await build({
+  ...shared,
   entryPoints: ["packages/nuclei-worker-runner/container-entry.ts"],
   outfile: `${outdir}/nuclei-worker-entry.js`,
 });
