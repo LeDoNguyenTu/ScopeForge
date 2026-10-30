@@ -11,12 +11,15 @@ import type { AcceptanceAuthorization } from "./authorization";
 import { acceptanceAssert, assertAcceptanceSocketRemoved, connectAcceptanceTarget } from "./transport-probes";
 import { namespaceProbeProgram } from "./namespace-probe";
 
-export interface ResourceSnapshot { memory: string; swap: string; pids: string; cpu: string }
+export interface ResourceSnapshot { memory: string; swap: string; pids: string; cpu: string;
+  effectiveCapabilities: string; boundingCapabilities: string }
 
 export function validateResourceSnapshot(value: ResourceSnapshot, role: "provider" | "sidecar"): ResourceSnapshot {
   acceptanceAssert(value.memory === "268435456" && value.swap === "0"
-    && value.pids === (role === "provider" ? "32" : "8") && value.cpu === "50000 100000");
-  return Object.freeze({ memory: value.memory, swap: value.swap, pids: value.pids, cpu: value.cpu });
+    && value.pids === (role === "provider" ? "32" : "8") && value.cpu === "50000 100000"
+    && /^0{16}$/.test(value.effectiveCapabilities) && /^0{16}$/.test(value.boundingCapabilities));
+  return Object.freeze({ memory: value.memory, swap: value.swap, pids: value.pids, cpu: value.cpu,
+    effectiveCapabilities: value.effectiveCapabilities, boundingCapabilities: value.boundingCapabilities });
 }
 
 /** Fixed executable, argv arrays, bounded stdout, and no provider credentials in the child environment. */
@@ -52,7 +55,10 @@ async function readResources(name: string, role: "provider" | "sidecar") {
   const [memory, swap, pids, cpu] = await Promise.all(
     ["memory.max", "memory.swap.max", "pids.max", "cpu.max"].map(async (file) =>
       (await readFile(path.join(root, file), "utf8")).trim()));
-  return validateResourceSnapshot({ memory, swap, pids, cpu }, role);
+  const status = await readFile(`/proc/${pid}/status`, "utf8");
+  const effectiveCapabilities = status.match(/^CapEff:\s*([a-f0-9]{16})$/m)?.[1] ?? "invalid";
+  const boundingCapabilities = status.match(/^CapBnd:\s*([a-f0-9]{16})$/m)?.[1] ?? "invalid";
+  return validateResourceSnapshot({ memory, swap, pids, cpu, effectiveCapabilities, boundingCapabilities }, role);
 }
 
 async function assertContainerBoundary(name: string, role: "provider" | "sidecar", input: HttpxExternalProviderSandboxInput) {
@@ -62,8 +68,7 @@ async function assertContainerBoundary(name: string, role: "provider" | "sidecar
   const inspected = JSON.parse(result.stdout);
   const host = inspected.HostConfig;
   acceptanceAssert(host.ReadonlyRootfs === true && host.Privileged === false
-    && host.SecurityOpt.includes("no-new-privileges")
-    && host.CapDrop.some((cap: string) => cap.toLowerCase() === "all"));
+    && host.SecurityOpt.includes("no-new-privileges") && host.CapDrop.length > 0);
   acceptanceAssert(inspected.Config.User === "65532:65532");
   const binds = inspected.Mounts.filter((mount: { Type: string }) => mount.Type === "bind");
   if (role === "provider") {

@@ -56,11 +56,13 @@ describe("host-owned pinned connector", () => {
 });
 
 describe("actual Linux resource snapshots", () => {
-  const snapshot = { memory: "268435456", swap: "0", pids: "32", cpu: "50000 100000" };
+  const snapshot = { memory: "268435456", swap: "0", pids: "32", cpu: "50000 100000",
+    effectiveCapabilities: "0000000000000000", boundingCapabilities: "0000000000000000" };
   it("requires the unchanged cgroup ceilings for the real provider and trusted sidecar", () => {
     expect(validateResourceSnapshot(snapshot, "provider")).toEqual(snapshot);
     expect(validateResourceSnapshot({ ...snapshot, pids: "8" }, "sidecar").pids).toBe("8");
-    for (const change of [{ pids: "max" }, { memory: "max" }, { swap: "max" }, { cpu: "max 100000" }]) {
+    for (const change of [{ pids: "max" }, { memory: "max" }, { swap: "max" }, { cpu: "max 100000" },
+      { effectiveCapabilities: "0000000000000001" }, { boundingCapabilities: "0000000000000001" }]) {
       expect(() => validateResourceSnapshot({ ...snapshot, ...change }, "provider")).toThrow();
     }
     expect(() => validateResourceSnapshot({ ...snapshot, pids: "32" }, "sidecar")).toThrow();
