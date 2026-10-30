@@ -51,9 +51,9 @@ async function readResources(name: string, role: "provider" | "sidecar") {
   if (result.exitCode !== 0 || !/^[1-9][0-9]*$/.test(result.stdout.trim())) return null;
   const pid = result.stdout.trim();
   const cgroup = (await readFile(`/proc/${pid}/cgroup`, "utf8")).trim().match(/^0::(\/[^\n]*)$/)?.[1];
-  acceptanceAssert(cgroup);
+  acceptanceAssert(cgroup, "PHASE12_CGROUP_PATH_INVALID");
   const root = path.resolve("/sys/fs/cgroup", `.${cgroup}`);
-  acceptanceAssert(root.startsWith("/sys/fs/cgroup/"));
+  acceptanceAssert(root.startsWith("/sys/fs/cgroup/"), "PHASE12_CGROUP_ROOT_INVALID");
   const [memory, swap, pids, cpu] = await Promise.all(
     ["memory.max", "memory.swap.max", "pids.max", "cpu.max"].map(async (file) =>
       (await readFile(path.join(root, file), "utf8")).trim()));
@@ -126,7 +126,7 @@ export async function runComposedHttpxProbe(
           }
           acceptanceAssert(providerResources, "PHASE12_PROVIDER_CGROUP_NOT_OBSERVED");
           if (cancel) {
-            acceptanceAssert(active.size > 0);
+            acceptanceAssert(active.size > 0, "PHASE12_CANCEL_TARGET_NOT_ACTIVE");
             cancelledWithActiveTarget = true;
             controller.abort();
           }
@@ -156,7 +156,7 @@ export async function runComposedHttpxProbe(
       }
       if (result.exitCode === 0 && args[0] === "start" && args[1] === plan.sidecarName) {
         sidecarResources = await readResources(plan.sidecarName, "sidecar");
-        acceptanceAssert(sidecarResources);
+        acceptanceAssert(sidecarResources, "PHASE12_SIDECAR_CGROUP_NOT_OBSERVED");
       }
       return result;
     },
@@ -168,7 +168,8 @@ export async function runComposedHttpxProbe(
       acceptanceAssert(!cancel);
       const record = JSON.parse(result.output).record;
       acceptanceAssert(record?.status === 200 && connector.dials.length > 0
-        && tunnel.snapshot().bytesToTarget > 0 && tunnel.snapshot().bytesFromTarget > 0);
+        && tunnel.snapshot().bytesToTarget > 0 && tunnel.snapshot().bytesFromTarget > 0,
+      "PHASE12_PROVIDER_RESULT_INVALID");
       outputBytes = Buffer.byteLength(result.output);
       acceptanceAssert(outputBytes <= 32_768);
     } catch (error) {
@@ -178,15 +179,17 @@ export async function runComposedHttpxProbe(
   } finally {
     controller.abort();
     // Both removals are always attempted, including after partial create/start failure.
-    const removed = await Promise.all([plan.providerName, probeName, plan.sidecarName].map(async (name) => {
+    const removed: boolean[] = [];
+    for (const name of [plan.providerName, probeName, plan.sidecarName]) {
       const first = await acceptancePodman(["rm", "--time=0", "--force", "--ignore", name]);
       const second = await acceptancePodman(["rm", "--time=0", "--force", "--ignore", name]);
       const exists = await acceptancePodman(["container", "exists", name]);
-      return first.exitCode === 0 && second.exitCode === 0 && exists.exitCode === 1;
-    }));
+      removed.push(first.exitCode === 0 && second.exitCode === 0 && exists.exitCode === 1);
+    }
     await tunnel.close(); await tunnel.close();
     await assertAcceptanceSocketRemoved(socketPath);
-    acceptanceAssert(removed.every(Boolean) && [...active].every((socket) => socket.destroyed));
+    acceptanceAssert(removed.every(Boolean) && [...active].every((socket) => socket.destroyed),
+      "PHASE12_CLEANUP_FAILED");
   }
   return { scenario: cancel ? "cancellation" : "success", dials: connector.dials,
     traffic: tunnel.snapshot(), namespace, providerResources, sidecarResources, outputBytes, cleanup: true };
